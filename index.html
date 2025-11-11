@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Veelearn - Interactive Learning Platform"
+    />
+    <title>Veelearn - Interactive Learning Platform</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Veelearn</h1>
+      <nav>
+        <a href="index.html" id="home-link">Home</a>
+        <a href="block-simulator.html" id="simulator-link" style="display: none">Block Simulator</a>
+        <a href="simulator-marketplace.html" id="marketplace-link" style="display: none">Marketplace</a>
+        <a href="simulator-creator.html" id="creator-link" style="display: none">Creator</a>
+        <a href="#" id="login-link">Login</a>
+        <a href="#" id="register-link">Register</a>
+        <a href="#" id="dashboard-link" style="display: none">Dashboard</a>
+        <button id="logout-button" style="display: none">Logout</button>
+      </nav>
+    </header>
+
+    <main>
+      <!-- AUTH SECTION -->
+      <section id="auth-section">
+        <h2>Welcome to Veelearn</h2>
+        <div id="login-form" class="auth-form">
+          <h3>Login</h3>
+          <div id="login-error-message" style="color: red; margin-bottom: 10px;"></div>
+          <form autocomplete="on">
+            <input
+              type="email"
+              id="login-email"
+              placeholder="Email"
+              autocomplete="email"
+              required
+            />
+            <input
+              type="password"
+              id="login-password"
+              placeholder="Password"
+              autocomplete="current-password"
+              required
+            />
+            <button type="submit">Login</button>
+          </form>
+          <p>
+            Don't have an account?
+            <a href="#" id="show-register">Register here</a>
+          </p>
+        </div>
+        <div id="register-form" class="auth-form" style="display: none">
+          <h3>Register</h3>
+          <div id="register-error-message" style="color: red; margin-bottom: 10px;"></div>
+          <form autocomplete="on">
+            <input
+              type="email"
+              id="register-email"
+              placeholder="Email"
+              autocomplete="email"
+              required
+            />
+            <input
+              type="password"
+              id="register-password"
+              placeholder="Password (min 8 chars, uppercase, lowercase, number)"
+              autocomplete="new-password"
+              minlength="8"
+              required
+            />
+            <button type="submit">Register</button>
+          </form>
+          <p>
+            Already have an account? <a href="#" id="show-login">Login here</a>
+          </p>
+        </div>
+      </section>
+
+      <!-- DASHBOARD SECTION -->
+      <section id="dashboard-section" style="display: none">
+        <h2>Your Dashboard</h2>
+        <p>Welcome, <span id="user-email"></span>!</p>
+
+        <!-- SUPERADMIN DASHBOARD -->
+        <div id="superadmin-dashboard" style="display: none">
+          <h3>Superadmin Panel</h3>
+
+          <h4>Manage Users</h4>
+          <ul id="user-list"></ul>
+
+          <h4>Pending Courses for Approval</h4>
+          <ul id="superadmin-pending-courses-list"></ul>
+
+          <h4>My Courses</h4>
+          <button
+            id="create-course-button-superadmin"
+            class="create-course-btn"
+          >
+            Create New Course
+          </button>
+          <ul id="my-courses-list-superadmin"></ul>
+
+          <h4>Available Courses</h4>
+          <ul id="available-courses-list-superadmin"></ul>
+        </div>
+
+        <!-- ADMIN DASHBOARD -->
+        <div id="admin-dashboard" style="display: none">
+          <h3>Admin Panel</h3>
+
+          <h4>Manage Users</h4>
+          <ul id="user-list-admin"></ul>
+
+          <h4>Pending Courses for Approval</h4>
+          <ul id="admin-pending-courses-list"></ul>
+
+          <h4>My Courses</h4>
+          <button
+            id="create-course-button-admin"
+            onclick="document.getElementById('create-course-button').click()"
+          >
+            Create New Course
+          </button>
+          <ul id="my-courses-list-admin"></ul>
+
+          <h4>Available Courses</h4>
+          <ul id="available-courses-list-admin"></ul>
+        </div>
+
+        <!-- USER DASHBOARD -->
+        <div id="user-dashboard" style="display: none">
+          <h3>User Panel</h3>
+
+          <button id="create-course-button-user" class="create-course-btn">
+            Create New Course
+          </button>
+
+          <h4>My Courses</h4>
+          <ul id="my-courses-list-user"></ul>
+
+          <h4>Available Courses</h4>
+          <ul id="available-courses-list-user"></ul>
+        </div>
+      </section>
+
+      <!-- COURSE EDITOR -->
+      <section id="course-editor-section" style="display: none">
+        <h2>Course Editor</h2>
+        <p class="info-text">
+          Use the toolbar to format your content and add interactive simulators.
+          Changes are auto-saved every 30 seconds.
+        </p>
+
+        <form id="course-form">
+          <input
+            type="text"
+            id="course-title"
+            placeholder="Course Title"
+            maxlength="255"
+            required
+          />
+          <textarea
+            id="course-description"
+            placeholder="Course Description (optional)"
+            rows="3"
+          ></textarea>
+
+          <div class="editor-toolbar">
+            <button type="button" data-command="bold" title="Bold">
+              <b>B</b>
+            </button>
+            <button type="button" data-command="italic" title="Italic">
+              <i>I</i>
+            </button>
+            <button type="button" data-command="underline" title="Underline">
+              <u>U</u>
+            </button>
+            <button
+              type="button"
+              data-command="insertUnorderedList"
+              title="Bullet List"
+            >
+              &#x2022; List
+            </button>
+            <button
+              type="button"
+              data-command="insertOrderedList"
+              title="Numbered List"
+            >
+              1. List
+            </button>
+            <button
+              type="button"
+              id="insert-math-simulator"
+              title="Add Math Problem"
+            >
+              ➕ Math Simulator
+            </button>
+            <button
+              type="button"
+              id="insert-coding-simulator"
+              title="Add Coding Challenge"
+            >
+              💻 Coding Simulator
+            </button>
+            <button
+              type="button"
+              id="insert-visual-simulator"
+              title="Add Code-based Visual Simulator"
+            >
+              🎨 Code Visual Simulator
+            </button>
+            <button
+              type="button"
+              id="insert-block-simulator"
+              title="Add Block-based Visual Simulator"
+            >
+              🧩 Block Visual Simulator
+            </button>
+          </div>
+
+          <div
+            id="course-content-editor"
+            contenteditable="true"
+            placeholder="Start typing your course content here... Use the toolbar above to format text and add simulators."
+            class="rich-text-editor"
+            spellcheck="true"
+          ></div>
+
+          <div class="form-actions">
+            <button type="submit" class="primary-btn">Save Course</button>
+            <button type="button" id="cancel-course-edit" class="secondary-btn">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- COURSE VIEWER -->
+      <section id="course-viewer-section" style="display: none">
+        <h2 id="course-viewer-title"></h2>
+        <p id="course-viewer-description" class="course-description"></p>
+        <hr />
+        <div id="course-viewer-content"></div>
+        
+        <!-- Simulators Section -->
+        <div id="course-simulators-section" style="display: none; margin-top: 2em;">
+          <h3>📊 Course Simulators</h3>
+          <div id="course-simulators-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1em; margin-top: 1em;">
+            <!-- Simulators will be populated here -->
+          </div>
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" id="back-to-dashboard" class="secondary-btn">
+            Back to Dashboard
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>&copy; 2025 Veelearn. All rights reserved.</p>
+    </footer>
+
+    <script src="script.js"></script>
+  </body>
+</html>

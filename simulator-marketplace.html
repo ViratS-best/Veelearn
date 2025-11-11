@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulator Marketplace - Veelearn</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 2em;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        header .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 1.5em;
+            font-size: 2em;
+        }
+
+        .header-nav {
+            display: flex;
+            gap: 1em;
+            margin-bottom: 1.5em;
+        }
+
+        .header-nav a, .header-nav button {
+            padding: 0.7em 1.5em;
+            border-radius: 6px;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .header-nav a.btn-primary, .header-nav button.btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .header-nav a.btn-primary:hover, .header-nav button.btn-primary:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        .header-nav a.btn-secondary, .header-nav button.btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .header-nav a.btn-secondary:hover, .header-nav button.btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .controls-section {
+            display: flex;
+            gap: 1em;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 0.8em;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 1em;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-group select {
+            padding: 0.8em;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        .filter-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        main {
+            max-width: 1400px;
+            margin: 2em auto;
+            padding: 0 1em;
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 0.5em;
+            margin-bottom: 2em;
+        }
+
+        .view-toggle button {
+            padding: 0.6em 1.2em;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .view-toggle button.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .simulators-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2em;
+            margin-bottom: 3em;
+        }
+
+        .simulator-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+        }
+
+        .simulator-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-image {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3em;
+            color: white;
+            overflow: hidden;
+        }
+
+        .card-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .card-content {
+            padding: 1.5em;
+        }
+
+        .card-title {
+            font-size: 1.2em;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 0.5em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .card-description {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 1em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .card-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1em;
+            padding-bottom: 1em;
+            border-bottom: 1px solid #eee;
+            font-size: 0.85em;
+        }
+
+        .card-rating {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .card-downloads {
+            color: #999;
+        }
+
+        .card-creator {
+            color: #999;
+            font-size: 0.85em;
+            margin-bottom: 1em;
+        }
+
+        .card-buttons {
+            display: flex;
+            gap: 0.5em;
+        }
+
+        .card-button {
+            flex: 1;
+            padding: 0.6em;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+
+        .card-button-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .card-button-primary:hover {
+            background: #764ba2;
+        }
+
+        .card-button-secondary {
+            background: #f0f0f0;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+
+        .card-button-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .detail-container {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            margin-bottom: 3em;
+        }
+
+        .detail-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 3em 2em;
+            text-align: center;
+        }
+
+        .detail-header h2 {
+            font-size: 2em;
+            margin-bottom: 0.5em;
+        }
+
+        .detail-body {
+            padding: 2em;
+        }
+
+        .detail-section {
+            margin-bottom: 2em;
+        }
+
+        .detail-section h3 {
+            color: #667eea;
+            margin-bottom: 1em;
+            font-size: 1.2em;
+        }
+
+        .detail-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5em;
+            margin-bottom: 2em;
+            padding: 1.5em;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+
+        .meta-item {
+            text-align: center;
+        }
+
+        .meta-label {
+            color: #999;
+            font-size: 0.9em;
+            margin-bottom: 0.5em;
+        }
+
+        .meta-value {
+            color: #667eea;
+            font-size: 1.5em;
+            font-weight: 700;
+        }
+
+        .detail-actions {
+            display: flex;
+            gap: 1em;
+            margin-bottom: 2em;
+        }
+
+        .detail-actions button {
+            flex: 1;
+            padding: 1em;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        .btn-use {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-use:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        .btn-fork {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-fork:hover {
+            background: #e0e0e0;
+        }
+
+        .tags {
+            display: flex;
+            gap: 0.5em;
+            flex-wrap: wrap;
+            margin-bottom: 2em;
+        }
+
+        .tag {
+            background: #f0f0f0;
+            color: #667eea;
+            padding: 0.5em 1em;
+            border-radius: 20px;
+            font-size: 0.9em;
+        }
+
+        .ratings-section {
+            background: #f9f9f9;
+            padding: 1.5em;
+            border-radius: 8px;
+            margin-top: 2em;
+        }
+
+        .rating-item {
+            background: white;
+            padding: 1em;
+            margin-bottom: 1em;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+
+        .rating-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5em;
+        }
+
+        .rating-stars {
+            color: #ffa500;
+            font-weight: 700;
+        }
+
+        .rating-user {
+            color: #999;
+            font-size: 0.9em;
+        }
+
+        .rating-text {
+            color: #666;
+        }
+
+        .comment-form {
+            margin-bottom: 2em;
+        }
+
+        .form-group {
+            margin-bottom: 1em;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5em;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 0.8em;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 1em;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-button {
+            background: #667eea;
+            color: white;
+            padding: 1em 2em;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .form-button:hover {
+            background: #764ba2;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 0.5em;
+            margin: 3em 0;
+        }
+
+        .pagination button {
+            padding: 0.6em 1em;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .pagination button.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .pagination button:hover:not(.active) {
+            border-color: #667eea;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4em 2em;
+            background: white;
+            border-radius: 12px;
+        }
+
+        .empty-state p {
+            color: #999;
+            font-size: 1.1em;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3em;
+            color: white;
+        }
+
+        .error-message {
+            background: #ff4444;
+            color: white;
+            padding: 1em;
+            border-radius: 6px;
+            margin-bottom: 2em;
+            text-align: center;
+        }
+
+        .success-message {
+            background: #10b981;
+            color: white;
+            padding: 1em;
+            border-radius: 6px;
+            margin-bottom: 2em;
+            text-align: center;
+        }
+
+        #detail-view {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .simulators-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .controls-section {
+                flex-direction: column;
+            }
+
+            .search-box {
+                width: 100%;
+            }
+
+            .detail-actions {
+                flex-direction: column;
+            }
+
+            h1 {
+                font-size: 1.5em;
+            }
+
+            .detail-header {
+                padding: 2em 1em;
+            }
+
+            .detail-body {
+                padding: 1em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>🎯 Simulator Marketplace</h1>
+            <div class="header-nav">
+                <button class="btn-secondary" onclick="goBackToDashboard()">← Back to Dashboard</button>
+                <button class="btn-secondary" onclick="showMySimulators()">My Simulators</button>
+                <button class="btn-primary" onclick="startCreatingSimulator()">+ Create New</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Search and Filter Controls -->
+        <section class="controls-section" id="controls-section">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search simulators..." onkeyup="performSearch()">
+            </div>
+            <div class="filter-group">
+                <select id="sortSelect" onchange="applySort()">
+                    <option value="newest">Newest First</option>
+                    <option value="popular">Most Popular</option>
+                    <option value="rating">Highest Rated</option>
+                </select>
+                <select id="categorySelect" onchange="applyFilters()">
+                    <option value="">All Categories</option>
+                    <option value="physics">Physics</option>
+                    <option value="math">Math</option>
+                    <option value="animation">Animation</option>
+                    <option value="drawing">Drawing</option>
+                    <option value="logic">Logic</option>
+                </select>
+            </div>
+        </section>
+
+        <!-- View Toggle -->
+        <div class="view-toggle" id="view-toggle">
+            <button class="active" onclick="switchView('browse')">Browse</button>
+            <button onclick="switchView('trending')">Trending</button>
+        </div>
+
+        <!-- Messages -->
+        <div id="message-container"></div>
+
+        <!-- Browse View -->
+        <section id="browse-view">
+            <div id="simulators-container" class="simulators-grid">
+                <!-- Simulators will be loaded here -->
+            </div>
+            <div class="pagination" id="pagination">
+                <!-- Pagination buttons will be loaded here -->
+            </div>
+        </section>
+
+        <!-- Trending View -->
+        <section id="trending-view" style="display: none;">
+            <h2 style="color: white; margin-bottom: 2em; text-align: center;">🔥 Trending Simulators</h2>
+            <div id="trending-container" class="simulators-grid">
+                <!-- Trending simulators will be loaded here -->
+            </div>
+        </section>
+
+        <!-- Detail View -->
+        <section id="detail-view">
+            <button class="btn-secondary" style="margin-bottom: 2em;" onclick="goBackToBrowse()">← Back to Browse</button>
+            <div id="detail-content">
+                <!-- Detail content will be loaded here -->
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:3000/api';
+        let currentPage = 1;
+        let currentSearch = '';
+        let currentSort = 'newest';
+        let currentCategory = '';
+        let currentView = 'browse';
+        let totalPages = 1;
+
+        // Load simulators on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSimulators();
+            loadTrendingSimulators();
+        });
+
+        async function loadSimulators(page = 1) {
+            try {
+                showLoading('simulators-container', true);
+
+                let url = `${API_BASE_URL}/simulators?page=${page}&limit=12&sort=${currentSort}`;
+                if (currentSearch) {
+                    url += `&search=${encodeURIComponent(currentSearch)}`;
+                }
+                if (currentCategory) {
+                    url += `&tags=${encodeURIComponent(currentCategory)}`;
+                }
+
+                const response = await fetch(url);
+                const result = await response.json();
+
+                if (result.success) {
+                    const simulators = result.data.simulators;
+                    totalPages = result.data.pages;
+                    currentPage = page;
+
+                    renderSimulators(simulators);
+                    renderPagination();
+                } else {
+                    showMessage('Failed to load simulators', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading simulators:', error);
+                showMessage('Error loading simulators: ' + error.message, 'error');
+            }
+        }
+
+        async function loadTrendingSimulators() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/simulators/trending/all`);
+                const result = await response.json();
+
+                if (result.success) {
+                    renderTrendingSimulators(result.data);
+                }
+            } catch (error) {
+                console.error('Error loading trending simulators:', error);
+            }
+        }
+
+        function renderSimulators(simulators) {
+            const container = document.getElementById('simulators-container');
+            
+            if (simulators.length === 0) {
+                container.innerHTML = '<div style="grid-column: 1 / -1;"><div class="empty-state"><p>No simulators found matching your criteria.</p></div></div>';
+                return;
+            }
+
+            container.innerHTML = simulators.map(sim => `
+                <div class="simulator-card" onclick="viewSimulatorDetail(${sim.id})">
+                    <div class="card-image">🧬</div>
+                    <div class="card-content">
+                        <div class="card-title">${escapeHtml(sim.title)}</div>
+                        <div class="card-description">${escapeHtml(sim.description || 'No description')}</div>
+                        <div class="card-meta">
+                            <span class="card-rating">⭐ ${(sim.rating || 0).toFixed(1)}</span>
+                            <span class="card-downloads">📥 ${sim.downloads || 0}</span>
+                        </div>
+                        <div class="card-creator">By ${escapeHtml(sim.creator_email || 'Unknown')}</div>
+                        <div class="card-buttons">
+                            <button class="card-button card-button-primary" onclick="event.stopPropagation(); addToCoursechoiceSimulator(${sim.id})">Use in Course</button>
+                            <button class="card-button card-button-secondary" onclick="event.stopPropagation(); forkSimulator(${sim.id})">Fork</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            showLoading('simulators-container', false);
+        }
+
+        function renderTrendingSimulators(simulators) {
+            const container = document.getElementById('trending-container');
+            
+            if (simulators.length === 0) {
+                container.innerHTML = '<div style="grid-column: 1 / -1;"><div class="empty-state"><p>No trending simulators yet.</p></div></div>';
+                return;
+            }
+
+            container.innerHTML = simulators.map(sim => `
+                <div class="simulator-card" onclick="viewSimulatorDetail(${sim.id})">
+                    <div class="card-image">🔥</div>
+                    <div class="card-content">
+                        <div class="card-title">${escapeHtml(sim.title)}</div>
+                        <div class="card-description">${escapeHtml(sim.description || 'No description')}</div>
+                        <div class="card-meta">
+                            <span class="card-rating">⭐ ${(sim.rating || 0).toFixed(1)}</span>
+                            <span class="card-downloads">📥 ${sim.downloads || 0}</span>
+                        </div>
+                        <div class="card-creator">By ${escapeHtml(sim.creator_email || 'Unknown')}</div>
+                        <div class="card-buttons">
+                            <button class="card-button card-button-primary" onclick="event.stopPropagation(); addToCoursechoiceSimulator(${sim.id})">Use in Course</button>
+                            <button class="card-button card-button-secondary" onclick="event.stopPropagation(); forkSimulator(${sim.id})">Fork</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderPagination() {
+            const container = document.getElementById('pagination');
+            let html = '';
+
+            if (currentPage > 1) {
+                html += `<button onclick="loadSimulators(${currentPage - 1})">← Previous</button>`;
+            }
+
+            for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
+                html += `<button ${i === currentPage ? 'class="active"' : ''} onclick="loadSimulators(${i})">${i}</button>`;
+            }
+
+            if (currentPage < totalPages) {
+                html += `<button onclick="loadSimulators(${currentPage + 1})">Next →</button>`;
+            }
+
+            container.innerHTML = html;
+        }
+
+        async function viewSimulatorDetail(simulatorId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/simulators/${simulatorId}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    const sim = result.data;
+                    displaySimulatorDetail(sim);
+                    currentView = 'detail';
+                    updateViewDisplay();
+                } else {
+                    showMessage('Failed to load simulator details', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading simulator details:', error);
+                showMessage('Error: ' + error.message, 'error');
+            }
+        }
+
+        function displaySimulatorDetail(simulator) {
+            const container = document.getElementById('detail-content');
+            const tagsHtml = simulator.tags ? simulator.tags.split(',').map(tag => 
+                `<span class="tag">${escapeHtml(tag.trim())}</span>`
+            ).join('') : '';
+
+            let ratingHtml = '<p>No ratings yet</p>';
+            
+            container.innerHTML = `
+                <div class="detail-container">
+                    <div class="detail-header">
+                        <h2>${escapeHtml(simulator.title)}</h2>
+                        <p>${escapeHtml(simulator.description || '')}</p>
+                    </div>
+                    <div class="detail-body">
+                        <div class="detail-meta">
+                            <div class="meta-item">
+                                <div class="meta-label">Rating</div>
+                                <div class="meta-value">⭐ ${(simulator.rating || 0).toFixed(1)}</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Downloads</div>
+                                <div class="meta-value">📥 ${simulator.downloads || 0}</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Version</div>
+                                <div class="meta-value">${simulator.version || '1.0.0'}</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Creator</div>
+                                <div class="meta-value">${escapeHtml(simulator.creator_email || 'Unknown')}</div>
+                            </div>
+                        </div>
+
+                        <div class="detail-section">
+                            <h3>Actions</h3>
+                            <div class="detail-actions">
+                                <button class="btn-use" onclick="runSimulator(${simulator.id})" style="background: #10b981;">▶ Run Simulator</button>
+                                <button class="btn-use" onclick="addToCoursechoiceSimulator(${simulator.id})">Add to My Course</button>
+                                <button class="btn-fork" onclick="forkSimulator(${simulator.id})">Fork & Remix</button>
+                            </div>
+                        </div>
+
+                        ${tagsHtml ? `
+                        <div class="detail-section">
+                            <h3>Tags</h3>
+                            <div class="tags">${tagsHtml}</div>
+                        </div>
+                        ` : ''}
+
+                        <div class="detail-section">
+                            <h3>Ratings & Reviews</h3>
+                            <div id="ratings-container">${ratingHtml}</div>
+                            <div class="comment-form">
+                                <h4 style="margin-bottom: 1em;">Leave a Review</h4>
+                                <div class="form-group">
+                                    <label>Rating</label>
+                                    <select id="ratingSelect">
+                                        <option value="">Select a rating...</option>
+                                        <option value="5">⭐⭐⭐⭐⭐ Excellent</option>
+                                        <option value="4">⭐⭐⭐⭐ Good</option>
+                                        <option value="3">⭐⭐⭐ Average</option>
+                                        <option value="2">⭐⭐ Poor</option>
+                                        <option value="1">⭐ Terrible</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Review</label>
+                                    <textarea id="reviewText" placeholder="Share your thoughts..."></textarea>
+                                </div>
+                                <button class="form-button" onclick="submitReview(${simulator.id})">Submit Review</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            loadRatings(simulator.id);
+        }
+
+        async function loadRatings(simulatorId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/simulators/${simulatorId}/ratings`);
+                const result = await response.json();
+
+                if (result.success && result.data.length > 0) {
+                    const ratingsHtml = result.data.map(rating => `
+                        <div class="rating-item">
+                            <div class="rating-header">
+                                <span class="rating-stars">${'⭐'.repeat(rating.rating)}</span>
+                                <span class="rating-user">${escapeHtml(rating.user_email || 'Anonymous')} - ${new Date(rating.created_at).toLocaleDateString()}</span>
+                            </div>
+                            ${rating.review ? `<div class="rating-text">${escapeHtml(rating.review)}</div>` : ''}
+                        </div>
+                    `).join('');
+                    document.getElementById('ratings-container').innerHTML = ratingsHtml;
+                }
+            } catch (error) {
+                console.error('Error loading ratings:', error);
+            }
+        }
+
+        async function submitReview(simulatorId) {
+            const rating = document.getElementById('ratingSelect').value;
+            const review = document.getElementById('reviewText').value;
+
+            if (!rating) {
+                showMessage('Please select a rating', 'error');
+                return;
+            }
+
+            const token = localStorage.getItem('token');
+            if (!token) {
+                showMessage('Please log in to submit a review', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/simulators/${simulatorId}/ratings`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        rating: parseInt(rating),
+                        review: review || null
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showMessage('Review submitted successfully!', 'success');
+                    document.getElementById('ratingSelect').value = '';
+                    document.getElementById('reviewText').value = '';
+                    // Reload ratings
+                    loadRatings(simulatorId);
+                } else {
+                    showMessage(result.message || 'Error submitting review', 'error');
+                }
+            } catch (error) {
+                console.error('Error submitting review:', error);
+                showMessage('Error: ' + error.message, 'error');
+            }
+        }
+
+        function performSearch() {
+            currentSearch = document.getElementById('searchInput').value;
+            loadSimulators(1);
+        }
+
+        function applySort() {
+            currentSort = document.getElementById('sortSelect').value;
+            loadSimulators(1);
+        }
+
+        function applyFilters() {
+            currentCategory = document.getElementById('categorySelect').value;
+            loadSimulators(1);
+        }
+
+        async function forkSimulator(simulatorId) {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                showMessage('Please log in to fork simulators', 'error');
+                return;
+            }
+
+            const newTitle = prompt('Enter name for forked simulator:');
+            if (!newTitle) return;
+
+            try {
+                // First, get the simulator details
+                const getResponse = await fetch(`${API_BASE_URL}/simulators/${simulatorId}`);
+                const getResult = await getResponse.json();
+
+                if (!getResult.success) {
+                    showMessage('Error loading simulator to fork', 'error');
+                    return;
+                }
+
+                const original = getResult.data;
+
+                // Create new simulator based on original
+                const newResponse = await fetch(`${API_BASE_URL}/simulators`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        title: newTitle,
+                        description: `Fork of: ${original.title}`,
+                        blocks: original.blocks,
+                        connections: original.connections,
+                        tags: original.tags,
+                        is_public: false
+                    })
+                });
+
+                const newResult = await newResponse.json();
+                if (newResult.success) {
+                    showMessage('Simulator forked successfully! Check My Simulators.', 'success');
+                } else {
+                    showMessage(newResult.message || 'Error forking simulator', 'error');
+                }
+            } catch (error) {
+                console.error('Error forking simulator:', error);
+                showMessage('Error: ' + error.message, 'error');
+            }
+        }
+
+        function addToCoursechoiceSimulator(simulatorId) {
+            // This would integrate with the course editor
+            alert(`Would add simulator ${simulatorId} to your course. Redirect to course editor with this simulator.`);
+            // In real implementation, would pass simulator ID to course editor
+            window.location.href = 'index.html?action=addSimulator&simulatorId=' + simulatorId;
+        }
+
+        function switchView(view) {
+            currentView = view;
+            updateViewDisplay();
+            document.querySelectorAll('.view-toggle button').forEach((btn, idx) => {
+                btn.classList.toggle('active', (idx === 0 && view === 'browse') || (idx === 1 && view === 'trending'));
+            });
+        }
+
+        function updateViewDisplay() {
+            if (currentView === 'detail') {
+                document.getElementById('browse-view').style.display = 'none';
+                document.getElementById('trending-view').style.display = 'none';
+                document.getElementById('detail-view').style.display = 'block';
+                document.getElementById('controls-section').style.display = 'none';
+                document.getElementById('view-toggle').style.display = 'none';
+            } else if (currentView === 'browse') {
+                document.getElementById('browse-view').style.display = 'block';
+                document.getElementById('trending-view').style.display = 'none';
+                document.getElementById('detail-view').style.display = 'none';
+                document.getElementById('controls-section').style.display = 'flex';
+                document.getElementById('view-toggle').style.display = 'flex';
+            } else if (currentView === 'trending') {
+                document.getElementById('browse-view').style.display = 'none';
+                document.getElementById('trending-view').style.display = 'block';
+                document.getElementById('detail-view').style.display = 'none';
+                document.getElementById('controls-section').style.display = 'flex';
+                document.getElementById('view-toggle').style.display = 'flex';
+            }
+        }
+
+        function goBackToBrowse() {
+            currentView = 'browse';
+            updateViewDisplay();
+            switchView('browse');
+        }
+
+        function goBackToDashboard() {
+            window.location.href = 'index.html';
+        }
+
+        function startCreatingSimulator() {
+            window.location.href = 'block-simulator.html';
+        }
+
+        function showMySimulators() {
+            alert('My Simulators view would be shown here');
+        }
+
+        function showLoading(containerId, show) {
+            if (show) {
+                document.getElementById(containerId).innerHTML = '<div class="loading">Loading...</div>';
+            }
+        }
+
+        function showMessage(message, type) {
+            const container = document.getElementById('message-container');
+            const className = type === 'error' ? 'error-message' : 'success-message';
+            container.innerHTML = `<div class="${className}">${escapeHtml(message)}</div>`;
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 5000);
+        }
+
+        function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+        }
+
+         function runSimulator(simulatorId) {
+             // Open simulator execution page
+             window.location.href = `simulator-execute.html?id=${simulatorId}`;
+         }
+     </script>
+</body>
+</html>

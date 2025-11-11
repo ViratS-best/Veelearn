@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Block-Based Visual Simulator Creator</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: #1a1a2e;
+        color: #eee;
+        margin: 0;
+        overflow: hidden;
+        display: flex;
+        height: 100vh;
+      }
+      .sidebar {
+        width: 250px;
+        background: #16213e;
+        border-right: 2px solid #0f3460;
+        padding: 1em;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+      }
+      .sidebar h2 {
+        color: #e94560;
+        margin-bottom: 1em;
+        font-size: 1.3em;
+      }
+      .block-palette {
+        flex: 1;
+        overflow-y: auto;
+        margin-bottom: 1em;
+      }
+      .block-palette h3 {
+        color: #e94560;
+        margin-bottom: 0.8em;
+        font-size: 0.9em;
+        text-transform: uppercase;
+        border-bottom: 2px solid #533483;
+        padding-bottom: 0.5em;
+      }
+      .block {
+        background: linear-gradient(135deg, #533483 0%, #e94560 100%);
+        padding: 0.8em;
+        margin-bottom: 0.5em;
+        border-radius: 6px;
+        cursor: grab;
+        transition: transform 0.2s;
+        user-select: none;
+      }
+      .block:hover {
+        transform: translateX(5px);
+        box-shadow: 0 2px 8px rgba(233, 69, 96, 0.4);
+      }
+      .main-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+      .toolbar {
+        background: #0f3460;
+        padding: 1em;
+        display: flex;
+        gap: 0.5em;
+        border-bottom: 2px solid #533483;
+        flex-wrap: wrap;
+      }
+      .toolbar button {
+        background: #e94560;
+        color: white;
+        border: none;
+        padding: 0.7em 1.2em;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s;
+        font-size: 0.9em;
+      }
+      .toolbar button:hover {
+        background: #c93b52;
+        transform: translateY(-1px);
+      }
+      .toolbar button.secondary {
+        background: #533483;
+      }
+      .toolbar button.secondary:hover {
+        background: #422a69;
+      }
+      .workspace-area {
+        flex: 1;
+        display: flex;
+      }
+      .workspace {
+        flex: 1;
+        background: #1a1a2e;
+        position: relative;
+        overflow: auto;
+        border-right: 2px solid #0f3460;
+      }
+      .placed-block {
+        background: #16213e;
+        border: 1px solid #533483;
+        border-radius: 8px;
+        padding: 0.8em;
+        position: absolute;
+        min-width: 150px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        cursor: grab;
+        user-select: none;
+        transition: box-shadow 0.2s;
+        z-index: 10;
+      }
+      .placed-block.dragging {
+        cursor: grabbing;
+        box-shadow: 0 0 0 3px #e94560;
+        opacity: 0.9;
+      }
+      .placed-block.selected {
+        box-shadow: 0 0 0 3px #e94560;
+      }
+      .placed-block-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5em;
+        border-bottom: 1px solid #0f3460;
+        padding-bottom: 0.5em;
+      }
+      .placed-block-title {
+        font-weight: 600;
+        color: #e94560;
+      }
+      .block-controls button {
+        background: none;
+        border: none;
+        color: #eee;
+        font-size: 1.2em;
+        cursor: pointer;
+        padding: 0 0.3em;
+      }
+      .block-input-group {
+        margin-bottom: 0.5em;
+      }
+      .block-input-label {
+        display: block;
+        font-size: 0.8em;
+        color: #ccc;
+        margin-bottom: 0.2em;
+      }
+      .block-input {
+        width: 100%;
+        padding: 0.4em;
+        background: #0f3460;
+        border: 1px solid #533483;
+        border-radius: 4px;
+        color: #eee;
+        font-size: 0.9em;
+      }
+      .preview-panel {
+        width: 400px;
+        background: #16213e;
+        padding: 1em;
+        display: flex;
+        flex-direction: column;
+      }
+      .preview-canvas {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        margin-bottom: 1em;
+        flex-shrink: 0;
+        position: relative;
+      }
+      #previewCanvas {
+        display: block;
+        border-radius: 8px;
+      }
+      .console {
+        background: #0f0f0f;
+        color: #0f0;
+        font-family: "Courier New", monospace;
+        padding: 1em;
+        height: 150px;
+        overflow-y: auto;
+        border-radius: 6px;
+        font-size: 0.85em;
+        flex: 1;
+        border: 1px solid #333;
+      }
+      .console-line {
+        margin-bottom: 0.3em;
+      }
+      .console-line.error {
+        color: #ff4444;
+      }
+      .console-line.warning {
+        color: #f59e0b;
+      }
+      .console-line.info {
+        color: #44aaff;
+      }
+      #connections {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="sidebar">
+      <h2>🧩 Block Palette</h2>
+      <div class="block-palette">
+        <h3>Logic</h3>
+        <div class="block" draggable="true" data-type="variable">Variable</div>
+        <div class="block" draggable="true" data-type="set-variable">
+          Set Variable
+        </div>
+        <h3>Math</h3>
+        <div class="block" draggable="true" data-type="add">Add</div>
+        <div class="block" draggable="true" data-type="multiply">Multiply</div>
+        <div class="block" draggable="true" data-type="power">Power</div>
+        <div class="block" draggable="true" data-type="sqrt">Square Root</div>
+        <h3>Drawing</h3>
+        <div class="block" draggable="true" data-type="draw-circle">
+          Draw Circle
+        </div>
+        <div class="block" draggable="true" data-type="draw-rectangle">
+          Draw Rectangle
+        </div>
+        <div class="block" draggable="true" data-type="draw-line">
+          Draw Line
+        </div>
+        <div class="block" draggable="true" data-type="clear-canvas">
+          Clear Canvas
+        </div>
+        <h3>Input</h3>
+        <div class="block" draggable="true" data-type="slider">
+          Slider Input
+        </div>
+        <h3>Physics</h3>
+        <div class="block" draggable="true" data-type="gravity">
+          Apply Gravity
+        </div>
+        <div class="block" draggable="true" data-type="velocity">
+          Set Velocity
+        </div>
+        <div class="block" draggable="true" data-type="collision-detection">
+          Collision Detection
+        </div>
+        <div class="block" draggable="true" data-type="spring-physics">
+          Spring Physics
+        </div>
+        <div class="block" draggable="true" data-type="gravity-simulation">
+          Gravity Simulation
+        </div>
+        <div class="block" draggable="true" data-type="particle-system">
+          Particle System
+        </div>
+        <h3>Advanced Math</h3>
+        <div class="block" draggable="true" data-type="trigonometry">
+          Trigonometry
+        </div>
+        <div class="block" draggable="true" data-type="vector-operation">
+          Vector Operation
+        </div>
+        <div class="block" draggable="true" data-type="random-number">
+          Random Number
+        </div>
+        <div class="block" draggable="true" data-type="divide">Divide</div>
+        <div class="block" draggable="true" data-type="subtract">Subtract</div>
+        <div class="block" draggable="true" data-type="modulo">Modulo</div>
+        <div class="block" draggable="true" data-type="absolute">Absolute</div>
+        <div class="block" draggable="true" data-type="min-max">Min/Max</div>
+        <h3>Animation</h3>
+        <div class="block" draggable="true" data-type="animation-loop">
+          Animation Loop
+        </div>
+        <div class="block" draggable="true" data-type="frame-counter">
+          Frame Counter
+        </div>
+        <div class="block" draggable="true" data-type="easing-function">
+          Easing Function
+        </div>
+        <h3>Advanced Display</h3>
+        <div class="block" draggable="true" data-type="draw-text">
+          Draw Text
+        </div>
+        <div class="block" draggable="true" data-type="draw-polygon">
+          Draw Polygon
+        </div>
+        <div class="block" draggable="true" data-type="draw-arc">Draw Arc</div>
+        <div class="block" draggable="true" data-type="draw-gradient-rect">
+          Gradient Rectangle
+        </div>
+        <div class="block" draggable="true" data-type="trace-path">
+          Trace Path
+        </div>
+        <h3>Advanced Logic</h3>
+        <div class="block" draggable="true" data-type="if-condition">
+          If Condition
+        </div>
+        <div class="block" draggable="true" data-type="condition-trigger">
+          Condition Trigger
+        </div>
+        <div class="block" draggable="true" data-type="range-mapper">
+          Range Mapper
+        </div>
+        <div class="block" draggable="true" data-type="clamp">Clamp Value</div>
+      </div>
+      <button class="secondary" onclick="createSampleSimulation()">
+        ✨ Load Sample
+      </button>
+    </div>
+
+    <div class="main-content">
+      <div class="toolbar">
+        <button onclick="runSimulation()">▶ Run</button>
+        <button class="secondary" onclick="stopSimulation()">⏹ Stop</button>
+        <button class="secondary" onclick="clearWorkspace()">🗑 Clear</button>
+        <button class="secondary" onclick="saveSimulator()">💾 Save</button>
+        <button
+          class="secondary"
+          onclick="publishSimulator()"
+          style="background: #10b981"
+        >
+          📤 Publish
+        </button>
+        <button
+          class="secondary"
+          onclick="exitSimulator()"
+          style="background: #ef4444; margin-left: auto"
+        >
+          ✕ Exit
+        </button>
+      </div>
+
+      <div class="workspace-area">
+        <div class="workspace" id="workspace">
+          <svg id="connections"></svg>
+        </div>
+
+        <div class="preview-panel">
+          <h2>👁️ Preview</h2>
+          <div class="preview-canvas">
+            <canvas id="previewCanvas" width="368" height="400"></canvas>
+          </div>
+          <h2>Console</h2>
+          <div class="console" id="console"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Core systems -->
+    <script src="block-physics-engine.js"></script>
+    <script src="block-animation.js"></script>
+    <script src="block-renderer-system.js"></script>
+    <script src="block-execution-engine.js"></script>
+
+    <!-- Unified block templates (MASTER) -->
+    <script src="block-templates-unified.js"></script>
+
+    <script>
+      // Visual Simulator Creator - Main Logic
+      let blocks = [];
+      let connections = [];
+      let selectedBlock = null;
+      let draggedBlockPalette = null;
+      let draggedBlockOnCanvas = null;
+      let dragOffsetX = 0;
+      let dragOffsetY = 0;
+      let blockIdCounter = 0;
+      let isRunning = false;
+      let animationFrame = null;
+      let frameCount = 0;
+      let lastFrameTime = 0;
+      let executionEngine = null;
+
+      // Canvas setup
+      const previewCanvas = document.getElementById("previewCanvas");
+      const ctx = previewCanvas.getContext("2d");
+      previewCanvas.width = 368;
+      previewCanvas.height = 400;
+
+      // Console logging
+      function logToConsole(message, type = "info") {
+        const consoleEl = document.getElementById("console");
+        const line = document.createElement("div");
+        line.className = `console-line ${type}`;
+        line.textContent = `> ${message}`;
+        consoleEl.appendChild(line);
+        consoleEl.scrollTop = consoleEl.scrollHeight;
+
+        // Keep only last 50 lines
+        while (consoleEl.children.length > 50) {
+          consoleEl.removeChild(consoleEl.firstChild);
+        }
+      }
+
+      function clearConsole() {
+        document.getElementById("console").innerHTML =
+          '<div class="console-line">Console cleared...</div>';
+      }
+
+      // Verify blockTemplates are loaded
+      setTimeout(() => {
+        if (!blockTemplates || Object.keys(blockTemplates).length === 0) {
+          console.error(
+            "ERROR: blockTemplates not loaded! Make sure block-templates-unified.js is loaded."
+          );
+          logToConsole("CRITICAL ERROR: Block templates not loaded", "error");
+        } else {
+          console.log("✓ Block templates loaded successfully", Object.keys(blockTemplates).length, "templates");
+          logToConsole("✓ Block templates loaded successfully", "info");
+          // Initialize execution engine
+          if (typeof BlockExecutionEngine !== 'undefined') {
+            executionEngine = new BlockExecutionEngine(5000);
+          }
+        }
+      }, 100);
+
+      // Create sample simulation
+      function createSampleSimulation() {
+        clearWorkspace();
+
+        // Create some example blocks
+        createBlock("clear-canvas", 100, 50);
+        createBlock("draw-circle", 100, 150);
+        createBlock("draw-rectangle", 100, 300);
+
+        logToConsole("Sample simulation created - Click Run to see it!");
+      }
+
+      // ===== WORKSPACE ELEMENT =====
+      const workspaceEl = document.getElementById("workspace");
+
+      // ===== DRAG AND DROP FUNCTIONALITY =====
+
+      // Setup drag-from-palette
+      document.querySelectorAll(".block-palette .block").forEach((block) => {
+        block.addEventListener("dragstart", (e) => {
+          draggedBlockPalette = {
+            type: e.target.dataset.type,
+            title: e.target.textContent.trim(),
+          };
+          e.dataTransfer.effectAllowed = "copy";
+          console.log("Drag started from palette:", draggedBlockPalette.type);
+          logToConsole(`Starting drag: ${draggedBlockPalette.type}`, "info");
+        });
+        block.addEventListener("dragend", (e) => {
+          console.log("Drag ended");
+        });
+      });
+
+      // Setup workspace drop zone
+      workspaceEl.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "copy";
+        workspaceEl.style.backgroundColor = "rgba(102, 126, 234, 0.15)";
+      });
+
+      workspaceEl.addEventListener("dragleave", (e) => {
+        if (e.target === workspaceEl) {
+          workspaceEl.style.backgroundColor = "#1a1a2e";
+        }
+      });
+
+      workspaceEl.addEventListener("drop", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        workspaceEl.style.backgroundColor = "#1a1a2e";
+
+        console.log("Drop detected, draggedBlockPalette:", draggedBlockPalette);
+        if (!draggedBlockPalette) {
+          console.log("No dragged block palette, returning");
+          return;
+        }
+
+        const rect = workspaceEl.getBoundingClientRect();
+        const x = Math.max(0, e.clientX - rect.left);
+        const y = Math.max(0, e.clientY - rect.top);
+
+        console.log(`Dropping ${draggedBlockPalette.type} at (${x}, ${y})`);
+        const blockType = draggedBlockPalette.type;
+        const template = blockTemplates[blockType];
+
+        if (!template) {
+          logToConsole(`Block type '${blockType}' not found`, "error");
+          console.error(`Template not found for block type: ${blockType}`);
+          return;
+        }
+
+        const newBlock = {
+          id: blockIdCounter++,
+          type: blockType,
+          x: x,
+          y: y,
+          inputs: {},
+        };
+
+        // Initialize inputs with defaults
+        if (template.inputs) {
+          template.inputs.forEach((input) => {
+            newBlock.inputs[input.name] =
+              input.default !== undefined ? input.default : "";
+          });
+        }
+
+        blocks.push(newBlock);
+        renderBlocks();
+        draggedBlockPalette = null;
+        logToConsole(`Added ${template.title || blockType} block`);
+      });
+
+      // Mouse dragging for placed blocks
+      document.addEventListener("mousedown", (e) => {
+        const blockEl = e.target.closest(".placed-block");
+        if (!blockEl || workspaceEl.contains(blockEl) === false) return;
+
+        const blockId = parseInt(blockEl.dataset.id);
+        if (isNaN(blockId)) return;
+
+        draggedBlockOnCanvas = blockId;
+        const block = blocks.find((b) => b.id === blockId);
+        if (!block) return;
+
+        dragOffsetX =
+          e.clientX - (workspaceEl.getBoundingClientRect().left + block.x);
+        dragOffsetY =
+          e.clientY - (workspaceEl.getBoundingClientRect().top + block.y);
+
+        blockEl.classList.add("dragging");
+      });
+
+      document.addEventListener("mousemove", (e) => {
+        if (draggedBlockOnCanvas === null) return;
+
+        const block = blocks.find((b) => b.id === draggedBlockOnCanvas);
+        if (!block) return;
+
+        const rect = workspaceEl.getBoundingClientRect();
+        block.x = Math.max(0, e.clientX - rect.left - dragOffsetX);
+        block.y = Math.max(0, e.clientY - rect.top - dragOffsetY);
+
+        renderBlocks();
+      });
+
+      document.addEventListener("mouseup", () => {
+        if (draggedBlockOnCanvas !== null) {
+          const blockEl = workspaceEl.querySelector(
+            `[data-id="${draggedBlockOnCanvas}"]`
+          );
+          if (blockEl) blockEl.classList.remove("dragging");
+          draggedBlockOnCanvas = null;
+        }
+      });
+
+      // Block selection and input updates
+      workspaceEl.addEventListener("mousedown", (e) => {
+        const blockEl = e.target.closest(".placed-block");
+        if (blockEl) {
+          const blockId = parseInt(blockEl.dataset.id);
+          selectedBlock = blockId;
+        }
+      });
+
+      workspaceEl.addEventListener("change", (e) => {
+        if (
+          e.target.tagName === "INPUT" &&
+          e.target.classList.contains("block-input")
+        ) {
+          const blockId = parseInt(e.target.dataset.blockId);
+          const inputName = e.target.dataset.inputName;
+          const block = blocks.find((b) => b.id === blockId);
+          if (block && inputName) {
+            block.inputs[inputName] = isNaN(e.target.value)
+              ? e.target.value
+              : parseFloat(e.target.value);
+          }
+        }
+      });
+
+      workspaceEl.addEventListener("input", (e) => {
+        if (
+          e.target.tagName === "INPUT" &&
+          e.target.classList.contains("block-input")
+        ) {
+          const blockId = parseInt(e.target.dataset.blockId);
+          const inputName = e.target.dataset.inputName;
+          const block = blocks.find((b) => b.id === blockId);
+          if (block && inputName) {
+            block.inputs[inputName] = isNaN(e.target.value)
+              ? e.target.value
+              : parseFloat(e.target.value);
+          }
+        }
+      });
+
+      // ===== CORE RENDERING FUNCTIONS =====
+      function createBlock(type, x, y) {
+        const template = blockTemplates[type];
+        if (!template) {
+          logToConsole(`Block type '${type}' not found`, "error");
+          return null;
+        }
+
+        const newBlock = {
+          id: blockIdCounter++,
+          type: type,
+          x: x || 100,
+          y: y || 100,
+          inputs: {},
+        };
+
+        if (template.inputs) {
+          template.inputs.forEach((input) => {
+            newBlock.inputs[input.name] =
+              input.default !== undefined ? input.default : "";
+          });
+        }
+
+        blocks.push(newBlock);
+        renderBlock(newBlock, template);
+        return newBlock;
+      }
+
+      function renderBlock(block, template) {
+        const blockEl = document.createElement("div");
+        blockEl.className = "placed-block";
+        blockEl.dataset.id = block.id;
+        blockEl.style.left = block.x + "px";
+        blockEl.style.top = block.y + "px";
+
+        const header = document.createElement("div");
+        header.className = "placed-block-header";
+        header.innerHTML = `
+                <span class="placed-block-title">${
+                  template.title || block.type
+                }</span>
+                <div class="block-controls">
+                    <button onclick="deleteBlock(${block.id})">✕</button>
+                </div>
+            `;
+        blockEl.appendChild(header);
+
+        if (template.inputs) {
+          template.inputs.forEach((input) => {
+            const group = document.createElement("div");
+            group.className = "block-input-group";
+            group.innerHTML = `
+                        <label class="block-input-label">${
+                          input.label || input.name
+                        }</label>
+                        <input type="${
+                          input.type || "number"
+                        }" class="block-input" 
+                               data-block-id="${block.id}" 
+                               data-input-name="${input.name}"
+                               value="${
+                                 block.inputs[input.name] || input.default || ""
+                               }"
+                        />
+                    `;
+            blockEl.appendChild(group);
+          });
+        }
+
+        workspaceEl.appendChild(blockEl);
+      }
+
+      function renderBlocks() {
+        // Clear existing block elements
+        document.querySelectorAll(".placed-block").forEach((el) => el.remove());
+
+        // Re-render all blocks
+        blocks.forEach((block) => {
+          const template = blockTemplates[block.type];
+          if (template) {
+            renderBlock(block, template);
+          }
+        });
+
+        updateConnections();
+      }
+
+      function deleteBlock(blockId) {
+        blocks = blocks.filter((b) => b.id !== blockId);
+        connections = connections.filter(
+          (c) => c.from !== blockId && c.to !== blockId
+        );
+        renderBlocks();
+        logToConsole(`Block ${blockId} deleted`);
+      }
+
+      function clearWorkspace() {
+        blocks = [];
+        connections = [];
+        blockIdCounter = 0;
+        document.querySelectorAll(".placed-block").forEach((el) => el.remove());
+        const svg = document.getElementById("connections");
+        if (svg) svg.innerHTML = "";
+        clearConsole();
+        logToConsole("Workspace cleared");
+      }
+
+      function updateConnections() {
+        const svg = document.getElementById("connections");
+        if (!svg) return;
+        svg.innerHTML = "";
+
+        connections.forEach((conn) => {
+          const fromEl = workspaceEl.querySelector(`[data-id="${conn.from}"]`);
+          const toEl = workspaceEl.querySelector(`[data-id="${conn.to}"]`);
+
+          if (fromEl && toEl) {
+            const x1 = fromEl.offsetLeft + fromEl.offsetWidth;
+            const y1 = fromEl.offsetTop + fromEl.offsetHeight / 2;
+            const x2 = toEl.offsetLeft;
+            const y2 = toEl.offsetTop + toEl.offsetHeight / 2;
+
+            const line = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "path"
+            );
+            const midX = (x1 + x2) / 2;
+            line.setAttribute(
+              "d",
+              `M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`
+            );
+            line.setAttribute("stroke", "#10b981");
+            line.setAttribute("stroke-width", "2");
+            line.setAttribute("fill", "none");
+            svg.appendChild(line);
+          }
+        });
+      }
+
+      function runSimulation() {
+        if (isRunning) {
+          logToConsole("Simulation already running", "warning");
+          return;
+        }
+
+        try {
+          clearConsole();
+          ctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+          isRunning = true;
+          frameCount = 0;
+
+          const animate = () => {
+            try {
+              executeBlocks();
+              animationFrame = requestAnimationFrame(animate);
+            } catch (error) {
+              logToConsole(`Simulation error: ${error.message}`, "error");
+              stopSimulation();
+            }
+          };
+
+          animate();
+          logToConsole("Simulation running...");
+        } catch (error) {
+          logToConsole(`Failed to start simulation: ${error.message}`, "error");
+          isRunning = false;
+        }
+      }
+
+      function executeBlocks() {
+        // Execute all blocks and render
+        blocks.forEach((block) => {
+          const template = blockTemplates[block.type];
+          if (template && template.execute) {
+            template.execute(block.inputs, {
+              ctx: ctx,
+              canvas: previewCanvas,
+              frameCount: frameCount,
+            });
+          }
+        });
+        frameCount++;
+      }
+
+      // Stop simulation
+      function stopSimulation() {
+        if (animationFrame) {
+          cancelAnimationFrame(animationFrame);
+          animationFrame = null;
+        }
+        isRunning = false;
+        logToConsole("Simulation stopped");
+      }
+
+      // Save simulator to local file or parent window
+      function saveSimulator() {
+        const simulatorData = {
+          blocks: blocks,
+          connections: connections,
+          timestamp: new Date().toISOString(),
+        };
+
+        // If opened as popup from main app, send data back
+        if (window.opener) {
+          window.opener.postMessage(
+            {
+              type: "block-simulator-save",
+              data: simulatorData,
+            },
+            "*"
+          );
+
+          logToConsole("Simulator saved to course!");
+          alert("Simulator saved! You can now close this window.");
+        } else {
+          // Otherwise download as file
+          const json = JSON.stringify(simulatorData, null, 2);
+          const blob = new Blob([json], { type: "application/json" });
+          const url = URL.createObjectURL(blob);
+
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `simulator-${Date.now()}.json`;
+          a.click();
+
+          URL.revokeObjectURL(url);
+          logToConsole("Simulator saved to file");
+        }
+      }
+
+      // Load simulator from parent window message
+      window.addEventListener("message", (event) => {
+        if (event.data.type === "load-simulator") {
+          loadSimulator(event.data.data);
+        }
+      });
+
+      // Load simulator
+      function loadSimulator(data) {
+        clearWorkspace();
+        blocks = data.blocks || [];
+        connections = data.connections || [];
+
+        blocks.forEach((block) => {
+          const template = blockTemplates[block.type];
+          if (template) {
+            renderBlock(block, template);
+          }
+        });
+
+        updateConnections();
+        logToConsole("Simulator loaded");
+      }
+
+      // Publish simulator to marketplace
+      async function publishSimulator() {
+        try {
+          // DEBUG: Check token before processing
+          console.log("=== PUBLISH SIMULATOR DEBUG ===");
+          console.log("All localStorage keys:", Object.keys(localStorage));
+          console.log("Token key exists:", "token" in localStorage);
+          
+          const authToken = localStorage.getItem("token");
+          console.log("Token value:", authToken ? authToken.substring(0, 30) + "..." : "NULL");
+          
+          if (!authToken) {
+            console.log("CRITICAL: No token found!");
+            console.log("localStorage content:", JSON.stringify(localStorage));
+            alert("ERROR: Not authenticated. Cannot publish simulator. Please login again.");
+            logToConsole("ERROR: No authentication token found", "error");
+            return;
+          }
+
+          const simulatorData = {
+            title: prompt("Enter simulator name:", "My Simulator") || "Unnamed Simulator",
+            description: prompt("Enter simulator description:", "") || "No description",
+            blocks: blocks,
+            connections: connections,
+            status: "published",
+          };
+
+          if (!simulatorData.title || simulatorData.title === "Unnamed Simulator") {
+            return;
+          }
+
+          const response = await fetch("http://localhost:3000/api/simulators", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${authToken}`,
+            },
+            body: JSON.stringify(simulatorData),
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || "Failed to publish simulator");
+          }
+
+          const result = await response.json();
+          logToConsole(`Simulator published successfully! ID: ${result.data.simulatorId}`, "info");
+          alert("Simulator published successfully!");
+
+          // Send to parent window if opened as popup
+          if (window.opener) {
+            window.opener.postMessage({
+              type: "simulator-published",
+              simulatorId: result.data.simulatorId,
+            }, "*");
+          }
+        } catch (error) {
+          logToConsole(`Publish failed: ${error.message}`, "error");
+          alert(`Failed to publish simulator: ${error.message}`);
+          console.error("Publish error:", error);
+        }
+      }
+
+      // Exit simulator editor
+      function exitSimulator() {
+        if (blocks.length > 0) {
+          if (!confirm("You have unsaved blocks. Save before exiting?")) {
+            // User chose not to save
+            if (window.opener) {
+              window.close();
+            } else {
+              window.parent.postMessage({ type: "closeBlockSimulator" }, "*");
+            }
+            return;
+          }
+          saveSimulator();
+        }
+
+        // Send message to parent
+        if (window.opener) {
+          window.close();
+        } else {
+          window.parent.postMessage({ type: "closeBlockSimulator" }, "*");
+        }
+      }
+
+      // Add keyboard shortcuts
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Delete" && selectedBlock) {
+          deleteBlock(selectedBlock);
+        }
+        if (e.ctrlKey && e.key === "s") {
+          e.preventDefault();
+          saveSimulator();
+        }
+        if (e.ctrlKey && e.key === "r") {
+          e.preventDefault();
+          runSimulation();
+        }
+      });
+
+      // Initialize
+      logToConsole("Block-based Simulator Creator ready!");
+      logToConsole("Drag blocks from the palette to the workspace");
+      logToConsole("Configure block parameters and click Run to execute");
+      logToConsole(
+        "Keyboard shortcuts: Delete (remove block), Ctrl+S (save), Ctrl+R (run)"
+      );
+    </script>
+  </body>
+</html>
