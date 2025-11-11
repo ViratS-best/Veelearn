@@ -1,0 +1,535 @@
+/* Veelearn Main Stylesheet */
+
+:root {
+  --primary: #667eea;
+  --secondary: #764ba2;
+  --accent: #f093fb;
+  --dark: #1a1a2e;
+  --darker: #16213e;
+  --light: #eee;
+  --success: #4caf50;
+  --danger: #f44336;
+  --warning: #ff9800;
+  --info: #2196f3;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, var(--dark) 0%, var(--darker) 100%);
+  color: var(--light);
+  line-height: 1.6;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== HEADER ===== */
+header {
+  background: linear-gradient(135deg, var(--darker) 0%, #0f3460 100%);
+  padding: 1.5em 2em;
+  border-bottom: 3px solid var(--primary);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+header h1 {
+  font-size: 2em;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+  font-weight: 800;
+  letter-spacing: 2px;
+}
+
+header nav {
+  display: flex;
+  gap: 1.5em;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+header a, header button {
+  color: var(--light);
+  text-decoration: none;
+  font-weight: 600;
+  padding: 0.6em 1.2em;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  cursor: pointer;
+  background: transparent;
+  font-size: 0.95em;
+}
+
+header a:hover, header button:hover {
+  background: var(--primary);
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4);
+}
+
+header button {
+  background: var(--danger);
+  color: white;
+  border-color: var(--danger);
+}
+
+header button:hover {
+  background: #d32f2f;
+  border-color: #d32f2f;
+}
+
+header #logout-button {
+  margin-left: auto;
+}
+
+/* ===== MAIN CONTENT ===== */
+main {
+  flex: 1;
+  padding: 2em;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+section {
+  background: var(--darker);
+  border-radius: 8px;
+  padding: 2em;
+  margin-bottom: 2em;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+section h2 {
+  color: var(--accent);
+  margin-bottom: 1.5em;
+  font-size: 1.8em;
+  border-bottom: 2px solid var(--primary);
+  padding-bottom: 0.5em;
+}
+
+section h3 {
+  color: var(--primary);
+  margin-top: 1.5em;
+  margin-bottom: 1em;
+  font-size: 1.4em;
+}
+
+section h4 {
+  color: var(--accent);
+  margin-top: 1.2em;
+  margin-bottom: 0.8em;
+  font-size: 1.1em;
+}
+
+/* ===== FORMS ===== */
+.auth-form {
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 2em;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(240, 147, 251, 0.1) 100%);
+  border: 1px solid var(--primary);
+  border-radius: 8px;
+}
+
+.auth-form h3 {
+  text-align: center;
+  margin-top: 0;
+  margin-bottom: 1.5em;
+}
+
+.auth-form form {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+  margin-bottom: 1.5em;
+}
+
+input[type="email"],
+input[type="password"],
+input[type="text"],
+textarea,
+select {
+  padding: 0.8em;
+  border: 1px solid var(--primary);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--light);
+  font-family: inherit;
+  font-size: 1em;
+  transition: all 0.3s ease;
+}
+
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="text"]:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  background: rgba(102, 126, 234, 0.2);
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(102, 126, 234, 0.4);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: rgba(238, 238, 238, 0.6);
+}
+
+/* ===== BUTTONS ===== */
+button,
+.btn,
+.primary-btn,
+.secondary-btn {
+  padding: 0.8em 1.6em;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1em;
+  transition: all 0.3s ease;
+}
+
+button[type="submit"],
+.primary-btn {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: white;
+  margin-top: 1em;
+}
+
+button[type="submit"]:hover,
+.primary-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(102, 126, 234, 0.4);
+}
+
+.secondary-btn {
+  background: rgba(102, 126, 234, 0.2);
+  color: var(--light);
+  border: 1px solid var(--primary);
+}
+
+.secondary-btn:hover {
+  background: var(--primary);
+  color: var(--dark);
+}
+
+.create-course-btn {
+  background: var(--success);
+  color: white;
+  padding: 0.7em 1.4em;
+  margin-bottom: 1em;
+}
+
+.create-course-btn:hover {
+  background: #45a049;
+}
+
+/* ===== AUTH FORM ===== */
+.auth-form p {
+  text-align: center;
+  margin-top: 1em;
+  font-size: 0.95em;
+}
+
+.auth-form a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+.auth-form a:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+/* ===== DASHBOARD ===== */
+#dashboard-section ul {
+  list-style: none;
+  margin: 1em 0;
+}
+
+#dashboard-section li {
+  background: rgba(102, 126, 234, 0.1);
+  padding: 1em;
+  margin: 0.5em 0;
+  border-left: 3px solid var(--primary);
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+#dashboard-section li:hover {
+  background: rgba(102, 126, 234, 0.2);
+  transform: translateX(4px);
+}
+
+#dashboard-section button {
+  background: var(--info);
+  color: white;
+  padding: 0.5em 1em;
+  margin: 0 0.3em;
+}
+
+#dashboard-section button:hover {
+  background: #1976d2;
+}
+
+#dashboard-section .delete-btn {
+  background: var(--danger);
+}
+
+#dashboard-section .delete-btn:hover {
+  background: #d32f2f;
+}
+
+/* ===== COURSE EDITOR ===== */
+#course-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+}
+
+.editor-toolbar {
+  display: flex;
+  gap: 0.5em;
+  flex-wrap: wrap;
+  padding: 1em;
+  background: rgba(102, 126, 234, 0.1);
+  border-radius: 4px;
+  margin-bottom: 1em;
+}
+
+.editor-toolbar button {
+  padding: 0.6em 1em;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.editor-toolbar button:hover {
+  background: var(--secondary);
+  transform: scale(1.05);
+}
+
+.rich-text-editor {
+  min-height: 300px;
+  padding: 1em;
+  border: 1px solid var(--primary);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--light);
+  overflow-y: auto;
+  margin-bottom: 1em;
+}
+
+.rich-text-editor:focus {
+  outline: none;
+  background: rgba(102, 126, 234, 0.2);
+  border-color: var(--accent);
+}
+
+.form-actions {
+  display: flex;
+  gap: 1em;
+  justify-content: center;
+  margin-top: 1.5em;
+}
+
+/* ===== INFO TEXT ===== */
+.info-text {
+  color: var(--accent);
+  font-style: italic;
+  margin-bottom: 1.5em;
+  padding: 1em;
+  background: rgba(240, 147, 251, 0.1);
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+}
+
+/* ===== COURSE VIEWER ===== */
+#course-viewer-title {
+  color: var(--accent);
+  margin-bottom: 1em;
+}
+
+.course-description {
+  color: rgba(238, 238, 238, 0.8);
+  font-size: 1.1em;
+  margin-bottom: 1.5em;
+  padding: 1em;
+  background: rgba(102, 126, 234, 0.1);
+  border-radius: 4px;
+}
+
+#course-viewer-content {
+  margin: 2em 0;
+}
+
+#course-viewer-content p {
+  margin: 1em 0;
+  line-height: 1.8;
+}
+
+/* ===== SIMULATORS ===== */
+.simulator {
+  background: rgba(102, 126, 234, 0.1);
+  border: 1px solid var(--primary);
+  padding: 1.5em;
+  margin: 1em 0;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.simulator:hover {
+  background: rgba(102, 126, 234, 0.2);
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.simulator-controls {
+  display: flex;
+  gap: 0.5em;
+  flex-wrap: wrap;
+  margin-top: 1em;
+}
+
+.simulator-controls button {
+  padding: 0.6em 1em;
+  background: var(--info);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: all 0.3s ease;
+}
+
+.simulator-controls button:hover {
+  background: #1976d2;
+}
+
+.simulator-controls .delete-btn {
+  background: var(--danger);
+}
+
+.simulator-controls .delete-btn:hover {
+  background: #d32f2f;
+}
+
+/* ===== ERROR/SUCCESS MESSAGES ===== */
+.error {
+  background: rgba(244, 67, 54, 0.2);
+  border: 1px solid var(--danger);
+  color: #ff6b6b;
+  padding: 1em;
+  border-radius: 4px;
+  margin-bottom: 1em;
+}
+
+.success {
+  background: rgba(76, 175, 80, 0.2);
+  border: 1px solid var(--success);
+  color: #81c784;
+  padding: 1em;
+  border-radius: 4px;
+  margin-bottom: 1em;
+}
+
+/* ===== FOOTER ===== */
+footer {
+  background: var(--darker);
+  padding: 1.5em;
+  text-align: center;
+  border-top: 1px solid var(--primary);
+  color: rgba(238, 238, 238, 0.7);
+  margin-top: auto;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  header {
+    flex-direction: column;
+    gap: 1em;
+  }
+
+  header h1 {
+    font-size: 1.5em;
+  }
+
+  header nav {
+    gap: 1em;
+    justify-content: center;
+  }
+
+  main {
+    padding: 1em;
+  }
+
+  section {
+    padding: 1em;
+  }
+
+  .editor-toolbar {
+    flex-direction: column;
+  }
+
+  .editor-toolbar button {
+    width: 100%;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  #dashboard-section li {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  #dashboard-section button {
+    width: 100%;
+    margin-top: 0.5em;
+  }
+}
+
+@media (max-width: 480px) {
+  header h1 {
+    font-size: 1.2em;
+  }
+
+  header nav {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  header a, header button {
+    width: 100%;
+    text-align: center;
+  }
+
+  .auth-form {
+    padding: 1em;
+  }
+
+  section h2 {
+    font-size: 1.4em;
+  }
+}

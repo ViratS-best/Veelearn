@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulator Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            overflow: hidden;
+        }
+        
+        .header {
+            background: #0f3460;
+            padding: 1.5em;
+            border-bottom: 2px solid #533483;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            color: #e94560;
+            font-size: 1.5em;
+        }
+        
+        .header-buttons {
+            display: flex;
+            gap: 1em;
+        }
+        
+        .btn {
+            padding: 0.7em 1.2em;
+            background: #e94560;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn:hover {
+            background: #c93b52;
+            transform: translateY(-1px);
+        }
+        
+        .btn.secondary {
+            background: #533483;
+        }
+        
+        .btn.secondary:hover {
+            background: #422a69;
+        }
+        
+        .btn.danger {
+            background: #ef4444;
+            margin-left: auto;
+        }
+        
+        .btn.danger:hover {
+            background: #dc2626;
+        }
+        
+        .container {
+            display: flex;
+            height: calc(100vh - 80px);
+            gap: 1em;
+            padding: 1em;
+        }
+        
+        .canvas-area {
+            flex: 1;
+            background: #16213e;
+            border-radius: 8px;
+            border: 2px solid #533483;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        #simulatorCanvas {
+            border-radius: 6px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            max-width: 100%;
+            max-height: 100%;
+        }
+        
+        .info-panel {
+            width: 350px;
+            background: #16213e;
+            border-radius: 8px;
+            border: 2px solid #533483;
+            padding: 1.5em;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        
+        .info-panel h2 {
+            color: #e94560;
+            margin-bottom: 1em;
+            font-size: 1.2em;
+        }
+        
+        .info-item {
+            margin-bottom: 1.5em;
+            padding-bottom: 1em;
+            border-bottom: 1px solid #0f3460;
+        }
+        
+        .info-item:last-child {
+            border-bottom: none;
+        }
+        
+        .info-item label {
+            display: block;
+            color: #ccc;
+            font-size: 0.9em;
+            margin-bottom: 0.5em;
+            text-transform: uppercase;
+        }
+        
+        .info-item p {
+            color: #eee;
+            font-size: 0.95em;
+            word-break: break-word;
+        }
+        
+        .console {
+            background: #0f0f0f;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            padding: 1em;
+            border-radius: 6px;
+            font-size: 0.85em;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 1em;
+            border: 1px solid #333;
+        }
+        
+        .console-line {
+            margin-bottom: 0.3em;
+        }
+        
+        .console-line.error {
+            color: #ff4444;
+        }
+        
+        .console-line.warning {
+            color: #f59e0b;
+        }
+        
+        .console-line.info {
+            color: #44aaff;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #ccc;
+        }
+        
+        .loading-spinner {
+            border: 4px solid rgba(233, 69, 96, 0.3);
+            border-top: 4px solid #e94560;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎮 Simulator Viewer</h1>
+        <div class="header-buttons">
+            <button class="btn secondary" onclick="runSimulation()">▶ Run</button>
+            <button class="btn secondary" onclick="stopSimulation()">⏹ Stop</button>
+            <button class="btn danger" onclick="goBack()">← Back</button>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="canvas-area">
+            <canvas id="simulatorCanvas" width="800" height="600"></canvas>
+        </div>
+        
+        <div class="info-panel">
+            <h2>📊 Simulator Info</h2>
+            <div class="info-item">
+                <label>Title</label>
+                <p id="simulator-title">Loading...</p>
+            </div>
+            <div class="info-item">
+                <label>Description</label>
+                <p id="simulator-description">No description</p>
+            </div>
+            <div class="info-item">
+                <label>Creator</label>
+                <p id="simulator-creator">Unknown</p>
+            </div>
+            <div class="info-item">
+                <label>Blocks Count</label>
+                <p id="block-count">0</p>
+            </div>
+            <div class="info-item">
+                <label>Connections</label>
+                <p id="connection-count">0</p>
+            </div>
+            <div class="console" id="console"></div>
+        </div>
+    </div>
+    
+    <!-- Core systems -->
+    <script src="block-physics-engine.js"></script>
+    <script src="block-animation.js"></script>
+    <script src="block-renderer-system.js"></script>
+    <script src="block-execution-engine.js"></script>
+    <script src="block-templates-unified.js"></script>
+    
+    <script>
+        // Simulator viewer - Load and execute published simulators
+        let currentSimulator = null;
+        let isRunning = false;
+        let animationFrame = null;
+        let frameCount = 0;
+        let blocks = [];
+        let connections = [];
+        
+        const canvas = document.getElementById('simulatorCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Console logging
+        function logToConsole(message, type = 'info') {
+            const consoleEl = document.getElementById('console');
+            const line = document.createElement('div');
+            line.className = `console-line ${type}`;
+            line.textContent = `> ${message}`;
+            consoleEl.appendChild(line);
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+            
+            while (consoleEl.children.length > 50) {
+                consoleEl.removeChild(consoleEl.firstChild);
+            }
+        }
+        
+        // Initialize
+        window.addEventListener('DOMContentLoaded', () => {
+            loadSimulator();
+        });
+        
+        // Load simulator from URL parameter
+        function loadSimulator() {
+            const urlParams = new URLSearchParams(location.search);
+            const simulatorId = urlParams.get('id');
+            
+            if (!simulatorId) {
+                logToConsole('ERROR: No simulator ID provided', 'error');
+                document.querySelector('.canvas-area').innerHTML = '<p class="loading">ERROR: No simulator ID provided in URL</p>';
+                return;
+            }
+            
+            const authToken = localStorage.getItem('token');
+             if (!authToken) {
+                 logToConsole('ERROR: Not authenticated', 'error');
+                 document.querySelector('.canvas-area').innerHTML = '<p class="loading">ERROR: Please login first</p>';
+                 return;
+             }
+            
+            fetch(`http://localhost:3000/api/simulators/${simulatorId}`, {
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    currentSimulator = data.data;
+                    blocks = currentSimulator.blocks || [];
+                    connections = currentSimulator.connections || [];
+                    
+                    // Display simulator info
+                    document.getElementById('simulator-title').textContent = currentSimulator.title;
+                    document.getElementById('simulator-description').textContent = currentSimulator.description || 'No description';
+                    document.getElementById('simulator-creator').textContent = currentSimulator.creator_email || 'Unknown';
+                    document.getElementById('block-count').textContent = blocks.length;
+                    document.getElementById('connection-count').textContent = connections.length;
+                    
+                    logToConsole(`Loaded simulator: ${currentSimulator.title}`, 'info');
+                    logToConsole(`Blocks: ${blocks.length}, Connections: ${connections.length}`, 'info');
+                } else {
+                    logToConsole('ERROR: ' + (data.message || 'Failed to load simulator'), 'error');
+                    document.querySelector('.canvas-area').innerHTML = `<p class="loading">ERROR: ${data.message}</p>`;
+                }
+            })
+            .catch(err => {
+                console.error('Load error:', err);
+                logToConsole('ERROR: ' + err.message, 'error');
+                document.querySelector('.canvas-area').innerHTML = `<p class="loading">ERROR: ${err.message}</p>`;
+            });
+        }
+        
+        // Run simulation
+        function runSimulation() {
+            if (isRunning) {
+                logToConsole('Simulation already running', 'warning');
+                return;
+            }
+            
+            if (blocks.length === 0) {
+                logToConsole('No blocks to execute', 'warning');
+                return;
+            }
+            
+            try {
+                isRunning = true;
+                frameCount = 0;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                logToConsole('Simulation starting...', 'info');
+                
+                const animate = () => {
+                    try {
+                        executeBlocks();
+                        animationFrame = requestAnimationFrame(animate);
+                    } catch (error) {
+                        logToConsole(`Simulation error: ${error.message}`, 'error');
+                        stopSimulation();
+                    }
+                };
+                
+                animate();
+            } catch (error) {
+                logToConsole(`Failed to start: ${error.message}`, 'error');
+                isRunning = false;
+            }
+        }
+        
+        // Stop simulation
+        function stopSimulation() {
+            if (animationFrame) {
+                cancelAnimationFrame(animationFrame);
+            }
+            isRunning = false;
+            logToConsole('Simulation stopped', 'info');
+        }
+        
+        // Execute blocks
+        function executeBlocks() {
+            const blockValues = new Map();
+            
+            // Simple topological sort
+            const executed = new Set();
+            
+            for (let block of blocks) {
+                if (executed.has(block.id)) continue;
+                
+                const template = blockTemplates[block.type];
+                if (!template) continue;
+                
+                try {
+                    const resolvedInputs = {};
+                    
+                    if (template.inputs) {
+                        template.inputs.forEach(input => {
+                            const connection = connections.find(c => c.to === block.id && c.toInputType === input.name);
+                            
+                            if (connection) {
+                                const fromValue = blockValues.get(connection.from);
+                                if (fromValue && fromValue[connection.fromOutputType]) {
+                                    resolvedInputs[input.name] = fromValue[connection.fromOutputType];
+                                } else {
+                                    resolvedInputs[input.name] = block.inputs[input.name] || input.default;
+                                }
+                            } else {
+                                resolvedInputs[input.name] = block.inputs[input.name] || input.default;
+                            }
+                        });
+                    }
+                    
+                    const outputs = {};
+                    
+                    // Execute specific blocks
+                    switch (block.type) {
+                        case 'draw-circle':
+                            ctx.fillStyle = resolvedInputs.color || '#000';
+                            ctx.beginPath();
+                            ctx.arc(resolvedInputs.x || 0, resolvedInputs.y || 0, resolvedInputs.radius || 10, 0, Math.PI * 2);
+                            ctx.fill();
+                            break;
+                        
+                        case 'draw-rectangle':
+                            ctx.fillStyle = resolvedInputs.color || '#000';
+                            ctx.fillRect(resolvedInputs.x || 0, resolvedInputs.y || 0, resolvedInputs.width || 50, resolvedInputs.height || 50);
+                            break;
+                        
+                        case 'draw-line':
+                            ctx.strokeStyle = resolvedInputs.color || '#000';
+                            ctx.lineWidth = resolvedInputs.width || 2;
+                            ctx.beginPath();
+                            ctx.moveTo(resolvedInputs.x1 || 0, resolvedInputs.y1 || 0);
+                            ctx.lineTo(resolvedInputs.x2 || 100, resolvedInputs.y2 || 100);
+                            ctx.stroke();
+                            break;
+                        
+                        case 'clear-canvas':
+                            ctx.clearRect(0, 0, canvas.width, canvas.height);
+                            break;
+                        
+                        case 'add':
+                            outputs.result = (resolvedInputs.a || 0) + (resolvedInputs.b || 0);
+                            break;
+                        
+                        case 'multiply':
+                            outputs.result = (resolvedInputs.a || 1) * (resolvedInputs.b || 1);
+                            break;
+                        
+                        case 'power':
+                            outputs.result = Math.pow(resolvedInputs.base || 2, resolvedInputs.exponent || 2);
+                            break;
+                        
+                        case 'sqrt':
+                            outputs.result = Math.sqrt(resolvedInputs.value || 0);
+                            break;
+                        
+                        default:
+                            // Try advanced blocks
+                            if (template.execute) {
+                                const advancedOutputs = template.execute(resolvedInputs, {
+                                    ctx: ctx,
+                                    canvas: canvas,
+                                    frameCount: frameCount
+                                });
+                                Object.assign(outputs, advancedOutputs || {});
+                            }
+                    }
+                    
+                    blockValues.set(block.id, outputs);
+                    executed.add(block.id);
+                } catch (error) {
+                    logToConsole(`Error in ${template?.title || block.type}: ${error.message}`, 'error');
+                }
+            }
+            
+            frameCount++;
+        }
+        
+        // Go back to marketplace
+        function goBack() {
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>
