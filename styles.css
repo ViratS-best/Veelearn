@@ -224,6 +224,17 @@ button[type="submit"]:hover,
   color: var(--dark);
 }
 
+.success-btn {
+  background: linear-gradient(135deg, var(--success), #66bb6a);
+  color: white;
+  margin-top: 1em;
+}
+
+.success-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(76, 175, 80, 0.4);
+}
+
 .create-course-btn {
   background: var(--success);
   color: white;
