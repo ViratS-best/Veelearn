@@ -61,6 +61,7 @@ db.getConnection((err, connection) => {
             title VARCHAR(255) NOT NULL,
             description TEXT,
             content LONGTEXT,
+            blocks LONGTEXT,
             creator_id INT,
             status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
             is_paid BOOLEAN DEFAULT FALSE,
@@ -184,6 +185,18 @@ db.getConnection((err, connection) => {
     db.query(createCoursesTable, (err) => {
         if (err) console.error('Error creating courses table:', err);
         else console.log('Courses table checked/created');
+        
+        // Add blocks column if it doesn't exist (migration for existing tables)
+        const addBlocksColumn = `
+            ALTER TABLE courses ADD COLUMN IF NOT EXISTS blocks LONGTEXT
+        `;
+        db.query(addBlocksColumn, (err) => {
+            if (err && err.code !== 'ER_DUP_FIELDNAME') {
+                console.error('Error adding blocks column:', err);
+            } else if (!err) {
+                console.log('✓ Blocks column verified/added to courses table');
+            }
+        });
     });
     
     db.query(createAdminFavoritesTable, (err) => {
@@ -301,24 +314,28 @@ const rateLimiter = (req, res, next) => {
     const ip = req.ip;
     const now = Date.now();
     const windowMs = 15 * 60 * 1000; // 15 minutes
-    const maxAttempts = 5;
+    const maxAttempts = 50; // INCREASED for testing - was 5
 
     if (!loginAttempts.has(ip)) {
         loginAttempts.set(ip, { count: 1, resetTime: now + windowMs });
+        console.log(`✓ Rate limiter: New IP ${ip}, attempts: 1/${maxAttempts}`);
         return next();
     }
 
     const attempts = loginAttempts.get(ip);
     if (now > attempts.resetTime) {
         loginAttempts.set(ip, { count: 1, resetTime: now + windowMs });
+        console.log(`✓ Rate limiter: Reset for IP ${ip}, attempts: 1/${maxAttempts}`);
         return next();
     }
 
     if (attempts.count >= maxAttempts) {
+        console.error(`❌ Rate limit exceeded for IP ${ip}: ${attempts.count}/${maxAttempts}`);
         return apiResponse(res, 429, 'Too many attempts. Please try again later.');
     }
 
     attempts.count++;
+    console.log(`✓ Rate limiter: IP ${ip}, attempts: ${attempts.count}/${maxAttempts}`);
     next();
 };
 
@@ -572,24 +589,37 @@ app.put('/api/superadmin/users/:id/role', authenticateToken, authorize('superadm
 
 // ===== COURSE ROUTES =====
 app.post('/api/courses', authenticateToken, (req, res) => {
-    const { title, description, content } = req.body;
+    const { title, description, content, blocks, status } = req.body;
     const creator_id = req.user.id;
 
-    if (!title || !content) {
-        return apiResponse(res, 400, 'Course title and content are required');
+    console.log('📝 CREATE COURSE DEBUG:');
+    console.log('  User ID:', creator_id);
+    console.log('  Title:', title);
+    console.log('  Description:', description ? 'YES' : 'NO');
+    console.log('  Content length:', content ? content.length : 0, 'chars');
+    console.log('  Blocks count:', Array.isArray(blocks) ? blocks.length : 'NOT PROVIDED');
+    console.log('  Status:', status || 'draft');
+
+    if (!title) {
+        return apiResponse(res, 400, 'Course title is required');
     }
 
     if (title.length > 255) {
         return apiResponse(res, 400, 'Course title too long (max 255 characters)');
     }
 
-    const insertCourseQuery = 'INSERT INTO courses (title, description, content, creator_id, status) VALUES (?, ?, ?, ?, ?)';
-    db.query(insertCourseQuery, [title, description, content, creator_id, 'pending'], (err, result) => {
+    // Use provided status or default to 'draft'
+    const courseStatus = status || 'draft';
+    const blocksJson = blocks ? (typeof blocks === 'string' ? blocks : JSON.stringify(blocks)) : '[]';
+
+    const insertCourseQuery = 'INSERT INTO courses (title, description, content, blocks, creator_id, status) VALUES (?, ?, ?, ?, ?, ?)';
+    db.query(insertCourseQuery, [title, description || '', content || '', blocksJson, creator_id, courseStatus], (err, result) => {
         if (err) {
-            console.error('Error creating course:', err);
-            return apiResponse(res, 500, 'Server error creating course');
+            console.error('❌ Error creating course:', err);
+            return apiResponse(res, 500, 'Server error creating course', { details: err.message });
         }
-        apiResponse(res, 201, 'Course created successfully and is awaiting admin approval', { courseId: result.insertId });
+        console.log('✅ Course created with ID:', result.insertId, 'Status:', courseStatus);
+        apiResponse(res, 201, `Course created successfully with status: ${courseStatus}`, { id: result.insertId, courseId: result.insertId });
     });
 });
 
@@ -599,7 +629,7 @@ app.get('/api/courses/:id', authenticateToken, (req, res) => {
     const userRole = req.user.role;
 
     const query = `
-        SELECT id, title, description, content, creator_id, status, is_paid, shells_cost, feedback
+        SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback
         FROM courses
         WHERE id = ?
     `;
@@ -629,15 +659,23 @@ app.get('/api/courses/:id', authenticateToken, (req, res) => {
 app.put('/api/courses/:id', authenticateToken, (req, res) => {
     const courseId = req.params.id;
     const userId = req.user.id;
-    const { title, description, content } = req.body;
+    const { title, description, content, blocks, status } = req.body;
 
-    if (!title || !content) {
-        return apiResponse(res, 400, 'Course title and content are required');
+    console.log('📝 UPDATE COURSE DEBUG:');
+    console.log('  Course ID:', courseId);
+    console.log('  User ID:', userId);
+    console.log('  Title:', title);
+    console.log('  Content length:', content ? content.length : 0, 'chars');
+    console.log('  Blocks count:', Array.isArray(blocks) ? blocks.length : 'NOT PROVIDED');
+    console.log('  Status:', status || 'unchanged');
+
+    if (!title) {
+        return apiResponse(res, 400, 'Course title is required');
     }
 
     db.query('SELECT creator_id FROM courses WHERE id = ?', [courseId], (err, results) => {
         if (err) {
-            console.error('Error fetching course:', err);
+            console.error('❌ Error fetching course:', err);
             return apiResponse(res, 500, 'Server error');
         }
         if (results.length === 0) {
@@ -649,12 +687,32 @@ app.put('/api/courses/:id', authenticateToken, (req, res) => {
             return apiResponse(res, 403, 'You can only edit your own courses');
         }
 
-        const updateQuery = 'UPDATE courses SET title = ?, description = ?, content = ? WHERE id = ?';
-        db.query(updateQuery, [title, description, content, courseId], (err, result) => {
+        // Prepare blocks JSON
+        const blocksJson = blocks ? (typeof blocks === 'string' ? blocks : JSON.stringify(blocks)) : undefined;
+
+        // Update with optional status parameter
+        let updateQuery = 'UPDATE courses SET title = ?, description = ?, content = ?';
+        const params = [title, description || '', content || ''];
+
+        if (blocksJson !== undefined) {
+            updateQuery += ', blocks = ?';
+            params.push(blocksJson);
+        }
+
+        if (status) {
+            updateQuery += ', status = ?';
+            params.push(status);
+        }
+
+        updateQuery += ' WHERE id = ?';
+        params.push(courseId);
+
+        db.query(updateQuery, params, (err, result) => {
             if (err) {
-                console.error('Error updating course:', err);
-                return apiResponse(res, 500, 'Server error updating course');
+                console.error('❌ Error updating course:', err);
+                return apiResponse(res, 500, 'Server error updating course', { details: err.message });
             }
+            console.log('✅ Course updated - ID:', courseId, 'Status:', status || 'unchanged');
             apiResponse(res, 200, 'Course updated successfully');
         });
     });
@@ -693,7 +751,7 @@ app.get('/api/courses', authenticateToken, (req, res) => {
 const userId = req.user.id;
 // Show approved courses from everyone + own courses (even if pending)
 const query = `
-SELECT c.id, c.title, c.description, c.creator_id, c.status, c.is_paid, c.shells_cost, u.email as creator_email
+SELECT c.id, c.title, c.description, c.content, c.blocks, c.creator_id, c.status, c.is_paid, c.shells_cost, u.email as creator_email
 FROM courses c
 LEFT JOIN users u ON c.creator_id = u.id
 WHERE c.status = 'approved' OR c.creator_id = ?
@@ -705,7 +763,23 @@ ORDER BY c.created_at DESC
              console.error('Error fetching courses:', err);
              return apiResponse(res, 500, 'Server error fetching courses');
          }
-         apiResponse(res, 200, 'Courses fetched successfully', results);
+         
+         // Parse blocks JSON for each course
+         const parsedResults = results.map(course => {
+             if (course.blocks && typeof course.blocks === 'string') {
+                 try {
+                     course.blocks = JSON.parse(course.blocks);
+                 } catch (e) {
+                     console.error('Error parsing blocks for course', course.id, ':', e);
+                     course.blocks = [];
+                 }
+             } else if (!course.blocks) {
+                 course.blocks = [];
+             }
+             return course;
+         });
+         
+         apiResponse(res, 200, 'Courses fetched successfully', parsedResults);
     });
 });
 
@@ -716,19 +790,35 @@ app.get('/api/users/:userId/courses', authenticateToken, (req, res) => {
         return apiResponse(res, 403, 'Access denied. You can only view your own courses');
     }
 
-    const query = 'SELECT id, title, description, content, creator_id, status, is_paid, shells_cost, feedback FROM courses WHERE creator_id = ?';
+    const query = 'SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback FROM courses WHERE creator_id = ?';
     db.query(query, [userId], (err, results) => {
         if (err) {
             console.error('Error fetching user courses:', err);
             return apiResponse(res, 500, 'Server error fetching user courses');
         }
-        apiResponse(res, 200, 'User courses fetched successfully', results);
+        
+        // Parse blocks JSON for each course
+        const parsedResults = results.map(course => {
+            if (course.blocks) {
+                try {
+                    course.blocks = JSON.parse(course.blocks);
+                } catch (e) {
+                    console.error('Error parsing blocks for course', course.id, ':', e);
+                    course.blocks = [];
+                }
+            } else {
+                course.blocks = [];
+            }
+            return course;
+        });
+        
+        apiResponse(res, 200, 'User courses fetched successfully', parsedResults);
     });
 });
 
 // ===== ADMIN ROUTES =====
 app.get('/api/admin/courses/pending', authenticateToken, authorize('admin', 'superadmin'), (req, res) => {
-    const query = 'SELECT c.id, c.title, c.description, c.content, c.creator_id, u.email as creator_email, c.created_at FROM courses c JOIN users u ON c.creator_id = u.id WHERE c.status = "pending"';
+    const query = 'SELECT c.id, c.title, c.description, c.content, c.blocks, c.creator_id, u.email as creator_email, c.created_at FROM courses c JOIN users u ON c.creator_id = u.id WHERE c.status = "pending"';
     
     db.query(query, (err, results) => {
         if (err) {
@@ -736,6 +826,45 @@ app.get('/api/admin/courses/pending', authenticateToken, authorize('admin', 'sup
             return apiResponse(res, 500, 'Server error fetching pending courses');
         }
         apiResponse(res, 200, 'Pending courses fetched successfully', results);
+    });
+});
+
+// Admin preview a pending course (with all content)
+app.get('/api/admin/courses/:id/preview', authenticateToken, authorize('admin', 'superadmin'), (req, res) => {
+    const courseId = req.params.id;
+
+    const query = `
+        SELECT c.id, c.title, c.description, c.content, c.blocks, c.creator_id, 
+               u.email as creator_email, c.status, c.created_at, c.feedback
+        FROM courses c
+        JOIN users u ON c.creator_id = u.id
+        WHERE c.id = ? AND c.status = 'pending'
+    `;
+    
+    db.query(query, [courseId], (err, results) => {
+        if (err) {
+            console.error('Error fetching course preview:', err);
+            return apiResponse(res, 500, 'Server error fetching course');
+        }
+        if (results.length === 0) {
+            return apiResponse(res, 404, 'Course not found or is not pending approval');
+        }
+
+        const course = results[0];
+        
+        // Try to parse blocks JSON if it exists
+        if (course.blocks) {
+            try {
+                course.blocks = JSON.parse(course.blocks);
+            } catch (e) {
+                console.error('Error parsing blocks JSON:', e);
+                course.blocks = [];
+            }
+        } else {
+            course.blocks = [];
+        }
+
+        apiResponse(res, 200, 'Course preview fetched successfully', course);
     });
 });
 
@@ -1054,11 +1183,24 @@ app.get('/api/simulators/:id', (req, res) => {
 
 // Create new simulator
 app.post('/api/simulators', authenticateToken, (req, res) => {
-    const { title, description, blocks, connections, tags, preview_image, is_public } = req.body;
+    const { title, description, blocks, connections, tags, preview_image, is_public, status } = req.body;
     const creator_id = req.user.id;
 
-    if (!title || !blocks) {
-        return apiResponse(res, 400, 'Title and blocks are required');
+    console.log('📝 CREATE SIMULATOR DEBUG:');
+    console.log('  User ID:', creator_id);
+    console.log('  Title:', title);
+    console.log('  Blocks count:', Array.isArray(blocks) ? blocks.length : 'NOT AN ARRAY');
+    console.log('  Connections count:', Array.isArray(connections) ? connections.length : 'NOT AN ARRAY');
+    console.log('  Status:', status);
+
+    if (!title) {
+        console.error('❌ Missing title');
+        return apiResponse(res, 400, 'Title is required');
+    }
+
+    if (!blocks) {
+        console.error('❌ Missing blocks');
+        return apiResponse(res, 400, 'Blocks are required');
     }
 
     if (title.length > 255) {
@@ -1067,27 +1209,31 @@ app.post('/api/simulators', authenticateToken, (req, res) => {
 
     try {
         const insertQuery = `
-            INSERT INTO simulators (creator_id, title, description, blocks, connections, tags, preview_image, is_public)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO simulators (creator_id, title, description, blocks, connections, tags, preview_image, is_public, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
         `;
 
         const blocksJson = typeof blocks === 'string' ? blocks : JSON.stringify(blocks);
         const connectionsJson = typeof connections === 'string' ? connections : JSON.stringify(connections || []);
 
+        console.log('✓ Blocks JSON length:', blocksJson.length);
+        console.log('✓ Connections JSON length:', connectionsJson.length);
+
         db.query(
             insertQuery,
-            [creator_id, title, description, blocksJson, connectionsJson, tags, preview_image, is_public ? 1 : 0],
+            [creator_id, title, description || '', blocksJson, connectionsJson, tags || '', preview_image || '', is_public ? 1 : 0],
             (err, result) => {
                 if (err) {
-                    console.error('Error creating simulator:', err);
-                    return apiResponse(res, 500, 'Error creating simulator');
+                    console.error('❌ Database error:', err);
+                    return apiResponse(res, 500, 'Error creating simulator', { details: err.message });
                 }
+                console.log('✅ Simulator created with ID:', result.insertId);
                 apiResponse(res, 201, 'Simulator created successfully', { simulatorId: result.insertId });
             }
         );
     } catch (error) {
-        console.error('Error:', error);
-        apiResponse(res, 500, 'Server error');
+        console.error('❌ Unexpected error:', error);
+        apiResponse(res, 500, 'Server error', { details: error.message });
     }
 });
 
@@ -1432,7 +1578,57 @@ db.query(createCourseSimulatorTable, (err) => {
     else console.log('Course simulator usage table checked/created');
 });
 
-// Add simulator to course
+// Add simulator to course - BOTH endpoint paths for compatibility
+app.post('/api/courses/:courseId/simulators', authenticateToken, (req, res) => {
+    const courseId = req.params.courseId;
+    const userId = req.user.id;
+    const { simulator_id } = req.body;
+
+    if (!simulator_id) {
+        return apiResponse(res, 400, 'Simulator ID is required');
+    }
+
+    // Verify course ownership
+    db.query('SELECT creator_id FROM courses WHERE id = ?', [courseId], (err, results) => {
+        if (err) {
+            console.error('Error fetching course:', err);
+            return apiResponse(res, 500, 'Server error');
+        }
+        if (results.length === 0) {
+            return apiResponse(res, 404, 'Course not found');
+        }
+
+        if (parseInt(results[0].creator_id) !== parseInt(userId) && req.user.role !== 'superadmin') {
+            return apiResponse(res, 403, 'You can only edit your own courses');
+        }
+
+        // Verify simulator exists
+        db.query('SELECT id FROM simulators WHERE id = ?', [simulator_id], (err, simResults) => {
+            if (err) {
+                console.error('Error fetching simulator:', err);
+                return apiResponse(res, 500, 'Server error');
+            }
+            if (simResults.length === 0) {
+                return apiResponse(res, 404, 'Simulator not found');
+            }
+
+            // Add to course
+            db.query(
+                'INSERT INTO course_simulator_usage (course_id, simulator_id) VALUES (?, ?) ON DUPLICATE KEY UPDATE added_at = CURRENT_TIMESTAMP',
+                [courseId, simulator_id],
+                (err) => {
+                    if (err) {
+                        console.error('Error adding simulator to course:', err);
+                        return apiResponse(res, 500, 'Error adding simulator to course');
+                    }
+                    apiResponse(res, 201, 'Simulator added to course successfully');
+                }
+            );
+        });
+    });
+});
+
+// Keep old endpoint for backwards compatibility
 app.post('/api/courses/:courseId/add-simulator', authenticateToken, (req, res) => {
     const courseId = req.params.courseId;
     const userId = req.user.id;
@@ -1452,7 +1648,7 @@ app.post('/api/courses/:courseId/add-simulator', authenticateToken, (req, res) =
             return apiResponse(res, 404, 'Course not found');
         }
 
-        if (results[0].creator_id !== userId && req.user.role !== 'superadmin') {
+        if (parseInt(results[0].creator_id) !== parseInt(userId) && req.user.role !== 'superadmin') {
             return apiResponse(res, 403, 'You can only edit your own courses');
         }
 

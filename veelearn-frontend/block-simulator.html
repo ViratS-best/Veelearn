@@ -839,19 +839,31 @@
 
       // Load simulator
       function loadSimulator(data) {
+        // CRITICAL: Check if blockTemplates are loaded
+        if (!blockTemplates || Object.keys(blockTemplates).length === 0) {
+          console.warn("blockTemplates not ready, queuing load");
+          // Retry in 100ms
+          setTimeout(() => loadSimulator(data), 100);
+          return;
+        }
+
         clearWorkspace();
         blocks = data.blocks || [];
         connections = data.connections || [];
 
+        let loadedCount = 0;
         blocks.forEach((block) => {
           const template = blockTemplates[block.type];
           if (template) {
             renderBlock(block, template);
+            loadedCount++;
+          } else {
+            console.warn(`Block template not found for type: ${block.type}`);
           }
         });
 
         updateConnections();
-        logToConsole("Simulator loaded");
+        logToConsole(`Simulator loaded with ${loadedCount}/${blocks.length} blocks`);
       }
 
       // Publish simulator to marketplace
@@ -895,12 +907,22 @@
           });
 
           if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || "Failed to publish simulator");
+            let errorMsg = "Failed to publish simulator";
+            try {
+              const error = await response.json();
+              errorMsg = error.message || error.error || errorMsg;
+            } catch (e) {
+              errorMsg = `HTTP ${response.status}: ${response.statusText}`;
+            }
+            throw new Error(errorMsg);
           }
 
           const result = await response.json();
-          logToConsole(`Simulator published successfully! ID: ${result.data.simulatorId}`, "info");
+          if (!result.success) {
+            throw new Error(result.message || "Simulator publish failed");
+          }
+          
+          logToConsole(`✓ Simulator published successfully! ID: ${result.data?.simulatorId || "unknown"}`, "info");
           alert("Simulator published successfully!");
 
           // Send to parent window if opened as popup
@@ -919,24 +941,45 @@
 
       // Exit simulator editor
       function exitSimulator() {
-        if (blocks.length > 0) {
-          if (!confirm("You have unsaved blocks. Save before exiting?")) {
-            // User chose not to save
-            if (window.opener) {
-              window.close();
-            } else {
-              window.parent.postMessage({ type: "closeBlockSimulator" }, "*");
-            }
-            return;
+        // If opened from a course (parent exists), send data back before closing
+        if (window.opener || window.parent !== window) {
+          console.log("Saving blocks before closing course simulator...");
+          // Send current blocks/connections back to parent
+          if (window.opener && !window.opener.closed) {
+            window.opener.postMessage({
+              type: "save-simulator",
+              data: {
+                blocks: blocks,
+                connections: connections
+              }
+            }, "*");
+          } else if (window.parent !== window) {
+            window.parent.postMessage({
+              type: "save-simulator",
+              data: {
+                blocks: blocks,
+                connections: connections
+              }
+            }, "*");
           }
-          saveSimulator();
         }
 
-        // Send message to parent
-        if (window.opener) {
-          window.close();
-        } else {
-          window.parent.postMessage({ type: "closeBlockSimulator" }, "*");
+        // Send close message to parent window
+        try {
+          if (window.opener && !window.opener.closed) {
+            // Opened as popup
+            window.close();
+          } else if (window.parent !== window) {
+            // Opened as iframe
+            window.parent.postMessage({ type: "closeBlockSimulator" }, "*");
+            setTimeout(() => window.close(), 500);
+          } else {
+            // Standalone - go back to index
+            window.location.href = "index.html";
+          }
+        } catch (e) {
+          console.error("Exit error:", e);
+          window.location.href = "index.html";
         }
       }
 
@@ -952,6 +995,14 @@
         if (e.ctrlKey && e.key === "r") {
           e.preventDefault();
           runSimulation();
+        }
+      });
+
+      // Listen for token from parent window
+      window.addEventListener("message", (e) => {
+        if (e.data.type === "setup" && e.data.token) {
+          localStorage.setItem("token", e.data.token);
+          console.log("✓ Token received from parent window");
         }
       });
 

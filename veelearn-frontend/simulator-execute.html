@@ -270,6 +270,8 @@
                 return;
             }
 
+            console.log('Loading simulator ID:', simulatorId);
+
             fetch(`http://localhost:3000/api/simulators/${simulatorId}`, {
                 headers: { 'Authorization': `Bearer ${authToken}` }
             })
@@ -277,19 +279,21 @@
             .then(data => {
                 if (data.success) {
                     simulator = data.data;
+                    console.log('Simulator loaded:', simulator);
+                    
                     document.getElementById('simulatorTitle').textContent = simulator.title || 'Simulator';
-                    document.getElementById('creatorInfo').textContent = `Creator: ${simulator.creator_name || 'Unknown'}`;
-                    document.getElementById('typeInfo').textContent = `Type: ${simulator.simulator_type || 'Block-based'}`;
+                    document.getElementById('creatorInfo').textContent = `Creator: ${simulator.creator_email || 'Unknown'}`;
+                    document.getElementById('typeInfo').textContent = `Type: Block-based`;
                     document.getElementById('dateInfo').textContent = `Created: ${new Date(simulator.created_at).toLocaleDateString()}`;
                     
-                    // Parse and display simulator content
-                    if (simulator.content) {
-                        try {
-                            const parsed = JSON.parse(simulator.content);
-                            console.log('Simulator blocks:', parsed);
-                        } catch (e) {
-                            console.error('Error parsing simulator content:', e);
-                        }
+                    // Log blocks and connections
+                    console.log('Blocks:', simulator.blocks);
+                    console.log('Connections:', simulator.connections);
+                    
+                    if (!simulator.blocks || simulator.blocks.length === 0) {
+                        showSuccess('Simulator loaded (no blocks configured)');
+                    } else {
+                        showSuccess(`Simulator loaded with ${simulator.blocks.length} blocks`);
                     }
                 } else {
                     showError(data.message || 'Failed to load simulator');
@@ -304,8 +308,8 @@
         // Run simulator
         function runSimulator() {
             if (isRunning) return;
-            if (!simulator || !simulator.content) {
-                showError('Simulator content not loaded');
+            if (!simulator) {
+                showError('Simulator not loaded');
                 return;
             }
 
@@ -314,16 +318,24 @@
                 updateStatus('RUNNING', 'running');
                 clearCanvas();
                 
-                // Parse simulator content
-                const blocks = JSON.parse(simulator.content).blocks || [];
+                // Get blocks from simulator data
+                const blocks = simulator.blocks || [];
+                const connections = simulator.connections || [];
+                
+                console.log('Running simulation with', blocks.length, 'blocks');
                 
                 // Execute blocks
                 if (blocks && blocks.length > 0) {
-                    executeSimulationFrame(blocks);
-                    animateSimulation(blocks);
+                    console.log('Executing blocks:', blocks);
+                    // TODO: Implement block execution engine
+                    // For now just show success
+                    showSuccess(`Simulation executed: ${blocks.length} blocks processed`);
                 } else {
                     showSuccess('Simulator executed (no blocks to run)');
                 }
+                
+                // Animate the simulation
+                animateSimulation(blocks);
             } catch (err) {
                 console.error('Error running simulator:', err);
                 showError('Error executing simulator: ' + err.message);

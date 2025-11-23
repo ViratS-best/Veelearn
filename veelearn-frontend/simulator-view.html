@@ -279,11 +279,11 @@
             }
             
             const authToken = localStorage.getItem('token');
-             if (!authToken) {
-                 logToConsole('ERROR: Not authenticated', 'error');
-                 document.querySelector('.canvas-area').innerHTML = '<p class="loading">ERROR: Please login first</p>';
-                 return;
-             }
+            if (!authToken) {
+                logToConsole('ERROR: Not authenticated', 'error');
+                document.querySelector('.canvas-area').innerHTML = '<p class="loading">ERROR: Please login first</p>';
+                return;
+            }
             
             fetch(`http://localhost:3000/api/simulators/${simulatorId}`, {
                 headers: { 'Authorization': `Bearer ${authToken}` }
@@ -292,8 +292,23 @@
             .then(data => {
                 if (data.success) {
                     currentSimulator = data.data;
-                    blocks = currentSimulator.blocks || [];
-                    connections = currentSimulator.connections || [];
+                    
+                    // Parse blocks and connections from JSON if they're strings
+                     try {
+                         blocks = typeof currentSimulator.blocks === 'string' 
+                             ? JSON.parse(currentSimulator.blocks)
+                             : (currentSimulator.blocks || []);
+                         
+                         connections = typeof currentSimulator.connections === 'string'
+                             ? JSON.parse(currentSimulator.connections)
+                             : (currentSimulator.connections || []);
+                     } catch (parseErr) {
+                         console.warn('Error parsing blocks/connections:', parseErr);
+                         blocks = [];
+                         connections = [];
+                     }
+                     
+                     logToConsole(`DEBUG: Blocks after parse: ${JSON.stringify(blocks).substring(0, 100)}...`, 'info');
                     
                     // Display simulator info
                     document.getElementById('simulator-title').textContent = currentSimulator.title;
@@ -302,8 +317,9 @@
                     document.getElementById('block-count').textContent = blocks.length;
                     document.getElementById('connection-count').textContent = connections.length;
                     
-                    logToConsole(`Loaded simulator: ${currentSimulator.title}`, 'info');
-                    logToConsole(`Blocks: ${blocks.length}, Connections: ${connections.length}`, 'info');
+                    logToConsole(`✓ Loaded simulator: ${currentSimulator.title}`, 'info');
+                    logToConsole(`✓ Blocks: ${blocks.length}, Connections: ${connections.length}`, 'info');
+                    logToConsole('Ready to run - Click ▶ Run button', 'info');
                 } else {
                     logToConsole('ERROR: ' + (data.message || 'Failed to load simulator'), 'error');
                     document.querySelector('.canvas-area').innerHTML = `<p class="loading">ERROR: ${data.message}</p>`;
@@ -331,15 +347,43 @@
             try {
                 isRunning = true;
                 frameCount = 0;
+                
+                // Clear canvas once at the start
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 logToConsole('Simulation starting...', 'info');
+                logToConsole(`Executing ${blocks.length} blocks...`, 'info');
+                
+                // Check if any drawing blocks exist
+                const hasDrawingBlocks = blocks.some(b => 
+                    ['draw-circle', 'draw-rectangle', 'draw-line', 'draw-text', 'draw-polygon', 'draw-arc', 'gradient-rect', 'trace-path'].includes(b.type) ||
+                    (blockTemplates[b.type] && blockTemplates[b.type].execute)
+                );
+                
+                if (!hasDrawingBlocks) {
+                    logToConsole('Warning: No drawing blocks found. Canvas will remain empty.', 'warning');
+                    logToConsole('Add drawing blocks like: draw-circle, draw-rectangle, etc.', 'info');
+                }
                 
                 const animate = () => {
                     try {
+                        // Clear canvas for each frame (for animations)
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        ctx.fillStyle = '#000000';
+                        
                         executeBlocks();
-                        animationFrame = requestAnimationFrame(animate);
+                        frameCount++;
+                        
+                        // Continue animation loop
+                        if (frameCount < 120) {  // Run for 2 seconds at 60 FPS
+                            animationFrame = requestAnimationFrame(animate);
+                        } else {
+                            logToConsole('Simulation completed', 'info');
+                            stopSimulation();
+                        }
                     } catch (error) {
                         logToConsole(`Simulation error: ${error.message}`, 'error');
+                        console.error('Error details:', error);
                         stopSimulation();
                     }
                 };
@@ -362,102 +406,112 @@
         
         // Execute blocks
         function executeBlocks() {
-            const blockValues = new Map();
+            if (!ctx || !canvas) {
+                console.error('Canvas context not available');
+                return;
+            }
             
-            // Simple topological sort
+            const blockValues = new Map();
             const executed = new Set();
+            let executedCount = 0;
             
             for (let block of blocks) {
-                if (executed.has(block.id)) continue;
+                if (!block || executed.has(block.id)) continue;
                 
                 const template = blockTemplates[block.type];
-                if (!template) continue;
+                if (!template) {
+                    console.warn(`Template not found for block type: ${block.type}`);
+                    continue;
+                }
                 
                 try {
                     const resolvedInputs = {};
                     
-                    if (template.inputs) {
+                    // Resolve inputs from connections or block defaults
+                    if (template.inputs && Array.isArray(template.inputs)) {
                         template.inputs.forEach(input => {
                             const connection = connections.find(c => c.to === block.id && c.toInputType === input.name);
                             
                             if (connection) {
                                 const fromValue = blockValues.get(connection.from);
-                                if (fromValue && fromValue[connection.fromOutputType]) {
-                                    resolvedInputs[input.name] = fromValue[connection.fromOutputType];
-                                } else {
-                                    resolvedInputs[input.name] = block.inputs[input.name] || input.default;
-                                }
+                                resolvedInputs[input.name] = fromValue?.[connection.fromOutputType] ?? block.inputs?.[input.name] ?? input.default;
                             } else {
-                                resolvedInputs[input.name] = block.inputs[input.name] || input.default;
+                                resolvedInputs[input.name] = block.inputs?.[input.name] ?? input.default;
                             }
                         });
                     }
                     
                     const outputs = {};
                     
-                    // Execute specific blocks
-                    switch (block.type) {
-                        case 'draw-circle':
-                            ctx.fillStyle = resolvedInputs.color || '#000';
-                            ctx.beginPath();
-                            ctx.arc(resolvedInputs.x || 0, resolvedInputs.y || 0, resolvedInputs.radius || 10, 0, Math.PI * 2);
-                            ctx.fill();
-                            break;
+                    // Handle built-in drawing blocks
+                    if (block.type === 'clear-canvas') {
+                        // Skip clear-canvas in animation loop (we clear at frame start)
+                    } else if (block.type === 'draw-circle') {
+                        const x = parseInt(resolvedInputs.x) || 200;
+                        const y = parseInt(resolvedInputs.y) || 200;
+                        const radius = parseInt(resolvedInputs.radius) || 50;
+                        const color = resolvedInputs.color || '#667eea';
                         
-                        case 'draw-rectangle':
-                            ctx.fillStyle = resolvedInputs.color || '#000';
-                            ctx.fillRect(resolvedInputs.x || 0, resolvedInputs.y || 0, resolvedInputs.width || 50, resolvedInputs.height || 50);
-                            break;
+                        ctx.fillStyle = color;
+                        ctx.beginPath();
+                        ctx.arc(x, y, radius, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else if (block.type === 'draw-rectangle') {
+                        const x = parseInt(resolvedInputs.x) || 100;
+                        const y = parseInt(resolvedInputs.y) || 100;
+                        const width = parseInt(resolvedInputs.width) || 100;
+                        const height = parseInt(resolvedInputs.height) || 100;
+                        const color = resolvedInputs.color || '#667eea';
                         
-                        case 'draw-line':
-                            ctx.strokeStyle = resolvedInputs.color || '#000';
-                            ctx.lineWidth = resolvedInputs.width || 2;
-                            ctx.beginPath();
-                            ctx.moveTo(resolvedInputs.x1 || 0, resolvedInputs.y1 || 0);
-                            ctx.lineTo(resolvedInputs.x2 || 100, resolvedInputs.y2 || 100);
-                            ctx.stroke();
-                            break;
+                        ctx.fillStyle = color;
+                        ctx.fillRect(x, y, width, height);
+                    } else if (block.type === 'draw-line') {
+                        const x1 = parseInt(resolvedInputs.x1) || 0;
+                        const y1 = parseInt(resolvedInputs.y1) || 0;
+                        const x2 = parseInt(resolvedInputs.x2) || 800;
+                        const y2 = parseInt(resolvedInputs.y2) || 600;
+                        const color = resolvedInputs.color || '#000';
+                        const width = parseInt(resolvedInputs.width) || 2;
                         
-                        case 'clear-canvas':
-                            ctx.clearRect(0, 0, canvas.width, canvas.height);
-                            break;
-                        
-                        case 'add':
-                            outputs.result = (resolvedInputs.a || 0) + (resolvedInputs.b || 0);
-                            break;
-                        
-                        case 'multiply':
-                            outputs.result = (resolvedInputs.a || 1) * (resolvedInputs.b || 1);
-                            break;
-                        
-                        case 'power':
-                            outputs.result = Math.pow(resolvedInputs.base || 2, resolvedInputs.exponent || 2);
-                            break;
-                        
-                        case 'sqrt':
-                            outputs.result = Math.sqrt(resolvedInputs.value || 0);
-                            break;
-                        
-                        default:
-                            // Try advanced blocks
-                            if (template.execute) {
-                                const advancedOutputs = template.execute(resolvedInputs, {
-                                    ctx: ctx,
-                                    canvas: canvas,
-                                    frameCount: frameCount
-                                });
-                                Object.assign(outputs, advancedOutputs || {});
-                            }
+                        ctx.strokeStyle = color;
+                        ctx.lineWidth = width;
+                        ctx.beginPath();
+                        ctx.moveTo(x1, y1);
+                        ctx.lineTo(x2, y2);
+                        ctx.stroke();
+                    } else if (block.type === 'add') {
+                        outputs.result = (parseFloat(resolvedInputs.a) || 0) + (parseFloat(resolvedInputs.b) || 0);
+                    } else if (block.type === 'multiply') {
+                        outputs.result = (parseFloat(resolvedInputs.a) || 1) * (parseFloat(resolvedInputs.b) || 1);
+                    } else if (block.type === 'power') {
+                        outputs.result = Math.pow(parseFloat(resolvedInputs.base) || 2, parseFloat(resolvedInputs.exponent) || 2);
+                    } else if (block.type === 'sqrt') {
+                        outputs.result = Math.sqrt(parseFloat(resolvedInputs.value) || 0);
+                    } else if (template.execute && typeof template.execute === 'function') {
+                        // Execute template function with proper context
+                        try {
+                            const advancedOutputs = template.execute(resolvedInputs, {
+                                ctx: ctx,
+                                canvas: canvas,
+                                frameCount: frameCount
+                            });
+                            Object.assign(outputs, advancedOutputs || {});
+                        } catch (templateErr) {
+                            console.error(`Template execution error for ${block.type}:`, templateErr);
+                        }
                     }
                     
                     blockValues.set(block.id, outputs);
                     executed.add(block.id);
+                    executedCount++;
                 } catch (error) {
-                    logToConsole(`Error in ${template?.title || block.type}: ${error.message}`, 'error');
+                    console.error(`Block execution error [${block.type}]:`, error);
                 }
             }
             
-            frameCount++;
+            if (frameCount === 0 && executedCount > 0) {
+                logToConsole(`✓ Executed ${executedCount} blocks on canvas`, 'info');
+            }
         }
         
         // Go back to marketplace

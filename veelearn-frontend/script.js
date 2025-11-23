@@ -18,12 +18,21 @@ function initializeApp() {
   setupAuthListeners();
   setupNavigationListeners();
   setupCourseEditorListeners();
+  setupMessageListeners();
 
   if (authToken) {
     fetchUserProfile();
   } else {
     showAuthSection();
   }
+}
+
+function setupMessageListeners() {
+  window.addEventListener("message", (e) => {
+    if (e.data.type === "closeBlockSimulator") {
+      showDashboard();
+    }
+  });
 }
 
 // ===== AUTHENTICATION =====
@@ -247,11 +256,24 @@ function setupCourseEditorListeners() {
   const courseForm = document.getElementById("course-form");
   const cancelBtn = document.getElementById("cancel-course-edit");
   const backBtn = document.getElementById("back-to-dashboard");
+  const saveDraftBtn = document.getElementById("save-draft-btn");
+  const submitApprovalBtn = document.getElementById("submit-approval-btn");
 
-  if (courseForm) {
-    courseForm.addEventListener("submit", (e) => {
+  // Save draft button - DIRECTLY call saveCourse with "draft" action
+  if (saveDraftBtn) {
+    saveDraftBtn.addEventListener("click", (e) => {
       e.preventDefault();
-      saveCourse();
+      console.log("📝 Save Draft button clicked - action: draft");
+      saveCourse("draft");
+    });
+  }
+
+  // Submit for approval button - DIRECTLY call saveCourse with "pending" action
+  if (submitApprovalBtn) {
+    submitApprovalBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      console.log("📝 Submit for Approval button clicked - action: pending");
+      saveCourse("pending");
     });
   }
 
@@ -579,17 +601,44 @@ function renderPendingCourses(courses) {
   }
 
   list.innerHTML = courses
-    .map(
-      (course) => `
-        <li>
-            <strong>${course.title}</strong> by ${course.creator_id}
-            <p>${course.description}</p>
-            <button onclick="approveCourse(${course.id})">Approve</button>
-            <button onclick="rejectCourse(${course.id})">Reject</button>
-        </li>
-    `
-    )
-    .join("");
+  .map(
+    (course) => `
+      <li>
+          <strong>${course.title}</strong> by ${course.creator_email || course.creator_id}
+          <p>${course.description || "(No description)"}</p>
+          <p style="font-size: 0.85em; color: #999;">Status: <span style="background: #ffa500; color: white; padding: 2px 6px; border-radius: 3px;">pending</span></p>
+          <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+            <button onclick="previewCourse(${course.id})" style="background: #667eea;">👁️ Preview</button>
+            <button onclick="approveCourse(${course.id})" style="background: #4caf50;">✓ Approve</button>
+            <button onclick="rejectCourse(${course.id})" style="background: #f44336;">✗ Reject</button>
+          </div>
+      </li>
+  `
+  )
+  .join("");
+}
+
+function previewCourse(courseId) {
+  // Find the course in pending courses to preview it before approval
+  const pendingCourses = document.querySelectorAll("#superadmin-pending-courses-list li, #admin-pending-courses-list li");
+  const courseLi = Array.from(pendingCourses).find(li => li.textContent.includes(`Preview`));
+  
+  // Fetch full course details
+  fetch(`http://localhost:3000/api/courses/${courseId}`, {
+    headers: { Authorization: `Bearer ${authToken}` },
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.success) {
+        viewCourse(courseId); // Use existing viewCourse function
+      } else {
+        alert("Error loading course preview");
+      }
+    })
+    .catch((err) => {
+      console.error("Error loading course:", err);
+      alert("Error loading course preview");
+    });
 }
 
 function approveCourse(courseId) {
@@ -638,13 +687,8 @@ function loadUserCourses() {
     .then((res) => res.json())
     .then((data) => {
       if (data.success) {
-        console.log("=== LOAD USER COURSES DEBUG ===");
-        console.log("Current user ID:", currentUser.id, "Type:", typeof currentUser.id);
-        console.log("All courses from API:", data.data);
         // Show own courses regardless of status (creator can always see their courses)
         myCourses = data.data.filter((c) => parseInt(c.creator_id) === parseInt(currentUser.id));
-        console.log("Filtered user courses:", myCourses);
-        console.log("Number of user courses:", myCourses.length);
         renderUserCourses();
       }
     })
@@ -658,23 +702,13 @@ function loadAvailableCourses() {
     .then((res) => res.json())
     .then((data) => {
       if (data.success) {
-        console.log("=== LOAD AVAILABLE COURSES DEBUG ===");
-        console.log("Current user ID:", currentUser.id, "Type:", typeof currentUser.id);
-        console.log("All courses from API:", data.data);
         // Show approved courses from OTHER creators (not self)
-        const approvedCourses = data.data.filter(
-          (c) => {
-            const isApproved = c.status === "approved";
-            const isNotOwner = parseInt(c.creator_id) !== parseInt(currentUser.id);
-            console.log(`Course "${c.title}" - Status: ${c.status}, Creator ID: ${c.creator_id}, IsApproved: ${isApproved}, IsNotOwner: ${isNotOwner}`);
-            return isApproved && isNotOwner;
-          }
+        availableCourses = data.data.filter(
+          (c) => c.status === "approved" && parseInt(c.creator_id) !== parseInt(currentUser.id)
         );
-        console.log("Filtered approved courses (from other creators):", approvedCourses);
-        availableCourses = approvedCourses;
         renderAvailableCourses();
       } else {
-        console.error("API Error:", data.message);
+        console.error("Error loading available courses:", data.message);
       }
     })
     .catch((err) => console.error("Error loading available courses:", err));
@@ -773,14 +807,20 @@ function editCourse(courseId) {
     document.getElementById("course-content-editor").innerHTML =
       course.content || "";
 
-    courseBlocks = [];
+    // RESTORE SAVED BLOCKS from the course
+    courseBlocks = course.blocks ? 
+      (typeof course.blocks === 'string' ? JSON.parse(course.blocks) : course.blocks) 
+      : [];
+    
+    console.log("✓ Course loaded with", courseBlocks.length, "blocks");
+    console.log("  Blocks:", courseBlocks);
 
     document.getElementById("dashboard-section").style.display = "none";
     document.getElementById("course-editor-section").style.display = "block";
   }
 }
 
-function saveCourse() {
+function saveCourse(action = "draft") {
   const title = document.getElementById("course-title").value;
   const description = document.getElementById("course-description").value;
   const content = document.getElementById("course-content-editor").innerHTML;
@@ -790,12 +830,28 @@ function saveCourse() {
     return;
   }
 
+  // Set course status based on action
+  const status = action === "pending" ? "pending" : "draft";
+
+  console.log(`\n=== SAVE COURSE DEBUG ===`);
+  console.log(`Action: ${action}`);
+  console.log(`Status to save: ${status}`);
+  console.log(`Title: "${title}"`);
+  console.log(`Description: "${description || '(empty)'}"`);
+  console.log(`Content length: ${content.length} chars`);
+  console.log(`Blocks count: ${courseBlocks.length}`);
+  console.log(`Is editing: ${currentEditingCourseId ? 'YES (PUT)' : 'NO (POST)'}`);
+  console.log(`\n`);
+
   const courseData = {
     title,
     description,
     content,
     blocks: courseBlocks,
+    status: status,
   };
+
+  console.log("Sending to API:", courseData);
 
   const method = currentEditingCourseId ? "PUT" : "POST";
   const url = currentEditingCourseId
@@ -814,12 +870,15 @@ function saveCourse() {
     .then((data) => {
       if (data.success) {
         const courseId = currentEditingCourseId || data.data.id;
+        console.log("✅ Course saved with ID:", courseId);
 
-        // Save simulators to course
+        // Save ONLY marketplace simulators (those with simulatorId)
+        // Block and Visual simulators are embedded in content HTML
         const simulatorPromises = courseBlocks
           .filter((block) => block.simulatorId)
-          .map((block) =>
-            fetch(`http://localhost:3000/api/courses/${courseId}/simulators`, {
+          .map((block) => {
+            console.log("🔗 Linking marketplace simulator to course:", block.simulatorId);
+            return fetch(`http://localhost:3000/api/courses/${courseId}/simulators`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -827,16 +886,38 @@ function saveCourse() {
               },
               body: JSON.stringify({ simulator_id: block.simulatorId }),
             })
-          );
+            .then(res => res.json())
+            .then(data => {
+              if (data.success) {
+                console.log("✅ Simulator linked successfully");
+              } else {
+                console.error("❌ Failed to link simulator:", data.message);
+              }
+            });
+          });
+
+        if (simulatorPromises.length === 0) {
+          console.log("ℹ️ No marketplace simulators to link");
+          const message = status === "pending" 
+            ? "Course submitted for approval! An admin will review it soon."
+            : "Course saved as draft! You can continue editing later.";
+          alert(message);
+          showDashboard();
+          return;
+        }
 
         Promise.all(simulatorPromises)
           .then(() => {
-            alert("Course saved successfully!");
+            console.log("✅ All simulators linked successfully");
+            const message = status === "pending" 
+              ? "Course submitted for approval! An admin will review it soon."
+              : "Course saved as draft! You can continue editing later.";
+            alert(message);
             showDashboard();
           })
           .catch((err) => {
             console.error("Error saving simulators to course:", err);
-            alert("Course saved but error linking simulators");
+            alert("Course saved but error linking some simulators");
             showDashboard();
           });
       } else {
@@ -861,11 +942,108 @@ function viewCourse(courseId) {
   document.getElementById("course-viewer-content").innerHTML =
     course.content || "";
 
-  // Load and display simulators for this course
+  // RESTORE COURSE BLOCKS for viewing (same as editing)
+  courseBlocks = course.blocks ? 
+    (typeof course.blocks === 'string' ? JSON.parse(course.blocks) : course.blocks) 
+    : [];
+  
+  console.log("✓ Viewing course with", courseBlocks.length, "blocks");
+
+  // Convert edit buttons to run buttons for block simulators in viewer
+  convertSimulatorButtonsForViewer(courseId, course);
+
+  // Load and display marketplace simulators for this course
   loadCourseSimulators(courseId);
 
   document.getElementById("dashboard-section").style.display = "none";
   document.getElementById("course-viewer-section").style.display = "block";
+}
+
+// Convert Edit/Remove buttons to Run button when viewing course
+function convertSimulatorButtonsForViewer(courseId, course) {
+  const simulatorBlocks = document.querySelectorAll(".simulator-block");
+  
+  simulatorBlocks.forEach((block) => {
+    const blockId = parseInt(block.dataset.blockId);
+    const courseBlock = courseBlocks.find((b) => b.id === blockId);
+    
+    // Find the buttons container
+    const buttonsDiv = block.querySelector('div > div:last-child');
+    if (!buttonsDiv) return;
+    
+    // Only convert if this is a block-based simulator
+    if (courseBlock && courseBlock.type === "block-simulator") {
+      // Clear old buttons
+      buttonsDiv.innerHTML = `
+        <button type="button" 
+          onclick="runEmbeddedBlockSimulator(${blockId}, '${courseBlock.title}')" 
+          style="padding: 5px 10px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">
+          ▶ Run Simulator
+        </button>
+      `;
+    } else if (courseBlock && courseBlock.type === "visual-simulator") {
+      // Convert visual simulator button to run
+      buttonsDiv.innerHTML = `
+        <button type="button" 
+          onclick="runEmbeddedVisualSimulator(${blockId}, '${courseBlock.title}')" 
+          style="padding: 5px 10px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">
+          ▶ Run Simulator
+        </button>
+      `;
+    }
+  });
+}
+
+// Run embedded block simulator in a popup
+function runEmbeddedBlockSimulator(blockId, title) {
+  const block = courseBlocks.find((b) => b.id === blockId);
+  if (!block || !block.data) {
+    alert("Simulator data not found");
+    return;
+  }
+  
+  // Open simulator in a new window
+  const win = window.open("block-simulator.html", "block-simulator", "width=1200,height=800");
+  
+  // Wait for window to load, then send data
+  setTimeout(() => {
+    if (win) {
+      win.postMessage({
+        type: "load-simulator",
+        data: {
+          blocks: block.data.blocks || [],
+          connections: block.data.connections || [],
+          readOnly: true  // Disable editing in viewer
+        }
+      }, "*");
+    }
+  }, 1000);
+}
+
+// Run embedded visual simulator in a popup
+function runEmbeddedVisualSimulator(blockId, title) {
+  const block = courseBlocks.find((b) => b.id === blockId);
+  if (!block || !block.data) {
+    alert("Simulator data not found");
+    return;
+  }
+  
+  // Open visual simulator in a new window
+  const win = window.open("visual-simulator.html", "visual-simulator", "width=1200,height=800");
+  
+  // Wait for window to load, then send data
+  setTimeout(() => {
+    if (win) {
+      win.postMessage({
+        type: "load-simulator",
+        data: {
+          code: block.data.code || "",
+          variables: block.data.variables || {},
+          readOnly: true  // Disable editing in viewer
+        }
+      }, "*");
+    }
+  }, 1000);
 }
 
 function loadCourseSimulators(courseId) {
@@ -975,8 +1153,46 @@ function handleEditSimulator(event, blockId) {
     });
   } else if (block.type === "block-simulator") {
     currentEditingSimulatorBlockId = blockId;
-    // Open in new window so exitSimulator can use window.opener
-    window.open("block-simulator.html", "BlockSimulator", "width=1200,height=800");
+    // Open in new window and pass token + simulator data
+    const win = window.open("block-simulator.html", "BlockSimulator", "width=1200,height=800");
+    if (win) {
+      win.addEventListener("load", () => {
+        try {
+          console.log("✓ Window loaded, sending setup message");
+          
+          if (!authToken) {
+            console.error("No auth token available!");
+            logToConsole("ERROR: No authentication token", "error");
+            return;
+          }
+          
+          win.postMessage({ type: "setup", token: authToken }, "*");
+          console.log("✓ Setup message sent");
+          
+          // Send simulator blocks if they exist
+          if (block.data && (block.data.blocks || block.data.connections)) {
+            console.log("✓ Sending block simulator data:", {
+              blocksCount: block.data.blocks?.length || 0,
+              connectionsCount: block.data.connections?.length || 0
+            });
+            
+            win.postMessage({ 
+              type: "load-simulator", 
+              data: {
+                blocks: block.data.blocks || [],
+                connections: block.data.connections || []
+              }
+            }, "*");
+            console.log("✓ Blocks message sent");
+          } else {
+            console.log("No previous block data, starting fresh");
+          }
+        } catch (error) {
+          console.error("Error during window setup:", error);
+          logToConsole(`ERROR: ${error.message}`, "error");
+        }
+      });
+    }
   } else {
     alert("Editing for this simulator type coming soon");
   }
@@ -992,12 +1208,29 @@ function handleRemoveSimulator(event, blockId) {
 // Receive simulator data from child windows
 window.addEventListener("message", (event) => {
   if (event.data.type === "save-simulator") {
+    // Validate before saving
+    if (!currentEditingSimulatorBlockId || !courseBlocks) {
+      console.error("Cannot save simulator: invalid context");
+      return;
+    }
+    
     const block = courseBlocks.find(
       (b) => b.id === currentEditingSimulatorBlockId
     );
     if (block) {
+      if (!event.data.data) {
+        console.error("Cannot save simulator: no data");
+        return;
+      }
+      
       block.data = event.data.data;
-      console.log("Simulator data saved:", block);
+      console.log("✓ Simulator data saved:", {
+        blockId: block.id,
+        blocksCount: block.data.blocks?.length || 0,
+        connectionsCount: block.data.connections?.length || 0
+      });
+    } else {
+      console.error(`Block ${currentEditingSimulatorBlockId} not found in courseBlocks`);
     }
   }
 

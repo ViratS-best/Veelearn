@@ -609,6 +609,7 @@
         <div class="view-toggle" id="view-toggle">
             <button class="active" onclick="switchView('browse')">Browse</button>
             <button onclick="switchView('trending')">Trending</button>
+            <button onclick="switchView('my-simulators')">My Simulators</button>
         </div>
 
         <!-- Messages -->
@@ -629,6 +630,14 @@
             <h2 style="color: white; margin-bottom: 2em; text-align: center;">🔥 Trending Simulators</h2>
             <div id="trending-container" class="simulators-grid">
                 <!-- Trending simulators will be loaded here -->
+            </div>
+        </section>
+
+        <!-- My Simulators View -->
+        <section id="my-simulators-view" style="display: none;">
+            <h2 style="color: white; margin-bottom: 2em; text-align: center;">📚 My Simulators</h2>
+            <div id="my-simulators-container" class="simulators-grid">
+                <!-- My simulators will be loaded here -->
             </div>
         </section>
 
@@ -1017,9 +1026,18 @@
 
         function switchView(view) {
             currentView = view;
+            if (view === 'my-simulators') {
+                loadMySimulators();
+            } else if (view === 'trending') {
+                loadTrendingSimulators();
+            }
             updateViewDisplay();
             document.querySelectorAll('.view-toggle button').forEach((btn, idx) => {
-                btn.classList.toggle('active', (idx === 0 && view === 'browse') || (idx === 1 && view === 'trending'));
+                btn.classList.toggle('active', 
+                    (idx === 0 && view === 'browse') || 
+                    (idx === 1 && view === 'trending') ||
+                    (idx === 2 && view === 'my-simulators')
+                );
             });
         }
 
@@ -1027,20 +1045,30 @@
             if (currentView === 'detail') {
                 document.getElementById('browse-view').style.display = 'none';
                 document.getElementById('trending-view').style.display = 'none';
+                document.getElementById('my-simulators-view').style.display = 'none';
                 document.getElementById('detail-view').style.display = 'block';
                 document.getElementById('controls-section').style.display = 'none';
                 document.getElementById('view-toggle').style.display = 'none';
             } else if (currentView === 'browse') {
                 document.getElementById('browse-view').style.display = 'block';
                 document.getElementById('trending-view').style.display = 'none';
+                document.getElementById('my-simulators-view').style.display = 'none';
                 document.getElementById('detail-view').style.display = 'none';
                 document.getElementById('controls-section').style.display = 'flex';
                 document.getElementById('view-toggle').style.display = 'flex';
             } else if (currentView === 'trending') {
                 document.getElementById('browse-view').style.display = 'none';
                 document.getElementById('trending-view').style.display = 'block';
+                document.getElementById('my-simulators-view').style.display = 'none';
                 document.getElementById('detail-view').style.display = 'none';
                 document.getElementById('controls-section').style.display = 'flex';
+                document.getElementById('view-toggle').style.display = 'flex';
+            } else if (currentView === 'my-simulators') {
+                document.getElementById('browse-view').style.display = 'none';
+                document.getElementById('trending-view').style.display = 'none';
+                document.getElementById('my-simulators-view').style.display = 'block';
+                document.getElementById('detail-view').style.display = 'none';
+                document.getElementById('controls-section').style.display = 'none';
                 document.getElementById('view-toggle').style.display = 'flex';
             }
         }
@@ -1059,8 +1087,50 @@
             window.location.href = 'block-simulator.html';
         }
 
-        function showMySimulators() {
-            alert('My Simulators view would be shown here');
+        async function loadMySimulators() {
+            const authToken = localStorage.getItem('token');
+            if (!authToken) {
+                showMessage('Please login to view your simulators', 'warning');
+                return;
+            }
+
+            showLoading('my-simulators-container', true);
+            try {
+                const response = await fetch(`${API_BASE_URL}/my-simulators`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const data = await response.json();
+                
+                if (data.success && data.data) {
+                    const container = document.getElementById('my-simulators-container');
+                    if (data.data.length === 0) {
+                        container.innerHTML = '<p style="color: white; text-align: center; grid-column: 1/-1; padding: 2em;">No simulators created yet. <a href="block-simulator.html" style="color: #667eea;">Create one now</a></p>';
+                    } else {
+                        container.innerHTML = data.data.map(sim => `
+                            <div class="simulator-card" onclick="viewSimulatorDetail(${sim.id})">
+                                <div class="card-image">🎮</div>
+                                <div class="card-content">
+                                    <div class="card-title">${escapeHtml(sim.title)}</div>
+                                    <div class="card-description">${escapeHtml(sim.description || 'No description')}</div>
+                                    <div class="card-meta">
+                                        <span class="card-rating">⭐ ${sim.rating || '0'}</span>
+                                        <span class="card-downloads">📥 ${sim.downloads || '0'}</span>
+                                    </div>
+                                    <div class="card-buttons">
+                                        <button class="card-button" onclick="event.stopPropagation(); runSimulator(${sim.id})">▶ Run</button>
+                                        <button class="card-button" onclick="event.stopPropagation(); forkSimulator(${sim.id})">⑂ Fork</button>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+                } else {
+                    showMessage('Failed to load your simulators', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading my simulators:', error);
+                showMessage('Error loading simulators: ' + error.message, 'error');
+            }
         }
 
         function showLoading(containerId, show) {
@@ -1087,7 +1157,7 @@
 
          function runSimulator(simulatorId) {
              // Open simulator execution page
-             window.location.href = `simulator-execute.html?id=${simulatorId}`;
+             window.location.href = `simulator-view.html?id=${simulatorId}`;
          }
      </script>
 </body>
