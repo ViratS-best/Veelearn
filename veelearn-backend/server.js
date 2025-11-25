@@ -181,11 +181,11 @@ db.getConnection((err, connection) => {
         if (err) console.error('Error creating users table:', err);
         else console.log('Users table checked/created');
     });
-    
+
     db.query(createCoursesTable, (err) => {
         if (err) console.error('Error creating courses table:', err);
         else console.log('Courses table checked/created');
-        
+
         // Add blocks column if it doesn't exist (migration for existing tables)
         const addBlocksColumn = `
             ALTER TABLE courses ADD COLUMN IF NOT EXISTS blocks LONGTEXT
@@ -198,12 +198,12 @@ db.getConnection((err, connection) => {
             }
         });
     });
-    
+
     db.query(createAdminFavoritesTable, (err) => {
         if (err) console.error('Error creating admin_favorites table:', err);
         else console.log('Admin Favorites table checked/created');
     });
-    
+
     db.query(createCourseViewsTable, (err) => {
         if (err) console.error('Error creating course_views table:', err);
         else console.log('Course Views table checked/created');
@@ -234,6 +234,73 @@ db.getConnection((err, connection) => {
         else console.log('Simulator Comments table checked/created');
     });
 
+    // ===== QUIZ AND INTERACTIVE FEATURES TABLES =====
+
+    const createCourseQuestionsTable = `
+        CREATE TABLE IF NOT EXISTS course_questions (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            course_id INT NOT NULL,
+            question_text TEXT NOT NULL,
+            question_type ENUM('multiple_choice', 'true_false', 'short_answer') DEFAULT 'multiple_choice',
+            options JSON,
+            correct_answer TEXT NOT NULL,
+            explanation TEXT,
+            points INT DEFAULT 1,
+            order_index INT DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
+            INDEX idx_course (course_id)
+        )
+    `;
+
+    db.query(createCourseQuestionsTable, (err) => {
+        if (err) console.error('Error creating course_questions table:', err);
+        else console.log('Course Questions table checked/created');
+    });
+
+    const createUserQuizAttemptsTable = `
+        CREATE TABLE IF NOT EXISTS user_quiz_attempts (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            question_id INT NOT NULL,
+            user_answer TEXT,
+            is_correct BOOLEAN,
+            attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (question_id) REFERENCES course_questions(id) ON DELETE CASCADE,
+            INDEX idx_user_question (user_id, question_id)
+        )
+    `;
+
+    db.query(createUserQuizAttemptsTable, (err) => {
+        if (err) console.error('Error creating user_quiz_attempts table:', err);
+        else console.log('User Quiz Attempts table checked/created');
+    });
+
+    const createSimulatorInteractiveParamsTable = `
+        CREATE TABLE IF NOT EXISTS simulator_interactive_params (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            course_id INT NOT NULL,
+            simulator_block_id BIGINT NOT NULL,
+            block_id INT NOT NULL,
+            param_name VARCHAR(100) NOT NULL,
+            param_label VARCHAR(255),
+            min_value DECIMAL(10,2) DEFAULT 0,
+            max_value DECIMAL(10,2) DEFAULT 100,
+            step_value DECIMAL(10,2) DEFAULT 1,
+            default_value DECIMAL(10,2),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
+            UNIQUE KEY unique_param (course_id, simulator_block_id, block_id, param_name)
+        )
+    `;
+
+    db.query(createSimulatorInteractiveParamsTable, (err) => {
+        if (err) console.error('Error creating simulator_interactive_params table:', err);
+        else console.log('Simulator Interactive Params table checked/created');
+    });
+
+
     // Check for superadmin and create if not exists
     const superadminEmail = process.env.SUPERADMIN_EMAIL || 'viratsuper6@gmail.com';
     const superadminPassword = process.env.SUPERADMIN_PASSWORD || 'Virat@123';
@@ -259,9 +326,9 @@ db.getConnection((err, connection) => {
 
 // ===== UTILITY FUNCTIONS =====
 function apiResponse(res, statusCode, message, data = null) {
-    const response = { 
-        success: statusCode < 400, 
-        message 
+    const response = {
+        success: statusCode < 400,
+        message
     };
     if (data !== null) response.data = data;
     return res.status(statusCode).json(response);
@@ -365,7 +432,7 @@ app.post('/api/register', rateLimiter, async (req, res) => {
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
         const insertUser = 'INSERT INTO users (email, password) VALUES (?, ?)';
-        
+
         db.query(insertUser, [email, hashedPassword], (err, result) => {
             if (err) {
                 if (err.code === 'ER_DUP_ENTRY') {
@@ -375,16 +442,16 @@ app.post('/api/register', rateLimiter, async (req, res) => {
                 return apiResponse(res, 500, 'Server error during registration');
             }
 
-            const newUser = { 
-                id: result.insertId, 
-                email, 
-                role: 'user', 
-                is_admin_approved: false, 
-                shells: 0 
+            const newUser = {
+                id: result.insertId,
+                email,
+                role: 'user',
+                is_admin_approved: false,
+                shells: 0
             };
             const token = jwt.sign(
-                { id: newUser.id, role: newUser.role }, 
-                process.env.JWT_SECRET, 
+                { id: newUser.id, role: newUser.role },
+                process.env.JWT_SECRET,
                 { expiresIn: '24h' }
             );
 
@@ -422,8 +489,8 @@ app.post('/api/login', rateLimiter, async (req, res) => {
             }
 
             const token = jwt.sign(
-                { id: user.id, role: user.role }, 
-                process.env.JWT_SECRET, 
+                { id: user.id, role: user.role },
+                process.env.JWT_SECRET,
                 { expiresIn: '24h' }
             );
 
@@ -748,38 +815,38 @@ app.delete('/api/courses/:id', authenticateToken, (req, res) => {
 });
 
 app.get('/api/courses', authenticateToken, (req, res) => {
-const userId = req.user.id;
-// Show approved courses from everyone + own courses (even if pending)
-const query = `
+    const userId = req.user.id;
+    // Show approved courses from everyone + own courses (even if pending)
+    const query = `
 SELECT c.id, c.title, c.description, c.content, c.blocks, c.creator_id, c.status, c.is_paid, c.shells_cost, u.email as creator_email
 FROM courses c
 LEFT JOIN users u ON c.creator_id = u.id
 WHERE c.status = 'approved' OR c.creator_id = ?
 ORDER BY c.created_at DESC
 `;
-     
-     db.query(query, [userId], (err, results) => {
-         if (err) {
-             console.error('Error fetching courses:', err);
-             return apiResponse(res, 500, 'Server error fetching courses');
-         }
-         
-         // Parse blocks JSON for each course
-         const parsedResults = results.map(course => {
-             if (course.blocks && typeof course.blocks === 'string') {
-                 try {
-                     course.blocks = JSON.parse(course.blocks);
-                 } catch (e) {
-                     console.error('Error parsing blocks for course', course.id, ':', e);
-                     course.blocks = [];
-                 }
-             } else if (!course.blocks) {
-                 course.blocks = [];
-             }
-             return course;
-         });
-         
-         apiResponse(res, 200, 'Courses fetched successfully', parsedResults);
+
+    db.query(query, [userId], (err, results) => {
+        if (err) {
+            console.error('Error fetching courses:', err);
+            return apiResponse(res, 500, 'Server error fetching courses');
+        }
+
+        // Parse blocks JSON for each course
+        const parsedResults = results.map(course => {
+            if (course.blocks && typeof course.blocks === 'string') {
+                try {
+                    course.blocks = JSON.parse(course.blocks);
+                } catch (e) {
+                    console.error('Error parsing blocks for course', course.id, ':', e);
+                    course.blocks = [];
+                }
+            } else if (!course.blocks) {
+                course.blocks = [];
+            }
+            return course;
+        });
+
+        apiResponse(res, 200, 'Courses fetched successfully', parsedResults);
     });
 });
 
@@ -796,7 +863,7 @@ app.get('/api/users/:userId/courses', authenticateToken, (req, res) => {
             console.error('Error fetching user courses:', err);
             return apiResponse(res, 500, 'Server error fetching user courses');
         }
-        
+
         // Parse blocks JSON for each course
         const parsedResults = results.map(course => {
             if (course.blocks) {
@@ -811,7 +878,7 @@ app.get('/api/users/:userId/courses', authenticateToken, (req, res) => {
             }
             return course;
         });
-        
+
         apiResponse(res, 200, 'User courses fetched successfully', parsedResults);
     });
 });
@@ -819,7 +886,7 @@ app.get('/api/users/:userId/courses', authenticateToken, (req, res) => {
 // ===== ADMIN ROUTES =====
 app.get('/api/admin/courses/pending', authenticateToken, authorize('admin', 'superadmin'), (req, res) => {
     const query = 'SELECT c.id, c.title, c.description, c.content, c.blocks, c.creator_id, u.email as creator_email, c.created_at FROM courses c JOIN users u ON c.creator_id = u.id WHERE c.status = "pending"';
-    
+
     db.query(query, (err, results) => {
         if (err) {
             console.error('Error fetching pending courses:', err);
@@ -840,7 +907,7 @@ app.get('/api/admin/courses/:id/preview', authenticateToken, authorize('admin', 
         JOIN users u ON c.creator_id = u.id
         WHERE c.id = ? AND c.status = 'pending'
     `;
-    
+
     db.query(query, [courseId], (err, results) => {
         if (err) {
             console.error('Error fetching course preview:', err);
@@ -851,7 +918,7 @@ app.get('/api/admin/courses/:id/preview', authenticateToken, authorize('admin', 
         }
 
         const course = results[0];
-        
+
         // Try to parse blocks JSON if it exists
         if (course.blocks) {
             try {
@@ -884,7 +951,7 @@ app.put('/api/admin/courses/:id/status', authenticateToken, authorize('admin', '
         if (results.length === 0) {
             return apiResponse(res, 404, 'Course not found');
         }
-        
+
         const currentCourse = results[0];
 
         if (currentCourse.status !== 'pending') {
@@ -933,7 +1000,7 @@ app.put('/api/courses/:id/resubmit', authenticateToken, (req, res) => {
         if (results.length === 0) {
             return apiResponse(res, 404, 'Course not found');
         }
-        
+
         const course = results[0];
 
         if (parseInt(course.creator_id) !== parseInt(userId)) {
@@ -1824,6 +1891,218 @@ app.get('/api/simulators/:id/versions/:versionNumber', (req, res) => {
             apiResponse(res, 200, 'Version fetched successfully', version);
         }
     );
+});
+
+
+// ===== QUIZ QUESTIONS API =====
+
+// Create quiz question
+app.post('/api/courses/:courseId/questions', authenticateToken, (req, res) => {
+    const courseId = req.params.courseId;
+    const userId = req.user.id;
+    const { question_text, question_type, options, correct_answer, explanation, points, order_index } = req.body;
+
+    // Verify user owns the course
+    db.query('SELECT creator_id FROM courses WHERE id = ?', [courseId], (err, results) => {
+        if (err) {
+            console.error('Error fetching course:', err);
+            return apiResponse(res, 500, 'Server error');
+        }
+        if (results.length === 0) {
+            return apiResponse(res, 404, 'Course not found');
+        }
+        if (parseInt(results[0].creator_id) !== parseInt(userId)) {
+            return apiResponse(res, 403, 'You can only add questions to your own courses');
+        }
+
+        // Insert question
+        const insertQuery = `
+            INSERT INTO course_questions 
+            (course_id, question_text, question_type, options, correct_answer, explanation, points, order_index)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `;
+        const optionsJson = options ? JSON.stringify(options) : null;
+
+        db.query(insertQuery, [
+            courseId, question_text, question_type || 'multiple_choice',
+            optionsJson, correct_answer, explanation, points || 1, order_index || 0
+        ], (err, result) => {
+            if (err) {
+                console.error('Error creating question:', err);
+                return apiResponse(res, 500, 'Server error creating question');
+            }
+            apiResponse(res, 201, 'Question created successfully', { questionId: result.insertId });
+        });
+    });
+});
+
+// Get all questions for a course
+app.get('/api/courses/:courseId/questions', authenticateToken, (req, res) => {
+    const courseId = req.params.courseId;
+
+    const query = `
+        SELECT id, course_id, question_text, question_type, options, correct_answer, 
+               explanation, points, order_index, created_at
+        FROM course_questions
+        WHERE course_id = ?
+        ORDER BY order_index ASC, created_at ASC
+    `;
+
+    db.query(query, [courseId], (err, results) => {
+        if (err) {
+            console.error('Error fetching questions:', err);
+            return apiResponse(res, 500, 'Server error fetching questions');
+        }
+
+        // Parse options JSON
+        const questions = results.map(q => {
+            if (q.options && typeof q.options === 'string') {
+                try {
+                    q.options = JSON.parse(q.options);
+                } catch (e) {
+                    q.options = [];
+                }
+            }
+            return q;
+        });
+
+        apiResponse(res, 200, 'Questions fetched successfully', questions);
+    });
+});
+
+// Update quiz question
+app.put('/api/courses/:courseId/questions/:questionId', authenticateToken, (req, res) => {
+    const { courseId, questionId } = req.params;
+    const userId = req.user.id;
+    const { question_text, question_type, options, correct_answer, explanation, points, order_index } = req.body;
+
+    // Verify user owns the course
+    db.query('SELECT creator_id FROM courses WHERE id = ?', [courseId], (err, results) => {
+        if (err) {
+            console.error('Error fetching course:', err);
+            return apiResponse(res, 500, 'Server error');
+        }
+        if (results.length === 0) {
+            return apiResponse(res, 404, 'Course not found');
+        }
+        if (parseInt(results[0].creator_id) !== parseInt(userId)) {
+            return apiResponse(res, 403, 'You can only edit questions in your own courses');
+        }
+
+        const updateQuery = `
+            UPDATE course_questions
+            SET question_text = ?, question_type = ?, options = ?, correct_answer = ?, 
+                explanation = ?, points = ?, order_index = ?
+            WHERE id = ? AND course_id = ?
+        `;
+        const optionsJson = options ? JSON.stringify(options) : null;
+
+        db.query(updateQuery, [
+            question_text, question_type, optionsJson, correct_answer,
+            explanation, points, order_index, questionId, courseId
+        ], (err, result) => {
+            if (err) {
+                console.error('Error updating question:', err);
+                return apiResponse(res, 500, 'Server error updating question');
+            }
+            if (result.affectedRows === 0) {
+                return apiResponse(res, 404, 'Question not found');
+            }
+            apiResponse(res, 200, 'Question updated successfully');
+        });
+    });
+});
+
+// Delete quiz question
+app.delete('/api/courses/:courseId/questions/:questionId', authenticateToken, (req, res) => {
+    const { courseId, questionId } = req.params;
+    const userId = req.user.id;
+
+    // Verify user owns the course
+    db.query('SELECT creator_id FROM courses WHERE id = ?', [courseId], (err, results) => {
+        if (err) {
+            console.error('Error fetching course:', err);
+            return apiResponse(res, 500, 'Server error');
+        }
+        if (results.length === 0) {
+            return apiResponse(res, 404, 'Course not found');
+        }
+        if (parseInt(results[0].creator_id) !== parseInt(userId)) {
+            return apiResponse(res, 403, 'You can only delete questions from your own courses');
+        }
+
+        db.query('DELETE FROM course_questions WHERE id = ? AND course_id = ?', [questionId, courseId], (err, result) => {
+            if (err) {
+                console.error('Error deleting question:', err);
+                return apiResponse(res, 500, 'Server error deleting question');
+            }
+            if (result.affectedRows === 0) {
+                return apiResponse(res, 404, 'Question not found');
+            }
+            apiResponse(res, 200, 'Question deleted successfully');
+        });
+    });
+});
+
+// Submit answer to quiz question
+app.post('/api/courses/:courseId/questions/:questionId/answer', authenticateToken, (req, res) => {
+    const { questionId } = req.params;
+    const userId = req.user.id;
+    const { user_answer } = req.body;
+
+    // Get the question to check correct answer
+    db.query('SELECT correct_answer, explanation FROM course_questions WHERE id = ?', [questionId], (err, results) => {
+        if (err) {
+            console.error('Error fetching question:', err);
+            return apiResponse(res, 500, 'Server error');
+        }
+        if (results.length === 0) {
+            return apiResponse(res, 404, 'Question not found');
+        }
+
+        const question = results[0];
+        const isCorrect = user_answer.trim().toLowerCase() === question.correct_answer.trim().toLowerCase();
+
+        // Record the attempt
+        const insertQuery = `
+            INSERT INTO user_quiz_attempts (user_id, question_id, user_answer, is_correct)
+            VALUES (?, ?, ?, ?)
+        `;
+
+        db.query(insertQuery, [userId, questionId, user_answer, isCorrect], (err, result) => {
+            if (err) {
+                console.error('Error recording answer:', err);
+                return apiResponse(res, 500, 'Server error recording answer');
+            }
+
+            apiResponse(res, 200, 'Answer submitted successfully', {
+                is_correct: isCorrect,
+                correct_answer: question.correct_answer,
+                explanation: question.explanation
+            });
+        });
+    });
+});
+
+// Get user's attempts for a question
+app.get('/api/courses/:courseId/questions/:questionId/attempts', authenticateToken, (req, res) => {
+    const { questionId } = req.params;
+    const userId = req.user.id;
+
+    const query = `
+        SELECT id, user_answer, is_correct, attempted_at
+        FROM user_quiz_attempts
+        WHERE user_id = ? AND question_id = ?
+        ORDER BY attempted_at DESC
+    `;
+
+    db.query(query, [userId, questionId], (err, results) => {
+        if (err) {
+            console.error('Error fetching attempts:', err);
+            return apiResponse(res, 500, 'Server error fetching attempts');
+        }
+        apiResponse(res, 200, 'Attempts fetched successfully', results);
+    });
 });
 
 // ===== ERROR HANDLING =====
