@@ -66,7 +66,9 @@ function initializeApp() {
   setupNavigationListeners();
   setupCourseEditorListeners();
   setupMessageListeners();
+  setupMessageListeners();
   setupQuizModalListeners();
+  setupPhetModalListeners();
 
   if (authToken) {
     fetchUserProfile();
@@ -79,6 +81,54 @@ function setupMessageListeners() {
   window.addEventListener("message", (e) => {
     if (e.data.type === "closeBlockSimulator") {
       showDashboard();
+    } else if (e.data.type === "save-simulator") {
+      // Receive simulator data from popup (block-simulator.html sends this)
+      const { data } = e.data;
+      console.log('💾 Received save-simulator message');
+      console.log('   blocks:', data?.blocks?.length, 'connections:', data?.connections?.length);
+      console.log('   currentEditingSimulatorBlockId:', currentEditingSimulatorBlockId);
+
+      // Use the stored currentEditingSimulatorBlockId
+      if (currentEditingSimulatorBlockId && data) {
+        const blockIndex = courseBlocks.findIndex(b => b.id === currentEditingSimulatorBlockId);
+        if (blockIndex !== -1) {
+          courseBlocks[blockIndex].data = {
+            blocks: data.blocks || [],
+            connections: data.connections || []
+          };
+          console.log('✅ Saved to block:', currentEditingSimulatorBlockId, 'at index:', blockIndex);
+        } else {
+          console.warn('⚠️ Block not found:', currentEditingSimulatorBlockId);
+        }
+      }
+    } else if (e.data.type === "saveBlockSimulator") {
+      // Legacy support - receive simulator data
+      const { courseBlockId, blocks, connections } = e.data;
+      console.log('💾 Saving simulator data:', courseBlockId, 'Blocks:', blocks?.length, 'Connections:', connections?.length);
+
+      const blockIndex = courseBlocks.findIndex(b => b.id === courseBlockId);
+      if (blockIndex !== -1) {
+        courseBlocks[blockIndex].data = {
+          blocks: blocks || [],
+          connections: connections || []
+        };
+        console.log('✅ Simulator data saved to courseBlocks[' + blockIndex + ']');
+      } else {
+        console.warn('⚠️ Block not found:', courseBlockId);
+      }
+    } else if (e.data.type === "saveVisualSimulator") {
+      // Receive visual simulator code
+      const { courseBlockId, code, variables } = e.data;
+      console.log('💾 Saving visual simulator:', courseBlockId);
+
+      const blockIndex = courseBlocks.findIndex(b => b.id === courseBlockId);
+      if (blockIndex !== -1) {
+        courseBlocks[blockIndex].data = {
+          code: code || "",
+          variables: variables || {}
+        };
+        console.log('✅ Visual simulator saved');
+      }
     }
   });
 }
@@ -380,6 +430,8 @@ function setupRichTextEditor() {
         addVisualSimulator();
       } else if (id === "insert-block-simulator") {
         addBlockSimulator();
+      } else if (id === "insert-phet-simulator") {
+        openPhetModal();
       } else {
         document.execCommand(command, false, null);
         contentEditor.focus();
@@ -495,6 +547,7 @@ function insertSimulatorBlock(blockId, title, type) {
                 <p style="margin: 5px 0; color: #666;">${title}</p>
             </div>
             <div style="display: flex; gap: 10px;">
+                <button type="button" onclick="openSliderConfigModal(${blockId})" style="padding: 5px 10px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer;">⚙️ Configure Sliders</button>
                 <button type="button" onclick="handleEditSimulator(event, ${blockId})" style="padding: 5px 10px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">Edit</button>
                 <button type="button" onclick="handleRemoveSimulator(event, ${blockId})" style="padding: 5px 10px; background: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer;">Remove</button>
             </div>
@@ -502,6 +555,7 @@ function insertSimulatorBlock(blockId, title, type) {
     `;
   contentEditor.appendChild(simulatorDiv);
 }
+
 
 // ===== UI RENDERING =====
 function showAuthSection() {
@@ -1063,25 +1117,53 @@ function runEmbeddedBlockSimulator(blockId, title) {
     return;
   }
 
-  // Create popup window
-  const popup = window.open(
-    `http://localhost:5000/block-simulator.html?embedded=true&courseBlockId=${blockId}`,
-    "block-simulator",
-    "width=1200,height=800"
-  );
+  console.log('🎮 Running simulator:', blockId, 'Type:', block.type);
+  console.log('   Simulator data:', block.data);
 
-  // Send block data to popup
-  if (popup) {
-    popup.onload = () => {
-      popup.postMessage(
-        {
-          type: "loadEmbeddedBlocks",
-          blocks: courseBlocks,
-          blockId: blockId,
-        },
-        "*"
-      );
-    };
+  if (block.type === 'block-simulator') {
+    // Create popup window for block simulator
+    const popup = window.open(
+      `http://localhost:5000/block-simulator.html?embedded=true&courseBlockId=${blockId}&t=${Date.now()}`,
+      "block-simulator",
+      "width=1200,height=800"
+    );
+
+    // Send the simulator's blocks and connections
+    if (popup) {
+      setTimeout(() => {
+        popup.postMessage(
+          {
+            type: "load-simulator",
+            blocks: block.data?.blocks || [],
+            connections: block.data?.connections || [],
+            blockTitle: title,
+            courseBlockId: blockId,
+          },
+          "*"
+        );
+      }, 500);
+    }
+  } else if (block.type === 'visual-simulator') {
+    // Run visual/code-based simulator
+    const popup = window.open(
+      `http://localhost:5000/visual-simulator.html?embedded=true`,
+      "visual-simulator",
+      "width=1200,height=800"
+    );
+
+    if (popup) {
+      setTimeout(() => {
+        popup.postMessage(
+          {
+            type: "load-code",
+            code: block.data?.code || "",
+            variables: block.data?.variables || {},
+            courseBlockId: blockId,
+          },
+          "*"
+        );
+      }, 500);
+    }
   }
 }
 
@@ -1212,10 +1294,11 @@ function handleEditSimulator(event, blockId) {
   }
 
   console.log("Opening simulator for editing:", block);
+  currentEditingSimulatorBlockId = blockId; // Store for saving later
 
   if (block.type === "block-simulator") {
     const popup = window.open(
-      "http://localhost:5000/block-simulator.html?edit=true",
+      `http://localhost:5000/block-simulator.html?edit=true&courseBlockId=${blockId}&t=${Date.now()}`,
       "block-simulator-editor",
       "width=1400,height=900"
     );
@@ -1225,8 +1308,10 @@ function handleEditSimulator(event, blockId) {
         popup.postMessage(
           {
             type: "load-simulator",
-            blocks: block.data?.blocks || [],
-            connections: block.data?.connections || [],
+            data: {
+              blocks: block.data?.blocks || [],
+              connections: block.data?.connections || []
+            },
             blockTitle: block.title,
             courseBlockId: blockId,
           },
@@ -1236,7 +1321,7 @@ function handleEditSimulator(event, blockId) {
     }
   } else if (block.type === "visual-simulator") {
     const popup = window.open(
-      "http://localhost:5000/visual-simulator.html?edit=true",
+      `http://localhost:5000/visual-simulator.html?edit=true&courseBlockId=${blockId}&t=${Date.now()}`,
       "visual-simulator-editor",
       "width=1200,height=800"
     );
@@ -1256,6 +1341,7 @@ function handleEditSimulator(event, blockId) {
     }
   }
 }
+
 
 function handleRemoveSimulator(event, blockId) {
   event.preventDefault();
@@ -1815,3 +1901,455 @@ async function submitQuizAnswer(questionId) {
 // Make functions globally accessible
 window.submitQuizAnswer = submitQuizAnswer;
 window.deleteQuizQuestion = deleteQuizQuestion;
+
+// ======= INTERACTIVE SLIDER CONFIGURATION =======
+// Global variable to store current simulator being configured
+let currentConfiguringSimulatorId = null;
+
+// Open slider configuration modal
+async function openSliderConfigModal(blockId) {
+  if (!currentEditingCourseId) {
+    alert('Please save the course first before configuring sliders.');
+    return;
+  }
+
+  currentConfiguringSimulatorId = blockId;
+  console.log('📊 Opening slider config for simulator block:', blockId);
+
+  // Find the simulator block in courseBlocks
+  const simBlock = courseBlocks.find(b => b.id === blockId);
+  if (!simBlock) {
+    alert('Simulator block not found');
+    return;
+  }
+
+  // Show modal
+  const modal = document.getElementById('slider-config-modal');
+  modal.style.display = 'block';
+
+  // Reset form
+  document.getElementById('slider-config-form').style.display = 'none';
+  document.getElementById('add-new-slider-btn').style.display = 'block';
+
+  // Load existing configs
+  await fetchSliderConfigs();
+}
+
+// Fetch slider configurations from backend
+async function fetchSliderConfigs() {
+  const tbody = document.getElementById('slider-config-tbody');
+  tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px;">Loading...</td></tr>';
+
+  try {
+    const response = await fetch(`http://localhost:3000/api/courses/${currentEditingCourseId}/params`, {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    const result = await response.json();
+
+    if (result.success) {
+      // Filter for current simulator block
+      const configs = result.data.filter(p => p.simulator_block_id == currentConfiguringSimulatorId);
+      renderSliderConfigs(configs);
+    } else {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px; color: red;">Failed to load configurations</td></tr>';
+    }
+  } catch (error) {
+    console.error('Error fetching slider configs:', error);
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px; color: red;">Error loading configurations</td></tr>';
+  }
+}
+
+// Render slider configurations table
+function renderSliderConfigs(configs) {
+  const tbody = document.getElementById('slider-config-tbody');
+  tbody.innerHTML = '';
+
+  if (configs.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px; color: #666;">No sliders configured yet. Click "Add New Slider" to create one.</td></tr>';
+    return;
+  }
+
+  configs.forEach(config => {
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '1px solid #eee';
+    tr.innerHTML = `
+      <td style="padding: 10px;"><strong>${config.param_label || config.param_name}</strong></td>
+      <td style="padding: 10px; color: #666;">${config.param_name}</td>
+      <td style="padding: 10px;">${config.min_value} - ${config.max_value} (step: ${config.step_value})</td>
+      <td style="padding: 10px;">
+        <button onclick="deleteSliderConfig(${config.id})" style="background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8em;">Delete</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// Event Listeners for Slider Modal
+document.addEventListener('DOMContentLoaded', () => {
+  // Close modal
+  const closeModal = () => {
+    document.getElementById('slider-config-modal').style.display = 'none';
+  };
+
+  const closeBtn = document.getElementById('close-slider-modal');
+  if (closeBtn) closeBtn.onclick = closeModal;
+
+  const doneBtn = document.getElementById('done-slider-config-btn');
+  if (doneBtn) doneBtn.onclick = closeModal;
+
+  // Add new slider button
+  const addBtn = document.getElementById('add-new-slider-btn');
+  if (addBtn) {
+    addBtn.onclick = () => {
+      document.getElementById('slider-config-form').style.display = 'block';
+      document.getElementById('add-new-slider-btn').style.display = 'none';
+      document.getElementById('slider-config-form').reset();
+    };
+  }
+
+  // Cancel add button
+  const cancelBtn = document.getElementById('cancel-slider-config-btn');
+  if (cancelBtn) {
+    cancelBtn.onclick = () => {
+      document.getElementById('slider-config-form').style.display = 'none';
+      document.getElementById('add-new-slider-btn').style.display = 'block';
+    };
+  }
+
+  // Save slider form
+  const form = document.getElementById('slider-config-form');
+  if (form) {
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      await saveSliderConfig();
+    };
+  }
+});
+
+// Save new slider configuration
+async function saveSliderConfig() {
+  const paramName = document.getElementById('slider-param-name').value.trim();
+  const paramLabel = document.getElementById('slider-label').value.trim();
+  const minValue = parseFloat(document.getElementById('slider-min').value);
+  const maxValue = parseFloat(document.getElementById('slider-max').value);
+  const stepValue = parseFloat(document.getElementById('slider-step').value);
+  const defaultValue = parseFloat(document.getElementById('slider-default').value);
+
+  if (!paramName || !paramLabel) {
+    alert('Please fill in all required fields');
+    return;
+  }
+
+  const saveBtn = document.getElementById('save-slider-config-btn');
+  const originalText = saveBtn.textContent;
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Saving...';
+
+  try {
+    // Note: block_id is currently hardcoded to 1 as we don't have granular block selection within simulator yet
+    // In a full implementation, we would let user select which block inside the simulator this param applies to
+    const response = await fetch(`http://localhost:3000/api/courses/${currentEditingCourseId}/simulators/${currentConfiguringSimulatorId}/params`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({
+        block_id: 1, // Default to 1 for now
+        param_name: paramName,
+        param_label: paramLabel,
+        min_value: minValue,
+        max_value: maxValue,
+        step_value: stepValue,
+        default_value: defaultValue
+      })
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      // Refresh list and hide form
+      await fetchSliderConfigs();
+      document.getElementById('slider-config-form').style.display = 'none';
+      document.getElementById('add-new-slider-btn').style.display = 'block';
+    } else {
+      alert('Failed to save slider: ' + (result.message || 'Unknown error'));
+    }
+  } catch (error) {
+    console.error('Error saving slider:', error);
+    alert('Error saving slider configuration');
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = originalText;
+  }
+}
+
+// Delete slider configuration
+async function deleteSliderConfig(configId) {
+  if (!confirm('Are you sure you want to delete this slider?')) return;
+
+  try {
+    const response = await fetch(`http://localhost:3000/api/courses/${currentEditingCourseId}/params/${configId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      await fetchSliderConfigs();
+    } else {
+      alert('Failed to delete slider: ' + result.message);
+    }
+  } catch (error) {
+    console.error('Error deleting slider:', error);
+    alert('Error deleting slider configuration');
+  }
+}
+
+// Make functions globally accessible
+window.openSliderConfigModal = openSliderConfigModal;
+window.deleteSliderConfig = deleteSliderConfig;
+// ===== PHET SIMULATOR INTEGRATION =====
+// Complete list of all 121 HTML5 PhET Simulations (excluding Flash-based ones)
+const PHET_SIMS = [
+  // PHYSICS - Motion
+  { title: "Forces and Motion: Basics", url: "https://phet.colorado.edu/sims/html/forces-and-motion-basics/latest/forces-and-motion-basics_en.html", description: "Explore forces, motion, and friction" },
+  { title: "Projectile Motion", url: "https://phet.colorado.edu/sims/html/projectile-motion/latest/projectile-motion_en.html", description: "Blast objects through the air" },
+  { title: "Friction", url: "https://phet.colorado.edu/sims/html/friction/latest/friction_en.html", description: "Feel the heat as you rub objects together" },
+  { title: "The Ramp: Forces and Motion", url: "https://phet.colorado.edu/sims/html/the-ramp/latest/the-ramp_en.html", description: "Explore forces, energy and work on a ramp" },
+  { title: "Gravity Force Lab", url: "https://phet.colorado.edu/sims/html/gravity-force-lab/latest/gravity-force-lab_en.html", description: "Visualize gravitational force" },
+  { title: "Gravity and Orbits", url: "https://phet.colorado.edu/sims/html/gravity-and-orbits/latest/gravity-and-orbits_en.html", description: "Move the sun, earth, moon and space station" },
+  { title: "My Solar System", url: "https://phet.colorado.edu/sims/html/my-solar-system/latest/my-solar-system_en.html", description: "Build your own solar system" },
+  { title: "Under Pressure", url: "https://phet.colorado.edu/sims/html/under-pressure/latest/under-pressure_en.html", description: "Explore pressure in fluids" },
+  { title: "Buoyancy", url: "https://phet.colorado.edu/sims/html/buoyancy/latest/buoyancy_en.html", description: "Why do objects float or sink?" },
+  { title: "Density", url: "https://phet.colorado.edu/sims/html/density/latest/density_en.html", description: "Explore density with blocks" },
+
+  // PHYSICS - Energy
+  { title: "Energy Skate Park", url: "https://phet.colorado.edu/sims/html/energy-skate-park/latest/energy-skate-park_en.html", description: "Learn about energy conservation" },
+  { title: "Energy Forms and Changes", url: "https://phet.colorado.edu/sims/html/energy-forms-and-changes/latest/energy-forms-and-changes_en.html", description: "Explore energy transfer and transformation" },
+  { title: "Masses and Springs", url: "https://phet.colorado.edu/sims/html/masses-and-springs/latest/masses-and-springs_en.html", description: "Hang masses from springs" },
+  { title: "Hooke's Law", url: "https://phet.colorado.edu/sims/html/hookes-law/latest/hookes-law_en.html", description: "Stretch and compress springs" },
+  { title: "Pendulum Lab", url: "https://phet.colorado.edu/sims/html/pendulum-lab/latest/pendulum-lab_en.html", description: "Play with pendulums" },
+
+  // PHYSICS - Waves & Sound
+  { title: "Wave Interference", url: "https://phet.colorado.edu/sims/html/wave-interference/latest/wave-interference_en.html", description: "Make waves with water, sound, and light" },
+  { title: "Waves Intro", url: "https://phet.colorado.edu/sims/html/waves-intro/latest/waves-intro_en.html", description: "Introduction to waves" },
+  { title: "Wave on a String", url: "https://phet.colorado.edu/sims/html/wave-on-a-string/latest/wave-on-a-string_en.html", description: "Wiggle the end of a string" },
+  { title: "Fourier: Making Waves", url: "https://phet.colorado.edu/sims/html/fourier-making-waves/latest/fourier-making-waves_en.html", description: "Build waves with Fourier series" },
+
+
+  // PHYSICS - Light & Optics
+  { title: "Bending Light", url: "https://phet.colorado.edu/sims/html/bending-light/latest/bending-light_en.html", description: "Explore refraction of light" },
+  { title: "Color Vision", url: "https://phet.colorado.edu/sims/html/color-vision/latest/color-vision_en.html", description: "Make a rainbow by mixing light" },
+  { title: "Geometric Optics", url: "https://phet.colorado.edu/sims/html/geometric-optics/latest/geometric-optics_en.html", description: "How lenses and mirrors work" },
+  { title: "Molecules and Light", url: "https://phet.colorado.edu/sims/html/molecules-and-light/latest/molecules-and-light_en.html", description: "How molecules interact with light" },
+  { title: "Blackbody Spectrum", url: "https://phet.colorado.edu/sims/html/blackbody-spectrum/latest/blackbody-spectrum_en.html", description: "How does temperature affect spectra?" },
+  { title: "Lasers", url: "https://phet.colorado.edu/sims/html/lasers/latest/lasers_en.html", description: "Create your own laser" },
+
+  // PHYSICS - Quantum Mechanics
+  { title: "Quantum Measurement", url: "https://phet.colorado.edu/sims/html/quantum-measurement/latest/quantum-measurement_en.html", description: "Explore quantum measurement and states" },
+  { title: "Quantum Wave Interference", url: "https://phet.colorado.edu/sims/html/quantum-wave-interference/latest/quantum-wave-interference_en.html", description: "Explore quantum wave behavior" },
+  { title: "Quantum Tunneling and Wave Packets", url: "https://phet.colorado.edu/sims/html/quantum-tunneling/latest/quantum-tunneling_en.html", description: "Explore quantum tunneling" },
+  { title: "Quantum Bound States", url: "https://phet.colorado.edu/sims/html/bound-states/latest/bound-states_en.html", description: "Explore quantum bound states" },
+  { title: "Models of the Hydrogen Atom", url: "https://phet.colorado.edu/sims/html/models-of-the-hydrogen-atom/latest/models-of-the-hydrogen-atom_en.html", description: "Compare hydrogen atom models" },
+
+  // PHYSICS - Electricity & Magnetism
+  { title: "Circuit Construction Kit: DC", url: "https://phet.colorado.edu/sims/html/circuit-construction-kit-dc/latest/circuit-construction-kit-dc_en.html", description: "Build DC circuits" },
+  { title: "Circuit Construction Kit: AC", url: "https://phet.colorado.edu/sims/html/circuit-construction-kit-ac/latest/circuit-construction-kit-ac_en.html", description: "Build AC circuits" },
+  { title: "Balloons and Static Electricity", url: "https://phet.colorado.edu/sims/html/balloons-and-static-electricity/latest/balloons-and-static-electricity_en.html", description: "Explore static electricity" },
+  { title: "John Travoltage", url: "https://phet.colorado.edu/sims/html/john-travoltage/latest/john-travoltage_en.html", description: "Make sparks fly with static electricity" },
+  { title: "Charges and Fields", url: "https://phet.colorado.edu/sims/html/charges-and-fields/latest/charges-and-fields_en.html", description: "Explore electric fields" },
+  { title: "Coulomb's Law", url: "https://phet.colorado.edu/sims/html/coulombs-law/latest/coulombs-law_en.html", description: "Explore electrostatic force" },
+  { title: "Faraday's Electromagnetic Lab", url: "https://phet.colorado.edu/sims/html/faradays-electromagnetic-lab/latest/faradays-electromagnetic-lab_en.html", description: "Explore electromagnetic induction" },
+  { title: "Faraday's Law", url: "https://phet.colorado.edu/sims/html/faradays-law/latest/faradays-law_en.html", description: "Generate electricity with magnets" },
+  { title: "Magnets and Electromagnets", url: "https://phet.colorado.edu/sims/html/magnets-and-electromagnets/latest/magnets-and-electromagnets_en.html", description: "Explore magnetic fields" },
+  { title: "Capacitor Lab: Basics", url: "https://phet.colorado.edu/sims/html/capacitor-lab-basics/latest/capacitor-lab-basics_en.html", description: "Explore capacitors" },
+  { title: "Ohm's Law", url: "https://phet.colorado.edu/sims/html/ohms-law/latest/ohms-law_en.html", description: "V = I × R" },
+  { title: "Resistance in a Wire", url: "https://phet.colorado.edu/sims/html/resistance-in-a-wire/latest/resistance-in-a-wire_en.html", description: "How does resistance work?" },
+
+  // CHEMISTRY - Atoms & Molecules
+  { title: "Build an Atom", url: "https://phet.colorado.edu/sims/html/build-an-atom/latest/build-an-atom_en.html", description: "Build atoms, ions, and isotopes" },
+  { title: "Isotopes and Atomic Mass", url: "https://phet.colorado.edu/sims/html/isotopes-and-atomic-mass/latest/isotopes-and-atomic-mass_en.html", description: "How isotopes affect mass" },
+  { title: "Rutherford Scattering", url: "https://phet.colorado.edu/sims/html/rutherford-scattering/latest/rutherford-scattering_en.html", description: "See how atoms are structured" },
+  { title: "Atomic Interactions", url: "https://phet.colorado.edu/sims/html/atomic-interactions/latest/atomic-interactions_en.html", description: "How atoms attract and repel" },
+  { title: "Build a Molecule", url: "https://phet.colorado.edu/sims/html/build-a-molecule/latest/build-a-molecule_en.html", description: "Build molecules from atoms" },
+  { title: "Molecule Shapes", url: "https://phet.colorado.edu/sims/html/molecule-shapes/latest/molecule-shapes_en.html", description: "Explore 3D molecular geometry" },
+  { title: "Molecule Shapes: Basics", url: "https://phet.colorado.edu/sims/html/molecule-shapes-basics/latest/molecule-shapes-basics_en.html", description: "Introduction to molecular geometry" },
+  { title: "Molecule Polarity", url: "https://phet.colorado.edu/sims/html/molecule-polarity/latest/molecule-polarity_en.html", description: "When is a molecule polar?" },
+
+  // CHEMISTRY - States of Matter
+  { title: "States of Matter", url: "https://phet.colorado.edu/sims/html/states-of-matter/latest/states-of-matter_en.html", description: "Watch atoms change phase" },
+  { title: "States of Matter: Basics", url: "https://phet.colorado.edu/sims/html/states-of-matter-basics/latest/states-of-matter-basics_en.html", description: "Introduction to phases" },
+  { title: "Gas Properties", url: "https://phet.colorado.edu/sims/html/gas-properties/latest/gas-properties_en.html", description: "Pump gas molecules into a box" },
+  { title: "Gases Intro", url: "https://phet.colorado.edu/sims/html/gases-intro/latest/gases-intro_en.html", description: "Introduction to gas behavior" },
+  { title: "Diffusion", url: "https://phet.colorado.edu/sims/html/diffusion/latest/diffusion_en.html", description: "Watch particles spread out" },
+
+  // CHEMISTRY - Reactions
+  { title: "Balancing Chemical Equations", url: "https://phet.colorado.edu/sims/html/balancing-chemical-equations/latest/balancing-chemical-equations_en.html", description: "Balance chemical equations" },
+  { title: "Reactants, Products and Leftovers", url: "https://phet.colorado.edu/sims/html/reactants-products-and-leftovers/latest/reactants-products-and-leftovers_en.html", description: "Explore limiting reactants" },
+  { title: "Reversible Reactions", url: "https://phet.colorado.edu/sims/html/reversible-reactions/latest/reversible-reactions_en.html", description: "Explore chemical equilibrium" },
+  { title: "Collision Lab", url: "https://phet.colorado.edu/sims/html/collision-lab/latest/collision-lab_en.html", description: "Investigate collisions" },
+
+  // CHEMISTRY - Solutions
+  { title: "pH Scale", url: "https://phet.colorado.edu/sims/html/ph-scale/latest/ph-scale_en.html", description: "Test pH of liquids" },
+  { title: "pH Scale: Basics", url: "https://phet.colorado.edu/sims/html/ph-scale-basics/latest/ph-scale-basics_en.html", description: "Introduction to pH" },
+  { title: "Acid-Base Solutions", url: "https://phet.colorado.edu/sims/html/acid-base-solutions/latest/acid-base-solutions_en.html", description: "Explore acids and bases" },
+  { title: "Concentration", url: "https://phet.colorado.edu/sims/html/concentration/latest/concentration_en.html", description: "Make solutions by dissolving" },
+  { title: "Molarity", url: "https://phet.colorado.edu/sims/html/molarity/latest/molarity_en.html", description: "Calculate solution concentrations" },
+  { title: "Beer's Law Lab", url: "https://phet.colorado.edu/sims/html/beers-law-lab/latest/beers-law-lab_en.html", description: "Explore light absorption" },
+  { title: "Sugar and Salt Solutions", url: "https://phet.colorado.edu/sims/html/sugar-and-salt-solutions/latest/sugar-and-salt-solutions_en.html", description: "Micro vs macro views" },
+
+  // BIOLOGY
+  { title: "Natural Selection", url: "https://phet.colorado.edu/sims/html/natural-selection/latest/natural-selection_en.html", description: "Watch evolution in action" },
+  { title: "Gene Expression Essentials", url: "https://phet.colorado.edu/sims/html/gene-expression-essentials/latest/gene-expression-essentials_en.html", description: "DNA to proteins" },
+  { title: "Neuron", url: "https://phet.colorado.edu/sims/html/neuron/latest/neuron_en.html", description: "Stimulate a neuron" },
+
+  // EARTH SCIENCE
+  { title: "Greenhouse Effect", url: "https://phet.colorado.edu/sims/html/greenhouse-effect/latest/greenhouse-effect_en.html", description: "Explore climate change" },
+
+  // MATH - Arithmetic & Fractions
+  { title: "Fractions: Intro", url: "https://phet.colorado.edu/sims/html/fractions-intro/latest/fractions-intro_en.html", description: "Learn about fractions" },
+  { title: "Fractions: Equality", url: "https://phet.colorado.edu/sims/html/fractions-equality/latest/fractions-equality_en.html", description: "Explore equivalent fractions" },
+  { title: "Fractions: Mixed Numbers", url: "https://phet.colorado.edu/sims/html/fractions-mixed-numbers/latest/fractions-mixed-numbers_en.html", description: "Work with mixed numbers" },
+  { title: "Fraction Matcher", url: "https://phet.colorado.edu/sims/html/fraction-matcher/latest/fraction-matcher_en.html", description: "Match fractions to pictures" },
+  { title: "Make a Ten", url: "https://phet.colorado.edu/sims/html/make-a-ten/latest/make-a-ten_en.html", description: "Explore addition strategies" },
+  { title: "Arithmetic", url: "https://phet.colorado.edu/sims/html/arithmetic/latest/arithmetic_en.html", description: "Practice arithmetic" },
+  { title: "Number Line: Integers", url: "https://phet.colorado.edu/sims/html/number-line-integers/latest/number-line-integers_en.html", description: "Learn about integers" },
+  { title: "Number Line: Operations", url: "https://phet.colorado.edu/sims/html/number-line-operations/latest/number-line-operations_en.html", description: "Operations on number line" },
+  { title: "Number Play", url: "https://phet.colorado.edu/sims/html/number-play/latest/number-play_en.html", description: "Play with numbers" },
+  { title: "Mean: Share and Balance", url: "https://phet.colorado.edu/sims/html/mean-share-and-balance/latest/mean-share-and-balance_en.html", description: "Understand the mean" },
+  { title: "Ratio and Proportion", url: "https://phet.colorado.edu/sims/html/ratio-and-proportion/latest/ratio-and-proportion_en.html", description: "Explore ratios" },
+  { title: "Unit Rates", url: "https://phet.colorado.edu/sims/html/unit-rates/latest/unit-rates_en.html", description: "Explore unit rates" },
+
+  // MATH - Algebra & Functions
+  { title: "Graphing Lines", url: "https://phet.colorado.edu/sims/html/graphing-lines/latest/graphing-lines_en.html", description: "Explore linear functions" },
+  { title: "Graphing Slope-Intercept", url: "https://phet.colorado.edu/sims/html/graphing-slope-intercept/latest/graphing-slope-intercept_en.html", description: "Graph y = mx + b" },
+  { title: "Graphing Quadratics", url: "https://phet.colorado.edu/sims/html/graphing-quadratics/latest/graphing-quadratics_en.html", description: "Explore parabolas" },
+  { title: "Function Builder", url: "https://phet.colorado.edu/sims/html/function-builder/latest/function-builder_en.html", description: "Build functions" },
+  { title: "Function Builder: Basics", url: "https://phet.colorado.edu/sims/html/function-builder-basics/latest/function-builder-basics_en.html", description: "Introduction to functions" },
+  { title: "Equality Explorer", url: "https://phet.colorado.edu/sims/html/equality-explorer/latest/equality-explorer_en.html", description: "Explore equations" },
+  { title: "Equality Explorer: Basics", url: "https://phet.colorado.edu/sims/html/equality-explorer-basics/latest/equality-explorer-basics_en.html", description: "Introduction to equations" },
+  { title: "Equality Explorer: Two Variables", url: "https://phet.colorado.edu/sims/html/equality-explorer-two-variables/latest/equality-explorer-two-variables_en.html", description: "Two-variable equations" },
+  { title: "Expression Exchange", url: "https://phet.colorado.edu/sims/html/expression-exchange/latest/expression-exchange_en.html", description: "Make algebraic expressions" },
+
+  // MATH - Geometry & Measurement
+  { title: "Area Builder", url: "https://phet.colorado.edu/sims/html/area-builder/latest/area-builder_en.html", description: "Build shapes and explore area" },
+  { title: "Area Model Algebra", url: "https://phet.colorado.edu/sims/html/area-model-algebra/latest/area-model-algebra_en.html", description: "Visualize polynomial multiplication" },
+  { title: "Area Model Decimals", url: "https://phet.colorado.edu/sims/html/area-model-decimals/latest/area-model-decimals_en.html", description: "Multiply decimals" },
+  { title: "Area Model Introduction", url: "https://phet.colorado.edu/sims/html/area-model-introduction/latest/area-model-introduction_en.html", description: "Introduction to area models" },
+  { title: "Area Model Multiplication", url: "https://phet.colorado.edu/sims/html/area-model-multiplication/latest/area-model-multiplication_en.html", description: "Visualize multiplication" },
+  { title: "Balancing Act", url: "https://phet.colorado.edu/sims/html/balancing-act/latest/balancing-act_en.html", description: "Explore torque and balance" },
+  { title: "Trig Tour", url: "https://phet.colorado.edu/sims/html/trig-tour/latest/trig-tour_en.html", description: "Explore trigonometry" },
+  { title: "Calculus Grapher", url: "https://phet.colorado.edu/sims/html/calculus-grapher/latest/calculus-grapher_en.html", description: "Explore calculus concepts" },
+  { title: "Curve Fitting", url: "https://phet.colorado.edu/sims/html/curve-fitting/latest/curve-fitting_en.html", description: "Fit curves to data" },
+
+  // MATH - Probability & Statistics
+  { title: "Plinko Probability", url: "https://phet.colorado.edu/sims/html/plinko-probability/latest/plinko-probability_en.html", description: "Explore probability" },
+  { title: "Center and Variability", url: "https://phet.colorado.edu/sims/html/center-and-variability/latest/center-and-variability_en.html", description: "Explore data distributions" },
+
+  // OTHER
+  { title: "Masses and Springs: Basics", url: "https://phet.colorado.edu/sims/html/masses-and-springs-basics/latest/masses-and-springs-basics_en.html", description: "Introduction to spring systems" },
+  { title: "Gravity Force Lab: Basics", url: "https://phet.colorado.edu/sims/html/gravity-force-lab-basics/latest/gravity-force-lab-basics_en.html", description: "Introduction to gravity" },
+  { title: "Proportion Playground", url: "https://phet.colorado.edu/sims/html/proportion-playground/latest/proportion-playground_en.html", description: "Play with proportions" },
+  { title: "Physics 101", url: "https://phet.colorado.edu/sims/html/vector-addition/latest/vector-addition_en.html", description: "Add vectors graphically" }
+];
+
+function setupPhetModalListeners() {
+  const modal = document.getElementById("phet-modal");
+  const closeBtn = document.getElementById("close-phet-modal");
+  const cancelBtn = document.getElementById("cancel-phet-modal");
+  const searchInput = document.getElementById("phet-search");
+
+  if (closeBtn) closeBtn.onclick = () => modal.style.display = "none";
+  if (cancelBtn) cancelBtn.onclick = () => modal.style.display = "none";
+
+  if (searchInput) {
+    searchInput.addEventListener("input", (e) => {
+      renderPhetList(e.target.value);
+    });
+  }
+
+  // Close on outside click
+  window.addEventListener("click", (e) => {
+    if (e.target === modal) {
+      modal.style.display = "none";
+    }
+  });
+}
+
+function openPhetModal() {
+  const modal = document.getElementById("phet-modal");
+  modal.style.display = "block";
+  renderPhetList();
+}
+
+function renderPhetList(filter = "") {
+  const list = document.getElementById("phet-list");
+  list.innerHTML = "";
+
+  const filteredSims = PHET_SIMS.filter(sim =>
+    sim.title.toLowerCase().includes(filter.toLowerCase()) ||
+    sim.description.toLowerCase().includes(filter.toLowerCase())
+  );
+
+  filteredSims.forEach(sim => {
+    const item = document.createElement("div");
+    item.style.cssText = "border: 2px solid #ddd; border-radius: 8px; padding: 12px; cursor: pointer; transition: all 0.2s; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);";
+    item.onmouseover = () => {
+      item.style.transform = "translateY(-4px)";
+      item.style.boxShadow = "0 4px 12px rgba(0,0,0,0.15)";
+      item.style.borderColor = "#667eea";
+    };
+    item.onmouseout = () => {
+      item.style.transform = "translateY(0)";
+      item.style.boxShadow = "0 2px 4px rgba(0,0,0,0.1)";
+      item.style.borderColor = "#ddd";
+    };
+    item.onclick = () => insertPhetSim(sim);
+
+    item.innerHTML = `
+            <div style="text-align: center; margin-bottom: 8px;">
+                <div style="display: inline-block; padding: 6px 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 6px; margin-bottom: 8px;">
+                    <span style="color: white; font-weight: 600; font-size: 0.95em;">⚛️ ${sim.title}</span>
+                </div>
+            </div>
+            <p style="margin: 0; font-size: 0.85em; color: #666; text-align: center; line-height: 1.4;">${sim.description}</p>
+            <div style="text-align: center; margin-top: 8px;">
+                <span style="font-size: 0.75em; color: #667eea; font-weight: 500;">Click to add to course</span>
+            </div>
+        `;
+    list.appendChild(item);
+  });
+
+  if (filteredSims.length === 0) {
+    list.innerHTML = '<p style="text-align: center; color: #999; padding: 40px;">No simulations found</p>';
+  }
+}
+
+function insertPhetSim(sim) {
+  const contentEditor = document.getElementById("course-content-editor");
+  const wrapper = document.createElement("div");
+  wrapper.className = "phet-sim-wrapper";
+  wrapper.contentEditable = "false"; // Prevent editing inside
+  wrapper.style.cssText = "margin: 20px 0; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; background: #fff;";
+
+  wrapper.innerHTML = `
+        <div style="background: #f0f0f0; padding: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd;">
+            <strong>⚛️ ${sim.title}</strong>
+            <button onclick="this.closest('.phet-sim-wrapper').remove()" style="background: #ff4444; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Remove</button>
+        </div>
+        <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
+            <iframe src="${sim.url}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;" allowfullscreen></iframe>
+        </div>
+    `;
+
+  contentEditor.appendChild(wrapper);
+
+  // Add a paragraph after for easier typing
+  const p = document.createElement("p");
+  p.innerHTML = "<br>";
+  contentEditor.appendChild(p);
+
+  document.getElementById("phet-modal").style.display = "none";
+}

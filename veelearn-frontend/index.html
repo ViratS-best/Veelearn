@@ -158,8 +158,8 @@
           <button type="button" id="insert-block-simulator" title="Add Block-based Visual Simulator">
             🧩 Block Visual Simulator
           </button>
-          <button type="button" id="insert-quiz-question" title="Add Quiz Question">
-            ❓ Quiz Question
+          <button type="button" id="insert-phet-simulator" title="Add PhET Simulator">
+            ⚛️ PhET Simulator
           </button>
         </div>
 
@@ -251,6 +251,27 @@
           <button type="button" id="cancel-quiz-modal">Cancel</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- PHET SIMULATOR MODAL -->
+  <div id="phet-modal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 800px; max-height: 80vh; display: flex; flex-direction: column;">
+      <span class="close-modal" id="close-phet-modal">&times;</span>
+      <h2>Select PhET Simulator</h2>
+      <p>Choose a simulation to embed in your course.</p>
+
+      <input type="text" id="phet-search" placeholder="Search simulations..."
+        style="margin-bottom: 15px; padding: 8px; width: 100%; border: 1px solid #ddd; border-radius: 4px;">
+
+      <div id="phet-list"
+        style="flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
+        <!-- PhET sims will be populated here -->
+      </div>
+
+      <div class="modal-actions" style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
+        <button type="button" id="cancel-phet-modal">Cancel</button>
+      </div>
     </div>
   </div>
 

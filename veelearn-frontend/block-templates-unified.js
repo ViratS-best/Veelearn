@@ -729,15 +729,15 @@ const blockTemplates = {
             const rad = inputs.angle * Math.PI / 180;
             const rayX = Math.cos(rad);
             const rayY = Math.sin(rad);
-            
+
             // Simple sphere intersection
             const toTargetX = inputs.targetX - inputs.x;
             const toTargetY = inputs.targetY - inputs.y;
             const projection = toTargetX * rayX + toTargetY * rayY;
-            
+
             const distance = Math.sqrt(toTargetX * toTargetX + toTargetY * toTargetY);
             const hit = distance <= inputs.targetRadius && projection > 0 && projection < inputs.maxDistance;
-            
+
             return { hit, distance };
         }
     },
@@ -747,12 +747,13 @@ const blockTemplates = {
         title: "Slider Input",
         category: "Input",
         inputs: [
+            { name: "variable", label: "Variable Name", type: "text", default: "myVar" },
             { name: "min", label: "Min", type: "number", default: 0 },
             { name: "max", label: "Max", type: "number", default: 100 },
             { name: "default", label: "Default", type: "number", default: 50 }
         ],
         outputs: ["value"],
-        description: "Interactive slider input",
+        description: "Interactive slider that controls a variable",
         execute: (inputs) => ({ value: inputs.default })
     }
 };
