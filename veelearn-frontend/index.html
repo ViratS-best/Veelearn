@@ -153,6 +153,9 @@
           <button type="button" id="insert-quiz-question" title="Add Quiz Question">
             ❓ Add Question
           </button>
+          <button type="button" id="insert-latex" title="Insert LaTeX Equation">
+            ∑ LaTeX Equation
+          </button>
         </div>
 
         <div id="course-content-editor" contenteditable="true"
@@ -246,6 +249,46 @@
     </div>
   </div>
 
+  <!-- LATEX HELP MODAL -->
+  <div id="latex-help-modal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 600px;">
+      <span class="close-modal" id="close-latex-help" style="cursor: pointer;">&times;</span>
+      <h2>LaTeX Equation Help</h2>
+      <p>Use LaTeX to write mathematical equations in your courses.</p>
+      
+      <h3>Inline Equations (in text)</h3>
+      <p>Surround with single dollar signs: <code>$E = mc^2$</code></p>
+      <p>Result: $E = mc^2$</p>
+      
+      <h3>Display Equations (on separate line)</h3>
+      <p>Surround with double dollar signs: <code>$$E = mc^2$$</code></p>
+      <p>Result: $$E = mc^2$$</p>
+      
+      <h3>Common Examples</h3>
+      <ul>
+        <li><code>$E = hf$</code> → Einstein's photoelectric equation</li>
+        <li><code>$\lambda = \frac{h}{p}$</code> → de Broglie wavelength</li>
+        <li><code>$\Delta x \cdot \Delta p \geq \frac{h}{4\pi}$</code> → Uncertainty principle</li>
+        <li><code>$$\int_0^\infty e^{-x} dx = 1$$</code> → Integral example</li>
+        <li><code>$x = \frac{-b \pm \sqrt{b^2-4ac}}{2a}$</code> → Quadratic formula</li>
+      </ul>
+      
+      <h3>Useful Symbols</h3>
+      <ul>
+        <li><code>\alpha, \beta, \gamma</code> → Greek letters</li>
+        <li><code>\frac{a}{b}</code> → Fractions</li>
+        <li><code>^{2}</code> → Superscript (exponents)</li>
+        <li><code>_{i}</code> → Subscript</li>
+        <li><code>\sqrt{x}</code> → Square root</li>
+        <li><code>\sum, \int, \prod</code> → Math symbols</li>
+      </ul>
+      
+      <p><strong>Tip:</strong> Test your LaTeX at <a href="https://www.latex4technics.com/" target="_blank">latex4technics.com</a></p>
+      
+      <button type="button" id="close-latex-help-btn" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">Close</button>
+    </div>
+  </div>
+
   <!-- PHET SIMULATOR MODAL -->
   <div id="phet-modal" class="modal" style="display: none;">
     <div class="modal-content" style="max-width: 800px; max-height: 80vh; display: flex; flex-direction: column;">
@@ -268,6 +311,23 @@
   </div>
 
   <script src="script.js"></script>
+  
+  <!-- MathJax for LaTeX Support -->
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <script>
+    // MathJax configuration
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: true
+      },
+      svg: {
+        fontCache: 'global'
+      }
+    };
+  </script>
 </body>
 
 </html>
