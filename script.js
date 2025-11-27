@@ -11,6 +11,7 @@ let allUsers = [];
 let courseQuestions = [];
 let currentEditingQuestionId = null;
 let lastDeletedQuestion = null; // Store last deleted question for undo
+let savedSelection = null; // Save cursor position when editor loses focus
 
 // Global keyboard listener for Ctrl+Z undo
 document.addEventListener('keydown', async (e) => {
@@ -65,10 +66,12 @@ function initializeApp() {
   setupAuthListeners();
   setupNavigationListeners();
   setupCourseEditorListeners();
+  setupContentEditorListeners();
   setupMessageListeners();
   setupMessageListeners();
   setupQuizModalListeners();
   setupPhetModalListeners();
+  setupLatexHelpModalListeners();
 
   if (authToken) {
     fetchUserProfile();
@@ -427,11 +430,16 @@ function setupRichTextEditor() {
       } else if (id === "insert-coding-simulator") {
         showMarketplaceSelector("coding");
       } else if (id === "insert-visual-simulator") {
+        savedSelection = saveCursorPosition();
         addVisualSimulator();
       } else if (id === "insert-block-simulator") {
+        savedSelection = saveCursorPosition();
         addBlockSimulator();
       } else if (id === "insert-phet-simulator") {
+        savedSelection = saveCursorPosition();
         openPhetModal();
+      } else if (id === "insert-latex") {
+        insertLatexEquation();
       } else {
         document.execCommand(command, false, null);
         contentEditor.focus();
@@ -505,6 +513,435 @@ function closeSimulatorModal() {
   if (modal) modal.remove();
 }
 
+// Helper: Save cursor position in contenteditable div
+// Uses multiple strategies to ensure position can be restored
+function saveCursorPosition() {
+  const contentEditor = document.getElementById('course-content-editor');
+  const selection = window.getSelection();
+  
+  if (selection.rangeCount === 0) {
+    // No selection, put cursor at end
+    return { position: 'end' };
+  }
+  
+  try {
+    const range = selection.getRangeAt(0);
+    
+    // Calculate character offset from start of editor
+    const preCaretRange = range.cloneRange();
+    preCaretRange.selectNodeContents(contentEditor);
+    preCaretRange.setEnd(range.endContainer, range.endOffset);
+    const offset = preCaretRange.toString().length;
+    
+    // Also save some context text before/after cursor for robustness
+    const fullText = contentEditor.textContent;
+    const textBefore = fullText.substring(Math.max(0, offset - 20), offset);
+    const textAfter = fullText.substring(offset, Math.min(fullText.length, offset + 20));
+    
+    return {
+      offset: offset,
+      textBefore: textBefore,
+      textAfter: textAfter,
+      range: range.cloneRange()
+    };
+  } catch (e) {
+    console.warn('Failed to save cursor position:', e);
+    return { position: 'end' };
+  }
+}
+
+// Helper: Restore cursor position in contenteditable div
+// Uses text context to find the right position even if DOM changed
+function restoreCursorPosition(saved) {
+  if (!saved) return false;
+  
+  const selection = window.getSelection();
+  const contentEditor = document.getElementById('course-content-editor');
+  
+  // If marked as end position, put at end
+  if (saved.position === 'end') {
+    const range = document.createRange();
+    range.selectNodeContents(contentEditor);
+    range.collapse(false);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    return true;
+  }
+  
+  // Try to restore using saved range first
+  if (saved.range) {
+    try {
+      if (contentEditor.contains(saved.range.commonAncestorContainer)) {
+        selection.removeAllRanges();
+        selection.addRange(saved.range);
+        return true;
+      }
+    } catch (e) {
+      // Range is invalid, continue to offset method
+    }
+  }
+  
+  // Restore by finding the text pattern in current content
+  if (saved.textBefore !== undefined && saved.offset !== undefined) {
+    const currentText = contentEditor.textContent;
+    
+    // Try to find the exact position using context
+    if (saved.textBefore && saved.textAfter) {
+      // Search for the text before/after pattern
+      const pattern = saved.textBefore + saved.textAfter;
+      const patternIndex = currentText.indexOf(pattern);
+      if (patternIndex !== -1) {
+        const exactOffset = patternIndex + saved.textBefore.length;
+        return setOffsetInEditor(contentEditor, selection, exactOffset);
+      }
+    }
+    
+    // If pattern not found, try just using the offset
+    // (content may have changed but similar length)
+    return setOffsetInEditor(contentEditor, selection, saved.offset);
+  }
+  
+  // Last resort: put cursor at end
+  const range = document.createRange();
+  range.selectNodeContents(contentEditor);
+  range.collapse(false);
+  selection.removeAllRanges();
+  selection.addRange(range);
+  return false;
+}
+
+// Helper: Set cursor position by character offset
+function setOffsetInEditor(editor, selection, offset) {
+  let charCount = 0;
+  let nodeStack = [editor];
+  let node;
+  
+  while (node = nodeStack.pop()) {
+    if (node.nodeType === 3) { // Text node
+      let nextCharCount = charCount + node.length;
+      if (offset <= nextCharCount) {
+        const range = document.createRange();
+        range.setStart(node, offset - charCount);
+        range.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        return true;
+      }
+      charCount = nextCharCount;
+    } else {
+      let i = node.childNodes.length;
+      while (i--) {
+        nodeStack.push(node.childNodes[i]);
+      }
+    }
+  }
+  
+  // If we couldn't find the offset, put at end
+  const range = document.createRange();
+  range.selectNodeContents(editor);
+  range.collapse(false);
+  selection.removeAllRanges();
+  selection.addRange(range);
+  return false;
+}
+
+function insertLatexEquation() {
+  // Save cursor position before opening modal
+  savedSelection = saveCursorPosition();
+  openLatexEditorModal();
+}
+
+function openLatexEditorModal() {
+  const modal = document.createElement('div');
+  modal.id = 'latex-editor-modal';
+  modal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+  `;
+  
+  modal.innerHTML = `
+    <div style="background: white; padding: 25px; border-radius: 8px; max-width: 700px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+      <h2 style="margin: 0 0 15px 0; color: #333;">Insert LaTeX Equation</h2>
+      
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; margin-bottom: 8px; font-weight: 500;">Equation Type:</label>
+        <div style="display: flex; gap: 10px;">
+          <label style="display: flex; align-items: center; cursor: pointer;">
+            <input type="radio" name="latex-type" value="inline" checked style="margin-right: 5px;" />
+            <span>Inline (<code>$...$</code>) - in text</span>
+          </label>
+          <label style="display: flex; align-items: center; cursor: pointer;">
+            <input type="radio" name="latex-type" value="display" style="margin-right: 5px;" />
+            <span>Display (<code>$$...$$</code>) - centered</span>
+          </label>
+        </div>
+      </div>
+      
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; margin-bottom: 8px; font-weight: 500;">LaTeX Code:</label>
+        <textarea id="latex-input" placeholder="Enter your LaTeX equation here&#10;&#10;Examples:&#10;E = mc^2&#10;\\frac{a}{b}&#10;\\sum_{i=1}^{n} x_i&#10;x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}" 
+          style="width: 100%; height: 150px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; font-size: 14px; resize: vertical;"></textarea>
+      </div>
+      
+      <div style="margin-bottom: 20px; padding: 15px; background: #f9f9f9; border-radius: 4px; border-left: 4px solid #667eea;">
+        <strong style="display: block; margin-bottom: 10px;">Preview:</strong>
+        <div id="latex-preview" style="padding: 10px; background: white; border-radius: 4px; min-height: 40px; font-size: 16px;">
+          (preview will appear here)
+        </div>
+      </div>
+      
+      <div style="margin-bottom: 20px;">
+        <strong style="display: block; margin-bottom: 10px;">Common Symbols:</strong>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px;">
+          <button type="button" onclick="insertLatexSnippet('\\\\alpha')" class="latex-snippet-btn">α (alpha)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\beta')" class="latex-snippet-btn">β (beta)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\gamma')" class="latex-snippet-btn">γ (gamma)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\Delta')" class="latex-snippet-btn">Δ (Delta)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\frac{a}{b}')" class="latex-snippet-btn">a/b (fraction)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\sqrt{x}')" class="latex-snippet-btn">√x (sqrt)</button>
+          <button type="button" onclick="insertLatexSnippet('^{2}')" class="latex-snippet-btn">x² (power)</button>
+          <button type="button" onclick="insertLatexSnippet('_{i}')" class="latex-snippet-btn">xᵢ (subscript)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\sum_{i=1}^{n}')" class="latex-snippet-btn">Σ (sum)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\int_a^b')" class="latex-snippet-btn">∫ (integral)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\pm')" class="latex-snippet-btn">± (plus-minus)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\times')" class="latex-snippet-btn">× (times)</button>
+        </div>
+      </div>
+      
+      <div style="margin-bottom: 20px;">
+        <strong style="display: block; margin-bottom: 10px;">Common Equations:</strong>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px;">
+          <button type="button" onclick="insertLatexSnippet('E = mc^2')" class="latex-template-btn">E = mc²</button>
+          <button type="button" onclick="insertLatexSnippet('x = \\\\frac{-b \\\\pm \\\\sqrt{b^2-4ac}}{2a}')" class="latex-template-btn">Quadratic formula</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\lambda = \\\\frac{h}{p}')" class="latex-template-btn">de Broglie wavelength</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\Delta x \\\\cdot \\\\Delta p \\\\geq \\\\frac{h}{4\\\\pi}')" class="latex-template-btn">Uncertainty principle</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\int_0^\\\\infty e^{-x} dx = 1')" class="latex-template-btn">Integral example</button>
+          <button type="button" onclick="insertLatexSnippet('F = ma')" class="latex-template-btn">Newton's 2nd law</button>
+        </div>
+      </div>
+      
+      <div style="display: flex; gap: 10px; justify-content: flex-end;">
+        <button type="button" onclick="closeLatexEditorModal()" style="padding: 10px 20px; background: #999; color: white; border: none; border-radius: 4px; cursor: pointer;">Cancel</button>
+        <button type="button" onclick="confirmLatexInsertion()" style="padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">Insert Equation</button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  // Add event listeners for preview
+  const input = document.getElementById('latex-input');
+  const previewDiv = document.getElementById('latex-preview');
+  const typeRadios = document.querySelectorAll('input[name="latex-type"]');
+  
+  input.addEventListener('input', updateLatexPreview);
+  typeRadios.forEach(radio => radio.addEventListener('change', updateLatexPreview));
+  
+  input.focus();
+}
+
+function updateLatexPreview() {
+  const input = document.getElementById('latex-input');
+  const preview = document.getElementById('latex-preview');
+  const type = document.querySelector('input[name="latex-type"]:checked').value;
+  
+  if (!input.value.trim()) {
+    preview.innerHTML = '(preview will appear here)';
+    return;
+  }
+  
+  let latex = input.value.trim();
+  if (type === 'display') {
+    latex = '$$' + latex + '$$';
+  } else {
+    latex = '$' + latex + '$';
+  }
+  
+  preview.innerHTML = latex;
+  
+  // Trigger MathJax to render preview
+  if (window.MathJax) {
+    window.MathJax.typesetPromise([preview]).catch(err => console.log('MathJax error:', err));
+  }
+}
+
+function insertLatexSnippet(snippet) {
+  const input = document.getElementById('latex-input');
+  input.value = snippet;
+  updateLatexPreview();
+  input.focus();
+}
+
+function closeLatexEditorModal() {
+  const modal = document.getElementById('latex-editor-modal');
+  if (modal) modal.remove();
+}
+
+function confirmLatexInsertion() {
+  const input = document.getElementById('latex-input');
+  const type = document.querySelector('input[name="latex-type"]:checked').value;
+  const latex = input.value.trim();
+  
+  if (!latex) {
+    alert('Please enter a LaTeX equation');
+    return;
+  }
+  
+  closeLatexEditorModal();
+  
+  // Build final LaTeX string
+  let finalLatex = latex;
+  if (type === 'display') {
+    finalLatex = '$$' + latex + '$$';
+  } else {
+    finalLatex = '$' + latex + '$';
+  }
+  
+  // Get the content editor
+  const contentEditor = document.getElementById('course-content-editor');
+  
+  // Create span for the LaTeX equation
+  const span = document.createElement('span');
+  span.className = 'latex-equation';
+  span.textContent = finalLatex;
+  span.setAttribute('data-latex', 'true');
+  
+  // Restore the cursor position that was saved when button was clicked
+  contentEditor.focus();
+  restoreCursorPosition(savedSelection);
+  savedSelection = null;
+  
+  const selection = window.getSelection();
+  
+  // Try to insert at the restored cursor position
+  if (selection.rangeCount > 0) {
+    try {
+      const range = selection.getRangeAt(0);
+      const commonAncestor = range.commonAncestorContainer;
+      
+      // If cursor is in text, use insertNode which works for inline elements
+      if (commonAncestor.nodeType === Node.TEXT_NODE) {
+        // Insert the LaTeX span at cursor
+        range.insertNode(span);
+        
+        // Move cursor after the equation
+        range.setStartAfter(span);
+        range.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        
+        // Trigger MathJax to re-render
+        if (window.MathJax && window.MathJax.typesetPromise) {
+          setTimeout(() => {
+            window.MathJax.typesetPromise([contentEditor]).catch(err => console.log('MathJax error:', err));
+          }, 100);
+        }
+        return;
+      }
+    } catch (e) {
+      console.warn('Failed to insert LaTeX at cursor:', e);
+    }
+  }
+  
+  // Fallback: append to end if insertion failed
+  contentEditor.appendChild(span);
+  
+  // Trigger MathJax to re-render the equation
+  if (window.MathJax && window.MathJax.typesetPromise) {
+    setTimeout(() => {
+      window.MathJax.typesetPromise([contentEditor]).catch(err => console.log('MathJax error:', err));
+    }, 100);
+  }
+}
+
+// Process LaTeX in text - convert $...$ to rendered equations
+// Preserves already-processed equations
+function processLatexInEditor() {
+  const contentEditor = document.getElementById('course-content-editor');
+  const latexPattern = /\$\$([^$]+)\$\$|\$([^$]+)\$/g;
+  
+  // Walk through all text nodes and find unprocessed LaTeX patterns
+  const walker = document.createTreeWalker(
+    contentEditor,
+    NodeFilter.SHOW_TEXT,
+    null,
+    false
+  );
+  
+  const nodesToProcess = [];
+  let currentNode;
+  
+  while (currentNode = walker.nextNode()) {
+    // Skip text nodes that are already inside latex-equation spans
+    if (currentNode.parentElement && currentNode.parentElement.classList.contains('latex-equation')) {
+      continue;
+    }
+    
+    // Check if this text node contains LaTeX patterns
+    if (latexPattern.test(currentNode.textContent)) {
+      nodesToProcess.push(currentNode);
+    }
+  }
+  
+  // Reset pattern for matching
+  latexPattern.lastIndex = 0;
+  
+  // Process each text node that has unprocessed LaTeX
+  nodesToProcess.forEach(textNode => {
+    const text = textNode.textContent;
+    const matches = [...text.matchAll(/\$\$([^$]+)\$\$|\$([^$]+)\$/g)];
+    
+    if (matches.length === 0) return;
+    
+    // Create a fragment to hold the new content
+    const fragment = document.createDocumentFragment();
+    let lastIndex = 0;
+    
+    matches.forEach(match => {
+      const fullMatch = match[0];
+      const startIndex = match.index;
+      
+      // Add text before this LaTeX
+      if (startIndex > lastIndex) {
+        const textBefore = text.substring(lastIndex, startIndex);
+        fragment.appendChild(document.createTextNode(textBefore));
+      }
+      
+      // Create LaTeX span
+      const span = document.createElement('span');
+      span.className = 'latex-equation';
+      span.setAttribute('data-latex', 'true');
+      span.textContent = fullMatch;
+      fragment.appendChild(span);
+      
+      lastIndex = startIndex + fullMatch.length;
+    });
+    
+    // Add remaining text
+    if (lastIndex < text.length) {
+      fragment.appendChild(document.createTextNode(text.substring(lastIndex)));
+    }
+    
+    // Replace the text node with the new content
+    textNode.parentNode.replaceChild(fragment, textNode);
+  });
+  
+  // Trigger MathJax rendering for new equations
+  if (window.MathJax && window.MathJax.typesetPromise && nodesToProcess.length > 0) {
+    setTimeout(() => {
+      window.MathJax.typesetPromise([contentEditor]).catch(err => console.log('MathJax error:', err));
+    }, 50);
+  }
+}
+
 function addVisualSimulator() {
   const blockId = Date.now();
   courseBlocks.push({
@@ -538,8 +975,9 @@ function insertSimulatorBlock(blockId, title, type) {
   const simulatorDiv = document.createElement("div");
   simulatorDiv.className = "simulator-block";
   simulatorDiv.dataset.blockId = blockId;
+  simulatorDiv.contentEditable = 'false'; // Make non-editable block
   simulatorDiv.style.cssText =
-    "background: #f0f0f0; padding: 15px; margin: 10px 0; border-left: 4px solid #667eea; border-radius: 4px;";
+    "background: #f0f0f0; padding: 15px; margin: 10px 0; border-left: 4px solid #667eea; border-radius: 4px; display: block;";
   simulatorDiv.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <div>
@@ -553,7 +991,70 @@ function insertSimulatorBlock(blockId, title, type) {
             </div>
         </div>
     `;
+  
+  // Restore the cursor position that was saved when button was clicked
+  contentEditor.focus();
+  restoreCursorPosition(savedSelection);
+  savedSelection = null;
+  
+  const selection = window.getSelection();
+  
+  // For contenteditable divs, insert at the position where cursor is
+  // by finding the element after the current node
+  if (selection.rangeCount > 0) {
+    try {
+      const range = selection.getRangeAt(0);
+      const commonAncestor = range.commonAncestorContainer;
+      
+      // Get the parent element (could be text node's parent or element itself)
+      let parent = commonAncestor.nodeType === Node.TEXT_NODE 
+        ? commonAncestor.parentNode 
+        : commonAncestor;
+      
+      // If parent is the editor, we're at top level - good for insertion
+      if (parent === contentEditor || parent.nodeType === Node.TEXT_NODE) {
+        // Split text at cursor if in middle of text
+        if (commonAncestor.nodeType === Node.TEXT_NODE) {
+          const offset = range.endOffset;
+          const textNode = commonAncestor;
+          
+          // Split the text node at cursor position
+          if (offset < textNode.length) {
+            textNode.splitText(offset);
+          }
+          
+          // Insert simulator after this text node
+          const nextNode = textNode.nextSibling;
+          if (nextNode) {
+            contentEditor.insertBefore(simulatorDiv, nextNode);
+          } else {
+            contentEditor.appendChild(simulatorDiv);
+          }
+        } else {
+          // If not in text, just append (fallback)
+          contentEditor.appendChild(simulatorDiv);
+        }
+      } else {
+        // Different parent, use appendChild as fallback
+        contentEditor.appendChild(simulatorDiv);
+      }
+      
+      // Move cursor after the simulator
+      const range2 = document.createRange();
+      range2.setStartAfter(simulatorDiv);
+      range2.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range2);
+      
+      return;
+    } catch (e) {
+      console.warn('Failed to insert simulator at cursor:', e);
+    }
+  }
+  
+  // Fallback: just append to end
   contentEditor.appendChild(simulatorDiv);
+  contentEditor.focus();
 }
 
 
@@ -1062,26 +1563,31 @@ function viewCourse(courseId) {
   document.getElementById("course-viewer-section").style.display = "block";
 
   const viewerContent = document.getElementById("course-viewer-content");
-  viewerContent.innerHTML = `
-        <h1>${course.title}</h1>
-        <p><strong>Description:</strong> ${course.description || "No description"}</p>
-        <div id="course-content-display" style="margin: 20px 0;">
-            ${course.content || "No content"}
-        </div>
-        <button onclick="showDashboard()" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">Back</button>
-    `;
+   viewerContent.innerHTML = `
+         <h1>${course.title}</h1>
+         <p><strong>Description:</strong> ${course.description || "No description"}</p>
+         <div id="course-content-display" style="margin: 20px 0;">
+             ${course.content || "No content"}
+         </div>
+         <button onclick="showDashboard()" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">Back</button>
+     `;
 
-  // Set currentEditingCourseId for quiz answer submission
-  currentEditingCourseId = courseId;
+   // Set currentEditingCourseId for quiz answer submission
+   currentEditingCourseId = courseId;
 
-  // Load and display course simulators
-  loadCourseSimulators(courseId);
+   // Load and display course simulators
+   loadCourseSimulators(courseId);
 
-  // Load and render quiz questions
-  renderQuizQuestionsInViewer(courseId);
+   // Load and render quiz questions
+   renderQuizQuestionsInViewer(courseId);
 
-  // Convert Edit buttons to Run buttons for course simulators
-  convertSimulatorButtonsForViewer(courseId, course);
+   // Convert Edit buttons to Run buttons for course simulators
+   convertSimulatorButtonsForViewer(courseId, course);
+   
+   // Render LaTeX equations with MathJax
+   if (window.MathJax) {
+     window.MathJax.typesetPromise([viewerContent]).catch(err => console.log('MathJax error:', err));
+   }
 }
 
 function convertSimulatorButtonsForViewer(courseId, course) {
@@ -1662,6 +2168,45 @@ function insertQuizPlaceholder(questionText, questionId) {
     }
   });
 
+  // Try to insert at saved cursor position
+  editor.focus();
+  if (savedSelection) {
+    restoreCursorPosition(savedSelection);
+    savedSelection = null;
+    
+    const selection = window.getSelection();
+    if (selection.rangeCount > 0) {
+      try {
+        const range = selection.getRangeAt(0);
+        const commonAncestor = range.commonAncestorContainer;
+        
+        // If cursor is in text, split the text node
+        if (commonAncestor.nodeType === Node.TEXT_NODE) {
+          const offset = range.endOffset;
+          const textNode = commonAncestor;
+          
+          // Split the text node at cursor position
+          if (offset < textNode.length) {
+            textNode.splitText(offset);
+          }
+          
+          // Insert question placeholder after this text node
+          const nextNode = textNode.nextSibling;
+          if (nextNode) {
+            editor.insertBefore(placeholder, nextNode);
+          } else {
+            editor.appendChild(placeholder);
+          }
+          
+          return;
+        }
+      } catch (e) {
+        console.warn('Failed to insert quiz at cursor:', e);
+      }
+    }
+  }
+
+  // Fallback: append to end
   editor.appendChild(placeholder);
 }
 
@@ -2353,3 +2898,60 @@ function insertPhetSim(sim) {
 
   document.getElementById("phet-modal").style.display = "none";
 }
+
+// ===== LATEX MODAL HELPERS =====
+function setupLatexHelpModalListeners() {
+  const latexHelpModal = document.getElementById('latex-help-modal');
+  const closeLatexHelpBtn = document.getElementById('close-latex-help-btn');
+  const closeLatexHelpX = document.getElementById('close-latex-help');
+  
+  if (closeLatexHelpBtn) {
+    closeLatexHelpBtn.addEventListener('click', () => {
+      if (latexHelpModal) latexHelpModal.style.display = 'none';
+    });
+  }
+  
+  if (closeLatexHelpX) {
+    closeLatexHelpX.addEventListener('click', () => {
+      if (latexHelpModal) latexHelpModal.style.display = 'none';
+    });
+  }
+  
+  // Close on outside click
+  window.addEventListener('click', (e) => {
+    if (e.target === latexHelpModal) {
+      latexHelpModal.style.display = 'none';
+    }
+  });
+}
+
+function setupContentEditorListeners() {
+  const contentEditor = document.getElementById('course-content-editor');
+  if (!contentEditor) return;
+  
+  // Listen for Enter key to process LaTeX
+  contentEditor.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.ctrlKey) {
+      e.preventDefault();
+      processLatexInEditor();
+    }
+  });
+  
+  // Auto-process LaTeX when editor loses focus
+  contentEditor.addEventListener('blur', () => {
+    // Small delay to ensure DOM is ready
+    setTimeout(processLatexInEditor, 100);
+  });
+}
+
+// Initialize content editor listeners when page loads
+document.addEventListener('DOMContentLoaded', () => {
+  setupContentEditorListeners();
+});
+
+// Make functions globally accessible for modal buttons
+window.closeLatexEditorModal = closeLatexEditorModal;
+window.confirmLatexInsertion = confirmLatexInsertion;
+window.insertLatexSnippet = insertLatexSnippet;
+window.updateLatexPreview = updateLatexPreview;
+window.processLatexInEditor = processLatexInEditor;
