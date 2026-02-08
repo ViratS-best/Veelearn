@@ -7,6 +7,9 @@ const cors = require('cors');
 const path = require('path');
 
 const util = require('util');
+const PDFDocument = require('pdfkit');
+const fs = require('fs');
+// path is already required above
 
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 
@@ -2270,15 +2273,99 @@ app.post('/api/users/update-volunteer-hours', authenticateToken, authorize('admi
 
 app.get('/api/certificates/verify/:code', (req, res) => {
     const { code } = req.params;
+    const { format } = req.query;
+
     db.query(
-        `SELECT c.*, u.email FROM certificates c
+        `SELECT c.*, u.email, u.total_volunteer_hours FROM certificates c
          JOIN users u ON c.user_id = u.id
          WHERE c.verification_code = ?`,
         [code],
         (err, results) => {
             if (err) return apiResponse(res, 500, 'Server error');
             if (results.length === 0) return apiResponse(res, 404, 'Certificate not found');
-            apiResponse(res, 200, 'Certificate verified', results[0]);
+
+            const certificate = results[0];
+
+            if (format === 'pdf') {
+                try {
+                    const doc = new PDFDocument({ layout: 'landscape', size: 'A4' });
+
+                    res.setHeader('Content-Type', 'application/pdf');
+                    res.setHeader('Content-Disposition', `attachment; filename=certificate_${code}.pdf`);
+
+                    doc.pipe(res);
+
+                    // --- PDF DESIGN ---
+                    // Background border
+                    doc.rect(20, 20, doc.page.width - 40, doc.page.height - 40).stroke('#667eea');
+                    doc.rect(30, 30, doc.page.width - 60, doc.page.height - 60).stroke('#764ba2');
+
+                    // Header
+                    doc.font('Helvetica-Bold').fontSize(30).fillColor('#333333').text('CERTIFICATE OF ACHIEVEMENT', 0, 100, { align: 'center' });
+                    doc.moveDown();
+
+                    // Subheader
+                    doc.font('Helvetica').fontSize(15).text('This is to certify that', { align: 'center' });
+                    doc.moveDown();
+
+                    // User Email/Name
+                    doc.font('Helvetica-Bold').fontSize(25).fillColor('#667eea').text(certificate.email, { align: 'center' });
+                    doc.moveDown();
+
+                    // Body
+                    doc.font('Helvetica').fontSize(15).fillColor('#333333').text('has successfully completed the requirements for', { align: 'center' });
+                    doc.moveDown(0.5);
+
+                    let certTypeDisplay = 'Volunteer Hours Milestone';
+                    if (certificate.certificate_type === 'course_milestone') certTypeDisplay = 'Course Milestone';
+                    if (certificate.certificate_type === 'creator_verified') certTypeDisplay = 'Verified Creator Status';
+
+                    doc.font('Helvetica-Bold').fontSize(20).text(certTypeDisplay, { align: 'center' });
+                    doc.moveDown();
+
+                    if (certificate.hours_certified > 0) {
+                        doc.font('Helvetica').fontSize(15).text(`Hours Certified: ${certificate.hours_certified} Hours`, { align: 'center' });
+                    }
+
+                    // Signature Line (Moved to Left Side)
+                    const signatureY = 400; // Move up separate from footer
+                    doc.moveTo(100, signatureY + 50).lineTo(300, signatureY + 50).stroke();
+
+                    // Specific signature logic
+                    const signaturePath = path.join(__dirname, '../Signuture.png');
+                    if (fs.existsSync(signaturePath)) {
+                        try {
+                            // Place signature image
+                            doc.image(signaturePath, 120, signatureY - 20, { width: 120 });
+                        } catch (imgErr) {
+                            console.error('Error loading signature image:', imgErr);
+                        }
+                    }
+
+                    doc.fontSize(12).fillColor('#333333').text('Virat Sisodiya', 100, signatureY + 60, { align: 'left', width: 200 });
+                    doc.fontSize(10).fillColor('#666666').text('Veelearn Administrator', 100, signatureY + 75, { align: 'left', width: 200 });
+
+                    // Footer / Verification (Moved to Absolute Bottom)
+                    // Page height is ~595 in A4 Landscape (if inverted? pdfkit default is 72dpi, A4 is 595x842. Landscape 842x595)
+                    // Let's position this near the bottom edge (e.g., Y=530)
+
+                    doc.moveDown(5); // Just to reset flow if needed, but we use absolute pos below
+
+                    const bottomY = 520;
+                    doc.font('Helvetica').fontSize(10).fillColor('#333333');
+                    doc.text(`Issued On: ${new Date(certificate.issued_at).toLocaleDateString()}`, 0, bottomY, { align: 'center' });
+                    doc.text(`Verification Code: ${certificate.verification_code}`, 0, bottomY + 15, { align: 'center' });
+                    doc.fillColor('#667eea').text('Verify at: http://localhost:3000/api/certificates/verify/' + certificate.verification_code, 0, bottomY + 30, { align: 'center', link: 'http://localhost:3000/api/certificates/verify/' + certificate.verification_code });
+
+                    doc.end();
+
+                } catch (pdfErr) {
+                    console.error('PDF Generation Error:', pdfErr);
+                    return apiResponse(res, 500, 'Error generating PDF');
+                }
+            } else {
+                apiResponse(res, 200, 'Certificate verified', certificate);
+            }
         }
     );
 });
