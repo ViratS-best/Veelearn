@@ -1754,7 +1754,7 @@ function saveCourse(action = "draft") {
 
   const url = currentEditingCourseId
     ? `${API_BASE_URL}/api/courses/${currentEditingCourseId}`
-    : "http://localhost:3000/api/courses";
+    : `${API_BASE_URL}/api/courses`;
 
   const method = currentEditingCourseId ? "PUT" : "POST";
 
