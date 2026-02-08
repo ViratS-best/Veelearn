@@ -14,6 +14,15 @@ const fs = require('fs');
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 const app = express();
+
+
+// Check for critical environment variables
+if (!process.env.JWT_SECRET) {
+    console.error('❌ FATAL ERROR: JWT_SECRET is not defined.');
+    console.error('   Please add JWT_SECRET to your environment variables.');
+    process.exit(1);
+}
+
 app.use(express.json({ limit: '50mb' }));
 app.use(cors());
 
