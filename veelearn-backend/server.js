@@ -2362,7 +2362,8 @@ app.get('/api/certificates/verify/:code', (req, res) => {
                     doc.font('Helvetica').fontSize(10).fillColor('#333333');
                     doc.text(`Issued On: ${new Date(certificate.issued_at).toLocaleDateString()}`, 0, bottomY, { align: 'center' });
                     doc.text(`Verification Code: ${certificate.verification_code}`, 0, bottomY + 15, { align: 'center' });
-                    doc.fillColor('#667eea').text('Verify at: http://localhost:3000/api/certificates/verify/' + certificate.verification_code, 0, bottomY + 30, { align: 'center', link: 'http://localhost:3000/api/certificates/verify/' + certificate.verification_code });
+                    const BASE_URL = process.env.APP_URL || `http://localhost:${PORT}`;
+                    doc.fillColor('#667eea').text('Verify at: ' + BASE_URL + '/api/certificates/verify/' + certificate.verification_code, 0, bottomY + 30, { align: 'center', link: BASE_URL + '/api/certificates/verify/' + certificate.verification_code });
 
                     doc.end();
 
