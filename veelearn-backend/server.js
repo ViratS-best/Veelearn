@@ -23,9 +23,9 @@ const dbConfig = {
     port: process.env.DB_PORT || process.env.MYSQLPORT || 3306,
     user: process.env.DB_USER || process.env.MYSQLUSER || 'root',
     password: process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || '',
-    database: process.env.DB_NAME || process.env.MYSQLDATABASE || 'veelearn_db',
+    database: process.env.DB_NAME || process.env.MYSQL_DATABASE || process.env.MYSQLDATABASE || 'veelearn_db',
     ssl: process.env.DB_SSL_CA ? {
-        ca: process.env.DB_SSL_CA,
+        ca: process.env.DB_SSL_CA.replace(/\\n/g, '\n'),
         rejectUnauthorized: true
     } : (process.env.MYSQLHOST ? { rejectUnauthorized: false } : null)
 };
