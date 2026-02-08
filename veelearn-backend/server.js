@@ -109,29 +109,49 @@ const initializeDatabase = async () => {
         `);
         console.log('✓ Courses table ready');
 
-        // Migration: Add blocks column if it doesn't exist
-        try {
-            await query('ALTER TABLE courses ADD COLUMN IF NOT EXISTS blocks LONGTEXT');
-            console.log('✓ Blocks column verified/added to courses table');
-        } catch (err) {
-            if (err.code !== 'ER_DUP_FIELDNAME') console.error('Error adding blocks column:', err);
-        }
+        // Helper to safely add column
+        const addColumn = (table, column, definition) => {
+            return new Promise((resolve) => {
+                const checkQuery = `
+            SELECT COUNT(*) as count 
+            FROM information_schema.columns 
+            WHERE table_schema = DATABASE() 
+            AND table_name = ? 
+            AND column_name = ?
+        `;
 
-        try {
-            await query('ALTER TABLE courses ADD COLUMN IF NOT EXISTS creation_time INT DEFAULT 0');
-            console.log('✓ creation_time column verified/added to courses table');
-        } catch (err) {
-            if (err.code !== 'ER_DUP_FIELDNAME') console.error('Error adding creation_time column:', err);
-        }
+                db.query(checkQuery, [table, column], (err, results) => {
+                    if (err) {
+                        console.error(`Error checking column ${column}:`, err);
+                        return resolve();
+                    }
+
+                    if (results[0].count === 0) {
+                        const alterQuery = `ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`;
+                        db.query(alterQuery, (alterErr) => {
+                            if (alterErr) {
+                                console.error(`Error adding column ${column}:`, alterErr);
+                            } else {
+                                console.log(`✓ Added column ${column} to ${table}`);
+                            }
+                            resolve();
+                        });
+                    } else {
+                        resolve();
+                    }
+                });
+            });
+        };
+        // Migration: Add blocks column if it doesn't exist
+        await addColumn('courses', 'blocks', 'LONGTEXT');
+
+        // Migration: Add creation_time column if it doesn't exist
+        await addColumn('courses', 'creation_time', 'INT DEFAULT 0');
 
         // Migration: Add volunteer columns to users table
-        try {
-            await query('ALTER TABLE users ADD COLUMN IF NOT EXISTS total_volunteer_hours FLOAT DEFAULT 0');
-            await query('ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified_creator BOOLEAN DEFAULT FALSE');
-            console.log('✓ Volunteer columns verified/added to users table');
-        } catch (err) {
-            if (err.code !== 'ER_DUP_FIELDNAME') console.error('Error adding volunteer columns:', err);
-        }
+        await addColumn('users', 'total_volunteer_hours', 'FLOAT DEFAULT 0');
+        await addColumn('users', 'is_verified_creator', 'BOOLEAN DEFAULT FALSE');
+        console.log('✓ Volunteer columns verified/added to users table');
 
         // Simulators table (Parent)
         await query(`
@@ -352,7 +372,7 @@ const initializeDatabase = async () => {
         const superadmins = await query('SELECT * FROM users WHERE email = ?', [superadminEmail]);
         if (superadmins.length === 0) {
             const hashedPassword = await bcrypt.hash(superadminPassword, 10);
-            await query('INSERT INTO users (email, password, role, is_admin_approved) VALUES (?, ?, "superadmin", TRUE)',
+            await query('INSERT INTO users (email, password, role, is_admin_approved) VALUES (?, ?, \'superadmin\', TRUE)',
                 [superadminEmail, hashedPassword]);
             console.log('✓ Superadmin created successfully');
         } else {
@@ -401,6 +421,8 @@ const authenticateToken = (req, res, next) => {
 
     jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
         if (err) {
+            console.error('❌ JWT Verification Error:', err.message);
+            console.error('   Token:', token.substring(0, 20) + '...');
             return apiResponse(res, 403, 'Invalid or expired token');
         }
         req.user = user;
