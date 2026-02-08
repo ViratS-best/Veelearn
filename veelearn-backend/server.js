@@ -1013,7 +1013,7 @@ app.get('/api/users/:userId/courses', authenticateToken, (req, res) => {
 
 // ===== ADMIN ROUTES =====
 app.get('/api/admin/courses/pending', authenticateToken, authorize('admin', 'superadmin'), (req, res) => {
-    const query = 'SELECT c.id, c.title, c.description, c.content, c.blocks, c.creator_id, u.email as creator_email, c.created_at FROM courses c JOIN users u ON c.creator_id = u.id WHERE c.status = "pending"';
+    const query = "SELECT c.id, c.title, c.description, c.content, c.blocks, c.creator_id, u.email as creator_email, c.created_at FROM courses c JOIN users u ON c.creator_id = u.id WHERE c.status = 'pending'";
 
     db.query(query, (err, results) => {
         if (err) {
@@ -1139,7 +1139,7 @@ app.put('/api/courses/:id/resubmit', authenticateToken, (req, res) => {
             return apiResponse(res, 400, 'Only rejected courses can be resubmitted');
         }
 
-        const updateCourseQuery = 'UPDATE courses SET title = ?, description = ?, content = ?, status = "pending", feedback = NULL WHERE id = ?';
+        const updateCourseQuery = "UPDATE courses SET title = ?, description = ?, content = ?, status = 'pending', feedback = NULL WHERE id = ?";
         db.query(updateCourseQuery, [title, description, content, courseId], (err, result) => {
             if (err) {
                 console.error('Error resubmitting course:', err);
