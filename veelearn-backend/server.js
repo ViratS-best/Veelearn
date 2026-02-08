@@ -849,6 +849,8 @@ app.delete('/api/courses/:id', authenticateToken, (req, res) => {
         }
 
         const course = results[0];
+        console.log(`DEBUG DELETE: Course ${courseId}, Creator: ${course.creator_id}, User: ${userId}, Role: ${req.user.role}`);
+
         if (parseInt(course.creator_id) !== parseInt(userId) && req.user.role !== 'superadmin' && req.user.role !== 'admin') {
             return apiResponse(res, 403, 'You can only delete your own courses');
         }
@@ -1953,6 +1955,7 @@ app.post('/api/courses/:courseId/questions', authenticateToken, (req, res) => {
 // Get all questions for a course
 app.get('/api/courses/:courseId/questions', authenticateToken, (req, res) => {
     const courseId = req.params.courseId;
+    console.log(`DEBUG GET QUESTIONS: Course ${courseId}, User: ${req.user.id}, Role: ${req.user.role}`);
 
     const query = `
         SELECT id, course_id, question_text, question_type, options, correct_answer, 
