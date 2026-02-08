@@ -1,4 +1,8 @@
 // ===== GLOBAL STATE =====
+const API_BASE_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+  ? "http://localhost:3000"
+  : "https://veelearn.onrender.com"; // Production Render URL
+
 let currentUser = null;
 let courseBlocks = [];
 let currentEditingCourseId = null;
@@ -41,7 +45,7 @@ document.addEventListener('keydown', async (e) => {
 
     // Re-create the question via API
     try {
-      const response = await fetch(`http://localhost:3000/api/courses/${currentEditingCourseId}/questions`, {
+      const response = await fetch(`${API_BASE_URL}/api/courses/${currentEditingCourseId}/questions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -633,7 +637,7 @@ function setupRichTextEditor() {
 
 function showMarketplaceSelector(type) {
   // Fetch marketplace simulators
-  fetch(`http://localhost:3000/api/simulators?limit=50`, {
+  fetch(`${API_BASE_URL}/api/simulators?limit=50`, {
     headers: { Authorization: `Bearer ${authToken}` },
   })
     .then((res) => res.json())
@@ -1382,7 +1386,7 @@ function renderUserList() {
 }
 
 function changeUserRole(email, newRole) {
-  fetch(`http://localhost:3000/api/admin/users/${email}/role`, {
+  fetch(`${API_BASE_URL}/api/admin/users/${email}/role`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -1447,7 +1451,7 @@ function previewCourse(courseId) {
 }
 
 function approveCourse(courseId) {
-  fetch(`http://localhost:3000/api/admin/courses/${courseId}/status`, {
+  fetch(`${API_BASE_URL}/api/admin/courses/${courseId}/status`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -1470,7 +1474,7 @@ function rejectCourse(courseId) {
   const reason = prompt("Please provide a reason for rejection:");
   if (reason === null) return;
 
-  fetch(`http://localhost:3000/api/admin/courses/${courseId}/status`, {
+  fetch(`${API_BASE_URL}/api/admin/courses/${courseId}/status`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -1752,7 +1756,7 @@ function saveCourse(action = "draft") {
   console.log(`courseBlocks:`, courseBlocks);
 
   const url = currentEditingCourseId
-    ? `http://localhost:3000/api/courses/${currentEditingCourseId}`
+    ? `${API_BASE_URL}/api/courses/${currentEditingCourseId}`
     : "http://localhost:3000/api/courses";
 
   const method = currentEditingCourseId ? "PUT" : "POST";
@@ -2091,7 +2095,7 @@ function viewSimulator(simulatorId) {
 function deleteCourse(courseId) {
   if (!confirm("Are you sure?")) return;
 
-  fetch(`http://localhost:3000/api/courses/${courseId}`, {
+  fetch(`${API_BASE_URL}/api/courses/${courseId}`, {
     method: "DELETE",
     headers: { Authorization: `Bearer ${authToken}` },
   })
@@ -2114,7 +2118,7 @@ function deleteCourse(courseId) {
 }
 
 function enrollInCourse(courseId) {
-  fetch(`http://localhost:3000/api/courses/${courseId}/enroll`, {
+  fetch(`${API_BASE_URL}/api/courses/${courseId}/enroll`, {
     method: "POST",
     headers: { Authorization: `Bearer ${authToken}` },
   })
@@ -2444,7 +2448,7 @@ async function saveQuizQuestion() {
   try {
     let response;
     if (currentEditingQuestionId) {
-      response = await fetch(`http://localhost:3000/api/courses/${currentEditingCourseId}/questions/${currentEditingQuestionId}`, {
+      response = await fetch(`${API_BASE_URL}/api/courses/${currentEditingCourseId}/questions/${currentEditingQuestionId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -2453,7 +2457,7 @@ async function saveQuizQuestion() {
         body: JSON.stringify(questionData)
       });
     } else {
-      response = await fetch(`http://localhost:3000/api/courses/${currentEditingCourseId}/questions`, {
+      response = await fetch(`${API_BASE_URL}/api/courses/${currentEditingCourseId}/questions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2601,7 +2605,7 @@ async function deleteQuizQuestion(questionId, btnElement = null) {
   console.log(`🗑️ Proceeding with deletion of question ID:`, questionId);
 
   try {
-    const url = `http://localhost:3000/api/courses/${currentEditingCourseId}/questions/${questionId}`;
+    const url = `${API_BASE_URL}/api/courses/${currentEditingCourseId}/questions/${questionId}`;
     console.log(`   API URL:`, url);
 
     const response = await fetch(url, {
@@ -2657,7 +2661,7 @@ async function deleteQuizQuestion(questionId, btnElement = null) {
 
 async function loadCourseQuestions(courseId) {
   try {
-    const response = await fetch(`http://localhost:3000/api/courses/${courseId}/questions`, {
+    const response = await fetch(`${API_BASE_URL}/api/courses/${courseId}/questions`, {
       headers: {
         'Authorization': `Bearer ${authToken}`
       }
@@ -2818,7 +2822,7 @@ async function submitQuizAnswer(questionId) {
   }
 
   try {
-    const response = await fetch(`http://localhost:3000/api/courses/${currentEditingCourseId}/questions/${questionId}/answer`, {
+    const response = await fetch(`${API_BASE_URL}/api/courses/${currentEditingCourseId}/questions/${questionId}/answer`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -2902,7 +2906,7 @@ async function fetchSliderConfigs() {
   tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px;">Loading...</td></tr>';
 
   try {
-    const response = await fetch(`http://localhost:3000/api/courses/${currentEditingCourseId}/params`, {
+    const response = await fetch(`${API_BASE_URL}/api/courses/${currentEditingCourseId}/params`, {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
     const result = await response.json();
@@ -3009,7 +3013,7 @@ async function saveSliderConfig() {
   try {
     // Note: block_id is currently hardcoded to 1 as we don't have granular block selection within simulator yet
     // In a full implementation, we would let user select which block inside the simulator this param applies to
-    const response = await fetch(`http://localhost:3000/api/courses/${currentEditingCourseId}/simulators/${currentConfiguringSimulatorId}/params`, {
+    const response = await fetch(`${API_BASE_URL}/api/courses/${currentEditingCourseId}/simulators/${currentConfiguringSimulatorId}/params`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -3050,7 +3054,7 @@ async function deleteSliderConfig(configId) {
   if (!confirm('Are you sure you want to delete this slider?')) return;
 
   try {
-    const response = await fetch(`http://localhost:3000/api/courses/${currentEditingCourseId}/params/${configId}`, {
+    const response = await fetch(`${API_BASE_URL}/api/courses/${currentEditingCourseId}/params/${configId}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
