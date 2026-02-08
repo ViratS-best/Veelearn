@@ -6,6 +6,11 @@ let currentEditingSimulatorBlockId = null;
 let simulatorCache = [];
 let authToken = localStorage.getItem("token") || null;
 let myCourses = [];
+let coursePages = [""]; // Array to store content for each page
+let currentPageIndex = 0;
+let isPlacementMode = false; // Flag for cursor-based placement
+let placementType = null; // 'visual-simulator', 'block-simulator', 'quiz'
+let placementData = null; // Data to pass to insertion function
 let availableCourses = [];
 let allUsers = [];
 let courseQuestions = [];
@@ -58,11 +63,16 @@ document.addEventListener('keydown', async (e) => {
 
 
 // ===== INITIALIZATION =====
-document.addEventListener("DOMContentLoaded", () => {
+console.log("🚀 Veelearn Script v3 Loaded");
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initializeApp);
+} else {
   initializeApp();
-});
+}
 
 function initializeApp() {
+  console.log("Initializing App...");
   setupAuthListeners();
   setupNavigationListeners();
   setupCourseEditorListeners();
@@ -378,12 +388,40 @@ function setupNavigationListeners() {
 }
 
 // ===== COURSE EDITOR LISTENERS =====
+// ===== COURSE EDITOR LISTENERS =====
 function setupCourseEditorListeners() {
+  console.log("Setting up course editor listeners...");
   const courseForm = document.getElementById("course-form");
   const cancelBtn = document.getElementById("cancel-course-edit");
   const backBtn = document.getElementById("back-to-dashboard");
   const saveDraftBtn = document.getElementById("save-draft-btn");
   const submitApprovalBtn = document.getElementById("submit-approval-btn");
+
+  // Pagination Controls
+  // Pagination Controls
+  const addPageBtn = document.getElementById("add-page-btn");
+  const prevPageBtn = document.getElementById("prev-page-btn");
+  const nextPageBtn = document.getElementById("next-page-btn");
+  const deletePageBtn = document.getElementById("delete-page-btn");
+
+  if (addPageBtn) {
+    console.log("Add Page button found, attaching listener");
+    addPageBtn.addEventListener("click", addNewPage);
+  } else {
+    console.error("Add Page button NOT found");
+  }
+
+  if (prevPageBtn) prevPageBtn.addEventListener("click", () => changePage(-1));
+  if (nextPageBtn) nextPageBtn.addEventListener("click", () => changePage(1));
+  if (deletePageBtn) deletePageBtn.addEventListener("click", deleteCurrentPage);
+
+  // Click listener for placement mode
+  const editor = document.getElementById("course-content-editor");
+  if (editor) {
+    editor.addEventListener("click", handleEditorClick);
+  } else {
+    console.error("Editor NOT found for click listener");
+  }
 
   // Save draft button - DIRECTLY call saveCourse with "draft" action
   if (saveDraftBtn) {
@@ -438,6 +476,9 @@ function setupRichTextEditor() {
       } else if (id === "insert-phet-simulator") {
         savedSelection = saveCursorPosition();
         openPhetModal();
+      } else if (id === "insert-quiz-question") {
+        savedSelection = saveCursorPosition();
+        openQuizModal();
       } else if (id === "insert-latex") {
         insertLatexEquation();
       } else {
@@ -518,26 +559,26 @@ function closeSimulatorModal() {
 function saveCursorPosition() {
   const contentEditor = document.getElementById('course-content-editor');
   const selection = window.getSelection();
-  
+
   if (selection.rangeCount === 0) {
     // No selection, put cursor at end
     return { position: 'end' };
   }
-  
+
   try {
     const range = selection.getRangeAt(0);
-    
+
     // Calculate character offset from start of editor
     const preCaretRange = range.cloneRange();
     preCaretRange.selectNodeContents(contentEditor);
     preCaretRange.setEnd(range.endContainer, range.endOffset);
     const offset = preCaretRange.toString().length;
-    
+
     // Also save some context text before/after cursor for robustness
     const fullText = contentEditor.textContent;
     const textBefore = fullText.substring(Math.max(0, offset - 20), offset);
     const textAfter = fullText.substring(offset, Math.min(fullText.length, offset + 20));
-    
+
     return {
       offset: offset,
       textBefore: textBefore,
@@ -554,10 +595,10 @@ function saveCursorPosition() {
 // Uses text context to find the right position even if DOM changed
 function restoreCursorPosition(saved) {
   if (!saved) return false;
-  
+
   const selection = window.getSelection();
   const contentEditor = document.getElementById('course-content-editor');
-  
+
   // If marked as end position, put at end
   if (saved.position === 'end') {
     const range = document.createRange();
@@ -567,7 +608,7 @@ function restoreCursorPosition(saved) {
     selection.addRange(range);
     return true;
   }
-  
+
   // Try to restore using saved range first
   if (saved.range) {
     try {
@@ -580,11 +621,11 @@ function restoreCursorPosition(saved) {
       // Range is invalid, continue to offset method
     }
   }
-  
+
   // Restore by finding the text pattern in current content
   if (saved.textBefore !== undefined && saved.offset !== undefined) {
     const currentText = contentEditor.textContent;
-    
+
     // Try to find the exact position using context
     if (saved.textBefore && saved.textAfter) {
       // Search for the text before/after pattern
@@ -595,12 +636,12 @@ function restoreCursorPosition(saved) {
         return setOffsetInEditor(contentEditor, selection, exactOffset);
       }
     }
-    
+
     // If pattern not found, try just using the offset
     // (content may have changed but similar length)
     return setOffsetInEditor(contentEditor, selection, saved.offset);
   }
-  
+
   // Last resort: put cursor at end
   const range = document.createRange();
   range.selectNodeContents(contentEditor);
@@ -615,7 +656,7 @@ function setOffsetInEditor(editor, selection, offset) {
   let charCount = 0;
   let nodeStack = [editor];
   let node;
-  
+
   while (node = nodeStack.pop()) {
     if (node.nodeType === 3) { // Text node
       let nextCharCount = charCount + node.length;
@@ -635,7 +676,7 @@ function setOffsetInEditor(editor, selection, offset) {
       }
     }
   }
-  
+
   // If we couldn't find the offset, put at end
   const range = document.createRange();
   range.selectNodeContents(editor);
@@ -666,7 +707,7 @@ function openLatexEditorModal() {
     justify-content: center;
     z-index: 10000;
   `;
-  
+
   modal.innerHTML = `
     <div style="background: white; padding: 25px; border-radius: 8px; max-width: 700px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
       <h2 style="margin: 0 0 15px 0; color: #333;">Insert LaTeX Equation</h2>
@@ -734,17 +775,17 @@ function openLatexEditorModal() {
       </div>
     </div>
   `;
-  
+
   document.body.appendChild(modal);
-  
+
   // Add event listeners for preview
   const input = document.getElementById('latex-input');
   const previewDiv = document.getElementById('latex-preview');
   const typeRadios = document.querySelectorAll('input[name="latex-type"]');
-  
+
   input.addEventListener('input', updateLatexPreview);
   typeRadios.forEach(radio => radio.addEventListener('change', updateLatexPreview));
-  
+
   input.focus();
 }
 
@@ -752,21 +793,21 @@ function updateLatexPreview() {
   const input = document.getElementById('latex-input');
   const preview = document.getElementById('latex-preview');
   const type = document.querySelector('input[name="latex-type"]:checked').value;
-  
+
   if (!input.value.trim()) {
     preview.innerHTML = '(preview will appear here)';
     return;
   }
-  
+
   let latex = input.value.trim();
   if (type === 'display') {
     latex = '$$' + latex + '$$';
   } else {
     latex = '$' + latex + '$';
   }
-  
+
   preview.innerHTML = latex;
-  
+
   // Trigger MathJax to render preview
   if (window.MathJax) {
     window.MathJax.typesetPromise([preview]).catch(err => console.log('MathJax error:', err));
@@ -789,14 +830,14 @@ function confirmLatexInsertion() {
   const input = document.getElementById('latex-input');
   const type = document.querySelector('input[name="latex-type"]:checked').value;
   const latex = input.value.trim();
-  
+
   if (!latex) {
     alert('Please enter a LaTeX equation');
     return;
   }
-  
+
   closeLatexEditorModal();
-  
+
   // Build final LaTeX string
   let finalLatex = latex;
   if (type === 'display') {
@@ -804,40 +845,40 @@ function confirmLatexInsertion() {
   } else {
     finalLatex = '$' + latex + '$';
   }
-  
+
   // Get the content editor
   const contentEditor = document.getElementById('course-content-editor');
-  
+
   // Create span for the LaTeX equation
   const span = document.createElement('span');
   span.className = 'latex-equation';
   span.textContent = finalLatex;
   span.setAttribute('data-latex', 'true');
-  
+
   // Restore the cursor position that was saved when button was clicked
   contentEditor.focus();
   restoreCursorPosition(savedSelection);
   savedSelection = null;
-  
+
   const selection = window.getSelection();
-  
+
   // Try to insert at the restored cursor position
   if (selection.rangeCount > 0) {
     try {
       const range = selection.getRangeAt(0);
       const commonAncestor = range.commonAncestorContainer;
-      
+
       // If cursor is in text, use insertNode which works for inline elements
       if (commonAncestor.nodeType === Node.TEXT_NODE) {
         // Insert the LaTeX span at cursor
         range.insertNode(span);
-        
+
         // Move cursor after the equation
         range.setStartAfter(span);
         range.collapse(true);
         selection.removeAllRanges();
         selection.addRange(range);
-        
+
         // Trigger MathJax to re-render
         if (window.MathJax && window.MathJax.typesetPromise) {
           setTimeout(() => {
@@ -850,10 +891,10 @@ function confirmLatexInsertion() {
       console.warn('Failed to insert LaTeX at cursor:', e);
     }
   }
-  
+
   // Fallback: append to end if insertion failed
   contentEditor.appendChild(span);
-  
+
   // Trigger MathJax to re-render the equation
   if (window.MathJax && window.MathJax.typesetPromise) {
     setTimeout(() => {
@@ -867,7 +908,7 @@ function confirmLatexInsertion() {
 function processLatexInEditor() {
   const contentEditor = document.getElementById('course-content-editor');
   const latexPattern = /\$\$([^$]+)\$\$|\$([^$]+)\$/g;
-  
+
   // Walk through all text nodes and find unprocessed LaTeX patterns
   const walker = document.createTreeWalker(
     contentEditor,
@@ -875,65 +916,65 @@ function processLatexInEditor() {
     null,
     false
   );
-  
+
   const nodesToProcess = [];
   let currentNode;
-  
+
   while (currentNode = walker.nextNode()) {
     // Skip text nodes that are already inside latex-equation spans
     if (currentNode.parentElement && currentNode.parentElement.classList.contains('latex-equation')) {
       continue;
     }
-    
+
     // Check if this text node contains LaTeX patterns
     if (latexPattern.test(currentNode.textContent)) {
       nodesToProcess.push(currentNode);
     }
   }
-  
+
   // Reset pattern for matching
   latexPattern.lastIndex = 0;
-  
+
   // Process each text node that has unprocessed LaTeX
   nodesToProcess.forEach(textNode => {
     const text = textNode.textContent;
     const matches = [...text.matchAll(/\$\$([^$]+)\$\$|\$([^$]+)\$/g)];
-    
+
     if (matches.length === 0) return;
-    
+
     // Create a fragment to hold the new content
     const fragment = document.createDocumentFragment();
     let lastIndex = 0;
-    
+
     matches.forEach(match => {
       const fullMatch = match[0];
       const startIndex = match.index;
-      
+
       // Add text before this LaTeX
       if (startIndex > lastIndex) {
         const textBefore = text.substring(lastIndex, startIndex);
         fragment.appendChild(document.createTextNode(textBefore));
       }
-      
+
       // Create LaTeX span
       const span = document.createElement('span');
       span.className = 'latex-equation';
       span.setAttribute('data-latex', 'true');
       span.textContent = fullMatch;
       fragment.appendChild(span);
-      
+
       lastIndex = startIndex + fullMatch.length;
     });
-    
+
     // Add remaining text
     if (lastIndex < text.length) {
       fragment.appendChild(document.createTextNode(text.substring(lastIndex)));
     }
-    
+
     // Replace the text node with the new content
     textNode.parentNode.replaceChild(fragment, textNode);
   });
-  
+
   // Trigger MathJax rendering for new equations
   if (window.MathJax && window.MathJax.typesetPromise && nodesToProcess.length > 0) {
     setTimeout(() => {
@@ -951,7 +992,12 @@ function addVisualSimulator() {
     data: { code: "", variables: {} },
   });
 
-  insertSimulatorBlock(blockId, "Code-based Visual", "Code-based Simulator");
+  // Start placement mode instead of direct insertion
+  startPlacementMode('visual-simulator', {
+    id: blockId,
+    title: "Code-based Visual",
+    type: "Code-based Simulator"
+  });
 }
 
 function addBlockSimulator() {
@@ -959,15 +1005,16 @@ function addBlockSimulator() {
   courseBlocks.push({
     id: blockId,
     type: "block-simulator",
-    title: "Block-based Simulator",
+    title: "Block-based Logic Simulator",
     data: { blocks: [], connections: [] },
   });
 
-  insertSimulatorBlock(
-    blockId,
-    "Block-based Simulator",
-    "Block-based Simulator"
-  );
+  // Start placement mode instead of direct insertion
+  startPlacementMode('block-simulator', {
+    id: blockId,
+    title: "Block-based Logic",
+    type: "Block-based Simulator"
+  });
 }
 
 function insertSimulatorBlock(blockId, title, type) {
@@ -991,38 +1038,38 @@ function insertSimulatorBlock(blockId, title, type) {
             </div>
         </div>
     `;
-  
+
   // Restore the cursor position that was saved when button was clicked
   contentEditor.focus();
   restoreCursorPosition(savedSelection);
   savedSelection = null;
-  
+
   const selection = window.getSelection();
-  
+
   // For contenteditable divs, insert at the position where cursor is
   // by finding the element after the current node
   if (selection.rangeCount > 0) {
     try {
       const range = selection.getRangeAt(0);
       const commonAncestor = range.commonAncestorContainer;
-      
+
       // Get the parent element (could be text node's parent or element itself)
-      let parent = commonAncestor.nodeType === Node.TEXT_NODE 
-        ? commonAncestor.parentNode 
+      let parent = commonAncestor.nodeType === Node.TEXT_NODE
+        ? commonAncestor.parentNode
         : commonAncestor;
-      
+
       // If parent is the editor, we're at top level - good for insertion
       if (parent === contentEditor || parent.nodeType === Node.TEXT_NODE) {
         // Split text at cursor if in middle of text
         if (commonAncestor.nodeType === Node.TEXT_NODE) {
           const offset = range.endOffset;
           const textNode = commonAncestor;
-          
+
           // Split the text node at cursor position
           if (offset < textNode.length) {
             textNode.splitText(offset);
           }
-          
+
           // Insert simulator after this text node
           const nextNode = textNode.nextSibling;
           if (nextNode) {
@@ -1038,20 +1085,20 @@ function insertSimulatorBlock(blockId, title, type) {
         // Different parent, use appendChild as fallback
         contentEditor.appendChild(simulatorDiv);
       }
-      
+
       // Move cursor after the simulator
       const range2 = document.createRange();
       range2.setStartAfter(simulatorDiv);
       range2.collapse(true);
       selection.removeAllRanges();
       selection.addRange(range2);
-      
+
       return;
     } catch (e) {
       console.warn('Failed to insert simulator at cursor:', e);
     }
   }
-  
+
   // Fallback: just append to end
   contentEditor.appendChild(simulatorDiv);
   contentEditor.focus();
@@ -1418,10 +1465,15 @@ function createNewCourse() {
   courseBlocks = [];
   document.getElementById("course-title").value = "";
   document.getElementById("course-description").value = "";
-  document.getElementById("course-content-editor").innerHTML = "";
+
+  // Reset pagination
+  coursePages = [""];
+  currentPageIndex = 0;
+  renderCurrentPage();
 
   document.getElementById("dashboard-section").style.display = "none";
   document.getElementById("course-editor-section").style.display = "block";
+  updatePageControls();
 }
 
 function editCourse(courseId) {
@@ -1432,8 +1484,16 @@ function editCourse(courseId) {
     document.getElementById("course-title").value = course.title;
     document.getElementById("course-description").value =
       course.description || "";
-    document.getElementById("course-content-editor").innerHTML =
-      course.content || "";
+
+    // Split content into pages
+    const rawContent = course.content || "";
+    if (rawContent.includes('<hr class="page-break">')) {
+      coursePages = rawContent.split('<hr class="page-break">');
+    } else {
+      coursePages = [rawContent];
+    }
+    currentPageIndex = 0;
+    renderCurrentPage();
 
     // RESTORE SAVED BLOCKS from the course
     courseBlocks = course.blocks ?
@@ -1450,28 +1510,73 @@ function editCourse(courseId) {
       const existingPlaceholders = editor.querySelectorAll('.quiz-question-placeholder');
       existingPlaceholders.forEach(p => p.remove());
 
-      // Re-render quiz placeholders in the editor
-      courseQuestions.forEach(q => {
-        insertQuizPlaceholder(q.question_text, q.id);
-      });
-    });
+      // Re-attach handlers to existing simulators and quizzes
 
-    document.getElementById("dashboard-section").style.display = "none";
-    document.getElementById("course-editor-section").style.display = "block";
+      // Simulators
+      editor.querySelectorAll('.simulator-block').forEach(sim => {
+        makeElementDraggable(sim);
+        // Re-attach click handlers if they were lost (though inline onclicks should persist)
+      });
+
+      // PhET Sims
+      editor.querySelectorAll('.phet-sim-wrapper').forEach(wrapper => {
+        makeElementDraggable(wrapper);
+        const removeBtn = wrapper.querySelector('.phet-remove-btn');
+        if (removeBtn) {
+          removeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (confirm('Remove this simulator?')) {
+              wrapper.remove();
+            }
+          });
+        }
+      });
+
+      // Quiz Placeholders
+      editor.querySelectorAll('.quiz-question-placeholder').forEach(placeholder => {
+        makeElementDraggable(placeholder);
+
+        // Re-attach click handler for editing
+        placeholder.addEventListener('click', (e) => {
+          if (e.target.closest('button')) return;
+          const qId = placeholder.dataset.questionId;
+          if (qId) {
+            openQuizModal(parseInt(qId));
+          }
+        });
+
+        // Re-attach delete handler
+        const deleteBtn = placeholder.querySelector('.quiz-placeholder-delete-btn');
+        if (deleteBtn) {
+          deleteBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (confirm('Delete this question?')) {
+              placeholder.remove();
+            }
+          });
+        }
+      });
+
+      document.getElementById("dashboard-section").style.display = "none";
+      document.getElementById("course-editor-section").style.display = "block";
+      updatePageControls();
+    });
   }
 }
 
 function saveCourse(action = "draft") {
   const title = document.getElementById("course-title").value;
   const description = document.getElementById("course-description").value;
-  const contentEditor = document.getElementById("course-content-editor");
 
-  // Clone the editor content and remove quiz placeholders before saving
-  const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = contentEditor.innerHTML;
-  const quizPlaceholders = tempDiv.querySelectorAll('.quiz-question-placeholder');
-  quizPlaceholders.forEach(p => p.remove());
-  const content = tempDiv.innerHTML;
+  // Save current page content before gathering all content
+  saveCurrentPageContent();
+
+  // Join all pages with delimiter
+  const fullContent = coursePages.join('<hr class="page-break">');
+
+  // DO NOT remove quiz placeholders. They are needed for the viewer to know where to render quizzes.
+  // The viewer will replace them with interactive elements.
+  const content = fullContent;
 
   if (!title.trim()) {
     alert("Please enter a course title");
@@ -1549,7 +1654,7 @@ function saveCourse(action = "draft") {
     });
 }
 
-function viewCourse(courseId) {
+async function viewCourse(courseId) {
   const course = myCourses.find((c) => c.id === courseId) ||
     availableCourses.find((c) => c.id === courseId);
 
@@ -1558,36 +1663,134 @@ function viewCourse(courseId) {
     return;
   }
 
+  // Load questions first so hydration works
+  await loadCourseQuestions(courseId);
+
   document.getElementById("dashboard-section").style.display = "none";
   document.getElementById("course-editor-section").style.display = "none";
   document.getElementById("course-viewer-section").style.display = "block";
 
   const viewerContent = document.getElementById("course-viewer-content");
-   viewerContent.innerHTML = `
+
+  // Split content into pages for viewer
+  const rawContent = course.content || "";
+  let viewerPages = [];
+  if (rawContent.includes('<hr class="page-break">')) {
+    viewerPages = rawContent.split('<hr class="page-break">');
+  } else {
+    viewerPages = [rawContent];
+  }
+
+  let currentViewerPageIndex = 0;
+
+  const renderViewerPage = (index) => {
+    viewerContent.innerHTML = `
          <h1>${course.title}</h1>
          <p><strong>Description:</strong> ${course.description || "No description"}</p>
-         <div id="course-content-display" style="margin: 20px 0;">
-             ${course.content || "No content"}
+         <div id="course-content-display" style="margin: 20px 0; position: relative; min-height: 400px;">
+             ${viewerPages[index] || "No content"}
          </div>
-         <button onclick="showDashboard()" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">Back</button>
+         <button onclick="showDashboard()" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">Back to Dashboard</button>
      `;
 
-   // Set currentEditingCourseId for quiz answer submission
-   currentEditingCourseId = courseId;
+    // Update viewer controls
+    const indicator = document.getElementById("viewer-page-indicator");
+    const prevBtn = document.getElementById("viewer-prev-btn");
+    const nextBtn = document.getElementById("viewer-next-btn");
 
-   // Load and display course simulators
-   loadCourseSimulators(courseId);
+    if (indicator) indicator.textContent = `Page ${index + 1} of ${viewerPages.length}`;
+    if (prevBtn) prevBtn.disabled = index === 0;
+    if (nextBtn) {
+      if (index === viewerPages.length - 1) {
+        nextBtn.textContent = "Finish Course";
+      } else {
+        nextBtn.textContent = "Next Page";
+      }
+    }
 
-   // Load and render quiz questions
-   renderQuizQuestionsInViewer(courseId);
+    // Re-attach event listeners for interactive elements (quizzes, sims)
+    // We need to wait for DOM update
+    setTimeout(() => {
+      if (typeof setupViewerInteractions === 'function') {
+        setupViewerInteractions(course.id);
+      } else {
+        console.error("setupViewerInteractions is NOT defined!");
+      }
+      // Convert simulator buttons for this page
+      convertSimulatorButtonsForViewer(course.id, course);
+      // Render LaTeX
+      if (window.MathJax) {
+        window.MathJax.typesetPromise([viewerContent]).catch(err => console.log('MathJax error:', err));
+      }
+    }, 0);
+  };
 
-   // Convert Edit buttons to Run buttons for course simulators
-   convertSimulatorButtonsForViewer(courseId, course);
-   
-   // Render LaTeX equations with MathJax
-   if (window.MathJax) {
-     window.MathJax.typesetPromise([viewerContent]).catch(err => console.log('MathJax error:', err));
-   }
+  // Define setupViewerInteractions if it's not already defined globally
+  // This function attaches event listeners to interactive elements in the viewer
+  function setupViewerInteractions(courseId) {
+    console.log("Setting up viewer interactions for course:", courseId);
+
+    // Hydrate quiz placeholders first
+    hydrateQuizPlaceholders();
+
+    // Re-attach listeners for quizzes
+    document.querySelectorAll(".quiz-submit-btn").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        const questionId = e.target.dataset.questionId;
+        submitQuizAnswer(questionId, courseId);
+      });
+    });
+
+    // Re-attach listeners for simulators if needed
+    // (Simulators usually have inline onclicks, so might be fine)
+  }
+
+  // Setup viewer pagination controls
+  const viewerControls = document.getElementById("viewer-pagination-controls");
+  if (viewerControls) {
+    // Clear old listeners by cloning
+    const newPrev = viewerControls.querySelector("#viewer-prev-btn").cloneNode(true);
+    const newNext = viewerControls.querySelector("#viewer-next-btn").cloneNode(true);
+    viewerControls.querySelector("#viewer-prev-btn").replaceWith(newPrev);
+    viewerControls.querySelector("#viewer-next-btn").replaceWith(newNext);
+
+    newPrev.addEventListener("click", () => {
+      if (currentViewerPageIndex > 0) {
+        currentViewerPageIndex--;
+        renderViewerPage(currentViewerPageIndex);
+      }
+    });
+
+    newNext.addEventListener("click", () => {
+      if (currentViewerPageIndex < viewerPages.length - 1) {
+        currentViewerPageIndex++;
+        renderViewerPage(currentViewerPageIndex);
+      } else {
+        // Finish course logic
+        alert("Course Completed! Great job!");
+        showDashboard();
+      }
+    });
+  }
+
+  renderViewerPage(0);
+
+  // Set currentEditingCourseId for quiz answer submission
+  currentEditingCourseId = courseId;
+
+  // Load and display course simulators
+  loadCourseSimulators(courseId);
+
+  // Load and render quiz questions
+  renderQuizQuestionsInViewer(courseId);
+
+  // Convert Edit buttons to Run buttons for course simulators
+  convertSimulatorButtonsForViewer(courseId, course);
+
+  // Render LaTeX equations with MathJax
+  if (window.MathJax) {
+    window.MathJax.typesetPromise([viewerContent]).catch(err => console.log('MathJax error:', err));
+  }
 }
 
 function convertSimulatorButtonsForViewer(courseId, course) {
@@ -2120,16 +2323,24 @@ async function saveQuizQuestion() {
       closeQuizModalFunc();
       await loadCourseQuestions(currentEditingCourseId);
 
-      const editor = document.getElementById('course-content-editor');
-
-      // Clear ALL placeholders to prevent duplicates
-      const allPlaceholders = editor.querySelectorAll('.quiz-question-placeholder');
-      allPlaceholders.forEach(p => p.remove());
-
-      // Re-render all quiz question placeholders from loaded questions
-      courseQuestions.forEach(q => {
-        insertQuizPlaceholder(q.question_text, q.id);
-      });
+      if (currentEditingQuestionId) {
+        // Update existing placeholder text if found
+        const editor = document.getElementById('course-content-editor');
+        const existing = editor.querySelector(`.quiz-question-placeholder[data-question-id="${currentEditingQuestionId}"]`);
+        if (existing) {
+          existing.innerHTML = `
+            <strong>❓ Quiz Question:</strong> ${questionText.substring(0, 100)}${questionText.length > 100 ? '...' : ''}
+            <button type="button" class="quiz-placeholder-delete-btn" data-question-id="${currentEditingQuestionId}" style="position: absolute; top: 5px; right: 5px; background: #e53e3e; color: white; border: none; border-radius: 4px; padding: 2px 6px; cursor: pointer; font-size: 0.8em; z-index: 10;">🗑️ Delete</button>
+            <div style="font-size: 0.85em; color: #999; margin-top: 0.5em;">Click to edit</div>
+          `;
+        }
+      } else {
+        // New question: Start placement mode
+        startPlacementMode('quiz', {
+          id: result.data.insertId || result.data.id, // Adjust based on API response
+          text: questionText
+        });
+      }
     } else {
       alert('Error saving question: ' + result.message);
     }
@@ -2173,23 +2384,23 @@ function insertQuizPlaceholder(questionText, questionId) {
   if (savedSelection) {
     restoreCursorPosition(savedSelection);
     savedSelection = null;
-    
+
     const selection = window.getSelection();
     if (selection.rangeCount > 0) {
       try {
         const range = selection.getRangeAt(0);
         const commonAncestor = range.commonAncestorContainer;
-        
+
         // If cursor is in text, split the text node
         if (commonAncestor.nodeType === Node.TEXT_NODE) {
           const offset = range.endOffset;
           const textNode = commonAncestor;
-          
+
           // Split the text node at cursor position
           if (offset < textNode.length) {
             textNode.splitText(offset);
           }
-          
+
           // Insert question placeholder after this text node
           const nextNode = textNode.nextSibling;
           if (nextNode) {
@@ -2197,7 +2408,7 @@ function insertQuizPlaceholder(questionText, questionId) {
           } else {
             editor.appendChild(placeholder);
           }
-          
+
           return;
         }
       } catch (e) {
@@ -2311,24 +2522,34 @@ async function loadCourseQuestions(courseId) {
   }
 }
 
+function hydrateQuizPlaceholders() {
+  const viewerContent = document.getElementById('course-viewer-content');
+  const placeholders = viewerContent.querySelectorAll('.quiz-question-placeholder');
+
+  placeholders.forEach(placeholder => {
+    const questionId = parseInt(placeholder.dataset.questionId);
+    const question = courseQuestions.find(q => q.id === questionId);
+
+    if (question) {
+      const questionEl = createQuizQuestionElement(question, 0); // Index doesn't matter much here
+
+      // Copy styles from placeholder to maintain position
+      questionEl.style.cssText = placeholder.style.cssText;
+      questionEl.style.border = '2px solid var(--primary)'; // Reset border style
+      questionEl.style.background = 'rgba(102, 126, 234, 0.1)'; // Reset background
+      questionEl.style.cursor = 'default';
+      questionEl.className = 'quiz-question';
+
+      // Replace placeholder content
+      placeholder.replaceWith(questionEl);
+    }
+  });
+}
+
+// Kept for backward compatibility if needed, but modified to use hydration
 async function renderQuizQuestionsInViewer(courseId) {
   await loadCourseQuestions(courseId);
-
-  if (courseQuestions.length === 0) {
-    return;
-  }
-
-  const viewerContent = document.getElementById('course-viewer-content');
-  const quizSection = document.createElement('div');
-  quizSection.className = 'quiz-section';
-  quizSection.innerHTML = '<h3 style="color: var(--accent); margin-top: 2em;">📝 Quiz Questions</h3>';
-
-  courseQuestions.forEach((question, index) => {
-    const questionEl = createQuizQuestionElement(question, index);
-    quizSection.appendChild(questionEl);
-  });
-
-  viewerContent.appendChild(quizSection);
+  hydrateQuizPlaceholders();
 }
 
 function createQuizQuestionElement(question, index) {
@@ -2373,7 +2594,7 @@ function createQuizQuestionElement(question, index) {
       <div class="quiz-points">${question.points} pts</div>
     </div>
     ${optionsHTML}
-    <button class="quiz-submit-btn" onclick="submitQuizAnswer(${question.id})">Submit Answer</button>
+    <button class="quiz-submit-btn" data-question-id="${question.id}">Submit Answer</button>
     <div id="feedback-${question.id}" class="quiz-feedback" style="display: none;"></div>
   `;
 
@@ -2381,8 +2602,12 @@ function createQuizQuestionElement(question, index) {
 }
 
 async function submitQuizAnswer(questionId) {
-  const question = courseQuestions.find(q => q.id === questionId);
-  if (!question) return;
+  console.log(`Submitting answer for question ${questionId}`);
+  const question = courseQuestions.find(q => q.id === parseInt(questionId));
+  if (!question) {
+    console.error(`Question ${questionId} not found in courseQuestions`, courseQuestions);
+    return;
+  }
 
   let userAnswer;
   if (question.question_type === 'short_answer') {
@@ -2693,10 +2918,9 @@ const PHET_SIMS = [
   { title: "Lasers", url: "https://phet.colorado.edu/sims/html/lasers/latest/lasers_en.html", description: "Create your own laser" },
 
   // PHYSICS - Quantum Mechanics
-  { title: "Quantum Measurement", url: "https://phet.colorado.edu/sims/html/quantum-measurement/latest/quantum-measurement_en.html", description: "Explore quantum measurement and states" },
-  { title: "Quantum Wave Interference", url: "https://phet.colorado.edu/sims/html/quantum-wave-interference/latest/quantum-wave-interference_en.html", description: "Explore quantum wave behavior" },
-  { title: "Quantum Tunneling and Wave Packets", url: "https://phet.colorado.edu/sims/html/quantum-tunneling/latest/quantum-tunneling_en.html", description: "Explore quantum tunneling" },
-  { title: "Quantum Bound States", url: "https://phet.colorado.edu/sims/html/bound-states/latest/bound-states_en.html", description: "Explore quantum bound states" },
+  { title: "Quantum Measurement", url: "https://phet.colorado.edu/sims/html/stern-gerlach/latest/stern-gerlach_en.html", description: "Explore quantum measurement and states" },
+  { title: "Quantum Wave Interference", url: "https://phet.colorado.edu/sims/html/wave-interference/latest/wave-interference_en.html", description: "Explore quantum wave behavior" },
+  { title: "Quantum Tunneling and Wave Packets", url: "https://phet.colorado.edu/sims/html/quantum-tunneling-and-wave-packets/latest/quantum-tunneling-and-wave-packets_en.html", description: "Explore quantum tunneling" },
   { title: "Models of the Hydrogen Atom", url: "https://phet.colorado.edu/sims/html/models-of-the-hydrogen-atom/latest/models-of-the-hydrogen-atom_en.html", description: "Compare hydrogen atom models" },
 
   // PHYSICS - Electricity & Magnetism
@@ -2873,30 +3097,10 @@ function renderPhetList(filter = "") {
 }
 
 function insertPhetSim(sim) {
-  const contentEditor = document.getElementById("course-content-editor");
-  const wrapper = document.createElement("div");
-  wrapper.className = "phet-sim-wrapper";
-  wrapper.contentEditable = "false"; // Prevent editing inside
-  wrapper.style.cssText = "margin: 20px 0; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; background: #fff;";
-
-  wrapper.innerHTML = `
-        <div style="background: #f0f0f0; padding: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd;">
-            <strong>⚛️ ${sim.title}</strong>
-            <button onclick="this.closest('.phet-sim-wrapper').remove()" style="background: #ff4444; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Remove</button>
-        </div>
-        <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
-            <iframe src="${sim.url}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;" allowfullscreen></iframe>
-        </div>
-    `;
-
-  contentEditor.appendChild(wrapper);
-
-  // Add a paragraph after for easier typing
-  const p = document.createElement("p");
-  p.innerHTML = "<br>";
-  contentEditor.appendChild(p);
-
   document.getElementById("phet-modal").style.display = "none";
+
+  // Start placement mode
+  startPlacementMode('phet-simulator', sim);
 }
 
 // ===== LATEX MODAL HELPERS =====
@@ -2904,19 +3108,19 @@ function setupLatexHelpModalListeners() {
   const latexHelpModal = document.getElementById('latex-help-modal');
   const closeLatexHelpBtn = document.getElementById('close-latex-help-btn');
   const closeLatexHelpX = document.getElementById('close-latex-help');
-  
+
   if (closeLatexHelpBtn) {
     closeLatexHelpBtn.addEventListener('click', () => {
       if (latexHelpModal) latexHelpModal.style.display = 'none';
     });
   }
-  
+
   if (closeLatexHelpX) {
     closeLatexHelpX.addEventListener('click', () => {
       if (latexHelpModal) latexHelpModal.style.display = 'none';
     });
   }
-  
+
   // Close on outside click
   window.addEventListener('click', (e) => {
     if (e.target === latexHelpModal) {
@@ -2928,7 +3132,7 @@ function setupLatexHelpModalListeners() {
 function setupContentEditorListeners() {
   const contentEditor = document.getElementById('course-content-editor');
   if (!contentEditor) return;
-  
+
   // Listen for Enter key to process LaTeX
   contentEditor.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && e.ctrlKey) {
@@ -2936,7 +3140,7 @@ function setupContentEditorListeners() {
       processLatexInEditor();
     }
   });
-  
+
   // Auto-process LaTeX when editor loses focus
   contentEditor.addEventListener('blur', () => {
     // Small delay to ensure DOM is ready
@@ -2955,3 +3159,319 @@ window.confirmLatexInsertion = confirmLatexInsertion;
 window.insertLatexSnippet = insertLatexSnippet;
 window.updateLatexPreview = updateLatexPreview;
 window.processLatexInEditor = processLatexInEditor;
+
+// ===== PAGINATION FUNCTIONS =====
+
+function saveCurrentPageContent() {
+  const editor = document.getElementById("course-content-editor");
+  if (editor) {
+    coursePages[currentPageIndex] = editor.innerHTML;
+  }
+}
+
+function renderCurrentPage() {
+  console.log(`Rendering page ${currentPageIndex + 1} of ${coursePages.length}`);
+  const editor = document.getElementById("course-content-editor");
+  if (!editor) {
+    console.error("Editor not found in renderCurrentPage");
+    return;
+  }
+
+  // Validate index
+  if (currentPageIndex < 0) currentPageIndex = 0;
+  if (currentPageIndex >= coursePages.length) currentPageIndex = coursePages.length - 1;
+
+  editor.innerHTML = coursePages[currentPageIndex] || "";
+  updatePageControls();
+
+  // Re-attach listeners to new elements if needed
+  // For example, simulator buttons
+}
+
+function addNewPage() {
+  console.log("Adding new page...");
+  if (!Array.isArray(coursePages)) {
+    console.error("coursePages is not an array! Resetting.");
+    coursePages = [""];
+  }
+  saveCurrentPageContent();
+  coursePages.push("");
+  currentPageIndex = coursePages.length - 1;
+  console.log("New page added. Total pages:", coursePages.length);
+  renderCurrentPage();
+}
+
+function deleteCurrentPage() {
+  if (coursePages.length <= 1) {
+    alert("Cannot delete the only page.");
+    return;
+  }
+
+  if (confirm("Are you sure you want to delete this page?")) {
+    coursePages.splice(currentPageIndex, 1);
+    if (currentPageIndex >= coursePages.length) {
+      currentPageIndex = coursePages.length - 1;
+    }
+    renderCurrentPage();
+  }
+}
+
+function changePage(delta) {
+  saveCurrentPageContent();
+  const newIndex = currentPageIndex + delta;
+  if (newIndex >= 0 && newIndex < coursePages.length) {
+    currentPageIndex = newIndex;
+    renderCurrentPage();
+  }
+}
+
+function updatePageControls() {
+  const pageIndicator = document.getElementById("page-indicator");
+  const prevBtn = document.getElementById("prev-page-btn");
+  const nextBtn = document.getElementById("next-page-btn");
+
+  if (pageIndicator) {
+    pageIndicator.textContent = `Page ${currentPageIndex + 1} of ${coursePages.length}`;
+  }
+
+  if (prevBtn) prevBtn.disabled = currentPageIndex === 0;
+  if (nextBtn) nextBtn.disabled = currentPageIndex === coursePages.length - 1;
+}
+
+// ===== PLACEMENT LOGIC =====
+
+function startPlacementMode(type, data) {
+  console.log("Starting placement mode for:", type);
+  isPlacementMode = true;
+  placementType = type;
+  placementData = data;
+
+  const editor = document.getElementById("course-content-editor");
+  // FORCE position relative to ensure absolute children work
+  editor.style.position = "relative";
+  editor.style.cursor = "crosshair";
+  editor.classList.add("placement-mode");
+
+  // Show a toast or message
+  alert("Click anywhere in the editor to place the element.");
+}
+
+function handleEditorClick(e) {
+  if (!isPlacementMode) return;
+
+  const editor = document.getElementById("course-content-editor");
+
+  // Ensure click is inside editor
+  if (!editor.contains(e.target) && e.target !== editor) return;
+
+  const rect = editor.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top + editor.scrollTop;
+
+  console.log(`Placement click at: ${x}, ${y}`);
+  console.log(`Rect: top=${rect.top}, left=${rect.left}, scrollTop=${editor.scrollTop}`);
+
+  if (placementType === 'visual-simulator' || placementType === 'block-simulator') {
+    insertSimulatorAtPosition(placementData.id, placementData.title, placementData.type, x, y);
+  } else if (placementType === 'quiz') {
+    insertQuizPlaceholderAtPosition(placementData.id, placementData.text, x, y);
+  } else if (placementType === 'phet-simulator') {
+    insertPhetSimAtPosition(placementData, x, y);
+  }
+
+  // Reset mode
+  isPlacementMode = false;
+  placementType = null;
+  placementData = null;
+  editor.style.cursor = "text";
+  editor.classList.remove("placement-mode");
+}
+
+function insertSimulatorAtPosition(blockId, title, type, x, y) {
+  console.log(`Inserting simulator at ${x}, ${y}`);
+
+  // Ensure coordinates are numbers
+  const safeX = Number.isFinite(x) ? x : 0;
+  const safeY = Number.isFinite(y) ? y : 0;
+
+  const contentEditor = document.getElementById("course-content-editor");
+  const simulatorDiv = document.createElement("div");
+  simulatorDiv.className = "simulator-block";
+  simulatorDiv.dataset.blockId = blockId;
+  simulatorDiv.contentEditable = 'false';
+
+  // Use direct style properties for reliability
+  simulatorDiv.style.position = 'absolute';
+  simulatorDiv.style.left = `${safeX}px`;
+  simulatorDiv.style.top = `${safeY}px`;
+  simulatorDiv.style.width = '300px';
+  simulatorDiv.style.background = '#f0f0f0';
+  simulatorDiv.style.padding = '15px';
+  simulatorDiv.style.borderLeft = '4px solid #667eea';
+  simulatorDiv.style.borderRadius = '4px';
+  simulatorDiv.style.zIndex = '10';
+  simulatorDiv.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+
+  // Force !important via cssText for critical properties
+  simulatorDiv.style.cssText += `position: absolute !important; left: ${safeX}px !important; top: ${safeY}px !important;`;
+
+  simulatorDiv.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <strong>${type}</strong>
+                <p style="margin: 5px 0; color: #666;">${title}</p>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button type="button" onclick="openSliderConfigModal(${blockId})" style="padding: 5px 10px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer;">⚙️</button>
+                <button type="button" onclick="handleEditSimulator(event, ${blockId})" style="padding: 5px 10px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">✏️</button>
+                <button type="button" onclick="handleRemoveSimulator(event, ${blockId})" style="padding: 5px 10px; background: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer;">🗑️</button>
+            </div>
+        </div>
+        <!-- Dragger handle could be added here for moving it later -->
+    `;
+
+  contentEditor.appendChild(simulatorDiv);
+
+  // Make it draggable (basic implementation)
+  makeElementDraggable(simulatorDiv);
+}
+
+function makeElementDraggable(elmnt) {
+  let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+
+  elmnt.onmousedown = dragMouseDown;
+
+  function dragMouseDown(e) {
+    // Don't drag if clicking buttons
+    if (e.target.tagName === 'BUTTON') return;
+
+    e = e || window.event;
+    e.preventDefault();
+    // get the mouse cursor position at startup:
+    pos3 = e.clientX;
+    pos4 = e.clientY;
+    document.onmouseup = closeDragElement;
+    // call a function whenever the cursor moves:
+    document.onmousemove = elementDrag;
+  }
+
+  function elementDrag(e) {
+    e = e || window.event;
+    e.preventDefault();
+    // calculate the new cursor position:
+    pos1 = pos3 - e.clientX;
+    pos2 = pos4 - e.clientY;
+    pos3 = e.clientX;
+    pos4 = e.clientY;
+    // set the element's new position:
+    elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+    elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+  }
+
+  function closeDragElement() {
+    // stop moving when mouse button is released:
+    document.onmouseup = null;
+    document.onmousemove = null;
+  }
+}
+
+function insertQuizPlaceholderAtPosition(questionId, questionText, x, y) {
+  const safeX = Number.isFinite(x) ? x : 0;
+  const safeY = Number.isFinite(y) ? y : 0;
+
+  const editor = document.getElementById('course-content-editor');
+  const placeholder = document.createElement('div');
+  placeholder.className = 'quiz-question-placeholder';
+  placeholder.dataset.questionId = questionId;
+  placeholder.contentEditable = 'false';
+
+  // Explicit styles with !important
+  placeholder.style.cssText = `
+    position: absolute !important;
+    left: ${safeX}px !important;
+    top: ${safeY}px !important;
+    width: 300px;
+    background: rgba(102, 126, 234, 0.2); 
+    border: 2px dashed var(--primary); 
+    padding: 1em; 
+    border-radius: 4px; 
+    cursor: pointer; 
+    user-select: none;
+    z-index: 10;
+  `;
+
+  placeholder.innerHTML = `
+    <strong>❓ Quiz Question:</strong> ${questionText.substring(0, 100)}${questionText.length > 100 ? '...' : ''}
+    <button type="button" class="quiz-placeholder-delete-btn" data-question-id="${questionId}" style="position: absolute; top: 5px; right: 5px; background: #e53e3e; color: white; border: none; border-radius: 4px; padding: 2px 6px; cursor: pointer; font-size: 0.8em; z-index: 10;">🗑️ Delete</button>
+    <div style="font-size: 0.85em; color: #999; margin-top: 0.5em;">Click to edit</div>
+  `;
+
+  // Click handler for editing
+  placeholder.addEventListener('click', (e) => {
+    if (e.target.closest('button')) return;
+    const qId = placeholder.dataset.questionId;
+    if (qId) {
+      openQuizModal(parseInt(qId));
+    }
+  });
+
+  // Delete handler
+  const deleteBtn = placeholder.querySelector('.quiz-placeholder-delete-btn');
+  if (deleteBtn) {
+    deleteBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (confirm('Delete this question?')) {
+        placeholder.remove();
+        // Optionally delete from DB too, but maybe just removing from content is enough for now
+      }
+    });
+  }
+
+  editor.appendChild(placeholder);
+  makeElementDraggable(placeholder);
+}
+
+function insertPhetSimAtPosition(sim, x, y) {
+  const safeX = Number.isFinite(x) ? x : 0;
+  const safeY = Number.isFinite(y) ? y : 0;
+
+  const contentEditor = document.getElementById("course-content-editor");
+  const wrapper = document.createElement("div");
+  wrapper.className = "phet-sim-wrapper";
+  wrapper.contentEditable = "false";
+
+  wrapper.style.cssText = `
+    position: absolute !important;
+    left: ${safeX}px !important;
+    top: ${safeY}px !important;
+    width: 600px; /* Fixed width for absolute positioning */
+    border: 1px solid #ddd; 
+    border-radius: 8px; 
+    overflow: hidden; 
+    background: #fff;
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  `;
+
+  wrapper.innerHTML = `
+        <div style="background: #f0f0f0; padding: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; cursor: move;">
+            <strong>⚛️ ${sim.title}</strong>
+            <button class="phet-remove-btn" style="background: #ff4444; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Remove</button>
+        </div>
+        <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
+            <iframe src="${sim.url}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; pointer-events: auto;" allowfullscreen></iframe>
+        </div>
+        <!-- Resize handle could be added here -->
+    `;
+
+  // Remove handler
+  wrapper.querySelector('.phet-remove-btn').addEventListener('click', (e) => {
+    e.stopPropagation(); // Prevent drag start
+    if (confirm('Remove this simulator?')) {
+      wrapper.remove();
+    }
+  });
+
+  contentEditor.appendChild(wrapper);
+  makeElementDraggable(wrapper);
+}

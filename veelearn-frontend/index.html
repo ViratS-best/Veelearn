@@ -158,6 +158,16 @@
           </button>
         </div>
 
+        <div class="pagination-controls"
+          style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px; padding: 10px; background: rgba(102, 126, 234, 0.1); border-radius: 4px;">
+          <button type="button" id="prev-page-btn" disabled>Previous Page</button>
+          <span id="page-indicator" style="color: var(--light); font-weight: bold;">Page 1 of 1</span>
+          <button type="button" id="next-page-btn" disabled>Next Page</button>
+          <button type="button" id="add-page-btn" style="margin-left: auto; background: var(--success);">+ Add
+            Page</button>
+          <button type="button" id="delete-page-btn" style="background: var(--danger);">Delete Page</button>
+        </div>
+
         <div id="course-content-editor" contenteditable="true"
           placeholder="Start typing your course content here... Use the toolbar above to format text and add simulators."
           class="rich-text-editor" spellcheck="true"></div>
@@ -179,6 +189,14 @@
       <p id="course-viewer-description" class="course-description"></p>
       <hr />
       <div id="course-viewer-content"></div>
+
+      <div id="viewer-pagination-controls"
+        style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding: 15px; background: rgba(102, 126, 234, 0.1); border-radius: 8px;">
+        <button type="button" id="viewer-prev-btn" class="secondary-btn" disabled>Previous Page</button>
+        <span id="viewer-page-indicator" style="color: var(--light); font-weight: bold; font-size: 1.1em;">Page 1 of
+          1</span>
+        <button type="button" id="viewer-next-btn" class="primary-btn">Next Page</button>
+      </div>
 
       <!-- Simulators Section -->
       <div id="course-simulators-section" style="display: none; margin-top: 2em;">
@@ -255,15 +273,15 @@
       <span class="close-modal" id="close-latex-help" style="cursor: pointer;">&times;</span>
       <h2>LaTeX Equation Help</h2>
       <p>Use LaTeX to write mathematical equations in your courses.</p>
-      
+
       <h3>Inline Equations (in text)</h3>
       <p>Surround with single dollar signs: <code>$E = mc^2$</code></p>
       <p>Result: $E = mc^2$</p>
-      
+
       <h3>Display Equations (on separate line)</h3>
       <p>Surround with double dollar signs: <code>$$E = mc^2$$</code></p>
       <p>Result: $$E = mc^2$$</p>
-      
+
       <h3>Common Examples</h3>
       <ul>
         <li><code>$E = hf$</code> → Einstein's photoelectric equation</li>
@@ -272,7 +290,7 @@
         <li><code>$$\int_0^\infty e^{-x} dx = 1$$</code> → Integral example</li>
         <li><code>$x = \frac{-b \pm \sqrt{b^2-4ac}}{2a}$</code> → Quadratic formula</li>
       </ul>
-      
+
       <h3>Useful Symbols</h3>
       <ul>
         <li><code>\alpha, \beta, \gamma</code> → Greek letters</li>
@@ -282,10 +300,12 @@
         <li><code>\sqrt{x}</code> → Square root</li>
         <li><code>\sum, \int, \prod</code> → Math symbols</li>
       </ul>
-      
-      <p><strong>Tip:</strong> Test your LaTeX at <a href="https://www.latex4technics.com/" target="_blank">latex4technics.com</a></p>
-      
-      <button type="button" id="close-latex-help-btn" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">Close</button>
+
+      <p><strong>Tip:</strong> Test your LaTeX at <a href="https://www.latex4technics.com/"
+          target="_blank">latex4technics.com</a></p>
+
+      <button type="button" id="close-latex-help-btn"
+        style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">Close</button>
     </div>
   </div>
 
@@ -310,10 +330,10 @@
     </div>
   </div>
 
-  <script src="script.js"></script>
-  
+  <script src="script.js?v=3"></script>
+
   <!-- MathJax for LaTeX Support -->
-  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <!-- Polyfill removed due to reliability issues -->
   <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
   <script>
     // MathJax configuration

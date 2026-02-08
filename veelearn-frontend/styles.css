@@ -58,7 +58,8 @@ header nav {
   flex-wrap: wrap;
 }
 
-header a, header button {
+header a,
+header button {
   color: var(--light);
   text-decoration: none;
   font-weight: 600;
@@ -71,7 +72,8 @@ header a, header button {
   font-size: 0.95em;
 }
 
-header a:hover, header button:hover {
+header a:hover,
+header button:hover {
   background: var(--primary);
   border-color: var(--primary);
   transform: translateY(-2px);
@@ -349,6 +351,13 @@ button[type="submit"]:hover,
   color: var(--light);
   overflow-y: auto;
   margin-bottom: 1em;
+  position: relative;
+  /* For absolute positioning of simulators */
+}
+
+.rich-text-editor.placement-mode {
+  cursor: crosshair !important;
+  border: 2px dashed var(--accent);
 }
 
 .rich-text-editor:focus {
@@ -400,6 +409,17 @@ button[type="submit"]:hover,
 }
 
 /* ===== SIMULATORS ===== */
+.simulator-block {
+  /* Ensure it doesn't default to static if inline styles fail */
+  position: absolute;
+  z-index: 10;
+  background: #f0f0f0;
+  padding: 15px;
+  border-left: 4px solid #667eea;
+  border-radius: 4px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
 .simulator {
   background: rgba(102, 126, 234, 0.1);
   border: 1px solid var(--primary);
@@ -531,7 +551,8 @@ footer {
     width: 100%;
   }
 
-  header a, header button {
+  header a,
+  header button {
     width: 100%;
     text-align: center;
   }
@@ -576,6 +597,7 @@ footer {
     transform: translateY(-50px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -752,8 +774,13 @@ footer {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .quiz-feedback.correct {
@@ -861,4 +888,3 @@ footer {
   color: #a8e6cf;
   font-size: 0.9em;
 }
-
