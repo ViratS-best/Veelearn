@@ -49,9 +49,11 @@ setInterval(async () => {
 // Initialize database and tables sequentially
 const initializeDatabase = async () => {
     try {
+        console.log(`📡 Attempting to connect to database at ${dbConfig.host}:${dbConfig.port}`);
         // 1. Ensure database exists
         const connection = mysql.createConnection({
             host: dbConfig.host,
+            port: dbConfig.port,
             user: dbConfig.user,
             password: dbConfig.password
         });
