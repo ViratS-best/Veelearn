@@ -754,6 +754,9 @@ app.post('/api/courses', authenticateToken, (req, res) => {
     const blocksJson = blocks ? (typeof blocks === 'string' ? blocks : JSON.stringify(blocks)) : '[]';
 
     const creationTime = parseInt(creation_time) || 0;
+    console.log('  Database:', dbConfig.database);
+    console.log('  Host:', dbConfig.host);
+    
     const insertCourseQuery = 'INSERT INTO courses (title, description, content, blocks, creator_id, status, creation_time) VALUES (?, ?, ?, ?, ?, ?, ?)';
     db.query(insertCourseQuery, [title, description || '', content || '', blocksJson, creator_id, courseStatus, creationTime], (err, result) => {
         if (err) {
@@ -761,6 +764,8 @@ app.post('/api/courses', authenticateToken, (req, res) => {
             return apiResponse(res, 500, 'Server error creating course', { details: err.message });
         }
         console.log('✅ Course created with ID:', result.insertId, 'Status:', courseStatus);
+        console.log('  Database:', dbConfig.database);
+        console.log('  Host:', dbConfig.host);
         apiResponse(res, 201, `Course created successfully with status: ${courseStatus}`, { id: result.insertId, courseId: result.insertId });
     });
 });
@@ -770,6 +775,11 @@ app.get('/api/courses/:id', authenticateToken, (req, res) => {
     const userId = req.user.id;
     const userRole = req.user.role;
 
+    console.log('📖 GET COURSE DEBUG:');
+    console.log('  Course ID:', courseId);
+    console.log('  User ID:', userId);
+    console.log('  Database:', dbConfig.database);
+
     const query = `
         SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time
         FROM courses
@@ -778,12 +788,14 @@ app.get('/api/courses/:id', authenticateToken, (req, res) => {
 
     db.query(query, [courseId], (err, results) => {
         if (err) {
-            console.error('Error fetching single course:', err);
+            console.error('❌ Error fetching single course:', err);
             return apiResponse(res, 500, 'Server error fetching course');
         }
         if (results.length === 0) {
+            console.log('  ❌ Course not found (query returned 0 results)');
             return apiResponse(res, 404, 'Course not found');
         }
+        console.log('  ✓ Course found:', results[0].title);
 
         const course = results[0];
 
