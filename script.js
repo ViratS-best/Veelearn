@@ -213,7 +213,7 @@ function handleLogin() {
     return;
   }
 
-  fetch("http://localhost:3000/api/login", {
+  fetch(`${API_BASE_URL}/api/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
@@ -257,21 +257,21 @@ function handleLogin() {
     .catch((err) => {
       console.error("Login error:", err);
       errorMessage.textContent =
-        "Connection error. Backend running on port 3000?";
+        "Connection error. Is the backend API running?";
     });
 }
 
 function handleRegister() {
-  const email = document.getElementById("register-email").value;
-  const password = document.getElementById("register-password").value;
-  const errorMessage = document.getElementById("register-error-message");
+  const email = document.getElementById("reg-email").value;
+  const password = document.getElementById("reg-password").value;
+  const errorMsg = document.getElementById("reg-error-message");
 
   if (!email || !password) {
-    errorMessage.textContent = "Please fill in all fields";
+    errorMsg.textContent = "All fields required";
     return;
   }
 
-  fetch("http://localhost:3000/api/register", {
+  fetch(`${API_BASE_URL}/api/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
@@ -279,25 +279,22 @@ function handleRegister() {
     .then((res) => res.json())
     .then((data) => {
       if (data.success) {
-        errorMessage.style.color = "green";
-        errorMessage.textContent =
-          "Registration successful! You can now login.";
-        setTimeout(() => {
-          document.getElementById("register-form").style.display = "none";
-          document.getElementById("login-form").style.display = "block";
-        }, 1500);
+        alert("Registration successful! Please login.");
+        document.getElementById("auth-login").click();
       } else {
-        errorMessage.textContent = data.message || "Registration failed";
+        errorMsg.textContent = data.message || "Registration failed";
       }
     })
     .catch((err) => {
       console.error("Register error:", err);
-      errorMessage.textContent = "Connection error. Backend running?";
+      errorMsg.textContent = "Connection error";
     });
 }
 
 function fetchUserProfile() {
-  fetch("http://localhost:3000/api/users/profile", {
+  if (!authToken) return;
+
+  fetch(`${API_BASE_URL}/api/users/profile`, {
     headers: { Authorization: `Bearer ${authToken}` },
   })
     .then((res) => res.json())
