@@ -6,323 +6,356 @@ const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const path = require('path');
 
+const util = require('util');
+
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(cors());
 
-// ===== DATABASE CONNECTION WITH POOLING =====
-const db = mysql.createPool({
+// ===== DATABASE CONFIGURATION =====
+const dbConfig = {
     host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'veelearn_db',
+    database: process.env.DB_NAME || 'veelearn_db'
+};
+
+// Create a pool
+const db = mysql.createPool({
+    ...dbConfig,
     connectionLimit: 10,
     waitForConnections: true,
     queueLimit: 0
 });
 
+// Promisify for async/await
+const query = util.promisify(db.query).bind(db);
+
 // Database health check
-setInterval(() => {
-    db.query('SELECT 1', (err) => {
-        if (err) console.error('Database connection error:', err);
-    });
+setInterval(async () => {
+    try {
+        await query('SELECT 1');
+    } catch (err) {
+        console.error('Database connection error:', err);
+    }
 }, 60000);
 
-// Test database connection
-db.getConnection((err, connection) => {
-    if (err) {
-        console.error('Error connecting to the database:', err);
-        return;
-    }
-    console.log('Connected to MySQL database');
-    connection.release();
-
-    // Create tables if they don't exist
-    const createUsersTable = `
-        CREATE TABLE IF NOT EXISTS users (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            email VARCHAR(255) NOT NULL UNIQUE,
-            password VARCHAR(255) NOT NULL,
-            role ENUM('superadmin', 'admin', 'teacher', 'user') DEFAULT 'user',
-            is_admin_approved BOOLEAN DEFAULT FALSE,
-            shells INT DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            INDEX idx_email (email),
-            INDEX idx_role (role)
-        )
-    `;
-
-    const createCoursesTable = `
-        CREATE TABLE IF NOT EXISTS courses (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            title VARCHAR(255) NOT NULL,
-            description TEXT,
-            content LONGTEXT,
-            blocks LONGTEXT,
-            creator_id INT,
-            status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
-            is_paid BOOLEAN DEFAULT FALSE,
-            shells_cost INT DEFAULT 50,
-            feedback TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE CASCADE,
-            INDEX idx_status (status),
-            INDEX idx_creator (creator_id)
-        )
-    `;
-
-    const createAdminFavoritesTable = `
-        CREATE TABLE IF NOT EXISTS admin_favorites (
-            admin_id INT,
-            course_id INT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (admin_id, course_id),
-            FOREIGN KEY (admin_id) REFERENCES users(id) ON DELETE CASCADE,
-            FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
-        )
-    `;
-
-    const createCourseViewsTable = `
-        CREATE TABLE IF NOT EXISTS course_views (
-            user_id INT,
-            course_id INT,
-            view_duration_hours DECIMAL(10,2) DEFAULT 0,
-            last_viewed TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            completed BOOLEAN DEFAULT FALSE,
-            PRIMARY KEY (user_id, course_id),
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-            FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
-        )
-    `;
-
-    const createEnrollmentsTable = `
-        CREATE TABLE IF NOT EXISTS enrollments (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT,
-            course_id INT,
-            enrolled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-            FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
-            UNIQUE KEY unique_enrollment (user_id, course_id)
-        )
-    `;
-
-    const createSimulatorsTable = `
-        CREATE TABLE IF NOT EXISTS simulators (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            creator_id INT NOT NULL,
-            title VARCHAR(255) NOT NULL,
-            description TEXT,
-            version VARCHAR(20) DEFAULT '1.0.0',
-            blocks LONGTEXT NOT NULL,
-            connections LONGTEXT NOT NULL,
-            preview_image LONGTEXT,
-            tags VARCHAR(500),
-            downloads INT DEFAULT 0,
-            rating DECIMAL(3,2) DEFAULT 0,
-            is_public BOOLEAN DEFAULT FALSE,
-            is_featured BOOLEAN DEFAULT FALSE,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE CASCADE,
-            INDEX idx_public (is_public),
-            INDEX idx_featured (is_featured),
-            INDEX idx_rating (rating)
-        )
-    `;
-
-    const createSimulatorRatingsTable = `
-        CREATE TABLE IF NOT EXISTS simulator_ratings (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            simulator_id INT NOT NULL,
-            user_id INT NOT NULL,
-            rating INT CHECK (rating >= 1 AND rating <= 5),
-            review TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            FOREIGN KEY (simulator_id) REFERENCES simulators(id) ON DELETE CASCADE,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-            UNIQUE KEY unique_rating (simulator_id, user_id),
-            INDEX idx_simulator (simulator_id)
-        )
-    `;
-
-    const createSimulatorDownloadsTable = `
-        CREATE TABLE IF NOT EXISTS simulator_downloads (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            simulator_id INT NOT NULL,
-            user_id INT NOT NULL,
-            course_id INT,
-            downloaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (simulator_id) REFERENCES simulators(id) ON DELETE CASCADE,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-            FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE SET NULL
-        )
-    `;
-
-    const createSimulatorCommentsTable = `
-        CREATE TABLE IF NOT EXISTS simulator_comments (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            simulator_id INT NOT NULL,
-            user_id INT NOT NULL,
-            comment TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            FOREIGN KEY (simulator_id) REFERENCES simulators(id) ON DELETE CASCADE,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-        )
-    `;
-
-    db.query(createUsersTable, (err) => {
-        if (err) console.error('Error creating users table:', err);
-        else console.log('Users table checked/created');
-    });
-
-    db.query(createCoursesTable, (err) => {
-        if (err) console.error('Error creating courses table:', err);
-        else console.log('Courses table checked/created');
-
-        // Add blocks column if it doesn't exist (migration for existing tables)
-        const addBlocksColumn = `
-            ALTER TABLE courses ADD COLUMN IF NOT EXISTS blocks LONGTEXT
-        `;
-        db.query(addBlocksColumn, (err) => {
-            if (err && err.code !== 'ER_DUP_FIELDNAME') {
-                console.error('Error adding blocks column:', err);
-            } else if (!err) {
-                console.log('✓ Blocks column verified/added to courses table');
-            }
+// Initialize database and tables sequentially
+const initializeDatabase = async () => {
+    try {
+        // 1. Ensure database exists
+        const connection = mysql.createConnection({
+            host: dbConfig.host,
+            user: dbConfig.user,
+            password: dbConfig.password
         });
-    });
+        const connectionQuery = util.promisify(connection.query).bind(connection);
 
-    db.query(createAdminFavoritesTable, (err) => {
-        if (err) console.error('Error creating admin_favorites table:', err);
-        else console.log('Admin Favorites table checked/created');
-    });
+        await connectionQuery(`CREATE DATABASE IF NOT EXISTS ${dbConfig.database}`);
+        connection.end();
+        console.log(`Database '${dbConfig.database}' verified/created`);
 
-    db.query(createCourseViewsTable, (err) => {
-        if (err) console.error('Error creating course_views table:', err);
-        else console.log('Course Views table checked/created');
-    });
+        // 2. Create tables in proper order
+        console.log('Initializing tables...');
 
-    db.query(createEnrollmentsTable, (err) => {
-        if (err) console.error('Error creating enrollments table:', err);
-        else console.log('Enrollments table checked/created');
-    });
+        // Users table (Parent)
+        await query(`
+            CREATE TABLE IF NOT EXISTS users (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                email VARCHAR(255) NOT NULL UNIQUE,
+                password VARCHAR(255) NOT NULL,
+                role ENUM('superadmin', 'admin', 'teacher', 'user') DEFAULT 'user',
+                is_admin_approved BOOLEAN DEFAULT FALSE,
+                shells INT DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_email (email),
+                INDEX idx_role (role)
+            )
+        `);
+        console.log('✓ Users table ready');
 
-    db.query(createSimulatorsTable, (err) => {
-        if (err) console.error('Error creating simulators table:', err);
-        else console.log('Simulators table checked/created');
-    });
+        // Courses table (Parent)
+        await query(`
+            CREATE TABLE IF NOT EXISTS courses (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                title VARCHAR(255) NOT NULL,
+                description TEXT,
+                content LONGTEXT,
+                blocks LONGTEXT,
+                creator_id INT,
+                status ENUM('pending', 'approved', 'rejected', 'draft') DEFAULT 'pending',
+                is_paid BOOLEAN DEFAULT FALSE,
+                shells_cost INT DEFAULT 50,
+                feedback TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE CASCADE,
+                INDEX idx_status (status),
+                INDEX idx_creator (creator_id)
+            )
+        `);
+        console.log('✓ Courses table ready');
 
-    db.query(createSimulatorRatingsTable, (err) => {
-        if (err) console.error('Error creating simulator_ratings table:', err);
-        else console.log('Simulator Ratings table checked/created');
-    });
-
-    db.query(createSimulatorDownloadsTable, (err) => {
-        if (err) console.error('Error creating simulator_downloads table:', err);
-        else console.log('Simulator Downloads table checked/created');
-    });
-
-    db.query(createSimulatorCommentsTable, (err) => {
-        if (err) console.error('Error creating simulator_comments table:', err);
-        else console.log('Simulator Comments table checked/created');
-    });
-
-    // ===== QUIZ AND INTERACTIVE FEATURES TABLES =====
-
-    const createCourseQuestionsTable = `
-        CREATE TABLE IF NOT EXISTS course_questions (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            course_id INT NOT NULL,
-            question_text TEXT NOT NULL,
-            question_type ENUM('multiple_choice', 'true_false', 'short_answer') DEFAULT 'multiple_choice',
-            options JSON,
-            correct_answer TEXT NOT NULL,
-            explanation TEXT,
-            points INT DEFAULT 1,
-            order_index INT DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
-            INDEX idx_course (course_id)
-        )
-    `;
-
-    db.query(createCourseQuestionsTable, (err) => {
-        if (err) console.error('Error creating course_questions table:', err);
-        else console.log('Course Questions table checked/created');
-    });
-
-    const createUserQuizAttemptsTable = `
-        CREATE TABLE IF NOT EXISTS user_quiz_attempts (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT NOT NULL,
-            question_id INT NOT NULL,
-            user_answer TEXT,
-            is_correct BOOLEAN,
-            attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-            FOREIGN KEY (question_id) REFERENCES course_questions(id) ON DELETE CASCADE,
-            INDEX idx_user_question (user_id, question_id)
-        )
-    `;
-
-    db.query(createUserQuizAttemptsTable, (err) => {
-        if (err) console.error('Error creating user_quiz_attempts table:', err);
-        else console.log('User Quiz Attempts table checked/created');
-    });
-
-    const createSimulatorInteractiveParamsTable = `
-        CREATE TABLE IF NOT EXISTS simulator_interactive_params (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            course_id INT NOT NULL,
-            simulator_block_id BIGINT NOT NULL,
-            block_id INT NOT NULL,
-            param_name VARCHAR(100) NOT NULL,
-            param_label VARCHAR(255),
-            min_value DECIMAL(10,2) DEFAULT 0,
-            max_value DECIMAL(10,2) DEFAULT 100,
-            step_value DECIMAL(10,2) DEFAULT 1,
-            default_value DECIMAL(10,2),
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
-            UNIQUE KEY unique_param (course_id, simulator_block_id, block_id, param_name)
-        )
-    `;
-
-    db.query(createSimulatorInteractiveParamsTable, (err) => {
-        if (err) console.error('Error creating simulator_interactive_params table:', err);
-        else console.log('Simulator Interactive Params table checked/created');
-    });
-
-
-    // Check for superadmin and create if not exists
-    const superadminEmail = process.env.SUPERADMIN_EMAIL || 'viratsuper6@gmail.com';
-    const superadminPassword = process.env.SUPERADMIN_PASSWORD || 'Virat@123';
-    const superadminRole = 'superadmin';
-
-    db.query('SELECT * FROM users WHERE email = ?', [superadminEmail], async (err, results) => {
-        if (err) {
-            console.error('Error checking for superadmin:', err);
-            return;
+        // Migration: Add blocks column if it doesn't exist
+        try {
+            await query('ALTER TABLE courses ADD COLUMN IF NOT EXISTS blocks LONGTEXT');
+            console.log('✓ Blocks column verified/added to courses table');
+        } catch (err) {
+            if (err.code !== 'ER_DUP_FIELDNAME') console.error('Error adding blocks column:', err);
         }
-        if (results.length === 0) {
+
+        try {
+            await query('ALTER TABLE courses ADD COLUMN IF NOT EXISTS creation_time INT DEFAULT 0');
+            console.log('✓ creation_time column verified/added to courses table');
+        } catch (err) {
+            if (err.code !== 'ER_DUP_FIELDNAME') console.error('Error adding creation_time column:', err);
+        }
+
+        // Migration: Add volunteer columns to users table
+        try {
+            await query('ALTER TABLE users ADD COLUMN IF NOT EXISTS total_volunteer_hours FLOAT DEFAULT 0');
+            await query('ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified_creator BOOLEAN DEFAULT FALSE');
+            console.log('✓ Volunteer columns verified/added to users table');
+        } catch (err) {
+            if (err.code !== 'ER_DUP_FIELDNAME') console.error('Error adding volunteer columns:', err);
+        }
+
+        // Simulators table (Parent)
+        await query(`
+            CREATE TABLE IF NOT EXISTS simulators (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                creator_id INT NOT NULL,
+                title VARCHAR(255) NOT NULL,
+                description TEXT,
+                version VARCHAR(20) DEFAULT '1.0.0',
+                blocks LONGTEXT NOT NULL,
+                connections LONGTEXT NOT NULL,
+                preview_image LONGTEXT,
+                tags VARCHAR(500),
+                downloads INT DEFAULT 0,
+                rating DECIMAL(3,2) DEFAULT 0,
+                is_public BOOLEAN DEFAULT FALSE,
+                is_featured BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE CASCADE,
+                INDEX idx_public (is_public),
+                INDEX idx_featured (is_featured),
+                INDEX idx_rating (rating)
+            )
+        `);
+        console.log('✓ Simulators table ready');
+
+        // Dependents on Users & Courses
+        await query(`
+            CREATE TABLE IF NOT EXISTS admin_favorites (
+                admin_id INT,
+                course_id INT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (admin_id, course_id),
+                FOREIGN KEY (admin_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
+            )
+        `);
+
+        await query(`
+            CREATE TABLE IF NOT EXISTS course_views (
+                user_id INT,
+                course_id INT,
+                view_duration_hours DECIMAL(10,2) DEFAULT 0,
+                last_viewed TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                completed BOOLEAN DEFAULT FALSE,
+                PRIMARY KEY (user_id, course_id),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
+            )
+        `);
+
+        await query(`
+            CREATE TABLE IF NOT EXISTS enrollments (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT,
+                course_id INT,
+                enrolled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
+                UNIQUE KEY unique_enrollment (user_id, course_id)
+            )
+        `);
+        console.log('✓ User-Course relationship tables ready');
+
+        // Dependents on Simulators
+        await query(`
+            CREATE TABLE IF NOT EXISTS simulator_ratings (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                simulator_id INT NOT NULL,
+                user_id INT NOT NULL,
+                rating INT CHECK (rating >= 1 AND rating <= 5),
+                review TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (simulator_id) REFERENCES simulators(id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                UNIQUE KEY unique_rating (simulator_id, user_id),
+                INDEX idx_simulator (simulator_id)
+            )
+        `);
+
+        await query(`
+            CREATE TABLE IF NOT EXISTS simulator_downloads (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                simulator_id INT NOT NULL,
+                user_id INT NOT NULL,
+                course_id INT,
+                downloaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (simulator_id) REFERENCES simulators(id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE SET NULL
+            )
+        `);
+
+        await query(`
+            CREATE TABLE IF NOT EXISTS simulator_comments (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                simulator_id INT NOT NULL,
+                user_id INT NOT NULL,
+                comment TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (simulator_id) REFERENCES simulators(id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        `);
+
+        await query(`
+            CREATE TABLE IF NOT EXISTS simulator_versions (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                simulator_id INT NOT NULL,
+                version_number INT DEFAULT 1,
+                blocks LONGTEXT NOT NULL,
+                connections LONGTEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (simulator_id) REFERENCES simulators(id) ON DELETE CASCADE,
+                INDEX idx_simulator (simulator_id)
+            )
+        `);
+        console.log('✓ Simulator dependent tables ready');
+
+        // Integration tables
+        await query(`
+            CREATE TABLE IF NOT EXISTS course_simulator_usage (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                course_id INT NOT NULL,
+                simulator_id INT NOT NULL,
+                added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
+                FOREIGN KEY (simulator_id) REFERENCES simulators(id) ON DELETE CASCADE,
+                UNIQUE KEY unique_course_sim (course_id, simulator_id)
+            )
+        `);
+
+        await query(`
+            CREATE TABLE IF NOT EXISTS course_questions (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                course_id INT NOT NULL,
+                question_text TEXT NOT NULL,
+                question_type ENUM('multiple_choice', 'true_false', 'short_answer') DEFAULT 'multiple_choice',
+                options JSON,
+                correct_answer TEXT NOT NULL,
+                explanation TEXT,
+                points INT DEFAULT 1,
+                order_index INT DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
+                INDEX idx_course (course_id)
+            )
+        `);
+
+        await query(`
+            CREATE TABLE IF NOT EXISTS user_quiz_attempts (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                question_id INT NOT NULL,
+                user_answer TEXT,
+                is_correct BOOLEAN,
+                attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (question_id) REFERENCES course_questions(id) ON DELETE CASCADE,
+                INDEX idx_user_question (user_id, question_id)
+            )
+        `);
+
+        await query(`
+            CREATE TABLE IF NOT EXISTS simulator_interactive_params (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                course_id INT NOT NULL,
+                simulator_block_id BIGINT NOT NULL,
+                block_id INT NOT NULL,
+                param_name VARCHAR(100) NOT NULL,
+                param_label VARCHAR(255),
+                min_value DECIMAL(10,2) DEFAULT 0,
+                max_value DECIMAL(10,2) DEFAULT 100,
+                step_value DECIMAL(10,2) DEFAULT 1,
+                default_value DECIMAL(10,2),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
+                UNIQUE KEY unique_param (course_id, simulator_block_id, block_id, param_name)
+            )
+        `);
+        await query(`
+            CREATE TABLE IF NOT EXISTS sponsorships (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                sponsor_name VARCHAR(255) NOT NULL,
+                logo_url VARCHAR(255),
+                contribution_amount DECIMAL(10, 2),
+                tier VARCHAR(50),
+                expiry_date DATE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        console.log('✓ Sponsorships table ready');
+
+        await query(`
+            CREATE TABLE IF NOT EXISTS certificates (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                certificate_type ENUM('volunteer_hours', 'course_milestone', 'creator_verified') DEFAULT 'volunteer_hours',
+                hours_certified FLOAT DEFAULT 0,
+                courses_count INT DEFAULT 0,
+                verification_code VARCHAR(64) UNIQUE,
+                issued_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                INDEX idx_verification (verification_code)
+            )
+        `);
+        console.log('✓ Certificates table ready');
+
+        console.log('✓ All tables initialized successfully');
+
+        // Check for superadmin
+        const superadminEmail = process.env.SUPERADMIN_EMAIL || 'viratsuper6@gmail.com';
+        const superadminPassword = process.env.SUPERADMIN_PASSWORD || 'Virat@123';
+
+        const superadmins = await query('SELECT * FROM users WHERE email = ?', [superadminEmail]);
+        if (superadmins.length === 0) {
             const hashedPassword = await bcrypt.hash(superadminPassword, 10);
-            const insertSuperadmin = 'INSERT INTO users (email, password, role, is_admin_approved) VALUES (?, ?, ?, TRUE)';
-            db.query(insertSuperadmin, [superadminEmail, hashedPassword, superadminRole], (err) => {
-                if (err) console.error('Error creating superadmin:', err);
-                else console.log('Superadmin created successfully');
-            });
+            await query('INSERT INTO users (email, password, role, is_admin_approved) VALUES (?, ?, "superadmin", TRUE)',
+                [superadminEmail, hashedPassword]);
+            console.log('✓ Superadmin created successfully');
         } else {
-            console.log('Superadmin already exists');
+            console.log('✓ Superadmin already exists');
         }
-    });
-});
+
+    } catch (err) {
+        console.error('❌ Database initialization failed:', err);
+    }
+};
+
+// Start initialization
+initializeDatabase();
 
 // ===== UTILITY FUNCTIONS =====
 function apiResponse(res, statusCode, message, data = null) {
@@ -526,7 +559,7 @@ app.get('/api/users/profile', authenticateToken, (req, res) => {
 // Get all users (admin/superadmin only)
 // ===== SUPERADMIN ROUTES =====
 app.get('/api/users', authenticateToken, authorize('superadmin', 'admin'), (req, res) => {
-    db.query('SELECT id, email, role, is_admin_approved, shells, created_at FROM users', (err, results) => {
+    db.query('SELECT id, email, role, is_admin_approved, shells, total_volunteer_hours, is_verified_creator, created_at FROM users', (err, results) => {
         if (err) {
             console.error('Error fetching users:', err);
             return apiResponse(res, 500, 'Server error fetching users');
@@ -536,7 +569,7 @@ app.get('/api/users', authenticateToken, authorize('superadmin', 'admin'), (req,
 });
 
 app.get('/api/superadmin/users', authenticateToken, authorize('superadmin', 'admin'), (req, res) => {
-    db.query('SELECT id, email, role, is_admin_approved, shells, created_at FROM users', (err, results) => {
+    db.query('SELECT id, email, role, is_admin_approved, shells, total_volunteer_hours, is_verified_creator, created_at FROM users', (err, results) => {
         if (err) {
             console.error('Error fetching users:', err);
             return apiResponse(res, 500, 'Server error fetching users');
@@ -656,7 +689,7 @@ app.put('/api/superadmin/users/:id/role', authenticateToken, authorize('superadm
 
 // ===== COURSE ROUTES =====
 app.post('/api/courses', authenticateToken, (req, res) => {
-    const { title, description, content, blocks, status } = req.body;
+    const { title, description, content, blocks, status, creation_time } = req.body;
     const creator_id = req.user.id;
 
     console.log('📝 CREATE COURSE DEBUG:');
@@ -679,8 +712,9 @@ app.post('/api/courses', authenticateToken, (req, res) => {
     const courseStatus = status || 'draft';
     const blocksJson = blocks ? (typeof blocks === 'string' ? blocks : JSON.stringify(blocks)) : '[]';
 
-    const insertCourseQuery = 'INSERT INTO courses (title, description, content, blocks, creator_id, status) VALUES (?, ?, ?, ?, ?, ?)';
-    db.query(insertCourseQuery, [title, description || '', content || '', blocksJson, creator_id, courseStatus], (err, result) => {
+    const creationTime = parseInt(creation_time) || 0;
+    const insertCourseQuery = 'INSERT INTO courses (title, description, content, blocks, creator_id, status, creation_time) VALUES (?, ?, ?, ?, ?, ?, ?)';
+    db.query(insertCourseQuery, [title, description || '', content || '', blocksJson, creator_id, courseStatus, creationTime], (err, result) => {
         if (err) {
             console.error('❌ Error creating course:', err);
             return apiResponse(res, 500, 'Server error creating course', { details: err.message });
@@ -696,7 +730,7 @@ app.get('/api/courses/:id', authenticateToken, (req, res) => {
     const userRole = req.user.role;
 
     const query = `
-        SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback
+        SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time
         FROM courses
         WHERE id = ?
     `;
@@ -726,7 +760,7 @@ app.get('/api/courses/:id', authenticateToken, (req, res) => {
 app.put('/api/courses/:id', authenticateToken, (req, res) => {
     const courseId = req.params.id;
     const userId = req.user.id;
-    const { title, description, content, blocks, status } = req.body;
+    const { title, description, content, blocks, status, creation_time } = req.body;
 
     console.log('📝 UPDATE COURSE DEBUG:');
     console.log('  Course ID:', courseId);
@@ -769,6 +803,11 @@ app.put('/api/courses/:id', authenticateToken, (req, res) => {
         if (status) {
             updateQuery += ', status = ?';
             params.push(status);
+        }
+
+        if (creation_time !== undefined) {
+            updateQuery += ', creation_time = ?';
+            params.push(parseInt(creation_time) || 0);
         }
 
         updateQuery += ' WHERE id = ?';
@@ -818,7 +857,7 @@ app.get('/api/courses', authenticateToken, (req, res) => {
     const userId = req.user.id;
     // Show approved courses from everyone + own courses (even if pending)
     const query = `
-SELECT c.id, c.title, c.description, c.content, c.blocks, c.creator_id, c.status, c.is_paid, c.shells_cost, u.email as creator_email
+SELECT c.id, c.title, c.description, c.content, c.blocks, c.creator_id, c.status, c.is_paid, c.shells_cost, c.creation_time, u.email as creator_email
 FROM courses c
 LEFT JOIN users u ON c.creator_id = u.id
 WHERE c.status = 'approved' OR c.creator_id = ?
@@ -857,7 +896,7 @@ app.get('/api/users/:userId/courses', authenticateToken, (req, res) => {
         return apiResponse(res, 403, 'Access denied. You can only view your own courses');
     }
 
-    const query = 'SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback FROM courses WHERE creator_id = ?';
+    const query = 'SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time FROM courses WHERE creator_id = ?';
     db.query(query, [userId], (err, results) => {
         if (err) {
             console.error('Error fetching user courses:', err);
@@ -1608,42 +1647,7 @@ app.get('/api/simulators/trending/all', (req, res) => {
 
 // ===== COURSE-SIMULATOR INTEGRATION =====
 
-// Create simulator_versions table if not exists (for version history)
-const createSimulatorVersionsTable = `
-    CREATE TABLE IF NOT EXISTS simulator_versions (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        simulator_id INT NOT NULL,
-        version_number INT DEFAULT 1,
-        blocks LONGTEXT NOT NULL,
-        connections LONGTEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (simulator_id) REFERENCES simulators(id) ON DELETE CASCADE,
-        INDEX idx_simulator (simulator_id)
-    )
-`;
-
-db.query(createSimulatorVersionsTable, (err) => {
-    if (err) console.error('Error creating simulator_versions table:', err);
-    else console.log('Simulator versions table checked/created');
-});
-
-// Create course_simulator_usage table
-const createCourseSimulatorTable = `
-    CREATE TABLE IF NOT EXISTS course_simulator_usage (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        course_id INT NOT NULL,
-        simulator_id INT NOT NULL,
-        added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
-        FOREIGN KEY (simulator_id) REFERENCES simulators(id) ON DELETE CASCADE,
-        UNIQUE KEY unique_course_sim (course_id, simulator_id)
-    )
-`;
-
-db.query(createCourseSimulatorTable, (err) => {
-    if (err) console.error('Error creating course_simulator_usage table:', err);
-    else console.log('Course simulator usage table checked/created');
-});
+// ===== COURSE-SIMULATOR INTEGRATION =====
 
 // Add simulator to course - BOTH endpoint paths for compatibility
 app.post('/api/courses/:courseId/simulators', authenticateToken, (req, res) => {
@@ -2199,6 +2203,109 @@ app.delete('/api/courses/:courseId/params/:paramId', authenticateToken, (req, re
     });
 });
 
+
+// ===== VOLUNTEER HOURS, CERTIFICATES & SPONSORSHIPS =====
+
+app.get('/api/users/volunteer-stats', authenticateToken, (req, res) => {
+    const userId = req.user.id;
+    db.query(
+        'SELECT total_volunteer_hours, is_verified_creator FROM users WHERE id = ?',
+        [userId],
+        (err, results) => {
+            if (err) return apiResponse(res, 500, 'Server error');
+            if (results.length === 0) return apiResponse(res, 404, 'User not found');
+
+            db.query(
+                'SELECT * FROM certificates WHERE user_id = ? ORDER BY issued_at DESC',
+                [userId],
+                (err2, certs) => {
+                    if (err2) return apiResponse(res, 500, 'Server error');
+                    apiResponse(res, 200, 'Stats retrieved', {
+                        total_volunteer_hours: results[0].total_volunteer_hours,
+                        is_verified_creator: results[0].is_verified_creator,
+                        certificates: certs
+                    });
+                }
+            );
+        }
+    );
+});
+
+app.post('/api/users/update-volunteer-hours', authenticateToken, authorize('admin', 'superadmin'), (req, res) => {
+    const { user_id, hours_to_add } = req.body;
+    if (!user_id || !hours_to_add) return apiResponse(res, 400, 'user_id and hours_to_add required');
+
+    db.query(
+        'UPDATE users SET total_volunteer_hours = total_volunteer_hours + ? WHERE id = ?',
+        [hours_to_add, user_id],
+        (err, result) => {
+            if (err) return apiResponse(res, 500, 'Server error');
+            if (result.affectedRows === 0) return apiResponse(res, 404, 'User not found');
+
+            db.query('SELECT total_volunteer_hours, email FROM users WHERE id = ?', [user_id], (err2, users) => {
+                if (err2 || users.length === 0) return apiResponse(res, 200, 'Hours updated');
+
+                const totalHours = users[0].total_volunteer_hours;
+                const milestones = [5, 10, 20, 50, 100];
+
+                milestones.forEach(milestone => {
+                    if (totalHours >= milestone && totalHours - hours_to_add < milestone) {
+                        const verificationCode = require('crypto').randomBytes(16).toString('hex');
+                        db.query(
+                            'INSERT IGNORE INTO certificates (user_id, certificate_type, hours_certified, verification_code) VALUES (?, "volunteer_hours", ?, ?)',
+                            [user_id, milestone, verificationCode]
+                        );
+                    }
+                });
+
+                if (totalHours >= 20) {
+                    db.query('UPDATE users SET is_verified_creator = TRUE WHERE id = ?', [user_id]);
+                }
+
+                apiResponse(res, 200, 'Volunteer hours updated', { new_total: totalHours });
+            });
+        }
+    );
+});
+
+app.get('/api/certificates/verify/:code', (req, res) => {
+    const { code } = req.params;
+    db.query(
+        `SELECT c.*, u.email FROM certificates c
+         JOIN users u ON c.user_id = u.id
+         WHERE c.verification_code = ?`,
+        [code],
+        (err, results) => {
+            if (err) return apiResponse(res, 500, 'Server error');
+            if (results.length === 0) return apiResponse(res, 404, 'Certificate not found');
+            apiResponse(res, 200, 'Certificate verified', results[0]);
+        }
+    );
+});
+
+app.get('/api/sponsorships', (req, res) => {
+    db.query(
+        'SELECT * FROM sponsorships WHERE expiry_date IS NULL OR expiry_date >= CURDATE() ORDER BY contribution_amount DESC',
+        (err, results) => {
+            if (err) return apiResponse(res, 500, 'Server error');
+            apiResponse(res, 200, 'Sponsorships retrieved', results);
+        }
+    );
+});
+
+app.post('/api/sponsorships', authenticateToken, authorize('admin', 'superadmin'), (req, res) => {
+    const { sponsor_name, logo_url, contribution_amount, tier, expiry_date } = req.body;
+    if (!sponsor_name) return apiResponse(res, 400, 'Sponsor name required');
+
+    db.query(
+        'INSERT INTO sponsorships (sponsor_name, logo_url, contribution_amount, tier, expiry_date) VALUES (?, ?, ?, ?, ?)',
+        [sponsor_name, logo_url || null, contribution_amount || 0, tier || 'silver', expiry_date || null],
+        (err, result) => {
+            if (err) return apiResponse(res, 500, 'Server error');
+            apiResponse(res, 201, 'Sponsorship added', { id: result.insertId });
+        }
+    );
+});
 
 // ===== ERROR HANDLING =====
 app.use((err, req, res, next) => {

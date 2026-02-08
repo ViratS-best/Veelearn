@@ -14,9 +14,19 @@ let placementData = null; // Data to pass to insertion function
 let availableCourses = [];
 let allUsers = [];
 let courseQuestions = [];
+let pendingCourses = [];
 let currentEditingQuestionId = null;
 let lastDeletedQuestion = null; // Store last deleted question for undo
 let savedSelection = null; // Save cursor position when editor loses focus
+
+let courseTimerInterval = null;
+let courseActiveSeconds = 0;
+let lastActivityTime = Date.now();
+let isTimerActive = false;
+let keyPressLog = [];
+let lastKeyPressed = null;
+let sameKeyCount = 0;
+let macroDetected = false;
 
 // Global keyboard listener for Ctrl+Z undo
 document.addEventListener('keydown', async (e) => {
@@ -387,7 +397,137 @@ function setupNavigationListeners() {
   }
 }
 
-// ===== COURSE EDITOR LISTENERS =====
+// ===== COURSE CREATION TIMER (ANTI-CHEAT) =====
+
+function formatTimerDisplay(totalSeconds) {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+}
+
+function updateTimerUI() {
+  const valueEl = document.getElementById('course-timer-value');
+  const statusEl = document.getElementById('course-timer-status');
+  if (valueEl) valueEl.textContent = formatTimerDisplay(courseActiveSeconds);
+  if (statusEl) {
+    if (macroDetected) {
+      statusEl.textContent = '(paused - suspicious input)';
+      statusEl.style.color = '#ef4444';
+    } else if (Date.now() - lastActivityTime >= 60000) {
+      statusEl.textContent = '(idle - paused)';
+      statusEl.style.color = '#f59e0b';
+    } else {
+      statusEl.textContent = '(tracking...)';
+      statusEl.style.color = '#999';
+    }
+  }
+}
+
+function startCourseTimer() {
+  if (courseTimerInterval) clearInterval(courseTimerInterval);
+  isTimerActive = true;
+  lastActivityTime = Date.now();
+  macroDetected = false;
+  keyPressLog = [];
+  lastKeyPressed = null;
+  sameKeyCount = 0;
+  updateTimerUI();
+
+  courseTimerInterval = setInterval(() => {
+    const idleMs = Date.now() - lastActivityTime;
+    if (idleMs < 60000 && !macroDetected) {
+      courseActiveSeconds++;
+    }
+    updateTimerUI();
+  }, 1000);
+}
+
+function stopCourseTimer() {
+  if (courseTimerInterval) {
+    clearInterval(courseTimerInterval);
+    courseTimerInterval = null;
+  }
+  isTimerActive = false;
+  return courseActiveSeconds;
+}
+
+function resetCourseTimer() {
+  stopCourseTimer();
+  courseActiveSeconds = 0;
+  lastActivityTime = Date.now();
+  macroDetected = false;
+  keyPressLog = [];
+  lastKeyPressed = null;
+  sameKeyCount = 0;
+  updateTimerUI();
+}
+
+function handleTimerActivity(event) {
+  lastActivityTime = Date.now();
+
+  if (event.type === 'keydown') {
+    const now = Date.now();
+    keyPressLog.push(now);
+    if (keyPressLog.length > 200) keyPressLog.shift();
+
+    if (event.key === lastKeyPressed) {
+      sameKeyCount++;
+      if (sameKeyCount >= 50) {
+        macroDetected = true;
+        return;
+      }
+    } else {
+      lastKeyPressed = event.key;
+      sameKeyCount = 1;
+    }
+
+    const fiveSecondsAgo = now - 5000;
+    const recentKeys = keyPressLog.filter(t => t >= fiveSecondsAgo);
+    if (recentKeys.length > 100) {
+      macroDetected = true;
+      return;
+    }
+
+    if (macroDetected && recentKeys.length <= 100 && sameKeyCount < 50) {
+      macroDetected = false;
+    }
+  } else {
+    if (macroDetected && sameKeyCount < 50) {
+      const now = Date.now();
+      const fiveSecondsAgo = now - 5000;
+      const recentKeys = keyPressLog.filter(t => t >= fiveSecondsAgo);
+      if (recentKeys.length <= 100) {
+        macroDetected = false;
+      }
+    }
+  }
+}
+
+function attachTimerActivityListeners() {
+  const editor = document.getElementById('course-content-editor');
+  const titleInput = document.getElementById('course-title');
+  const descInput = document.getElementById('course-description');
+  const editorSection = document.getElementById('course-editor-section');
+
+  const targets = [editor, titleInput, descInput, editorSection].filter(Boolean);
+  const events = ['mousemove', 'keydown', 'click', 'scroll'];
+
+  targets.forEach(target => {
+    events.forEach(evt => {
+      target.addEventListener(evt, handleTimerActivity, { passive: true });
+    });
+  });
+}
+
+function formatCreationTime(seconds) {
+  if (!seconds || seconds <= 0) return '';
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h > 0) return h + 'h ' + m + 'm';
+  return m + 'm';
+}
+
 // ===== COURSE EDITOR LISTENERS =====
 function setupCourseEditorListeners() {
   console.log("Setting up course editor listeners...");
@@ -451,6 +591,8 @@ function setupCourseEditorListeners() {
 
   // Rich text editor toolbar
   setupRichTextEditor();
+
+  attachTimerActivityListeners();
 }
 
 function setupRichTextEditor() {
@@ -1123,6 +1265,8 @@ function showAuthSection() {
 }
 
 function showDashboard() {
+  stopCourseTimer();
+
   document.getElementById("auth-section").style.display = "none";
   document.getElementById("dashboard-section").style.display = "block";
   document.getElementById("course-editor-section").style.display = "none";
@@ -1151,6 +1295,7 @@ function showDashboard() {
 
   // INSTANT: Load all data asynchronously in background without blocking UI
   setTimeout(() => {
+    loadVolunteerStats();
     if (currentUser?.role === "superadmin") {
       loadAllUsers();
       loadPendingCourses();
@@ -1225,10 +1370,11 @@ function renderUserList() {
       (user) => `
         <li>
             <strong>${user.email}</strong>
-            <p>Role: ${user.role} | Shells: ${user.shells}</p>
+            <p>Role: ${user.role} | Shells: ${user.shells} | Volunteer: ${(user.total_volunteer_hours || 0).toFixed(1)}h ${user.is_verified_creator ? '✅' : ''}</p>
             <button onclick="changeUserRole('${user.email}', 'admin')">Make Admin</button>
             <button onclick="changeUserRole('${user.email}', 'teacher')">Make Teacher</button>
             <button onclick="changeUserRole('${user.email}', 'user')">Make User</button>
+            <button onclick="grantVolunteerHours(${user.id}, '${user.email}')" style="background: #4ade80; color: #000;">Grant Hours</button>
         </li>
     `
     )
@@ -1263,6 +1409,7 @@ function loadPendingCourses() {
     .then((res) => res.json())
     .then((data) => {
       if (data.success) {
+        pendingCourses = data.data;
         renderPendingCourses(data.data);
       }
     })
@@ -1320,13 +1467,16 @@ function approveCourse(courseId) {
 }
 
 function rejectCourse(courseId) {
+  const reason = prompt("Please provide a reason for rejection:");
+  if (reason === null) return;
+
   fetch(`http://localhost:3000/api/admin/courses/${courseId}/status`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${authToken}`,
     },
-    body: JSON.stringify({ status: "rejected" }),
+    body: JSON.stringify({ status: "rejected", feedback: reason }),
   })
     .then((res) => res.json())
     .then((data) => {
@@ -1412,9 +1562,11 @@ function renderUserCourses() {
     // INSTANT: Build and append items one by one instead of replacing all
     myCourses.forEach((course) => {
       const li = document.createElement("li");
+      const timeStr = formatCreationTime(course.creation_time);
       li.innerHTML = `
         <strong>${course.title}</strong>
         <p>${course.description || "No description"}</p>
+        ${timeStr ? `<span style="color: #999; font-size: 0.85em; display: block; margin: 4px 0;">⏱️ Active creation time: ${timeStr}</span>` : ''}
         <span style="background: ${course.status === "pending" ? "#ff9800" : "#4caf50"
         }; color: white; padding: 4px 8px; border-radius: 3px; font-size: 0.9em;">
             ${course.status?.toUpperCase() || "UNKNOWN"}
@@ -1474,6 +1626,9 @@ function createNewCourse() {
   document.getElementById("dashboard-section").style.display = "none";
   document.getElementById("course-editor-section").style.display = "block";
   updatePageControls();
+
+  resetCourseTimer();
+  startCourseTimer();
 }
 
 function editCourse(courseId) {
@@ -1560,6 +1715,9 @@ function editCourse(courseId) {
       document.getElementById("dashboard-section").style.display = "none";
       document.getElementById("course-editor-section").style.display = "block";
       updatePageControls();
+
+      courseActiveSeconds = course.creation_time || 0;
+      startCourseTimer();
     });
   }
 }
@@ -1607,6 +1765,7 @@ function saveCourse(action = "draft") {
     content: content,
     status: status,
     blocks: JSON.stringify(courseBlocks),
+    creation_time: courseActiveSeconds,
   };
 
   console.log(`Sending ${method} request to ${url}`);
@@ -1656,7 +1815,8 @@ function saveCourse(action = "draft") {
 
 async function viewCourse(courseId) {
   const course = myCourses.find((c) => c.id === courseId) ||
-    availableCourses.find((c) => c.id === courseId);
+    availableCourses.find((c) => c.id === courseId) ||
+    pendingCourses.find((c) => c.id === courseId);
 
   if (!course) {
     alert("Course not found");
@@ -1773,24 +1933,11 @@ async function viewCourse(courseId) {
     });
   }
 
+  // Render first page immediately
   renderViewerPage(0);
 
   // Set currentEditingCourseId for quiz answer submission
   currentEditingCourseId = courseId;
-
-  // Load and display course simulators
-  loadCourseSimulators(courseId);
-
-  // Load and render quiz questions
-  renderQuizQuestionsInViewer(courseId);
-
-  // Convert Edit buttons to Run buttons for course simulators
-  convertSimulatorButtonsForViewer(courseId, course);
-
-  // Render LaTeX equations with MathJax
-  if (window.MathJax) {
-    window.MathJax.typesetPromise([viewerContent]).catch(err => console.log('MathJax error:', err));
-  }
 }
 
 function convertSimulatorButtonsForViewer(courseId, course) {
@@ -2356,7 +2503,7 @@ function insertQuizPlaceholder(questionText, questionId) {
   placeholder.className = 'quiz-question-placeholder';
   placeholder.dataset.questionId = questionId || '';
   placeholder.contentEditable = 'false'; // Make it non-editable
-  placeholder.style.cssText = 'background: rgba(102, 126, 234, 0.2); border: 2px dashed var(--primary); padding: 1em; margin: 1em 0; border-radius: 4px; position: relative; cursor: pointer; user-select: none;';
+  placeholder.style.cssText = 'background: #e0e7ff; border: 2px solid var(--primary); padding: 1.5em; margin: 1.5em 0; border-radius: 8px; position: relative; cursor: pointer; user-select: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
 
   let deleteBtnHtml = '';
   if (questionId) {
@@ -2524,26 +2671,52 @@ async function loadCourseQuestions(courseId) {
 
 function hydrateQuizPlaceholders() {
   const viewerContent = document.getElementById('course-viewer-content');
+  if (!viewerContent) {
+    console.warn('hydrateQuizPlaceholders: course-viewer-content not found');
+    return;
+  }
   const placeholders = viewerContent.querySelectorAll('.quiz-question-placeholder');
+  if (placeholders.length === 0) return;
+
+  console.log(`Hydrating ${placeholders.length} quiz placeholders, courseQuestions: ${courseQuestions.length}`);
+
+  let questionCounter = 0;
 
   placeholders.forEach(placeholder => {
     const questionId = parseInt(placeholder.dataset.questionId);
     const question = courseQuestions.find(q => q.id === questionId);
 
     if (question) {
-      const questionEl = createQuizQuestionElement(question, 0); // Index doesn't matter much here
+      const questionEl = createQuizQuestionElement(question, questionCounter);
+      questionCounter++;
 
-      // Copy styles from placeholder to maintain position
       questionEl.style.cssText = placeholder.style.cssText;
-      questionEl.style.border = '2px solid var(--primary)'; // Reset border style
-      questionEl.style.background = 'rgba(102, 126, 234, 0.1)'; // Reset background
+      questionEl.style.border = '2px solid var(--primary)';
+      questionEl.style.background = 'rgba(102, 126, 234, 0.1)';
       questionEl.style.cursor = 'default';
+      questionEl.style.userSelect = 'text';
       questionEl.className = 'quiz-question';
 
-      // Replace placeholder content
       placeholder.replaceWith(questionEl);
+    } else {
+      console.warn('Hydration failed for question ID:', questionId, 'courseQuestions:', courseQuestions);
+      const unavailableEl = document.createElement('div');
+      unavailableEl.className = 'quiz-question quiz-question-unavailable';
+      unavailableEl.style.cssText = placeholder.style.cssText;
+      unavailableEl.style.border = '2px solid #e94560';
+      unavailableEl.style.background = 'rgba(233, 69, 96, 0.1)';
+      unavailableEl.style.padding = '1em';
+      unavailableEl.style.borderRadius = '8px';
+      unavailableEl.style.margin = '1em 0';
+      unavailableEl.innerHTML = `
+        <div style="color: #e94560; font-weight: bold;">⚠ Question not available</div>
+        <div style="color: #999; font-size: 0.9em; margin-top: 0.5em;">This quiz question (ID: ${questionId}) could not be loaded.</div>
+      `;
+      placeholder.replaceWith(unavailableEl);
     }
   });
+
+  console.log(`Hydrated ${questionCounter} quiz questions successfully`);
 }
 
 // Kept for backward compatibility if needed, but modified to use hydration
@@ -3475,3 +3648,96 @@ function insertPhetSimAtPosition(sim, x, y) {
   contentEditor.appendChild(wrapper);
   makeElementDraggable(wrapper);
 }
+
+// ===== VOLUNTEER HOURS, CERTIFICATES & SPONSORSHIPS =====
+
+async function loadVolunteerStats() {
+    try {
+        const response = await fetch('http://localhost:3000/api/users/volunteer-stats', {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        const result = await response.json();
+        if (result.success) {
+            renderVolunteerStats(result.data);
+        }
+    } catch (err) {
+        console.error('Error loading volunteer stats:', err);
+    }
+}
+
+function renderVolunteerStats(data) {
+    let container = document.getElementById('volunteer-stats-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'volunteer-stats-container';
+        container.style.cssText = 'background: rgba(74, 222, 128, 0.1); border: 1px solid rgba(74, 222, 128, 0.3); border-radius: 8px; padding: 15px; margin-bottom: 20px;';
+
+        const dashboards = ['superadmin-dashboard', 'admin-dashboard', 'user-dashboard'];
+        for (const id of dashboards) {
+            const dash = document.getElementById(id);
+            if (dash && dash.style.display !== 'none') {
+                dash.insertBefore(container, dash.firstChild);
+                break;
+            }
+        }
+    }
+
+    const hours = data.total_volunteer_hours || 0;
+    const verified = data.is_verified_creator;
+    const certs = data.certificates || [];
+
+    let certsHtml = '';
+    if (certs.length > 0) {
+        certsHtml = '<div style="margin-top: 10px;"><strong>Certificates:</strong><ul style="margin: 5px 0; padding-left: 20px;">';
+        certs.forEach(cert => {
+            certsHtml += `<li>🏆 ${cert.hours_certified}h Volunteer Certificate - <a href="http://localhost:3000/api/certificates/verify/${cert.verification_code}" target="_blank" style="color: #667eea;">Verify</a></li>`;
+        });
+        certsHtml += '</ul></div>';
+    }
+
+    container.innerHTML = `
+        <h4 style="margin: 0 0 10px 0; color: #4ade80;">🤝 Volunteer Status</h4>
+        <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
+            <div><strong>Total Hours:</strong> ${hours.toFixed(1)}h</div>
+            <div><strong>Status:</strong> ${verified ? '✅ Verified Creator' : '⏳ Not Yet Verified (need 20h)'}</div>
+            <div><strong>Next Milestone:</strong> ${getNextMilestone(hours)}h</div>
+        </div>
+        ${certsHtml}
+    `;
+}
+
+function getNextMilestone(currentHours) {
+    const milestones = [5, 10, 20, 50, 100];
+    for (const m of milestones) {
+        if (currentHours < m) return m;
+    }
+    return 'All achieved!';
+}
+
+async function grantVolunteerHours(userId, email) {
+    const hours = prompt(`Grant volunteer hours to ${email}:`, '5');
+    if (!hours || isNaN(hours)) return;
+
+    try {
+        const response = await fetch('http://localhost:3000/api/users/update-volunteer-hours', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({ user_id: userId, hours_to_add: parseFloat(hours) })
+        });
+        const result = await response.json();
+        if (result.success) {
+            alert(`Granted ${hours} volunteer hours to ${email}. New total: ${result.data.new_total}h`);
+            loadAllUsers();
+            loadVolunteerStats();
+        } else {
+            alert('Error: ' + result.message);
+        }
+    } catch (err) {
+        console.error('Error granting hours:', err);
+        alert('Error granting hours');
+    }
+}
+window.grantVolunteerHours = grantVolunteerHours;
