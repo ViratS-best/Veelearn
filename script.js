@@ -1627,8 +1627,7 @@ function createNewCourse() {
   document.getElementById("course-editor-section").style.display = "block";
   updatePageControls();
 
-  resetCourseTimer();
-  startCourseTimer();
+  startCourseTimer(0);
 }
 
 function editCourse(courseId) {
@@ -1716,8 +1715,7 @@ function editCourse(courseId) {
       document.getElementById("course-editor-section").style.display = "block";
       updatePageControls();
 
-      courseActiveSeconds = course.creation_time || 0;
-      startCourseTimer();
+      startCourseTimer(course.creation_time || 0);
     });
   }
 }
@@ -1760,12 +1758,12 @@ function saveCourse(action = "draft") {
   const method = currentEditingCourseId ? "PUT" : "POST";
 
   const courseData = {
-    title: title,
-    description: description,
-    content: content,
+    title,
+    description,
+    content,
+    blocks: JSON.stringify(courseBlocks), // Save the blocks array
     status: status,
-    blocks: JSON.stringify(courseBlocks),
-    creation_time: courseActiveSeconds,
+    creation_time: courseTimer.totalSeconds
   };
 
   console.log(`Sending ${method} request to ${url}`);
@@ -2345,6 +2343,8 @@ function openQuizModal(questionId = null) {
       document.getElementById('quiz-question-text').value = question.question_text;
       document.getElementById('quiz-question-type').value = question.question_type;
       document.getElementById('quiz-correct-answer').value = question.correct_answer;
+
+      // Load blocks into simulator editor if using it
       document.getElementById('quiz-explanation').value = question.explanation || '';
       document.getElementById('quiz-points').value = question.points;
 
@@ -2565,7 +2565,11 @@ function insertQuizPlaceholder(questionText, questionId) {
   }
 
   // Fallback: append to end
-  editor.appendChild(placeholder);
+  if (questionId && !isNaN(parseInt(questionId))) {
+    editor.appendChild(placeholder);
+  } else {
+    console.error('Attempted to insert quiz placeholder with invalid ID:', questionId);
+  }
 }
 
 async function deleteQuizQuestion(questionId, btnElement = null) {
@@ -2683,7 +2687,11 @@ function hydrateQuizPlaceholders() {
   let questionCounter = 0;
 
   placeholders.forEach(placeholder => {
-    const questionId = parseInt(placeholder.dataset.questionId);
+    if (!questionId || isNaN(questionId)) {
+      console.error('Invalid question ID in placeholder:', placeholder);
+      return;
+    }
+
     const question = courseQuestions.find(q => q.id === questionId);
 
     if (question) {
@@ -2696,6 +2704,16 @@ function hydrateQuizPlaceholders() {
       questionEl.style.cursor = 'default';
       questionEl.style.userSelect = 'text';
       questionEl.className = 'quiz-question';
+
+      // Add event listener for submit button
+      const submitBtn = questionEl.querySelector('.quiz-submit-btn');
+      if (submitBtn) {
+        submitBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          submitQuizAnswer(question.id);
+        });
+      }
 
       placeholder.replaceWith(questionEl);
     } else {
@@ -2710,7 +2728,7 @@ function hydrateQuizPlaceholders() {
       unavailableEl.style.margin = '1em 0';
       unavailableEl.innerHTML = `
         <div style="color: #e94560; font-weight: bold;">⚠ Question not available</div>
-        <div style="color: #999; font-size: 0.9em; margin-top: 0.5em;">This quiz question (ID: ${questionId}) could not be loaded.</div>
+        <div style="color: #999; font-size: 0.9em; margin-top: 0.5em;">This quiz question (ID: ${questionId}) could not be loaded. Please try refreshing the page.</div>
       `;
       placeholder.replaceWith(unavailableEl);
     }
@@ -3411,6 +3429,133 @@ function updatePageControls() {
   if (nextBtn) nextBtn.disabled = currentPageIndex === coursePages.length - 1;
 }
 
+let currentViewerPageIndex = 0;
+let viewerPages = [];
+
+// ===== COURSE TIMER & ANTI-ABUSE =====
+let courseTimer = {
+  totalSeconds: 0,
+  isRunning: false,
+  lastKeyboardActivity: Date.now(),
+  keyPressesInWindow: 0,
+  lastKeyPressTime: 0,
+  repeatedKeyCount: 0,
+  lastKey: null,
+  isIdle: false,
+  intervalId: null
+};
+
+function startCourseTimer(initialSeconds = 0) {
+  courseTimer.totalSeconds = initialSeconds;
+  courseTimer.isRunning = true;
+  courseTimer.isIdle = false;
+  // Reset checking vars
+  courseTimer.lastKeyboardActivity = Date.now();
+  courseTimer.keyPressesInWindow = 0;
+
+  // Clear existing interval if any
+  if (courseTimer.intervalId) clearInterval(courseTimer.intervalId);
+
+  updateTimerDisplay();
+
+  courseTimer.intervalId = setInterval(() => {
+    const now = Date.now();
+
+    // Anti-idle check (60s timeout - Keyboard only as requested)
+    if (now - courseTimer.lastKeyboardActivity > 60000) {
+      courseTimer.isIdle = true;
+    } else {
+      courseTimer.isIdle = false;
+    }
+
+    if (courseTimer.isRunning && !courseTimer.isIdle) {
+      courseTimer.totalSeconds++;
+      updateTimerDisplay();
+    }
+  }, 1000);
+
+  // Anti-macro window reset
+  setInterval(() => {
+    courseTimer.keyPressesInWindow = 0;
+  }, 5000);
+}
+
+function stopCourseTimer() {
+  courseTimer.isRunning = false;
+  if (courseTimer.intervalId) clearInterval(courseTimer.intervalId);
+  updateTimerDisplay();
+}
+
+function updateTimerDisplay() {
+  const timerEl = document.getElementById('course-timer-display');
+  const valueEl = document.getElementById('course-timer-value');
+  const statusEl = document.getElementById('course-timer-status');
+
+  if (!timerEl || !valueEl) return;
+
+  const hours = Math.floor(courseTimer.totalSeconds / 3600);
+  const minutes = Math.floor((courseTimer.totalSeconds % 3600) / 60);
+  const seconds = courseTimer.totalSeconds % 60;
+
+  const timeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+  valueEl.textContent = timeStr;
+
+  // Visual feedback
+  if (courseTimer.isIdle) {
+    statusEl.textContent = '(Idle - Press any key to resume)';
+    valueEl.style.color = '#f59e0b'; // Amber
+  } else if (!courseTimer.isRunning) {
+    statusEl.textContent = '(Paused - Anti-abuse triggered)';
+    valueEl.style.color = '#ef4444'; // Red
+  } else {
+    statusEl.textContent = '(Tracking active time)';
+    valueEl.style.color = '#4ade80'; // Green
+  }
+}
+
+// Global listener for Timer Anti-Abuse
+document.addEventListener('keydown', (e) => {
+  // Only track if editing a course
+  if (!currentEditingCourseId || document.getElementById('course-editor-section').style.display === 'none') return;
+
+  const now = Date.now();
+  courseTimer.lastKeyboardActivity = now;
+  courseTimer.isIdle = false; // Wake up
+
+  // Anti-Macro: Check frequency
+  courseTimer.keyPressesInWindow++;
+  if (courseTimer.keyPressesInWindow > 100) {
+    // Macro detected!
+    courseTimer.isRunning = false;
+    console.warn('Anti-Macro triggered: Too many keypresses');
+    return;
+  }
+
+  // Anti-Keyboard Weight: Check repeats
+  if (e.key === courseTimer.lastKey) {
+    courseTimer.repeatedKeyCount++;
+  } else {
+    courseTimer.repeatedKeyCount = 0;
+    courseTimer.lastKey = e.key;
+  }
+
+  if (courseTimer.repeatedKeyCount > 50) {
+    // Weight detected!
+    courseTimer.isRunning = false;
+    console.warn('Anti-Weight triggered: Key held down/repeated too long');
+    return;
+  }
+
+  // Resume if previously stopped/idle but now passing checks
+  if (!courseTimer.isRunning && !courseTimer.isIdle && courseTimer.repeatedKeyCount < 50 && courseTimer.keyPressesInWindow < 100) {
+    courseTimer.isRunning = true;
+    updateTimerDisplay();
+  }
+});
+
+// ===== COURSE MANAGEMENT VARIABLES =====
+
 // ===== PLACEMENT LOGIC =====
 
 function startPlacementMode(type, data) {
@@ -3652,50 +3797,50 @@ function insertPhetSimAtPosition(sim, x, y) {
 // ===== VOLUNTEER HOURS, CERTIFICATES & SPONSORSHIPS =====
 
 async function loadVolunteerStats() {
-    try {
-        const response = await fetch('http://localhost:3000/api/users/volunteer-stats', {
-            headers: { 'Authorization': `Bearer ${authToken}` }
-        });
-        const result = await response.json();
-        if (result.success) {
-            renderVolunteerStats(result.data);
-        }
-    } catch (err) {
-        console.error('Error loading volunteer stats:', err);
+  try {
+    const response = await fetch('http://localhost:3000/api/users/volunteer-stats', {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    const result = await response.json();
+    if (result.success) {
+      renderVolunteerStats(result.data);
     }
+  } catch (err) {
+    console.error('Error loading volunteer stats:', err);
+  }
 }
 
 function renderVolunteerStats(data) {
-    let container = document.getElementById('volunteer-stats-container');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'volunteer-stats-container';
-        container.style.cssText = 'background: rgba(74, 222, 128, 0.1); border: 1px solid rgba(74, 222, 128, 0.3); border-radius: 8px; padding: 15px; margin-bottom: 20px;';
+  let container = document.getElementById('volunteer-stats-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'volunteer-stats-container';
+    container.style.cssText = 'background: rgba(74, 222, 128, 0.1); border: 1px solid rgba(74, 222, 128, 0.3); border-radius: 8px; padding: 15px; margin-bottom: 20px;';
 
-        const dashboards = ['superadmin-dashboard', 'admin-dashboard', 'user-dashboard'];
-        for (const id of dashboards) {
-            const dash = document.getElementById(id);
-            if (dash && dash.style.display !== 'none') {
-                dash.insertBefore(container, dash.firstChild);
-                break;
-            }
-        }
+    const dashboards = ['superadmin-dashboard', 'admin-dashboard', 'user-dashboard'];
+    for (const id of dashboards) {
+      const dash = document.getElementById(id);
+      if (dash && dash.style.display !== 'none') {
+        dash.insertBefore(container, dash.firstChild);
+        break;
+      }
     }
+  }
 
-    const hours = data.total_volunteer_hours || 0;
-    const verified = data.is_verified_creator;
-    const certs = data.certificates || [];
+  const hours = data.total_volunteer_hours || 0;
+  const verified = data.is_verified_creator;
+  const certs = data.certificates || [];
 
-    let certsHtml = '';
-    if (certs.length > 0) {
-        certsHtml = '<div style="margin-top: 10px;"><strong>Certificates:</strong><ul style="margin: 5px 0; padding-left: 20px;">';
-        certs.forEach(cert => {
-            certsHtml += `<li>🏆 ${cert.hours_certified}h Volunteer Certificate - <a href="http://localhost:3000/api/certificates/verify/${cert.verification_code}" target="_blank" style="color: #667eea;">Verify</a></li>`;
-        });
-        certsHtml += '</ul></div>';
-    }
+  let certsHtml = '';
+  if (certs.length > 0) {
+    certsHtml = '<div style="margin-top: 10px;"><strong>Certificates:</strong><ul style="margin: 5px 0; padding-left: 20px;">';
+    certs.forEach(cert => {
+      certsHtml += `<li>🏆 ${cert.hours_certified}h Volunteer Certificate - <a href="http://localhost:3000/api/certificates/verify/${cert.verification_code}" target="_blank" style="color: #667eea;">Verify</a> | <a href="http://localhost:3000/api/certificates/verify/${cert.verification_code}?format=pdf" target="_blank" style="color: #667eea; font-weight: bold;">Download PDF 📥</a></li>`;
+    });
+    certsHtml += '</ul></div>';
+  }
 
-    container.innerHTML = `
+  container.innerHTML = `
         <h4 style="margin: 0 0 10px 0; color: #4ade80;">🤝 Volunteer Status</h4>
         <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
             <div><strong>Total Hours:</strong> ${hours.toFixed(1)}h</div>
@@ -3707,37 +3852,37 @@ function renderVolunteerStats(data) {
 }
 
 function getNextMilestone(currentHours) {
-    const milestones = [5, 10, 20, 50, 100];
-    for (const m of milestones) {
-        if (currentHours < m) return m;
-    }
-    return 'All achieved!';
+  const milestones = [5, 10, 20, 50, 100];
+  for (const m of milestones) {
+    if (currentHours < m) return m;
+  }
+  return 'All achieved!';
 }
 
 async function grantVolunteerHours(userId, email) {
-    const hours = prompt(`Grant volunteer hours to ${email}:`, '5');
-    if (!hours || isNaN(hours)) return;
+  const hours = prompt(`Grant volunteer hours to ${email}:`, '5');
+  if (!hours || isNaN(hours)) return;
 
-    try {
-        const response = await fetch('http://localhost:3000/api/users/update-volunteer-hours', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}`
-            },
-            body: JSON.stringify({ user_id: userId, hours_to_add: parseFloat(hours) })
-        });
-        const result = await response.json();
-        if (result.success) {
-            alert(`Granted ${hours} volunteer hours to ${email}. New total: ${result.data.new_total}h`);
-            loadAllUsers();
-            loadVolunteerStats();
-        } else {
-            alert('Error: ' + result.message);
-        }
-    } catch (err) {
-        console.error('Error granting hours:', err);
-        alert('Error granting hours');
+  try {
+    const response = await fetch('http://localhost:3000/api/users/update-volunteer-hours', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({ user_id: userId, hours_to_add: parseFloat(hours) })
+    });
+    const result = await response.json();
+    if (result.success) {
+      alert(`Granted ${hours} volunteer hours to ${email}. New total: ${result.data.new_total}h`);
+      loadAllUsers();
+      loadVolunteerStats();
+    } else {
+      alert('Error: ' + result.message);
     }
+  } catch (err) {
+    console.error('Error granting hours:', err);
+    alert('Error granting hours');
+  }
 }
 window.grantVolunteerHours = grantVolunteerHours;
