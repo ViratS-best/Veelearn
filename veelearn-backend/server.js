@@ -763,10 +763,32 @@ app.post('/api/courses', authenticateToken, (req, res) => {
             console.error('❌ Error creating course:', err);
             return apiResponse(res, 500, 'Server error creating course', { details: err.message });
         }
-        console.log('✅ Course created with ID:', result.insertId, 'Status:', courseStatus);
+        
+        const newCourseId = result.insertId;
+        console.log('✅ Course created with ID:', newCourseId, 'Status:', courseStatus);
         console.log('  Database:', dbConfig.database);
         console.log('  Host:', dbConfig.host);
-        apiResponse(res, 201, `Course created successfully with status: ${courseStatus}`, { id: result.insertId, courseId: result.insertId });
+        
+        // VERIFY the course was actually inserted
+        console.log('  Verifying course was inserted...');
+        db.query('SELECT id, title FROM courses WHERE id = ?', [newCourseId], (verifyErr, verifyResults) => {
+            if (verifyErr) {
+                console.error('  ❌ Verification query failed:', verifyErr.message);
+                return apiResponse(res, 500, 'Course created but verification failed', { details: verifyErr.message, id: newCourseId });
+            }
+            if (verifyResults.length === 0) {
+                console.error('  ❌ CRITICAL: Course inserted but SELECT returned 0 rows!');
+                console.log('  Checking all courses:');
+                db.query('SELECT COUNT(*) as count FROM courses', (countErr, countResults) => {
+                    const count = countErr ? 'ERROR' : countResults[0].count;
+                    console.log('  Total courses in DB:', count);
+                    apiResponse(res, 201, `Course created (ID: ${newCourseId}) but verification failed!`, { id: newCourseId, courseId: newCourseId });
+                });
+            } else {
+                console.log('  ✓ Verification successful - course exists in DB');
+                apiResponse(res, 201, `Course created successfully with status: ${courseStatus}`, { id: newCourseId, courseId: newCourseId });
+            }
+        });
     });
 });
 
