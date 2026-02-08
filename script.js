@@ -1347,7 +1347,7 @@ function showUserDashboard() {
 }
 
 function loadAllUsers() {
-  fetch("http://localhost:3000/api/users", {
+  fetch(`${API_BASE_URL}/api/users`, {
     headers: { Authorization: `Bearer ${authToken}` },
   })
     .then((res) => res.json())
@@ -1404,7 +1404,7 @@ function changeUserRole(email, newRole) {
 }
 
 function loadPendingCourses() {
-  fetch("http://localhost:3000/api/admin/courses/pending", {
+  fetch(`${API_BASE_URL}/api/admin/courses/pending`, {
     headers: { Authorization: `Bearer ${authToken}` },
   })
     .then((res) => res.json())
@@ -1491,7 +1491,7 @@ function rejectCourse(courseId) {
 
 function loadUserCourses() {
   console.log("=== LOADING USER COURSES ===");
-  fetch("http://localhost:3000/api/courses", {
+  fetch(`${API_BASE_URL}/api/courses`, {
     headers: { Authorization: `Bearer ${authToken}` },
   })
     .then((res) => res.json())
@@ -1513,7 +1513,7 @@ function loadUserCourses() {
 
 function loadAvailableCourses() {
   console.log("=== LOADING AVAILABLE COURSES ===");
-  fetch("http://localhost:3000/api/courses", {
+  fetch(`${API_BASE_URL}/api/courses`, {
     headers: { Authorization: `Bearer ${authToken}` },
   })
     .then((res) => res.json())
@@ -3799,7 +3799,7 @@ function insertPhetSimAtPosition(sim, x, y) {
 
 async function loadVolunteerStats() {
   try {
-    const response = await fetch('http://localhost:3000/api/users/volunteer-stats', {
+    const response = await fetch(`${API_BASE_URL}/api/users/volunteer-stats`, {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
     const result = await response.json();
@@ -3836,7 +3836,7 @@ function renderVolunteerStats(data) {
   if (certs.length > 0) {
     certsHtml = '<div style="margin-top: 10px;"><strong>Certificates:</strong><ul style="margin: 5px 0; padding-left: 20px;">';
     certs.forEach(cert => {
-      certsHtml += `<li>🏆 ${cert.hours_certified}h Volunteer Certificate - <a href="http://localhost:3000/api/certificates/verify/${cert.verification_code}" target="_blank" style="color: #667eea;">Verify</a> | <a href="http://localhost:3000/api/certificates/verify/${cert.verification_code}?format=pdf" target="_blank" style="color: #667eea; font-weight: bold;">Download PDF 📥</a></li>`;
+      certsHtml += `<li>🏆 ${cert.hours_certified}h Volunteer Certificate - <a href="${API_BASE_URL}/api/certificates/verify/${cert.verification_code}" target="_blank" style="color: #667eea;">Verify</a> | <a href="${API_BASE_URL}/api/certificates/verify/${cert.verification_code}?format=pdf" target="_blank" style="color: #667eea; font-weight: bold;">Download PDF 📥</a></li>`;
     });
     certsHtml += '</ul></div>';
   }
@@ -3865,7 +3865,7 @@ async function grantVolunteerHours(userId, email) {
   if (!hours || isNaN(hours)) return;
 
   try {
-    const response = await fetch('http://localhost:3000/api/users/update-volunteer-hours', {
+    const response = await fetch(`${API_BASE_URL}/api/users/update-volunteer-hours`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
