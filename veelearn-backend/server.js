@@ -810,24 +810,36 @@ app.put('/api/courses/:id', authenticateToken, (req, res) => {
     console.log('  Content length:', content ? content.length : 0, 'chars');
     console.log('  Blocks count:', Array.isArray(blocks) ? blocks.length : 'NOT PROVIDED');
     console.log('  Status:', status || 'unchanged');
+    console.log('  Database:', dbConfig.database);
+    console.log('  Host:', dbConfig.host);
 
     if (!title) {
         return apiResponse(res, 400, 'Course title is required');
     }
 
-    db.query('SELECT creator_id FROM courses WHERE id = ?', [courseId], (err, results) => {
+    // Check if course exists
+    db.query('SELECT * FROM courses WHERE id = ?', [courseId], (err, results) => {
         if (err) {
             console.error('❌ Error fetching course:', err);
-            return apiResponse(res, 500, 'Server error');
+            console.error('  Full error:', err.message, err.code);
+            return apiResponse(res, 500, 'Server error', { error: err.message });
         }
         if (results.length === 0) {
+            console.log('❌ Course not found in database. Query returned 0 results.');
+            console.log('  Querying all courses to debug:');
+            db.query('SELECT id FROM courses LIMIT 5', (err2, allCourses) => {
+                console.log('  All courses in DB:', allCourses ? allCourses.map(c => c.id) : 'ERROR');
+            });
             return apiResponse(res, 404, 'Course not found');
         }
 
         const course = results[0];
+        console.log('  Course found - creator_id:', course.creator_id, 'current user:', userId);
         if (parseInt(course.creator_id) !== parseInt(userId)) {
+            console.log('  ❌ Authorization failed - not course creator');
             return apiResponse(res, 403, 'You can only edit your own courses');
         }
+        console.log('  ✓ Authorization passed');
 
         // Prepare blocks JSON
         const blocksJson = blocks ? (typeof blocks === 'string' ? blocks : JSON.stringify(blocks)) : undefined;
