@@ -1,7 +1,5 @@
 // ===== GLOBAL STATE =====
-const API_BASE_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-  ? "http://localhost:3000"
-  : "https://veelearn.onrender.com"; // Production Render URL
+const API_BASE_URL = "https://veelearn.onrender.com"; // Production Render URL
 
 let currentUser = null;
 let courseBlocks = [];
