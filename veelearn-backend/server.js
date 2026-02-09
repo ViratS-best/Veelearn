@@ -756,19 +756,19 @@ app.post('/api/courses', authenticateToken, (req, res) => {
     const creationTime = parseInt(creation_time) || 0;
     console.log('  Database:', dbConfig.database);
     console.log('  Host:', dbConfig.host);
-    
+
     const insertCourseQuery = 'INSERT INTO courses (title, description, content, blocks, creator_id, status, creation_time) VALUES (?, ?, ?, ?, ?, ?, ?)';
     db.query(insertCourseQuery, [title, description || '', content || '', blocksJson, creator_id, courseStatus, creationTime], (err, result) => {
         if (err) {
             console.error('❌ Error creating course:', err);
             return apiResponse(res, 500, 'Server error creating course', { details: err.message });
         }
-        
+
         const newCourseId = result.insertId;
         console.log('✅ Course created with ID:', newCourseId, 'Status:', courseStatus);
         console.log('  Database:', dbConfig.database);
         console.log('  Host:', dbConfig.host);
-        
+
         // VERIFY the course was actually inserted
         console.log('  Verifying course was inserted...');
         db.query('SELECT id, title FROM courses WHERE id = ?', [newCourseId], (verifyErr, verifyResults) => {
@@ -2336,17 +2336,37 @@ app.post('/api/users/update-volunteer-hours', authenticateToken, authorize('admi
                 if (err2 || users.length === 0) return apiResponse(res, 200, 'Hours updated');
 
                 const totalHours = users[0].total_volunteer_hours;
-                const milestones = [5, 10, 20, 50, 100];
 
-                milestones.forEach(milestone => {
-                    if (totalHours >= milestone && totalHours - hours_to_add < milestone) {
-                        const verificationCode = require('crypto').randomBytes(16).toString('hex');
-                        db.query(
-                            'INSERT IGNORE INTO certificates (user_id, certificate_type, hours_certified, verification_code) VALUES (?, "volunteer_hours", ?, ?)',
-                            [user_id, milestone, verificationCode]
-                        );
-                    }
-                });
+                // Calculate all 5-hour milestones achieved
+                const maxMilestone = Math.floor(totalHours / 5) * 5;
+                const milestones = [];
+                for (let i = 5; i <= maxMilestone; i += 5) {
+                    milestones.push(i);
+                }
+
+                if (milestones.length > 0) {
+                    // Check existing certificates to avoid duplicates
+                    db.query(
+                        'SELECT hours_certified FROM certificates WHERE user_id = ? AND certificate_type = "volunteer_hours"',
+                        [user_id],
+                        (certErr, existingCerts) => {
+                            if (!certErr) {
+                                const existingHours = existingCerts.map(c => c.hours_certified);
+
+                                milestones.forEach(milestone => {
+                                    if (!existingHours.includes(milestone)) {
+                                        const verificationCode = require('crypto').randomBytes(16).toString('hex');
+                                        db.query(
+                                            'INSERT INTO certificates (user_id, certificate_type, hours_certified, verification_code) VALUES (?, "volunteer_hours", ?, ?)',
+                                            [user_id, milestone, verificationCode]
+                                        );
+                                        console.log(`Issued volunteer certificate for ${milestone} hours to user ${user_id}`);
+                                    }
+                                });
+                            }
+                        }
+                    );
+                }
 
                 if (totalHours >= 20) {
                     db.query('UPDATE users SET is_verified_creator = TRUE WHERE id = ?', [user_id]);
@@ -2419,14 +2439,19 @@ app.get('/api/certificates/verify/:code', (req, res) => {
                     doc.moveTo(100, signatureY + 50).lineTo(300, signatureY + 50).stroke();
 
                     // Specific signature logic - load from GitHub Pages
-                    const signatureUrl = 'https://virats-best.github.io/Veelearn/Signuture.png';
-                    console.log('Loading signature from:', signatureUrl);
-                    try {
-                        // Place signature image from GitHub Pages
-                        doc.image(signatureUrl, 120, signatureY - 20, { width: 120 });
-                        console.log('✓ Signature image loaded successfully from GitHub Pages');
-                    } catch (imgErr) {
-                        console.error('Error loading signature image:', imgErr);
+                    // Specific signature logic - use local file
+                    const signaturePath = path.join(__dirname, 'Signature.png');
+                    console.log('Loading signature from:', signaturePath);
+
+                    if (fs.existsSync(signaturePath)) {
+                        try {
+                            doc.image(signaturePath, 120, signatureY - 20, { width: 120 });
+                            console.log('✓ Signature image loaded successfully');
+                        } catch (imgErr) {
+                            console.error('Error embedding signature image:', imgErr);
+                        }
+                    } else {
+                        console.error('Signature.png not found at:', signaturePath);
                     }
 
                     doc.fontSize(12).fillColor('#333333').text('Virat Sisodiya', 100, signatureY + 60, { align: 'left', width: 200 });
