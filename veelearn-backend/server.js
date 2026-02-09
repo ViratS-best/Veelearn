@@ -2307,19 +2307,29 @@ app.get('/api/users/volunteer-stats', authenticateToken, (req, res) => {
         'SELECT total_volunteer_hours, is_verified_creator FROM users WHERE id = ?',
         [userId],
         (err, results) => {
-            if (err) return apiResponse(res, 500, 'Server error');
+            if (err) {
+                console.error('volunteer-stats: user query error:', err.message);
+                return apiResponse(res, 500, 'Server error');
+            }
             if (results.length === 0) return apiResponse(res, 404, 'User not found');
 
             const totalHours = results[0].total_volunteer_hours || 0;
 
             db.query(
-                'SELECT * FROM certificates WHERE user_id = ? AND certificate_type = "volunteer_hours" ORDER BY issued_at DESC',
-                [userId],
+                'SELECT * FROM certificates WHERE user_id = ? AND certificate_type = ? ORDER BY issued_at DESC',
+                [userId, 'volunteer_hours'],
                 (err2, certs) => {
-                    if (err2) return apiResponse(res, 500, 'Server error');
+                    if (err2) {
+                        console.error('volunteer-stats: certificates query error:', err2.message);
+                        return apiResponse(res, 200, 'Stats retrieved (no certs table)', {
+                            total_volunteer_hours: totalHours,
+                            is_verified_creator: results[0].is_verified_creator,
+                            certificates: []
+                        });
+                    }
 
                     const maxMilestone = Math.floor(totalHours / 5) * 5;
-                    const existingHours = certs.map(c => c.hours_certified);
+                    const existingHours = certs.map(c => Number(c.hours_certified));
                     const missingMilestones = [];
                     for (let i = 5; i <= maxMilestone; i += 5) {
                         if (!existingHours.includes(i)) {
@@ -2328,24 +2338,28 @@ app.get('/api/users/volunteer-stats', authenticateToken, (req, res) => {
                     }
 
                     if (missingMilestones.length > 0) {
+                        console.log(`Creating ${missingMilestones.length} missing certificates for user ${userId}:`, missingMilestones);
                         const crypto = require('crypto');
                         let inserted = 0;
                         missingMilestones.forEach(milestone => {
                             const verificationCode = crypto.randomBytes(16).toString('hex');
                             db.query(
-                                'INSERT INTO certificates (user_id, certificate_type, hours_certified, verification_code) VALUES (?, "volunteer_hours", ?, ?)',
-                                [userId, milestone, verificationCode],
+                                'INSERT INTO certificates (user_id, certificate_type, hours_certified, verification_code) VALUES (?, ?, ?, ?)',
+                                [userId, 'volunteer_hours', milestone, verificationCode],
                                 (insertErr) => {
                                     inserted++;
                                     if (insertErr) console.error('Error creating certificate for milestone', milestone, insertErr.message);
-                                    else console.log(`✓ Retroactively created ${milestone}h certificate for user ${userId}`);
+                                    else console.log(`✓ Created ${milestone}h certificate for user ${userId}`);
 
                                     if (inserted === missingMilestones.length) {
                                         db.query(
                                             'SELECT * FROM certificates WHERE user_id = ? ORDER BY hours_certified ASC',
                                             [userId],
                                             (err3, allCerts) => {
-                                                if (err3) return apiResponse(res, 500, 'Server error');
+                                                if (err3) {
+                                                    console.error('volunteer-stats: re-fetch certs error:', err3.message);
+                                                    return apiResponse(res, 500, 'Server error');
+                                                }
                                                 apiResponse(res, 200, 'Stats retrieved', {
                                                     total_volunteer_hours: totalHours,
                                                     is_verified_creator: results[0].is_verified_creator,
