@@ -9,6 +9,7 @@ const path = require('path');
 const util = require('util');
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
+const axios = require('axios');
 // path is already required above
 
 dotenv.config({ path: path.resolve(__dirname, '.env') });
@@ -1166,6 +1167,7 @@ app.post('/api/courses/:id/enroll', authenticateToken, (req, res) => {
         }
 
         const course = courseResults[0];
+        console.log(`DEBUG ENROLL: Course found: ${course.title}, paid: ${course.is_paid}, cost: ${course.shells_cost}`);
 
         // Check if already enrolled
         db.query('SELECT * FROM enrollments WHERE user_id = ? AND course_id = ?', [userId, courseId], (err, enrollResults) => {
@@ -1191,6 +1193,7 @@ app.post('/api/courses/:id/enroll', authenticateToken, (req, res) => {
                     }
 
                     // Deduct shells and enroll
+                    console.log(`DEBUG ENROLL: Deducting ${course.shells_cost} shells from user ${userId}`);
                     db.query('UPDATE users SET shells = shells - ? WHERE id = ?', [course.shells_cost, userId], (err) => {
                         if (err) {
                             console.error('Error deducting shells:', err);
@@ -1213,11 +1216,13 @@ app.post('/api/courses/:id/enroll', authenticateToken, (req, res) => {
             }
 
             function enrollUser() {
+                console.log(`DEBUG ENROLL: Inserting enrollment for user ${userId}, course ${courseId}`);
                 db.query('INSERT INTO enrollments (user_id, course_id) VALUES (?, ?)', [userId, courseId], (err) => {
                     if (err) {
                         console.error('Error enrolling user:', err);
                         return apiResponse(res, 500, 'Server error enrolling in course');
                     }
+                    console.log(`DEBUG ENROLL: Successfully enrolled user ${userId}`);
                     apiResponse(res, 201, 'Successfully enrolled in course');
                 });
             }
@@ -2378,7 +2383,7 @@ app.post('/api/users/update-volunteer-hours', authenticateToken, authorize('admi
     );
 });
 
-app.get('/api/certificates/verify/:code', (req, res) => {
+app.get('/api/certificates/verify/:code', async (req, res) => {
     const { code } = req.params;
     const { format } = req.query;
 
@@ -2387,7 +2392,7 @@ app.get('/api/certificates/verify/:code', (req, res) => {
          JOIN users u ON c.user_id = u.id
          WHERE c.verification_code = ?`,
         [code],
-        (err, results) => {
+        async (err, results) => {
             if (err) return apiResponse(res, 500, 'Server error');
             if (results.length === 0) return apiResponse(res, 404, 'Certificate not found');
 
@@ -2442,11 +2447,12 @@ app.get('/api/certificates/verify/:code', (req, res) => {
                     const signatureUrl = 'https://virats-best.github.io/Veelearn/Signuture.png';
                     console.log('Loading signature from:', signatureUrl);
                     try {
-                        // Place signature image from GitHub Pages
-                        doc.image(signatureUrl, 120, signatureY - 20, { width: 120 });
+                        // Place signature image from GitHub Pages - Fetch via axios first
+                        const response = await axios.get(signatureUrl, { responseType: 'arraybuffer' });
+                        doc.image(response.data, 120, signatureY - 20, { width: 120 });
                         console.log('✓ Signature image loaded successfully from GitHub Pages');
                     } catch (imgErr) {
-                        console.error('Error loading signature image:', imgErr);
+                        console.error('Error loading signature image:', imgErr.message);
                     }
 
                     doc.fontSize(12).fillColor('#333333').text('Virat Sisodiya', 100, signatureY + 60, { align: 'left', width: 200 });
