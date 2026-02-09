@@ -3856,8 +3856,9 @@ function renderVolunteerStats(data) {
   if (hours > 0 && certs.length === 0) {
     generateBtn = `
       <div style="margin-top: 15px; border-top: 1px solid rgba(74, 222, 128, 0.2); padding-top: 15px;">
-        <p style="color: #999; margin: 0 0 10px 0; font-size: 13px;">You have ${hours.toFixed(1)} volunteer hours. Certificates are generated at every 5-hour milestone when an admin grants hours.</p>
+        <p style="color: #999; margin: 0 0 10px 0; font-size: 13px;">Loading certificates... If none appear, try refreshing the page.</p>
       </div>`;
+    setTimeout(() => loadVolunteerStats(), 2000);
   }
 
   container.innerHTML = `
