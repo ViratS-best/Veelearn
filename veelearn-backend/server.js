@@ -2439,19 +2439,14 @@ app.get('/api/certificates/verify/:code', (req, res) => {
                     doc.moveTo(100, signatureY + 50).lineTo(300, signatureY + 50).stroke();
 
                     // Specific signature logic - load from GitHub Pages
-                    // Specific signature logic - use local file
-                    const signaturePath = path.join(__dirname, 'Signature.png');
-                    console.log('Loading signature from:', signaturePath);
-
-                    if (fs.existsSync(signaturePath)) {
-                        try {
-                            doc.image(signaturePath, 120, signatureY - 20, { width: 120 });
-                            console.log('✓ Signature image loaded successfully');
-                        } catch (imgErr) {
-                            console.error('Error embedding signature image:', imgErr);
-                        }
-                    } else {
-                        console.error('Signature.png not found at:', signaturePath);
+                    const signatureUrl = 'https://virats-best.github.io/Veelearn/Signuture.png';
+                    console.log('Loading signature from:', signatureUrl);
+                    try {
+                        // Place signature image from GitHub Pages
+                        doc.image(signatureUrl, 120, signatureY - 20, { width: 120 });
+                        console.log('✓ Signature image loaded successfully from GitHub Pages');
+                    } catch (imgErr) {
+                        console.error('Error loading signature image:', imgErr);
                     }
 
                     doc.fontSize(12).fillColor('#333333').text('Virat Sisodiya', 100, signatureY + 60, { align: 'left', width: 200 });
