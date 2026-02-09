@@ -2310,16 +2310,60 @@ app.get('/api/users/volunteer-stats', authenticateToken, (req, res) => {
             if (err) return apiResponse(res, 500, 'Server error');
             if (results.length === 0) return apiResponse(res, 404, 'User not found');
 
+            const totalHours = results[0].total_volunteer_hours || 0;
+
             db.query(
-                'SELECT * FROM certificates WHERE user_id = ? ORDER BY issued_at DESC',
+                'SELECT * FROM certificates WHERE user_id = ? AND certificate_type = "volunteer_hours" ORDER BY issued_at DESC',
                 [userId],
                 (err2, certs) => {
                     if (err2) return apiResponse(res, 500, 'Server error');
-                    apiResponse(res, 200, 'Stats retrieved', {
-                        total_volunteer_hours: results[0].total_volunteer_hours,
-                        is_verified_creator: results[0].is_verified_creator,
-                        certificates: certs
-                    });
+
+                    const maxMilestone = Math.floor(totalHours / 5) * 5;
+                    const existingHours = certs.map(c => c.hours_certified);
+                    const missingMilestones = [];
+                    for (let i = 5; i <= maxMilestone; i += 5) {
+                        if (!existingHours.includes(i)) {
+                            missingMilestones.push(i);
+                        }
+                    }
+
+                    if (missingMilestones.length > 0) {
+                        const crypto = require('crypto');
+                        let inserted = 0;
+                        missingMilestones.forEach(milestone => {
+                            const verificationCode = crypto.randomBytes(16).toString('hex');
+                            db.query(
+                                'INSERT INTO certificates (user_id, certificate_type, hours_certified, verification_code) VALUES (?, "volunteer_hours", ?, ?)',
+                                [userId, milestone, verificationCode],
+                                (insertErr) => {
+                                    inserted++;
+                                    if (insertErr) console.error('Error creating certificate for milestone', milestone, insertErr.message);
+                                    else console.log(`✓ Retroactively created ${milestone}h certificate for user ${userId}`);
+
+                                    if (inserted === missingMilestones.length) {
+                                        db.query(
+                                            'SELECT * FROM certificates WHERE user_id = ? ORDER BY hours_certified ASC',
+                                            [userId],
+                                            (err3, allCerts) => {
+                                                if (err3) return apiResponse(res, 500, 'Server error');
+                                                apiResponse(res, 200, 'Stats retrieved', {
+                                                    total_volunteer_hours: totalHours,
+                                                    is_verified_creator: results[0].is_verified_creator,
+                                                    certificates: allCerts
+                                                });
+                                            }
+                                        );
+                                    }
+                                }
+                            );
+                        });
+                    } else {
+                        apiResponse(res, 200, 'Stats retrieved', {
+                            total_volunteer_hours: totalHours,
+                            is_verified_creator: results[0].is_verified_creator,
+                            certificates: certs
+                        });
+                    }
                 }
             );
         }
