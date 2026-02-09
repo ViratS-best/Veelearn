@@ -3814,7 +3814,7 @@ function renderVolunteerStats(data) {
   if (!container) {
     container = document.createElement('div');
     container.id = 'volunteer-stats-container';
-    container.style.cssText = 'background: rgba(74, 222, 128, 0.1); border: 1px solid rgba(74, 222, 128, 0.3); border-radius: 8px; padding: 15px; margin-bottom: 20px;';
+    container.style.cssText = 'background: rgba(74, 222, 128, 0.1); border: 1px solid rgba(74, 222, 128, 0.3); border-radius: 12px; padding: 20px; margin-bottom: 20px;';
 
     const dashboards = ['superadmin-dashboard', 'admin-dashboard', 'user-dashboard'];
     for (const id of dashboards) {
@@ -3832,21 +3832,43 @@ function renderVolunteerStats(data) {
 
   let certsHtml = '';
   if (certs.length > 0) {
-    certsHtml = '<div style="margin-top: 10px;"><strong>Certificates:</strong><ul style="margin: 5px 0; padding-left: 20px;">';
+    certsHtml = '<div style="margin-top: 15px; border-top: 1px solid rgba(74, 222, 128, 0.2); padding-top: 15px;"><strong style="font-size: 15px;">📜 Your Certificates:</strong><div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">';
     certs.forEach(cert => {
-      certsHtml += `<li>🏆 ${cert.hours_certified}h Volunteer Certificate - <a href="${API_BASE_URL}/api/certificates/verify/${cert.verification_code}" target="_blank" style="color: #667eea;">Verify</a> | <a href="${API_BASE_URL}/api/certificates/verify/${cert.verification_code}?format=pdf" target="_blank" style="color: #667eea; font-weight: bold;">Download PDF 📥</a></li>`;
+      certsHtml += `
+        <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(102, 126, 234, 0.1); border: 1px solid rgba(102, 126, 234, 0.3); border-radius: 8px; padding: 12px 16px; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 20px;">🏆</span>
+            <div>
+              <strong>${cert.hours_certified} Hours Volunteer Certificate</strong>
+              <div style="font-size: 12px; color: #999; margin-top: 2px;">Issued: ${new Date(cert.issued_at).toLocaleDateString()}</div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <a href="${API_BASE_URL}/api/certificates/verify/${cert.verification_code}?format=pdf" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px; cursor: pointer; transition: transform 0.2s;">📥 Download PDF</a>
+            <a href="${API_BASE_URL}/api/certificates/verify/${cert.verification_code}" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; background: rgba(74, 222, 128, 0.2); color: #4ade80; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 13px; border: 1px solid rgba(74, 222, 128, 0.3);">✓ Verify</a>
+          </div>
+        </div>`;
     });
-    certsHtml += '</ul></div>';
+    certsHtml += '</div></div>';
+  }
+
+  let generateBtn = '';
+  if (hours > 0 && certs.length === 0) {
+    generateBtn = `
+      <div style="margin-top: 15px; border-top: 1px solid rgba(74, 222, 128, 0.2); padding-top: 15px;">
+        <p style="color: #999; margin: 0 0 10px 0; font-size: 13px;">You have ${hours.toFixed(1)} volunteer hours. Certificates are generated at every 5-hour milestone when an admin grants hours.</p>
+      </div>`;
   }
 
   container.innerHTML = `
-        <h4 style="margin: 0 0 10px 0; color: #4ade80;">🤝 Volunteer Status</h4>
+        <h4 style="margin: 0 0 12px 0; color: #4ade80; font-size: 18px;">🤝 Volunteer Status</h4>
         <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
-            <div><strong>Total Hours:</strong> ${hours.toFixed(1)}h</div>
-            <div><strong>Status:</strong> ${verified ? '✅ Verified Creator' : '⏳ Not Yet Verified (need 20h)'}</div>
-            <div><strong>Next Milestone:</strong> ${getNextMilestone(hours)}h</div>
+            <div style="background: rgba(0,0,0,0.2); padding: 8px 14px; border-radius: 6px;"><strong>Total Hours:</strong> ${hours.toFixed(1)}h</div>
+            <div style="background: rgba(0,0,0,0.2); padding: 8px 14px; border-radius: 6px;"><strong>Status:</strong> ${verified ? '✅ Verified Creator' : '⏳ Not Yet Verified (need 20h)'}</div>
+            <div style="background: rgba(0,0,0,0.2); padding: 8px 14px; border-radius: 6px;"><strong>Next Milestone:</strong> ${getNextMilestone(hours)}h</div>
         </div>
         ${certsHtml}
+        ${generateBtn}
     `;
 }
 

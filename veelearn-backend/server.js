@@ -2445,28 +2445,42 @@ app.get('/api/certificates/verify/:code', async (req, res) => {
                         doc.moveDown();
                     }
 
-                    // Signature Line (Moved to Left Side)
-                    const signatureY = 400; // Move up separate from footer
-                    doc.moveTo(100, signatureY + 50).lineTo(300, signatureY + 50).stroke();
+                    // Signature Line (Left Side)
+                    const signatureY = 390;
+                    doc.moveTo(100, signatureY + 50).lineTo(300, signatureY + 50).stroke('#999999');
 
-                    // Specific signature logic - load from GitHub Pages
-                    const signatureUrl = 'https://virats-best.github.io/Veelearn/Signuture.png';
-                    console.log('Loading signature from:', signatureUrl);
-                    try {
-                        // Place signature image from GitHub Pages - Fetch via axios first
-                        const response = await axios.get(signatureUrl, { responseType: 'arraybuffer', timeout: 5000 });
-                        if (response.data) {
-                            doc.image(response.data, 120, signatureY - 20, { width: 120 });
-                            console.log('✓ Signature image loaded successfully from GitHub Pages');
+                    // Load signature image - try multiple URLs as fallback
+                    const signatureUrls = [
+                        'https://virats-best.github.io/Veelearn/Signuture.png',
+                        'https://virats-best.github.io/Veelearn/Signature.png'
+                    ];
+                    let signatureLoaded = false;
+                    for (const signatureUrl of signatureUrls) {
+                        if (signatureLoaded) break;
+                        try {
+                            console.log('Trying signature from:', signatureUrl);
+                            const response = await axios.get(signatureUrl, { responseType: 'arraybuffer', timeout: 8000 });
+                            if (response.data && response.data.length > 100) {
+                                doc.image(response.data, 120, signatureY - 15, { width: 150, height: 60 });
+                                console.log('✓ Signature loaded from:', signatureUrl);
+                                signatureLoaded = true;
+                            }
+                        } catch (imgErr) {
+                            console.error('Signature load failed from:', signatureUrl, imgErr.message);
                         }
-                    } catch (imgErr) {
-                        console.error('Error loading signature image:', imgErr.message);
-                        // Fallback: draw a simple line or placeholder if signature fails
-                        doc.fontSize(10).fillColor('#ff0000').text('[Signature Image Unavailable]', 120, signatureY + 10);
+                    }
+                    if (!signatureLoaded) {
+                        doc.font('Helvetica-BoldOblique').fontSize(18).fillColor('#333333').text('Virat Sisodiya', 120, signatureY + 5);
                     }
 
-                    doc.fontSize(12).fillColor('#333333').text('Virat Sisodiya', 100, signatureY + 60, { align: 'left', width: 200 });
-                    doc.fontSize(10).fillColor('#666666').text('Veelearn Administrator', 100, signatureY + 75, { align: 'left', width: 200 });
+                    doc.font('Helvetica-Bold').fontSize(13).fillColor('#333333').text('Virat Sisodiya', 100, signatureY + 55, { align: 'left', width: 200 });
+                    doc.font('Helvetica').fontSize(10).fillColor('#666666').text('Founder & Administrator, Veelearn', 100, signatureY + 72, { align: 'left', width: 250 });
+
+                    // "Proof" section on right side
+                    const proofX = 500;
+                    doc.moveTo(proofX, signatureY + 50).lineTo(proofX + 250, signatureY + 50).stroke('#999999');
+                    doc.font('Helvetica').fontSize(10).fillColor('#333333').text('Date of Issue', proofX, signatureY + 55, { align: 'center', width: 250 });
+                    doc.font('Helvetica-Bold').fontSize(12).text(new Date(certificate.issued_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), proofX, signatureY + 35, { align: 'center', width: 250 });
 
                     // Footer / Verification (Moved to Absolute Bottom)
                     // Page height is ~595 in A4 Landscape (if inverted? pdfkit default is 72dpi, A4 is 595x842. Landscape 842x595)
@@ -2478,7 +2492,7 @@ app.get('/api/certificates/verify/:code', async (req, res) => {
                     doc.font('Helvetica').fontSize(10).fillColor('#333333');
                     doc.text(`Issued On: ${new Date(certificate.issued_at).toLocaleDateString()}`, 0, bottomY, { align: 'center' });
                     doc.text(`Verification Code: ${certificate.verification_code}`, 0, bottomY + 15, { align: 'center' });
-                    const BASE_URL = process.env.APP_URL || `http://localhost:${PORT}`;
+                    const BASE_URL = process.env.APP_URL || 'https://veelearn.onrender.com';
                     doc.fillColor('#667eea').text('Verify at: ' + BASE_URL + '/api/certificates/verify/' + certificate.verification_code, 0, bottomY + 30, { align: 'center', link: BASE_URL + '/api/certificates/verify/' + certificate.verification_code });
 
                     doc.end();
