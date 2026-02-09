@@ -1157,7 +1157,7 @@ app.post('/api/courses/:id/enroll', authenticateToken, (req, res) => {
     const userId = req.user.id;
 
     // Check if course exists and is approved
-    db.query('SELECT * FROM courses WHERE id = ? AND status = "approved"', [courseId], (err, courseResults) => {
+    db.query('SELECT * FROM courses WHERE id = ? AND status = \'approved\'', [courseId], (err, courseResults) => {
         if (err) {
             console.error('Error fetching course:', err);
             return apiResponse(res, 500, 'Server error');
@@ -2436,7 +2436,13 @@ app.get('/api/certificates/verify/:code', async (req, res) => {
                     doc.moveDown();
 
                     if (certificate.hours_certified > 0) {
-                        doc.font('Helvetica').fontSize(15).text(`Hours Certified: ${certificate.hours_certified} Hours`, { align: 'center' });
+                        doc.font('Helvetica').fontSize(15).text(`Milestone: ${certificate.hours_certified} Hours`, { align: 'center' });
+                        doc.moveDown(0.5);
+                    }
+
+                    if (certificate.total_volunteer_hours > 0) {
+                        doc.font('Helvetica-Bold').fontSize(16).fillColor('#4a5568').text(`Total Lifetime Volunteer Hours: ${certificate.total_volunteer_hours}`, { align: 'center' });
+                        doc.moveDown();
                     }
 
                     // Signature Line (Moved to Left Side)
@@ -2448,11 +2454,15 @@ app.get('/api/certificates/verify/:code', async (req, res) => {
                     console.log('Loading signature from:', signatureUrl);
                     try {
                         // Place signature image from GitHub Pages - Fetch via axios first
-                        const response = await axios.get(signatureUrl, { responseType: 'arraybuffer' });
-                        doc.image(response.data, 120, signatureY - 20, { width: 120 });
-                        console.log('✓ Signature image loaded successfully from GitHub Pages');
+                        const response = await axios.get(signatureUrl, { responseType: 'arraybuffer', timeout: 5000 });
+                        if (response.data) {
+                            doc.image(response.data, 120, signatureY - 20, { width: 120 });
+                            console.log('✓ Signature image loaded successfully from GitHub Pages');
+                        }
                     } catch (imgErr) {
                         console.error('Error loading signature image:', imgErr.message);
+                        // Fallback: draw a simple line or placeholder if signature fails
+                        doc.fontSize(10).fillColor('#ff0000').text('[Signature Image Unavailable]', 120, signatureY + 10);
                     }
 
                     doc.fontSize(12).fillColor('#333333').text('Virat Sisodiya', 100, signatureY + 60, { align: 'left', width: 200 });
