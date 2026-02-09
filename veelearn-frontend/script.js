@@ -260,9 +260,9 @@ function handleLogin() {
 }
 
 function handleRegister() {
-  const email = document.getElementById("reg-email").value;
-  const password = document.getElementById("reg-password").value;
-  const errorMsg = document.getElementById("reg-error-message");
+  const email = document.getElementById("register-email").value;
+  const password = document.getElementById("register-password").value;
+  const errorMsg = document.getElementById("register-error-message");
 
   if (!email || !password) {
     errorMsg.textContent = "All fields required";
@@ -278,7 +278,7 @@ function handleRegister() {
     .then((data) => {
       if (data.success) {
         alert("Registration successful! Please login.");
-        document.getElementById("auth-login").click();
+        document.getElementById("show-login").click();
       } else {
         errorMsg.textContent = data.message || "Registration failed";
       }
