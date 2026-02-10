@@ -2492,8 +2492,10 @@ async function saveQuizQuestion() {
         }
       } else {
         // New question: Start placement mode
+        const newQuestionId = result.data.questionId || result.data.insertId || result.data.id;
+        console.log('New question created with ID:', newQuestionId, 'result.data:', result.data);
         startPlacementMode('quiz', {
-          id: result.data.insertId || result.data.id, // Adjust based on API response
+          id: newQuestionId,
           text: questionText
         });
       }
@@ -3748,9 +3750,9 @@ function insertQuizPlaceholderAtPosition(questionId, questionText, x, y) {
   if (deleteBtn) {
     deleteBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (confirm('Delete this question?')) {
-        placeholder.remove();
-        // Optionally delete from DB too, but maybe just removing from content is enough for now
+      const qId = parseInt(placeholder.dataset.questionId);
+      if (qId && !isNaN(qId) && confirm('Delete this question?')) {
+        deleteQuizQuestion(qId);
       }
     });
   }
