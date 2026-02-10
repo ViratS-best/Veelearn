@@ -675,6 +675,15 @@ footer {
   transition: all 0.3s ease;
 }
 
+#course-viewer-content .quiz-question {
+  position: relative !important;
+  left: auto !important;
+  top: auto !important;
+  width: 100% !important;
+  max-width: 600px;
+  margin: 1.5em auto;
+}
+
 .quiz-question:hover {
   background: rgba(102, 126, 234, 0.15);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
