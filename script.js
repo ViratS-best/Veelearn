@@ -1658,17 +1658,28 @@ function editCourse(courseId) {
 
     // Load quiz questions for this course and re-render placeholders
     loadCourseQuestions(courseId).then(() => {
-      // IMPORTANT: Clear all existing placeholders first to prevent duplicates
       const editor = document.getElementById('course-content-editor');
+
+      // Check which question IDs already have placeholders in the saved content
       const existingPlaceholders = editor.querySelectorAll('.quiz-question-placeholder');
-      existingPlaceholders.forEach(p => p.remove());
+      const existingIds = new Set();
+      existingPlaceholders.forEach(p => {
+        const qId = p.dataset.questionId;
+        if (qId) existingIds.add(String(qId));
+      });
+
+      // For any questions that DON'T have a placeholder in the content, add one at the end
+      courseQuestions.forEach(q => {
+        if (!existingIds.has(String(q.id))) {
+          insertQuizPlaceholder(q.question_text, q.id);
+        }
+      });
 
       // Re-attach handlers to existing simulators and quizzes
 
       // Simulators
       editor.querySelectorAll('.simulator-block').forEach(sim => {
         makeElementDraggable(sim);
-        // Re-attach click handlers if they were lost (though inline onclicks should persist)
       });
 
       // PhET Sims
@@ -1685,11 +1696,10 @@ function editCourse(courseId) {
         }
       });
 
-      // Quiz Placeholders
+      // Quiz Placeholders - re-attach click and delete handlers
       editor.querySelectorAll('.quiz-question-placeholder').forEach(placeholder => {
         makeElementDraggable(placeholder);
 
-        // Re-attach click handler for editing
         placeholder.addEventListener('click', (e) => {
           if (e.target.closest('button')) return;
           const qId = placeholder.dataset.questionId;
@@ -1698,13 +1708,13 @@ function editCourse(courseId) {
           }
         });
 
-        // Re-attach delete handler
         const deleteBtn = placeholder.querySelector('.quiz-placeholder-delete-btn');
         if (deleteBtn) {
           deleteBtn.addEventListener('click', (e) => {
             e.stopPropagation();
+            const qId = parseInt(placeholder.dataset.questionId);
             if (confirm('Delete this question?')) {
-              placeholder.remove();
+              deleteQuizQuestion(qId);
             }
           });
         }
@@ -2686,6 +2696,7 @@ function hydrateQuizPlaceholders() {
   let questionCounter = 0;
 
   placeholders.forEach(placeholder => {
+    const questionId = parseInt(placeholder.dataset.questionId);
     if (!questionId || isNaN(questionId)) {
       console.error('Invalid question ID in placeholder:', placeholder);
       return;
