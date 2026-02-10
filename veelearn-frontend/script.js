@@ -2710,7 +2710,7 @@ function hydrateQuizPlaceholders() {
       const questionEl = createQuizQuestionElement(question, questionCounter);
       questionCounter++;
 
-      questionEl.style.cssText = placeholder.style.cssText;
+      questionEl.style.cssText = '';
       questionEl.style.border = '2px solid var(--primary)';
       questionEl.style.background = 'rgba(102, 126, 234, 0.1)';
       questionEl.style.cursor = 'default';
@@ -3090,7 +3090,6 @@ const PHET_SIMS = [
   { title: "Forces and Motion: Basics", url: "https://phet.colorado.edu/sims/html/forces-and-motion-basics/latest/forces-and-motion-basics_en.html", description: "Explore forces, motion, and friction" },
   { title: "Projectile Motion", url: "https://phet.colorado.edu/sims/html/projectile-motion/latest/projectile-motion_en.html", description: "Blast objects through the air" },
   { title: "Friction", url: "https://phet.colorado.edu/sims/html/friction/latest/friction_en.html", description: "Feel the heat as you rub objects together" },
-  { title: "The Ramp: Forces and Motion", url: "https://phet.colorado.edu/sims/html/the-ramp/latest/the-ramp_en.html", description: "Explore forces, energy and work on a ramp" },
   { title: "Gravity Force Lab", url: "https://phet.colorado.edu/sims/html/gravity-force-lab/latest/gravity-force-lab_en.html", description: "Visualize gravitational force" },
   { title: "Gravity and Orbits", url: "https://phet.colorado.edu/sims/html/gravity-and-orbits/latest/gravity-and-orbits_en.html", description: "Move the sun, earth, moon and space station" },
   { title: "My Solar System", url: "https://phet.colorado.edu/sims/html/my-solar-system/latest/my-solar-system_en.html", description: "Build your own solar system" },
@@ -3111,19 +3110,15 @@ const PHET_SIMS = [
   { title: "Wave on a String", url: "https://phet.colorado.edu/sims/html/wave-on-a-string/latest/wave-on-a-string_en.html", description: "Wiggle the end of a string" },
   { title: "Fourier: Making Waves", url: "https://phet.colorado.edu/sims/html/fourier-making-waves/latest/fourier-making-waves_en.html", description: "Build waves with Fourier series" },
 
-
   // PHYSICS - Light & Optics
   { title: "Bending Light", url: "https://phet.colorado.edu/sims/html/bending-light/latest/bending-light_en.html", description: "Explore refraction of light" },
   { title: "Color Vision", url: "https://phet.colorado.edu/sims/html/color-vision/latest/color-vision_en.html", description: "Make a rainbow by mixing light" },
   { title: "Geometric Optics", url: "https://phet.colorado.edu/sims/html/geometric-optics/latest/geometric-optics_en.html", description: "How lenses and mirrors work" },
   { title: "Molecules and Light", url: "https://phet.colorado.edu/sims/html/molecules-and-light/latest/molecules-and-light_en.html", description: "How molecules interact with light" },
   { title: "Blackbody Spectrum", url: "https://phet.colorado.edu/sims/html/blackbody-spectrum/latest/blackbody-spectrum_en.html", description: "How does temperature affect spectra?" },
-  { title: "Lasers", url: "https://phet.colorado.edu/sims/html/lasers/latest/lasers_en.html", description: "Create your own laser" },
 
   // PHYSICS - Quantum Mechanics
   { title: "Quantum Measurement", url: "https://phet.colorado.edu/sims/html/stern-gerlach/latest/stern-gerlach_en.html", description: "Explore quantum measurement and states" },
-  { title: "Quantum Wave Interference", url: "https://phet.colorado.edu/sims/html/wave-interference/latest/wave-interference_en.html", description: "Explore quantum wave behavior" },
-  { title: "Quantum Tunneling and Wave Packets", url: "https://phet.colorado.edu/sims/html/quantum-tunneling-and-wave-packets/latest/quantum-tunneling-and-wave-packets_en.html", description: "Explore quantum tunneling" },
   { title: "Models of the Hydrogen Atom", url: "https://phet.colorado.edu/sims/html/models-of-the-hydrogen-atom/latest/models-of-the-hydrogen-atom_en.html", description: "Compare hydrogen atom models" },
 
   // PHYSICS - Electricity & Magnetism
@@ -3133,9 +3128,7 @@ const PHET_SIMS = [
   { title: "John Travoltage", url: "https://phet.colorado.edu/sims/html/john-travoltage/latest/john-travoltage_en.html", description: "Make sparks fly with static electricity" },
   { title: "Charges and Fields", url: "https://phet.colorado.edu/sims/html/charges-and-fields/latest/charges-and-fields_en.html", description: "Explore electric fields" },
   { title: "Coulomb's Law", url: "https://phet.colorado.edu/sims/html/coulombs-law/latest/coulombs-law_en.html", description: "Explore electrostatic force" },
-  { title: "Faraday's Electromagnetic Lab", url: "https://phet.colorado.edu/sims/html/faradays-electromagnetic-lab/latest/faradays-electromagnetic-lab_en.html", description: "Explore electromagnetic induction" },
   { title: "Faraday's Law", url: "https://phet.colorado.edu/sims/html/faradays-law/latest/faradays-law_en.html", description: "Generate electricity with magnets" },
-  { title: "Magnets and Electromagnets", url: "https://phet.colorado.edu/sims/html/magnets-and-electromagnets/latest/magnets-and-electromagnets_en.html", description: "Explore magnetic fields" },
   { title: "Capacitor Lab: Basics", url: "https://phet.colorado.edu/sims/html/capacitor-lab-basics/latest/capacitor-lab-basics_en.html", description: "Explore capacitors" },
   { title: "Ohm's Law", url: "https://phet.colorado.edu/sims/html/ohms-law/latest/ohms-law_en.html", description: "V = I × R" },
   { title: "Resistance in a Wire", url: "https://phet.colorado.edu/sims/html/resistance-in-a-wire/latest/resistance-in-a-wire_en.html", description: "How does resistance work?" },
@@ -3160,8 +3153,6 @@ const PHET_SIMS = [
   // CHEMISTRY - Reactions
   { title: "Balancing Chemical Equations", url: "https://phet.colorado.edu/sims/html/balancing-chemical-equations/latest/balancing-chemical-equations_en.html", description: "Balance chemical equations" },
   { title: "Reactants, Products and Leftovers", url: "https://phet.colorado.edu/sims/html/reactants-products-and-leftovers/latest/reactants-products-and-leftovers_en.html", description: "Explore limiting reactants" },
-  { title: "Reversible Reactions", url: "https://phet.colorado.edu/sims/html/reversible-reactions/latest/reversible-reactions_en.html", description: "Explore chemical equilibrium" },
-  { title: "Collision Lab", url: "https://phet.colorado.edu/sims/html/collision-lab/latest/collision-lab_en.html", description: "Investigate collisions" },
 
   // CHEMISTRY - Solutions
   { title: "pH Scale", url: "https://phet.colorado.edu/sims/html/ph-scale/latest/ph-scale_en.html", description: "Test pH of liquids" },
@@ -3170,7 +3161,6 @@ const PHET_SIMS = [
   { title: "Concentration", url: "https://phet.colorado.edu/sims/html/concentration/latest/concentration_en.html", description: "Make solutions by dissolving" },
   { title: "Molarity", url: "https://phet.colorado.edu/sims/html/molarity/latest/molarity_en.html", description: "Calculate solution concentrations" },
   { title: "Beer's Law Lab", url: "https://phet.colorado.edu/sims/html/beers-law-lab/latest/beers-law-lab_en.html", description: "Explore light absorption" },
-  { title: "Sugar and Salt Solutions", url: "https://phet.colorado.edu/sims/html/sugar-and-salt-solutions/latest/sugar-and-salt-solutions_en.html", description: "Micro vs macro views" },
 
   // BIOLOGY
   { title: "Natural Selection", url: "https://phet.colorado.edu/sims/html/natural-selection/latest/natural-selection_en.html", description: "Watch evolution in action" },
@@ -3224,7 +3214,19 @@ const PHET_SIMS = [
   { title: "Masses and Springs: Basics", url: "https://phet.colorado.edu/sims/html/masses-and-springs-basics/latest/masses-and-springs-basics_en.html", description: "Introduction to spring systems" },
   { title: "Gravity Force Lab: Basics", url: "https://phet.colorado.edu/sims/html/gravity-force-lab-basics/latest/gravity-force-lab-basics_en.html", description: "Introduction to gravity" },
   { title: "Proportion Playground", url: "https://phet.colorado.edu/sims/html/proportion-playground/latest/proportion-playground_en.html", description: "Play with proportions" },
-  { title: "Physics 101", url: "https://phet.colorado.edu/sims/html/vector-addition/latest/vector-addition_en.html", description: "Add vectors graphically" }
+  { title: "Vector Addition", url: "https://phet.colorado.edu/sims/html/vector-addition/latest/vector-addition_en.html", description: "Add vectors graphically" },
+
+  // ADDITIONAL VERIFIED HTML5 SIMS
+  { title: "Vector Addition: Equations", url: "https://phet.colorado.edu/sims/html/vector-addition-equations/latest/vector-addition-equations_en.html", description: "Explore vector equations" },
+  { title: "Circuit Construction Kit: DC - Virtual Lab", url: "https://phet.colorado.edu/sims/html/circuit-construction-kit-dc-virtual-lab/latest/circuit-construction-kit-dc-virtual-lab_en.html", description: "Advanced DC circuit lab" },
+  { title: "Energy Skate Park: Basics", url: "https://phet.colorado.edu/sims/html/energy-skate-park-basics/latest/energy-skate-park-basics_en.html", description: "Introduction to energy conservation" },
+  { title: "Number Line: Distance", url: "https://phet.colorado.edu/sims/html/number-line-distance/latest/number-line-distance_en.html", description: "Find distances on a number line" },
+  { title: "Geometric Optics: Basics", url: "https://phet.colorado.edu/sims/html/geometric-optics-basics/latest/geometric-optics-basics_en.html", description: "Introduction to lenses and mirrors" },
+  { title: "Kepler's Laws", url: "https://phet.colorado.edu/sims/html/keplers-laws/latest/keplers-laws_en.html", description: "Explore planetary motion" },
+  { title: "Least-Squares Regression", url: "https://phet.colorado.edu/sims/html/least-squares-regression/latest/least-squares-regression_en.html", description: "Fit data with regression lines" },
+  { title: "Normal Modes", url: "https://phet.colorado.edu/sims/html/normal-modes/latest/normal-modes_en.html", description: "Explore standing waves and normal modes" },
+  { title: "Number Compare", url: "https://phet.colorado.edu/sims/html/number-compare/latest/number-compare_en.html", description: "Compare numbers" },
+  { title: "Center of Mass", url: "https://phet.colorado.edu/sims/html/center-of-mass/latest/center-of-mass_en.html", description: "Find the center of mass" }
 ];
 
 function setupPhetModalListeners() {
