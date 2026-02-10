@@ -770,6 +770,21 @@ app.post('/api/courses', authenticateToken, (req, res) => {
         console.log('  Database:', dbConfig.database);
         console.log('  Host:', dbConfig.host);
 
+        // Auto-grant volunteer hours from tracked creation time
+        if (creationTime > 0) {
+            const addedHours = parseFloat((creationTime / 3600).toFixed(2));
+            if (addedHours >= 0.01) {
+                db.query(
+                    'UPDATE users SET total_volunteer_hours = total_volunteer_hours + ? WHERE id = ?',
+                    [addedHours, creator_id],
+                    (volErr) => {
+                        if (volErr) console.error('Error auto-granting volunteer hours:', volErr.message);
+                        else console.log(`✓ Auto-granted ${addedHours}h volunteer hours to user ${creator_id} from tracked time`);
+                    }
+                );
+            }
+        }
+
         // VERIFY the course was actually inserted
         console.log('  Verifying course was inserted...');
         db.query('SELECT id, title FROM courses WHERE id = ?', [newCourseId], (verifyErr, verifyResults) => {
@@ -907,6 +922,27 @@ app.put('/api/courses/:id', authenticateToken, (req, res) => {
                 return apiResponse(res, 500, 'Server error updating course', { details: err.message });
             }
             console.log('✅ Course updated - ID:', courseId, 'Status:', status || 'unchanged');
+
+            // Auto-grant volunteer hours from tracked creation time
+            if (creation_time !== undefined) {
+                const newSeconds = parseInt(creation_time) || 0;
+                const oldSeconds = parseInt(course.creation_time) || 0;
+                const addedSeconds = newSeconds - oldSeconds;
+                if (addedSeconds > 0) {
+                    const addedHours = parseFloat((addedSeconds / 3600).toFixed(2));
+                    if (addedHours >= 0.01) {
+                        db.query(
+                            'UPDATE users SET total_volunteer_hours = total_volunteer_hours + ? WHERE id = ?',
+                            [addedHours, userId],
+                            (volErr) => {
+                                if (volErr) console.error('Error auto-granting volunteer hours:', volErr.message);
+                                else console.log(`✓ Auto-granted ${addedHours}h volunteer hours to user ${userId} from tracked time`);
+                            }
+                        );
+                    }
+                }
+            }
+
             apiResponse(res, 200, 'Course updated successfully');
         });
     });
