@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const path = require('path');
 const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
 const util = require('util');
 const PDFDocument = require('pdfkit');
@@ -15,22 +16,65 @@ const axios = require('axios');
 
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 
-// ===== EMAIL (SMTP) CONFIGURATION =====
+// ===== EMAIL CONFIGURATION =====
+// Primary: Resend (HTTP-based, works on Render/Railway where SMTP ports are blocked)
+// Fallback: Gmail SMTP (works locally or on hosts that allow outbound SMTP)
+const resendClient = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+
 const smtpTransporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
     auth: {
         user: process.env.SMTP_EMAIL,
         pass: process.env.SMTP_PASSWORD
-    }
+    },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000
 });
 
-// Verify SMTP connection on startup (non-blocking)
+let smtpReady = false;
+
+if (resendClient) {
+    console.log('✓ Resend API key configured - using HTTP-based email delivery');
+} else {
+    console.log('ℹ️ No RESEND_API_KEY set, trying Gmail SMTP...');
+}
+
 if (process.env.SMTP_EMAIL && process.env.SMTP_PASSWORD) {
     smtpTransporter.verify()
-        .then(() => console.log('✓ SMTP email service ready'))
-        .catch(err => console.warn('⚠️ SMTP not configured or invalid:', err.message));
-} else {
-    console.warn('⚠️ SMTP_EMAIL / SMTP_PASSWORD not set. Password reset emails will not work.');
+        .then(() => { smtpReady = true; console.log('✓ SMTP email service ready (fallback)'); })
+        .catch(err => console.warn('⚠️ SMTP unavailable:', err.message, '(port likely blocked)'));
+} else if (!resendClient) {
+    console.warn('⚠️ No email provider configured. Set RESEND_API_KEY or SMTP_EMAIL+SMTP_PASSWORD.');
+}
+
+async function sendEmail({ to, subject, html }) {
+    const fromEmail = process.env.SMTP_EMAIL || 'onboarding@resend.dev';
+
+    if (resendClient) {
+        const { error } = await resendClient.emails.send({
+            from: `Veelearn <${process.env.RESEND_FROM || 'onboarding@resend.dev'}>`,
+            to: [to],
+            subject,
+            html
+        });
+        if (error) throw new Error(error.message);
+        return;
+    }
+
+    if (smtpReady) {
+        await smtpTransporter.sendMail({
+            from: `"Veelearn" <${fromEmail}>`,
+            to,
+            subject,
+            html
+        });
+        return;
+    }
+
+    throw new Error('No email provider available. Configure RESEND_API_KEY or fix SMTP settings.');
 }
 
 const app = express();
@@ -623,8 +667,7 @@ app.post('/api/forgot-password', rateLimiter, async (req, res) => {
 
             // Send email
             try {
-                await smtpTransporter.sendMail({
-                    from: `"Veelearn" <${process.env.SMTP_EMAIL}>`,
+                await sendEmail({
                     to: email,
                     subject: 'Veelearn - Password Reset Code',
                     html: `
