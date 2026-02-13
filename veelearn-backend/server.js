@@ -5,6 +5,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const path = require('path');
+const nodemailer = require('nodemailer');
 
 const util = require('util');
 const PDFDocument = require('pdfkit');
@@ -13,6 +14,24 @@ const axios = require('axios');
 // path is already required above
 
 dotenv.config({ path: path.resolve(__dirname, '.env') });
+
+// ===== EMAIL (SMTP) CONFIGURATION =====
+const smtpTransporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.SMTP_EMAIL,
+        pass: process.env.SMTP_PASSWORD
+    }
+});
+
+// Verify SMTP connection on startup (non-blocking)
+if (process.env.SMTP_EMAIL && process.env.SMTP_PASSWORD) {
+    smtpTransporter.verify()
+        .then(() => console.log('✓ SMTP email service ready'))
+        .catch(err => console.warn('⚠️ SMTP not configured or invalid:', err.message));
+} else {
+    console.warn('⚠️ SMTP_EMAIL / SMTP_PASSWORD not set. Password reset emails will not work.');
+}
 
 const app = express();
 
@@ -574,6 +593,106 @@ app.post('/api/login', rateLimiter, async (req, res) => {
         });
     } catch (error) {
         console.error('Login error:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// ===== FORGOT / RESET PASSWORD =====
+const resetCodes = new Map(); // email -> { code, expiresAt }
+
+app.post('/api/forgot-password', rateLimiter, async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return apiResponse(res, 400, 'Email is required');
+    }
+    if (!validateEmail(email)) {
+        return apiResponse(res, 400, 'Invalid email format');
+    }
+
+    try {
+        // Check if user exists (but don't reveal to client)
+        const users = await query('SELECT id FROM users WHERE email = ?', [email]);
+
+        if (users.length > 0) {
+            // Generate 6-digit code
+            const code = Math.floor(100000 + Math.random() * 900000).toString();
+            const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+            resetCodes.set(email.toLowerCase(), { code, expiresAt });
+
+            // Send email
+            try {
+                await smtpTransporter.sendMail({
+                    from: `"Veelearn" <${process.env.SMTP_EMAIL}>`,
+                    to: email,
+                    subject: 'Veelearn - Password Reset Code',
+                    html: `
+                        <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 30px; background: #1a1a2e; color: #eee; border-radius: 10px;">
+                            <h2 style="color: #667eea; text-align: center;">Veelearn Password Reset</h2>
+                            <p>You requested a password reset. Use the code below to reset your password:</p>
+                            <div style="text-align: center; margin: 25px 0;">
+                                <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #f093fb; background: rgba(102,126,234,0.2); padding: 12px 24px; border-radius: 8px;">${code}</span>
+                            </div>
+                            <p style="color: #999; font-size: 0.9em;">This code expires in <strong>10 minutes</strong>.</p>
+                            <p style="color: #999; font-size: 0.9em;">If you didn't request this, please ignore this email.</p>
+                            <hr style="border-color: #333; margin: 20px 0;">
+                            <p style="color: #666; font-size: 0.8em; text-align: center;">&copy; 2026 Veelearn</p>
+                        </div>
+                    `
+                });
+                console.log(`✓ Password reset code sent to ${email}`);
+            } catch (emailErr) {
+                console.error('❌ Failed to send reset email:', emailErr.message);
+                return apiResponse(res, 500, 'Failed to send reset email. Please try again later.');
+            }
+        } else {
+            console.log(`⚠️ Password reset requested for non-existent email: ${email}`);
+        }
+
+        // Always return success (don't reveal if email exists)
+        apiResponse(res, 200, 'If an account with that email exists, a reset code has been sent.');
+    } catch (error) {
+        console.error('Forgot password error:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+app.post('/api/reset-password', rateLimiter, async (req, res) => {
+    const { email, code, newPassword } = req.body;
+
+    if (!email || !code || !newPassword) {
+        return apiResponse(res, 400, 'Email, code, and new password are required');
+    }
+
+    if (!validatePassword(newPassword)) {
+        return apiResponse(res, 400, 'Password must be at least 8 characters with uppercase, lowercase, and number');
+    }
+
+    const stored = resetCodes.get(email.toLowerCase());
+
+    if (!stored) {
+        return apiResponse(res, 400, 'No reset code found. Please request a new one.');
+    }
+
+    if (Date.now() > stored.expiresAt) {
+        resetCodes.delete(email.toLowerCase());
+        return apiResponse(res, 400, 'Reset code has expired. Please request a new one.');
+    }
+
+    if (stored.code !== code.trim()) {
+        return apiResponse(res, 400, 'Invalid reset code');
+    }
+
+    try {
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await query('UPDATE users SET password = ? WHERE email = ?', [hashedPassword, email]);
+        resetCodes.delete(email.toLowerCase());
+
+        console.log(`✓ Password reset successful for ${email}`);
+        apiResponse(res, 200, 'Password reset successfully! You can now log in with your new password.');
+    } catch (error) {
+        console.error('Reset password error:', error);
         apiResponse(res, 500, 'Server error');
     }
 });
