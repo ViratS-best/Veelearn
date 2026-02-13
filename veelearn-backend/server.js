@@ -6,7 +6,6 @@ const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const path = require('path');
 const nodemailer = require('nodemailer');
-const { Resend } = require('resend');
 
 const util = require('util');
 const PDFDocument = require('pdfkit');
@@ -17,9 +16,8 @@ const axios = require('axios');
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 // ===== EMAIL CONFIGURATION =====
-// Primary: Resend (HTTP-based, works on Render/Railway where SMTP ports are blocked)
+// Primary: Brevo HTTP API (works on Render/Railway where SMTP ports are blocked, no domain needed)
 // Fallback: Gmail SMTP (works locally or on hosts that allow outbound SMTP)
-const resendClient = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 const smtpTransporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
@@ -35,38 +33,45 @@ const smtpTransporter = nodemailer.createTransport({
 });
 
 let smtpReady = false;
+const brevoApiKey = process.env.BREVO_API_KEY;
 
-if (resendClient) {
-    console.log('✓ Resend API key configured - using HTTP-based email delivery');
+if (brevoApiKey) {
+    console.log('✓ Brevo API key configured - using HTTP-based email delivery');
 } else {
-    console.log('ℹ️ No RESEND_API_KEY set, trying Gmail SMTP...');
+    console.log('ℹ️ No BREVO_API_KEY set, trying Gmail SMTP...');
 }
 
 if (process.env.SMTP_EMAIL && process.env.SMTP_PASSWORD) {
     smtpTransporter.verify()
         .then(() => { smtpReady = true; console.log('✓ SMTP email service ready (fallback)'); })
         .catch(err => console.warn('⚠️ SMTP unavailable:', err.message, '(port likely blocked)'));
-} else if (!resendClient) {
-    console.warn('⚠️ No email provider configured. Set RESEND_API_KEY or SMTP_EMAIL+SMTP_PASSWORD.');
+} else if (!brevoApiKey) {
+    console.warn('⚠️ No email provider configured. Set BREVO_API_KEY or SMTP_EMAIL+SMTP_PASSWORD.');
 }
 
 async function sendEmail({ to, subject, html }) {
-    const fromEmail = process.env.SMTP_EMAIL || 'onboarding@resend.dev';
+    const senderEmail = process.env.SMTP_EMAIL || 'noreply@veelearn.com';
+    const senderName = 'Veelearn';
 
-    if (resendClient) {
-        const { error } = await resendClient.emails.send({
-            from: `Veelearn <${process.env.RESEND_FROM || 'onboarding@resend.dev'}>`,
-            to: [to],
+    if (brevoApiKey) {
+        const response = await axios.post('https://api.brevo.com/v3/smtp/email', {
+            sender: { name: senderName, email: senderEmail },
+            to: [{ email: to }],
             subject,
-            html
+            htmlContent: html
+        }, {
+            headers: {
+                'api-key': brevoApiKey,
+                'Content-Type': 'application/json'
+            }
         });
-        if (error) throw new Error(error.message);
+        if (response.status >= 400) throw new Error(`Brevo error: ${response.statusText}`);
         return;
     }
 
     if (smtpReady) {
         await smtpTransporter.sendMail({
-            from: `"Veelearn" <${fromEmail}>`,
+            from: `"${senderName}" <${senderEmail}>`,
             to,
             subject,
             html
@@ -74,7 +79,7 @@ async function sendEmail({ to, subject, html }) {
         return;
     }
 
-    throw new Error('No email provider available. Configure RESEND_API_KEY or fix SMTP settings.');
+    throw new Error('No email provider available. Configure BREVO_API_KEY or fix SMTP settings.');
 }
 
 const app = express();
