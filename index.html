@@ -44,10 +44,49 @@
           <button type="submit">Login</button>
         </form>
         <p>
+          <a href="#" id="show-forgot-password" style="color: var(--accent); font-size: 0.9em;">Forgot Password?</a>
+        </p>
+        <p>
           Don't have an account?
           <a href="#" id="show-register">Register here</a>
         </p>
       </div>
+
+      <!-- FORGOT PASSWORD FORM -->
+      <div id="forgot-password-form" class="auth-form" style="display: none">
+        <h3>Reset Password</h3>
+        <div id="forgot-error-message" style="color: red; margin-bottom: 10px;"></div>
+        <div id="forgot-success-message" style="color: #4caf50; margin-bottom: 10px;"></div>
+
+        <!-- Step 1: Enter email -->
+        <div id="forgot-step-1">
+          <p style="color: #ccc; font-size: 0.9em; margin-bottom: 1em;">Enter your email address and we'll send you a
+            6-digit code to reset your password.</p>
+          <form id="forgot-email-form" autocomplete="on">
+            <input type="email" id="forgot-email" placeholder="Email" autocomplete="email" required />
+            <button type="submit">Send Reset Code</button>
+          </form>
+        </div>
+
+        <!-- Step 2: Enter code + new password -->
+        <div id="forgot-step-2" style="display: none">
+          <p style="color: #ccc; font-size: 0.9em; margin-bottom: 1em;">Enter the 6-digit code sent to your email and
+            choose a new password.</p>
+          <form id="forgot-reset-form" autocomplete="on">
+            <input type="text" id="reset-code" placeholder="6-digit code" maxlength="6" pattern="[0-9]{6}" required
+              style="text-align: center; font-size: 1.3em; letter-spacing: 6px; font-weight: bold;" />
+            <input type="password" id="reset-new-password"
+              placeholder="New password (min 8 chars, uppercase, lowercase, number)" autocomplete="new-password"
+              minlength="8" required />
+            <button type="submit">Reset Password</button>
+          </form>
+        </div>
+
+        <p>
+          <a href="#" id="show-login-from-forgot">Back to Login</a>
+        </p>
+      </div>
+
       <div id="register-form" class="auth-form" style="display: none">
         <h3>Register</h3>
         <div id="register-error-message" style="color: red; margin-bottom: 10px;"></div>

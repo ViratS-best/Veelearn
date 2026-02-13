@@ -189,6 +189,7 @@ function setupAuthListeners() {
       e.preventDefault();
       document.getElementById("login-form").style.display = "none";
       document.getElementById("register-form").style.display = "block";
+      document.getElementById("forgot-password-form").style.display = "none";
     });
   }
 
@@ -197,8 +198,151 @@ function setupAuthListeners() {
       e.preventDefault();
       document.getElementById("login-form").style.display = "block";
       document.getElementById("register-form").style.display = "none";
+      document.getElementById("forgot-password-form").style.display = "none";
     });
   }
+
+  // Forgot Password listeners
+  const showForgotPassword = document.getElementById("show-forgot-password");
+  if (showForgotPassword) {
+    showForgotPassword.addEventListener("click", (e) => {
+      e.preventDefault();
+      document.getElementById("login-form").style.display = "none";
+      document.getElementById("register-form").style.display = "none";
+      document.getElementById("forgot-password-form").style.display = "block";
+      // Reset to step 1
+      document.getElementById("forgot-step-1").style.display = "block";
+      document.getElementById("forgot-step-2").style.display = "none";
+      document.getElementById("forgot-error-message").textContent = "";
+      document.getElementById("forgot-success-message").textContent = "";
+    });
+  }
+
+  const showLoginFromForgot = document.getElementById("show-login-from-forgot");
+  if (showLoginFromForgot) {
+    showLoginFromForgot.addEventListener("click", (e) => {
+      e.preventDefault();
+      document.getElementById("forgot-password-form").style.display = "none";
+      document.getElementById("login-form").style.display = "block";
+    });
+  }
+
+  const forgotEmailForm = document.getElementById("forgot-email-form");
+  if (forgotEmailForm) {
+    forgotEmailForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      handleForgotPassword();
+    });
+  }
+
+  const forgotResetForm = document.getElementById("forgot-reset-form");
+  if (forgotResetForm) {
+    forgotResetForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      handleResetPassword();
+    });
+  }
+}
+
+function handleForgotPassword() {
+  const email = document.getElementById("forgot-email").value;
+  const errorMsg = document.getElementById("forgot-error-message");
+  const successMsg = document.getElementById("forgot-success-message");
+  const submitBtn = document.querySelector("#forgot-email-form button[type='submit']");
+
+  errorMsg.textContent = "";
+  successMsg.textContent = "";
+
+  if (!email) {
+    errorMsg.textContent = "Please enter your email address";
+    return;
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Sending...";
+
+  fetch(`${API_BASE_URL}/api/forgot-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Send Reset Code";
+
+      if (data.success) {
+        successMsg.textContent = data.message;
+        // Move to step 2
+        document.getElementById("forgot-step-1").style.display = "none";
+        document.getElementById("forgot-step-2").style.display = "block";
+        successMsg.textContent = "Code sent! Check your email (including spam folder).";
+      } else {
+        errorMsg.textContent = data.message || "Something went wrong";
+      }
+    })
+    .catch((err) => {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Send Reset Code";
+      console.error("Forgot password error:", err);
+      errorMsg.textContent = "Network error. Please try again.";
+    });
+}
+
+function handleResetPassword() {
+  const email = document.getElementById("forgot-email").value;
+  const code = document.getElementById("reset-code").value;
+  const newPassword = document.getElementById("reset-new-password").value;
+  const errorMsg = document.getElementById("forgot-error-message");
+  const successMsg = document.getElementById("forgot-success-message");
+  const submitBtn = document.querySelector("#forgot-reset-form button[type='submit']");
+
+  errorMsg.textContent = "";
+  successMsg.textContent = "";
+
+  if (!code || !newPassword) {
+    errorMsg.textContent = "Please enter the code and a new password";
+    return;
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Resetting...";
+
+  fetch(`${API_BASE_URL}/api/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, code, newPassword }),
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Reset Password";
+
+      if (data.success) {
+        successMsg.textContent = data.message;
+        // After 2 seconds, go back to login
+        setTimeout(() => {
+          document.getElementById("forgot-password-form").style.display = "none";
+          document.getElementById("login-form").style.display = "block";
+          // Clear all forgot password fields
+          document.getElementById("forgot-email").value = "";
+          document.getElementById("reset-code").value = "";
+          document.getElementById("reset-new-password").value = "";
+          document.getElementById("forgot-error-message").textContent = "";
+          document.getElementById("forgot-success-message").textContent = "";
+          document.getElementById("forgot-step-1").style.display = "block";
+          document.getElementById("forgot-step-2").style.display = "none";
+        }, 2000);
+      } else {
+        errorMsg.textContent = data.message || "Reset failed";
+      }
+    })
+    .catch((err) => {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Reset Password";
+      console.error("Reset password error:", err);
+      errorMsg.textContent = "Network error. Please try again.";
+    });
 }
 
 function handleLogin() {
