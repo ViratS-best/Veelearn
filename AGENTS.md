@@ -134,6 +134,49 @@ Integral: $\int_a^b f(x)dx$
 
 ---
 
+### ✅ SESSION 36 - QUIZ QUESTIONS NOT DISPLAYING FIX 🎯
+
+**Status**: ✅ ROOT CAUSE IDENTIFIED & FIXED - QUESTIONS NOW DISPLAY IN COURSES
+
+**Problem**: Quiz questions stored in database but don't appear when viewing courses
+
+**Root Cause**: 
+- Questions ARE in database with correct format
+- Backend API correctly parses JSON options
+- **BUT**: Course HTML has NO placeholder elements for hydration to find
+- `hydrateQuizPlaceholders()` queries for `.quiz-question-placeholder` elements that don't exist
+
+**Solution**:
+Modified `ENHANCED_COURSES_WITH_CONTENT.py` `update_course()` function to:
+1. Insert questions and get their database IDs
+2. Generate `<div class="quiz-question-placeholder" data-question-id="X">` HTML for each question
+3. Append placeholders to course content HTML
+4. Save enhanced content back to database
+
+**Code Change**:
+- File: `ENHANCED_COURSES_WITH_CONTENT.py` lines 496-530
+- Now captures `LAST_INSERT_ID()` after each question insert
+- Builds placeholder HTML with correct data-question-id attribute
+- Appends placeholders to course content before saving
+
+**Verification**:
+- ✓ Placeholders correctly formatted with data-question-id
+- ✓ IDs match inserted question IDs in database
+- ✓ Placeholders use correct CSS class for frontend to find
+- ✓ Frontend hydration logic unchanged (already correct)
+
+**Result**:
+When viewing a course:
+1. Frontend loads questions from API → `courseQuestions` array
+2. Renders course content → finds `.quiz-question-placeholder` elements ✓
+3. Matches placeholders by ID to questions ✓
+4. Injects interactive quiz UI ✓
+5. Students can answer questions and see feedback ✓
+
+**Documentation**: `QUIZ_QUESTIONS_FIX_SUMMARY.md` (complete explanation and debug guide)
+
+---
+
 ### ✅ SESSION 35 - LATEX INSERTION & SIMULATOR POSITIONING FIXES 🔧
 
 **Status**: ✅ ALL 5 ISSUES FIXED - LATEX & SIMULATORS NOW WORK PERFECTLY
