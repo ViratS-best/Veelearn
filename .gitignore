@@ -1,0 +1,52 @@
+# Environment Variables
+.env
+.env.local
+.env.*.local
+.env.aiven
+
+# Aiven Credentials
+AIVEN_PASSWORD
+*.aiven
+
+# Node Modules
+node_modules/
+npm-debug.log
+package-lock.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# Temp files
+tmp/
+temp/
+*.tmp
+
+# Sensitive Files
+*.key
+*.pem
+*.p8
