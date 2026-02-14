@@ -1,0 +1,91 @@
+================================================================================
+                    🚨 DO THESE 3 THINGS RIGHT NOW 🚨
+================================================================================
+
+YOUR AIVEN DATABASE PASSWORD WAS EXPOSED IN GITHUB!
+
+⏰ TIME ESTIMATE: 10 minutes to complete all steps
+
+================================================================================
+STEP 1: ROTATE AIVEN PASSWORD (5 minutes)
+================================================================================
+
+1. Go to: https://aiven.io/console
+2. Find your MySQL database: "veelearndb-asterloop-483e"
+3. Go to Settings → Passwords
+4. Click "Change Password"
+5. Copy the NEW password somewhere safe
+6. Click "Confirm"
+
+DONE! ✅ You now have a new secure password.
+
+================================================================================
+STEP 2: UPDATE RENDER BACKEND (3 minutes)
+================================================================================
+
+1. Go to: https://render.com/dashboard
+2. Find your Veelearn backend service
+3. Go to Settings → Environment Variables
+4. Find: MYSQLPASSWORD
+5. Change the value to your NEW password (from Step 1)
+6. Click "Save Changes"
+7. Service will redeploy automatically
+
+WAIT for the redeploy to complete (watch the logs):
+   "✓ Service Started" message appears
+
+DONE! ✅ Backend now has the new password.
+
+================================================================================
+STEP 3: VERIFY EVERYTHING WORKS (2 minutes)
+================================================================================
+
+1. Go to your frontend on Render or GitHub Pages
+2. Try to login
+3. Go to "Available Courses"
+4. Look for:
+   - 📚 Algebra Fundamentals
+   - 🔬 Quantum Mechanics Essentials
+5. Click one and make sure it loads
+
+If you see the courses: ✅ EVERYTHING WORKS!
+If you get an error: ❌ Check that password is correct in Render
+
+================================================================================
+WHAT'S DONE FOR YOU:
+================================================================================
+
+✅ 2 complete courses created in Aiven database
+   - Algebra Fundamentals (8 questions, 4 PhET simulators)
+   - Quantum Mechanics Essentials (9 questions, 4 PhET simulators)
+
+✅ GitHub repository cleaned
+   - Removed exposed passwords from git history
+   - All code now uses environment variables
+   - Safe to push/pull from GitHub
+
+✅ Students can start learning
+   - Just need courses to be accessible
+   - Which requires the 3 steps above
+
+================================================================================
+IF YOU NEED MORE DETAILS:
+================================================================================
+
+Read these files (in order):
+
+1. URGENT_SECURITY_ACTION_REQUIRED.md - Full security explanation
+2. FINAL_STATUS.md - Complete project status
+3. START_COURSES_NOW.md - How students use courses
+4. COURSE_INJECTION_COMPLETE.md - Detailed course content
+
+================================================================================
+THAT'S IT! 3 EASY STEPS = PRODUCTION READY
+================================================================================
+
+⏱️ Takes ~10 minutes
+✅ Gives you 2 complete courses
+✅ Secures your database
+✅ Ready for students
+
+DO IT NOW! Your data depends on it! 🚀
