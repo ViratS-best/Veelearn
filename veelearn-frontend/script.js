@@ -1568,9 +1568,16 @@ function approveTeacher(userId, email) {
     .then((res) => res.json())
     .then((data) => {
       if (data.success) {
-        alert(`✅ Teacher ${email} approved! Students can now enroll in their class.\n\nTeacher will see the updated approval status when they refresh or navigate.`);
+        alert(`✅ Teacher ${email} approved! Students can now enroll in their class.`);
         // Refresh user list to show updated status
         loadAllUsers();
+        
+        // If this is the current logged-in teacher, update their approval status too
+        if (currentUser && currentUser.id === userId) {
+          currentUser.teacher_approved = true;
+          // Refresh their UI if they're on dashboard
+          setupTeacherStudentListeners();
+        }
       } else {
         alert("Error: " + data.message);
       }
@@ -4482,7 +4489,8 @@ async function fetchAndDisplayClassCode() {
         console.log('✓ Class code displayed:', result.data.classCode);
       }
       
-      // Update current user with fresh approval status from server
+      // Update current user with fresh class code and approval status from server
+      currentUser.class_code = result.data.classCode;
       currentUser.teacher_approved = result.data.approved;
       
       // Show approval status
