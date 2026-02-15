@@ -1568,7 +1568,7 @@ function approveTeacher(userId, email) {
     .then((res) => res.json())
     .then((data) => {
       if (data.success) {
-        alert(`✅ Teacher ${email} approved! Students can now enroll in their class.`);
+        alert(`✅ Teacher ${email} approved! Students can now enroll in their class.\n\nNote: Teacher needs to refresh their page to see the approval status.`);
         loadAllUsers();
       } else {
         alert("Error: " + data.message);
@@ -4192,8 +4192,13 @@ async function enrollInClass() {
 
     const result = await response.json();
     if (result.success) {
+      // Update current user role to student
+      currentUser.role = 'student';
       alert('✅ Enrolled in class successfully!');
       document.getElementById('class-code-input').value = '';
+      // Refresh dashboard to show student view
+      showUserDashboard();
+      setupTeacherStudentListeners();
       loadStudentAssignments();
     } else {
       alert('Error: ' + result.message);
@@ -4333,7 +4338,9 @@ async function loadTeacherClasses() {
     });
 
     const result = await response.json();
-    if (result.success && result.data.length > 0) {
+    console.log('Teacher classes result:', result);
+    
+    if (result.success && result.data && result.data.length > 0) {
       const classList = document.getElementById('my-classes-list');
       classList.innerHTML = result.data.map(cls => `
         <div style="background: #222; padding: 12px; border-radius: 4px; margin-bottom: 10px; border-left: 4px solid #4ade80;">
@@ -4343,6 +4350,9 @@ async function loadTeacherClasses() {
           </button>
         </div>
       `).join('');
+    } else {
+      const classList = document.getElementById('my-classes-list');
+      classList.innerHTML = '<p style="color: #999; font-size: 0.9em;">No classes yet. Assign a course to create a class.</p>';
     }
   } catch (err) {
     console.error('Error loading classes:', err);
@@ -4444,9 +4454,20 @@ async function fetchAndDisplayClassCode() {
     const result = await response.json();
     if (result.success) {
       const classCodeSpan = document.getElementById('my-class-code');
+      const statusDiv = document.getElementById('teacher-approval-status');
+      
       if (classCodeSpan) {
         classCodeSpan.textContent = result.data.classCode;
         console.log('✓ Class code displayed:', result.data.classCode);
+      }
+      
+      // Show approval status
+      if (statusDiv) {
+        if (currentUser.teacher_approved) {
+          statusDiv.innerHTML = '<span style="color: #4ade80; font-weight: bold;">✅ Teacher approved! Students can join your class.</span>';
+        } else {
+          statusDiv.innerHTML = '<span style="color: #ff9800; font-weight: bold;">⏳ Waiting for superadmin approval... Students cannot join yet.</span>';
+        }
       }
     } else {
       console.log('ℹ️ Teacher approval pending');
