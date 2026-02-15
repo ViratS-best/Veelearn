@@ -4109,7 +4109,7 @@ window.grantVolunteerHours = grantVolunteerHours;
 
 // Become a teacher
 async function becomeTeacher() {
-  const confirm_msg = `⚠️ WARNING: This action cannot be undone without superadmin approval.\n\nYou will be transformed into a teacher with a unique class code.\nYour teacher status will require superadmin approval.\n\nContinue?`;
+  const confirm_msg = `⚠️ IMPORTANT: This action cannot be undone without superadmin approval.\n\n✓ You will get a unique class code immediately\n✓ You can see it and use it right away\n✗ BUT students can't enroll until superadmin approves\n\nContinue becoming a teacher?`;
   if (!confirm(confirm_msg)) return;
 
   try {
@@ -4123,7 +4123,7 @@ async function becomeTeacher() {
 
     const result = await response.json();
     if (result.success) {
-      alert(`✅ Teacher request submitted!\n\nYour class code: ${result.data.classCode}\n\nWait for superadmin approval to activate your class.`);
+      alert(`✅ You're now a teacher!\n\nYour class code: ${result.data.classCode}\n\n📋 Next steps:\n1. Share this code with students\n2. Wait for superadmin to approve your teacher status\n3. Once approved, students can join using the code`);
       currentUser.role = 'teacher';
       currentUser.class_code = result.data.classCode;
       showUserDashboard();
@@ -4377,20 +4377,52 @@ function setupTeacherStudentListeners() {
 
   // Update teacher/student UI when user loads
   if (currentUser) {
+    // TEACHER: Show teacher panel, hide role management section
     if (currentUser.role === 'teacher') {
+      document.getElementById('role-management-section').style.display = 'none';
       document.getElementById('teacher-panel').style.display = 'block';
       document.getElementById('student-enrollment').style.display = 'none';
-      const classCodeSpan = document.getElementById('my-class-code');
-      if (classCodeSpan) classCodeSpan.textContent = currentUser.class_code || 'Pending approval...';
+      
+      // Fetch and display class code from database
+      fetchAndDisplayClassCode();
       loadTeacherClasses();
       loadUserCourses(); // Load courses for assignment dropdown
-    }
-    
-    if (currentUser.role === 'user' || currentUser.role === 'student') {
+    } 
+    // STUDENT/USER: Show enrollment, hide teacher panel
+    else {
+      document.getElementById('role-management-section').style.display = 'block';
+      document.getElementById('teacher-panel').style.display = 'none';
+      document.getElementById('student-enrollment').style.display = 'block';
       loadStudentAssignments();
     }
   }
 }
+
+// Fetch class code from database and display it
+async function fetchAndDisplayClassCode() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/user/class-code`, {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+
+    const result = await response.json();
+    if (result.success) {
+      const classCodeSpan = document.getElementById('my-class-code');
+      if (classCodeSpan) {
+        classCodeSpan.textContent = result.data.classCode;
+        console.log('✓ Class code displayed:', result.data.classCode);
+      }
+    } else {
+      console.log('ℹ️ Teacher approval pending');
+      const classCodeSpan = document.getElementById('my-class-code');
+      if (classCodeSpan) classCodeSpan.textContent = 'Pending superadmin approval...';
+    }
+  } catch (err) {
+    console.error('Error fetching class code:', err);
+  }
+}
+
+window.fetchAndDisplayClassCode = fetchAndDisplayClassCode;
 
 // Export functions for onclick
 window.submitAssignmentWork = submitAssignmentWork;
