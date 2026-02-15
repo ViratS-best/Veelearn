@@ -152,6 +152,36 @@
       <div id="user-dashboard" style="display: none">
         <h3>User Panel</h3>
 
+        <div style="background: rgba(102, 126, 234, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+          <h4>Role Management</h4>
+          <button id="become-teacher-btn" class="create-course-btn" style="background: var(--warning); margin-bottom: 10px;">
+            👨‍🏫 Become a Teacher
+          </button>
+          <p id="teacher-status" style="color: #ccc; font-size: 0.9em;"></p>
+        </div>
+
+        <div id="student-enrollment" style="background: rgba(102, 126, 234, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+          <h4>Join a Class</h4>
+          <input type="text" id="class-code-input" placeholder="Enter class code from your teacher" maxlength="20" style="padding: 10px; border: 1px solid #555; border-radius: 4px; width: 100%; margin-bottom: 10px; background: #222; color: #fff;" />
+          <button id="enroll-class-btn" class="primary-btn" style="width: 100%;">📚 Join Class</button>
+          <div id="enrolled-classes" style="margin-top: 15px;"></div>
+        </div>
+
+        <div id="teacher-panel" style="display: none; background: rgba(76, 175, 80, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+          <h4>Teacher Dashboard</h4>
+          <div id="class-code-display" style="background: #222; padding: 10px; border-radius: 4px; margin-bottom: 10px; font-family: monospace; color: #4ade80; font-weight: bold;">
+            Class Code: <span id="my-class-code">Loading...</span>
+          </div>
+          <h5>My Classes</h5>
+          <div id="my-classes-list"></div>
+          <h5>Create Assignment</h5>
+          <select id="assignment-course-select" style="width: 100%; padding: 10px; margin-bottom: 10px; background: #222; color: #fff; border: 1px solid #555; border-radius: 4px;">
+            <option value="">Select a course...</option>
+          </select>
+          <input type="date" id="assignment-due-date" style="width: 100%; padding: 10px; margin-bottom: 10px; background: #222; color: #fff; border: 1px solid #555; border-radius: 4px;" />
+          <button id="create-assignment-btn" class="success-btn" style="width: 100%;">📋 Assign Course</button>
+        </div>
+
         <button id="create-course-button-user" class="create-course-btn">
           Create New Course
         </button>
@@ -159,9 +189,20 @@
         <h4>My Courses</h4>
         <ul id="my-courses-list-user"></ul>
 
+        <div id="student-assignments" style="display: none;">
+          <h4>📚 Assignments for Me</h4>
+          <div id="assignments-list"></div>
+        </div>
+
         <h4>Available Courses</h4>
         <ul id="available-courses-list-user"></ul>
       </div>
+
+      <!-- TEACHER CLASS MANAGEMENT -->
+      <section id="class-management-section" style="display: none">
+        <h2>Class Management</h2>
+        <div id="class-submissions"></div>
+      </section>
     </section>
 
     <!-- COURSE EDITOR -->

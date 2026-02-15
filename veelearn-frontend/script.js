@@ -94,6 +94,7 @@ function initializeApp() {
   setupQuizModalListeners();
   setupPhetModalListeners();
   setupLatexHelpModalListeners();
+  setupTeacherStudentListeners();
 
   if (authToken) {
     fetchUserProfile();
@@ -1648,6 +1649,15 @@ function loadUserCourses() {
         );
         console.log("Filtered user courses:", myCourses.length);
         renderUserCourses();
+        
+        // If teacher, populate assignment dropdown
+        if (currentUser.role === 'teacher' && myCourses.length > 0) {
+          const dropdown = document.getElementById('assignment-course-select');
+          if (dropdown) {
+            dropdown.innerHTML = '<option value="">Select a course...</option>' + 
+              myCourses.map(c => `<option value="${c.id}">${c.title}</option>`).join('');
+          }
+        }
       }
     })
     .catch((err) => console.error("Error loading user courses:", err));
@@ -4094,3 +4104,295 @@ async function grantVolunteerHours(userId, email) {
   }
 }
 window.grantVolunteerHours = grantVolunteerHours;
+
+// ===== TEACHER/STUDENT SYSTEM =====
+
+// Become a teacher
+async function becomeTeacher() {
+  const confirm_msg = `⚠️ WARNING: This action cannot be undone without superadmin approval.\n\nYou will be transformed into a teacher with a unique class code.\nYour teacher status will require superadmin approval.\n\nContinue?`;
+  if (!confirm(confirm_msg)) return;
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/user/become-teacher`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      }
+    });
+
+    const result = await response.json();
+    if (result.success) {
+      alert(`✅ Teacher request submitted!\n\nYour class code: ${result.data.classCode}\n\nWait for superadmin approval to activate your class.`);
+      currentUser.role = 'teacher';
+      currentUser.class_code = result.data.classCode;
+      showUserDashboard();
+    } else {
+      alert('Error: ' + result.message);
+    }
+  } catch (err) {
+    console.error('Error:', err);
+    alert('Error requesting teacher role');
+  }
+}
+
+// Enroll student in class
+async function enrollInClass() {
+  const classCode = document.getElementById('class-code-input').value.trim().toUpperCase();
+  if (!classCode) {
+    alert('Please enter a class code');
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/student/enroll-class`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({ classCode })
+    });
+
+    const result = await response.json();
+    if (result.success) {
+      alert('✅ Enrolled in class successfully!');
+      document.getElementById('class-code-input').value = '';
+      loadStudentAssignments();
+    } else {
+      alert('Error: ' + result.message);
+    }
+  } catch (err) {
+    console.error('Error:', err);
+    alert('Error enrolling in class');
+  }
+}
+
+// Load student assignments
+async function loadStudentAssignments() {
+  if (currentUser.role !== 'student' && currentUser.role !== 'user') return;
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/student/assignments`, {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+
+    const result = await response.json();
+    if (result.success && result.data.length > 0) {
+      const assignmentsDiv = document.getElementById('assignments-list');
+      assignmentsDiv.innerHTML = result.data.map(a => `
+        <div style="background: #222; padding: 12px; border-radius: 4px; margin-bottom: 10px; border-left: 4px solid #667eea;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <strong>${a.course_title}</strong> - ${a.title}<br/>
+              <small>Teacher: ${a.teacher_email}</small><br/>
+              <small>Due: ${a.due_date ? new Date(a.due_date).toLocaleDateString() : 'No due date'}</small>
+            </div>
+            <button onclick="submitAssignmentWork(${a.id}, '${a.course_title}')" class="primary-btn" style="padding: 8px 16px;">
+              ▶ Work on Assignment
+            </button>
+          </div>
+        </div>
+      `).join('');
+
+      document.getElementById('student-assignments').style.display = 'block';
+    }
+  } catch (err) {
+    console.error('Error loading assignments:', err);
+  }
+}
+
+// Submit assignment work
+async function submitAssignmentWork(assignmentId, courseTitle) {
+  const completionPercentage = prompt(`How much have you completed the "${courseTitle}" assignment?\nEnter completion %  (0-100):`, '100');
+  if (completionPercentage === null) return;
+
+  const percentage = parseInt(completionPercentage);
+  if (isNaN(percentage) || percentage < 0 || percentage > 100) {
+    alert('Please enter a valid percentage (0-100)');
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/student/submit-assignment`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({ assignmentId, completionPercentage: percentage })
+    });
+
+    const result = await response.json();
+    if (result.success) {
+      const statusMsg = result.data.isLate ? '⏰ LATE' : '✅ ON TIME';
+      alert(`✅ Work submitted!\n\nCompletion: ${percentage}%\nStatus: ${statusMsg}\n\nYour teacher has been notified.`);
+      loadStudentAssignments();
+    } else {
+      alert('Error: ' + result.message);
+    }
+  } catch (err) {
+    console.error('Error:', err);
+    alert('Error submitting work');
+  }
+}
+
+// Create assignment
+async function createAssignment() {
+  const courseId = document.getElementById('assignment-course-select').value;
+  const dueDate = document.getElementById('assignment-due-date').value;
+
+  if (!courseId) {
+    alert('Please select a course');
+    return;
+  }
+
+  if (currentUser.role !== 'teacher') {
+    alert('Only teachers can create assignments');
+    return;
+  }
+
+  const classCode = currentUser.class_code;
+  if (!classCode) {
+    alert('No class code found. Please become a teacher first');
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/teacher/assign-course`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({
+        classCode,
+        courseId,
+        title: document.getElementById('assignment-course-select').options[document.getElementById('assignment-course-select').selectedIndex].text,
+        dueDate: dueDate || null
+      })
+    });
+
+    const result = await response.json();
+    if (result.success) {
+      alert(`✅ Assignment created and sent to students in your class!\n\nAssignment ID: ${result.data.assignmentId}`);
+      document.getElementById('assignment-course-select').value = '';
+      document.getElementById('assignment-due-date').value = '';
+    } else {
+      alert('Error: ' + result.message);
+    }
+  } catch (err) {
+    console.error('Error:', err);
+    alert('Error creating assignment');
+  }
+}
+
+// Load teacher's classes and submissions
+async function loadTeacherClasses() {
+  if (currentUser.role !== 'teacher') return;
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/teacher/my-classes`, {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+
+    const result = await response.json();
+    if (result.success && result.data.length > 0) {
+      const classList = document.getElementById('my-classes-list');
+      classList.innerHTML = result.data.map(cls => `
+        <div style="background: #222; padding: 12px; border-radius: 4px; margin-bottom: 10px; border-left: 4px solid #4ade80;">
+          <strong>${cls.classCode}</strong> - ${cls.studentCount} student(s)
+          <button onclick="viewClassSubmissions('${cls.classCode}')" class="primary-btn" style="padding: 6px 12px; margin-left: 10px; font-size: 0.85em;">
+            📊 View Progress
+          </button>
+        </div>
+      `).join('');
+    }
+  } catch (err) {
+    console.error('Error loading classes:', err);
+  }
+}
+
+// View class submissions
+async function viewClassSubmissions(classCode) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/teacher/class/${classCode}/submissions`, {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+
+    const result = await response.json();
+    if (result.success) {
+      const sectionDiv = document.getElementById('class-management-section');
+      const submissionsDiv = document.getElementById('class-submissions');
+
+      let html = `<h3>📊 Class Progress - ${classCode}</h3><table style="width: 100%; border-collapse: collapse;">
+        <tr style="background: #333;">
+          <th style="padding: 10px; border: 1px solid #555; text-align: left;">Student</th>
+          <th style="padding: 10px; border: 1px solid #555;">Assignment</th>
+          <th style="padding: 10px; border: 1px solid #555;">Completion</th>
+          <th style="padding: 10px; border: 1px solid #555;">Status</th>
+          <th style="padding: 10px; border: 1px solid #555;">Submitted</th>
+        </tr>`;
+
+      result.data.forEach(sub => {
+        const statusColor = sub.status === 'On Time' ? '#4ade80' : sub.status === 'Late' ? '#ff6b6b' : '#999';
+        html += `<tr style="border: 1px solid #555;">
+          <td style="padding: 10px; border: 1px solid #555;">${sub.email}</td>
+          <td style="padding: 10px; border: 1px solid #555; font-size: 0.9em;">${sub.assignment_title}</td>
+          <td style="padding: 10px; border: 1px solid #555;">
+            <div style="background: #333; border-radius: 4px; overflow: hidden; height: 20px;">
+              <div style="background: #667eea; width: ${sub.completion_percentage}%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 0.8em;">
+                ${sub.completion_percentage}%
+              </div>
+            </div>
+          </td>
+          <td style="padding: 10px; border: 1px solid #555; color: ${statusColor}; font-weight: bold;">${sub.status}</td>
+          <td style="padding: 10px; border: 1px solid #555;">${sub.is_submitted ? '✅ Yes' : '⏳ No'}</td>
+        </tr>`;
+      });
+
+      html += '</table><button onclick="closeClassManagement()" class="secondary-btn" style="margin-top: 15px;">Back</button>';
+      submissionsDiv.innerHTML = html;
+      sectionDiv.style.display = 'block';
+    }
+  } catch (err) {
+    console.error('Error:', err);
+    alert('Error loading submissions');
+  }
+}
+
+function closeClassManagement() {
+  document.getElementById('class-management-section').style.display = 'none';
+}
+
+// Setup teacher/student listeners
+function setupTeacherStudentListeners() {
+  const becomeTeacherBtn = document.getElementById('become-teacher-btn');
+  const enrollBtn = document.getElementById('enroll-class-btn');
+  const createAssignmentBtn = document.getElementById('create-assignment-btn');
+
+  if (becomeTeacherBtn) becomeTeacherBtn.addEventListener('click', becomeTeacher);
+  if (enrollBtn) enrollBtn.addEventListener('click', enrollInClass);
+  if (createAssignmentBtn) createAssignmentBtn.addEventListener('click', createAssignment);
+
+  // Update teacher/student UI when user loads
+  if (currentUser) {
+    if (currentUser.role === 'teacher') {
+      document.getElementById('teacher-panel').style.display = 'block';
+      document.getElementById('student-enrollment').style.display = 'none';
+      const classCodeSpan = document.getElementById('my-class-code');
+      if (classCodeSpan) classCodeSpan.textContent = currentUser.class_code || 'Pending approval...';
+      loadTeacherClasses();
+      loadUserCourses(); // Load courses for assignment dropdown
+    }
+    
+    if (currentUser.role === 'user' || currentUser.role === 'student') {
+      loadStudentAssignments();
+    }
+  }
+}
+
+// Export functions for onclick
+window.submitAssignmentWork = submitAssignmentWork;
+window.viewClassSubmissions = viewClassSubmissions;
+window.closeClassManagement = closeClassManagement;

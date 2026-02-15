@@ -229,6 +229,67 @@ const initializeDatabase = async () => {
         // Migration: Add volunteer columns to users table
         await addColumn('users', 'total_volunteer_hours', 'FLOAT DEFAULT 0');
         await addColumn('users', 'is_verified_creator', 'BOOLEAN DEFAULT FALSE');
+        
+        // Migration: Add teacher-specific columns
+        await addColumn('users', 'class_code', 'VARCHAR(20) UNIQUE');
+        await addColumn('users', 'teacher_approved', 'BOOLEAN DEFAULT FALSE');
+        console.log('✓ Teacher columns verified/added to users table');
+
+        // Classroom assignments table
+        await query(`
+            CREATE TABLE IF NOT EXISTS classroom_assignments (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                teacher_id INT NOT NULL,
+                course_id INT NOT NULL,
+                class_code VARCHAR(20) NOT NULL,
+                title VARCHAR(255) NOT NULL,
+                due_date DATETIME,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
+                INDEX idx_teacher (teacher_id),
+                INDEX idx_class_code (class_code)
+            )
+        `);
+        console.log('✓ Classroom assignments table ready');
+
+        // Student enrollments in classes
+        await query(`
+            CREATE TABLE IF NOT EXISTS student_enrollments (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                student_id INT NOT NULL,
+                class_code VARCHAR(20) NOT NULL,
+                teacher_id INT NOT NULL,
+                enrolled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE,
+                UNIQUE KEY unique_enrollment (student_id, class_code),
+                INDEX idx_student (student_id),
+                INDEX idx_class_code (class_code)
+            )
+        `);
+        console.log('✓ Student enrollments table ready');
+
+        // Assignment submissions
+        await query(`
+            CREATE TABLE IF NOT EXISTS assignment_submissions (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                assignment_id INT NOT NULL,
+                student_id INT NOT NULL,
+                submission_date DATETIME,
+                completion_percentage INT DEFAULT 0,
+                is_submitted BOOLEAN DEFAULT FALSE,
+                is_late BOOLEAN DEFAULT FALSE,
+                feedback TEXT,
+                submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (assignment_id) REFERENCES classroom_assignments(id) ON DELETE CASCADE,
+                FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
+                UNIQUE KEY unique_submission (assignment_id, student_id),
+                INDEX idx_student (student_id)
+            )
+        `);
+        console.log('✓ Assignment submissions table ready');
+        
         console.log('✓ Volunteer columns verified/added to users table');
 
         // Simulators table (Parent)
@@ -2791,6 +2852,241 @@ app.post('/api/sponsorships', authenticateToken, authorize('admin', 'superadmin'
             apiResponse(res, 201, 'Sponsorship added', { id: result.insertId });
         }
     );
+});
+
+// ===== TEACHER/STUDENT SYSTEM =====
+
+// Generate class code for teacher
+const generateClassCode = () => {
+    return Math.random().toString(36).substring(2, 8).toUpperCase();
+};
+
+// Request to become a teacher
+app.post('/api/user/become-teacher', authenticateToken, (req, res) => {
+    const userId = req.user.id;
+    const classCode = generateClassCode();
+    
+    db.query(
+        'UPDATE users SET role = ?, class_code = ?, teacher_approved = ? WHERE id = ?',
+        ['teacher', classCode, false, userId],
+        (err) => {
+            if (err) return apiResponse(res, 500, 'Error updating role');
+            
+            // Send notification email (would be sent by admin)
+            apiResponse(res, 200, 'Teacher request submitted. Awaiting superadmin approval.', { classCode });
+        }
+    );
+});
+
+// Superadmin approves teacher
+app.put('/api/admin/approve-teacher/:userId', authenticateToken, authorize('superadmin'), (req, res) => {
+    const { userId } = req.params;
+    
+    db.query(
+        'UPDATE users SET teacher_approved = ? WHERE id = ?',
+        [true, userId],
+        (err) => {
+            if (err) return apiResponse(res, 500, 'Error approving teacher');
+            apiResponse(res, 200, 'Teacher approved');
+        }
+    );
+});
+
+// Get class code for teacher
+app.get('/api/user/class-code', authenticateToken, (req, res) => {
+    const userId = req.user.id;
+    
+    db.query(
+        'SELECT class_code FROM users WHERE id = ? AND role = ?',
+        [userId, 'teacher'],
+        (err, results) => {
+            if (err) return apiResponse(res, 500, 'Error fetching class code');
+            if (results.length === 0) return apiResponse(res, 404, 'Not a teacher');
+            apiResponse(res, 200, 'Class code retrieved', { classCode: results[0].class_code });
+        }
+    );
+});
+
+// Student enrolls in class
+app.post('/api/student/enroll-class', authenticateToken, (req, res) => {
+    const { classCode } = req.body;
+    const studentId = req.user.id;
+    
+    if (!classCode) return apiResponse(res, 400, 'Class code required');
+    
+    // Find teacher by class code
+    db.query(
+        'SELECT id FROM users WHERE class_code = ? AND role = ? AND teacher_approved = ?',
+        [classCode, 'teacher', true],
+        (err, teachers) => {
+            if (err) return apiResponse(res, 500, 'Error finding teacher');
+            if (teachers.length === 0) return apiResponse(res, 404, 'Invalid class code');
+            
+            const teacherId = teachers[0].id;
+            
+            // Enroll student
+            db.query(
+                'INSERT INTO student_enrollments (student_id, class_code, teacher_id) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE enrolled_at = NOW()',
+                [studentId, classCode, teacherId],
+                (err) => {
+                    if (err) {
+                        if (err.code === 'ER_DUP_ENTRY') {
+                            return apiResponse(res, 400, 'Already enrolled in this class');
+                        }
+                        return apiResponse(res, 500, 'Error enrolling in class');
+                    }
+                    apiResponse(res, 200, 'Enrolled in class successfully');
+                }
+            );
+        }
+    );
+});
+
+// Teacher assigns course to class
+app.post('/api/teacher/assign-course', authenticateToken, authorize('teacher'), (req, res) => {
+    const { classCode, courseId, title, dueDate } = req.body;
+    const teacherId = req.user.id;
+    
+    if (!classCode || !courseId) return apiResponse(res, 400, 'Class code and course ID required');
+    
+    // Verify teacher owns this class code
+    db.query(
+        'SELECT id FROM users WHERE id = ? AND class_code = ?',
+        [teacherId, classCode],
+        (err, results) => {
+            if (err) return apiResponse(res, 500, 'Error verifying class');
+            if (results.length === 0) return apiResponse(res, 403, 'Not authorized for this class');
+            
+            // Create assignment
+            db.query(
+                'INSERT INTO classroom_assignments (teacher_id, course_id, class_code, title, due_date) VALUES (?, ?, ?, ?, ?)',
+                [teacherId, courseId, classCode, title || 'Course Assignment', dueDate || null],
+                (err, result) => {
+                    if (err) return apiResponse(res, 500, 'Error creating assignment');
+                    apiResponse(res, 201, 'Assignment created', { assignmentId: result.insertId });
+                }
+            );
+        }
+    );
+});
+
+// Get assignments for student
+app.get('/api/student/assignments', authenticateToken, (req, res) => {
+    const studentId = req.user.id;
+    
+    db.query(`
+        SELECT ca.*, u.email as teacher_email, c.title as course_title
+        FROM classroom_assignments ca
+        JOIN student_enrollments se ON ca.class_code = se.class_code
+        JOIN users u ON ca.teacher_id = u.id
+        JOIN courses c ON ca.course_id = c.id
+        WHERE se.student_id = ?
+        ORDER BY ca.due_date ASC
+    `, [studentId], (err, results) => {
+        if (err) return apiResponse(res, 500, 'Error fetching assignments');
+        apiResponse(res, 200, 'Assignments retrieved', results);
+    });
+});
+
+// Submit assignment completion
+app.post('/api/student/submit-assignment', authenticateToken, (req, res) => {
+    const { assignmentId, completionPercentage } = req.body;
+    const studentId = req.user.id;
+    
+    if (!assignmentId) return apiResponse(res, 400, 'Assignment ID required');
+    if (completionPercentage === undefined) return apiResponse(res, 400, 'Completion percentage required');
+    
+    // Check if assignment exists
+    db.query(
+        'SELECT due_date FROM classroom_assignments WHERE id = ?',
+        [assignmentId],
+        (err, assignments) => {
+            if (err) return apiResponse(res, 500, 'Error fetching assignment');
+            if (assignments.length === 0) return apiResponse(res, 404, 'Assignment not found');
+            
+            const isLate = assignments[0].due_date && new Date() > new Date(assignments[0].due_date);
+            const submissionDate = new Date();
+            
+            db.query(
+                `INSERT INTO assignment_submissions 
+                 (assignment_id, student_id, submission_date, completion_percentage, is_submitted, is_late) 
+                 VALUES (?, ?, ?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE 
+                 completion_percentage = ?, submission_date = ?, is_submitted = ?, is_late = ?`,
+                [assignmentId, studentId, submissionDate, completionPercentage, true, isLate,
+                 completionPercentage, submissionDate, true, isLate],
+                (err) => {
+                    if (err) return apiResponse(res, 500, 'Error submitting assignment');
+                    apiResponse(res, 200, 'Assignment submission recorded', { isLate });
+                }
+            );
+        }
+    );
+});
+
+// Get student submissions for teacher
+app.get('/api/teacher/class/:classCode/submissions', authenticateToken, authorize('teacher'), (req, res) => {
+    const { classCode } = req.params;
+    const teacherId = req.user.id;
+    
+    db.query(`
+        SELECT 
+            u.email, 
+            ca.title as assignment_title, 
+            asub.completion_percentage, 
+            asub.is_submitted,
+            asub.is_late,
+            asub.submission_date,
+            ca.due_date
+        FROM assignment_submissions asub
+        JOIN users u ON asub.student_id = u.id
+        JOIN classroom_assignments ca ON asub.assignment_id = ca.id
+        WHERE ca.teacher_id = ? AND ca.class_code = ?
+        ORDER BY ca.id, u.email
+    `, [teacherId, classCode], (err, results) => {
+        if (err) return apiResponse(res, 500, 'Error fetching submissions');
+        
+        // Format results
+        const formatted = results.map(r => ({
+            ...r,
+            status: !r.is_submitted ? 'Not Started' : r.is_late ? 'Late' : 'On Time',
+            progressBar: `${r.completion_percentage}%`
+        }));
+        
+        apiResponse(res, 200, 'Submissions retrieved', formatted);
+    });
+});
+
+// Get teacher's classes and students
+app.get('/api/teacher/my-classes', authenticateToken, authorize('teacher'), (req, res) => {
+    const teacherId = req.user.id;
+    
+    db.query(`
+        SELECT DISTINCT class_code FROM classroom_assignments WHERE teacher_id = ?
+    `, [teacherId], (err, classes) => {
+        if (err) return apiResponse(res, 500, 'Error fetching classes');
+        
+        // For each class, get students
+        Promise.all(classes.map(cls => {
+            return new Promise((resolve) => {
+                db.query(
+                    `SELECT u.id, u.email FROM student_enrollments se 
+                     JOIN users u ON se.student_id = u.id 
+                     WHERE se.class_code = ?`,
+                    [cls.class_code],
+                    (err, students) => {
+                        resolve({
+                            classCode: cls.class_code,
+                            studentCount: students?.length || 0,
+                            students: students || []
+                        });
+                    }
+                );
+            });
+        })).then(classData => {
+            apiResponse(res, 200, 'Classes retrieved', classData);
+        });
+    });
 });
 
 // ===== ERROR HANDLING =====
