@@ -94,7 +94,6 @@ function initializeApp() {
   setupQuizModalListeners();
   setupPhetModalListeners();
   setupLatexHelpModalListeners();
-  setupTeacherStudentListeners();
 
   if (authToken) {
     fetchUserProfile();
@@ -445,6 +444,8 @@ function fetchUserProfile() {
       if (data.success) {
         currentUser = data.data;
         showDashboard();
+        // NOW setup teacher/student UI after currentUser is loaded
+        setupTeacherStudentListeners();
       } else {
         logout();
       }
@@ -1511,16 +1512,23 @@ function renderUserList() {
 
   userList.innerHTML = allUsers
     .map(
-      (user) => `
+      (user) => {
+        const pendingApproval = user.role === 'teacher' && !user.teacher_approved;
+        const approveBtn = pendingApproval ? 
+          `<button onclick="approveTeacher(${user.id}, '${user.email}')" style="background: #ff9800; color: #fff;">⚠️ APPROVE TEACHER</button>` : '';
+        
+        return `
         <li>
             <strong>${user.email}</strong>
-            <p>Role: ${user.role} | Shells: ${user.shells} | Volunteer: ${(user.total_volunteer_hours || 0).toFixed(1)}h ${user.is_verified_creator ? '✅' : ''}</p>
+            <p>Role: ${user.role} ${user.class_code ? `| Class Code: ${user.class_code}` : ''} | ${user.teacher_approved ? '✅ Approved' : user.role === 'teacher' ? '⏳ Pending Approval' : ''} | Shells: ${user.shells} | Volunteer: ${(user.total_volunteer_hours || 0).toFixed(1)}h ${user.is_verified_creator ? '✅' : ''}</p>
+            ${approveBtn}
             <button onclick="changeUserRole('${user.email}', 'admin')">Make Admin</button>
             <button onclick="changeUserRole('${user.email}', 'teacher')">Make Teacher</button>
             <button onclick="changeUserRole('${user.email}', 'user')">Make User</button>
             <button onclick="grantVolunteerHours(${user.id}, '${user.email}')" style="background: #4ade80; color: #000;">Grant Hours</button>
         </li>
-    `
+    `;
+      }
     )
     .join("");
 }
@@ -1545,6 +1553,34 @@ function changeUserRole(email, newRole) {
     })
     .catch((err) => console.error("Error changing role:", err));
 }
+
+// Approve teacher request
+function approveTeacher(userId, email) {
+  if (!confirm(`Approve ${email} as a teacher? Their students will then be able to enroll.`)) return;
+  
+  fetch(`${API_BASE_URL}/api/admin/approve-teacher/${userId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${authToken}`,
+    }
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.success) {
+        alert(`✅ Teacher ${email} approved! Students can now enroll in their class.`);
+        loadAllUsers();
+      } else {
+        alert("Error: " + data.message);
+      }
+    })
+    .catch((err) => {
+      console.error("Error approving teacher:", err);
+      alert("Error approving teacher");
+    });
+}
+
+window.approveTeacher = approveTeacher;
 
 function loadPendingCourses() {
   fetch(`${API_BASE_URL}/api/admin/courses/pending`, {
