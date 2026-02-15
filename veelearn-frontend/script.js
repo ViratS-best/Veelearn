@@ -1568,7 +1568,8 @@ function approveTeacher(userId, email) {
     .then((res) => res.json())
     .then((data) => {
       if (data.success) {
-        alert(`✅ Teacher ${email} approved! Students can now enroll in their class.\n\nNote: Teacher needs to refresh their page to see the approval status.`);
+        alert(`✅ Teacher ${email} approved! Students can now enroll in their class.\n\nTeacher will see the updated approval status when they refresh or navigate.`);
+        // Refresh user list to show updated status
         loadAllUsers();
       } else {
         alert("Error: " + data.message);
@@ -4328,6 +4329,25 @@ async function createAssignment() {
   }
 }
 
+// Populate course dropdown for assignment creation
+function populateAssignmentCourseDropdown() {
+  const select = document.getElementById('assignment-course-select');
+  if (!select) return;
+  
+  // Clear existing options except the default
+  select.innerHTML = '<option value="">Select a course...</option>';
+  
+  // Add user's courses to dropdown
+  if (myCourses && myCourses.length > 0) {
+    myCourses.forEach(course => {
+      const option = document.createElement('option');
+      option.value = course.id;
+      option.textContent = course.title;
+      select.appendChild(option);
+    });
+  }
+}
+
 // Load teacher's classes and submissions
 async function loadTeacherClasses() {
   if (currentUser.role !== 'teacher') return;
@@ -4433,6 +4453,7 @@ function setupTeacherStudentListeners() {
       fetchAndDisplayClassCode();
       loadTeacherClasses();
       loadUserCourses(); // Load courses for assignment dropdown
+      populateAssignmentCourseDropdown(); // Populate course dropdown
     } 
     // STUDENT/USER: Show enrollment, hide teacher panel
     else {
@@ -4461,9 +4482,12 @@ async function fetchAndDisplayClassCode() {
         console.log('✓ Class code displayed:', result.data.classCode);
       }
       
+      // Update current user with fresh approval status from server
+      currentUser.teacher_approved = result.data.approved;
+      
       // Show approval status
       if (statusDiv) {
-        if (currentUser.teacher_approved) {
+        if (result.data.approved) {
           statusDiv.innerHTML = '<span style="color: #4ade80; font-weight: bold;">✅ Teacher approved! Students can join your class.</span>';
         } else {
           statusDiv.innerHTML = '<span style="color: #ff9800; font-weight: bold;">⏳ Waiting for superadmin approval... Students cannot join yet.</span>';
@@ -4485,3 +4509,6 @@ window.fetchAndDisplayClassCode = fetchAndDisplayClassCode;
 window.submitAssignmentWork = submitAssignmentWork;
 window.viewClassSubmissions = viewClassSubmissions;
 window.closeClassManagement = closeClassManagement;
+window.becomeTeacher = becomeTeacher;
+window.enrollInClass = enrollInClass;
+window.createAssignment = createAssignment;

@@ -2897,12 +2897,15 @@ app.get('/api/user/class-code', authenticateToken, (req, res) => {
     const userId = req.user.id;
     
     db.query(
-        'SELECT class_code FROM users WHERE id = ? AND role = ?',
+        'SELECT class_code, teacher_approved FROM users WHERE id = ? AND role = ?',
         [userId, 'teacher'],
         (err, results) => {
             if (err) return apiResponse(res, 500, 'Error fetching class code');
             if (results.length === 0) return apiResponse(res, 404, 'Not a teacher');
-            apiResponse(res, 200, 'Class code retrieved', { classCode: results[0].class_code });
+            apiResponse(res, 200, 'Class code retrieved', { 
+                classCode: results[0].class_code,
+                approved: results[0].teacher_approved
+            });
         }
     );
 });
@@ -2920,7 +2923,7 @@ app.post('/api/student/enroll-class', authenticateToken, (req, res) => {
         [classCode, 'teacher', true],
         (err, teachers) => {
             if (err) return apiResponse(res, 500, 'Error finding teacher');
-            if (teachers.length === 0) return apiResponse(res, 404, 'Invalid class code');
+            if (teachers.length === 0) return apiResponse(res, 404, 'Invalid class code or teacher not approved');
             
             const teacherId = teachers[0].id;
             
@@ -2935,7 +2938,19 @@ app.post('/api/student/enroll-class', authenticateToken, (req, res) => {
                         }
                         return apiResponse(res, 500, 'Error enrolling in class');
                     }
-                    apiResponse(res, 200, 'Enrolled in class successfully');
+                    
+                    // Update student role to 'student' if they were 'user'
+                    db.query(
+                        'UPDATE users SET role = ? WHERE id = ? AND role = ?',
+                        ['student', studentId, 'user'],
+                        (err) => {
+                            if (err) {
+                                console.warn('Warning: Could not update student role:', err);
+                                // Don't fail the enrollment if role update fails
+                            }
+                            apiResponse(res, 200, 'Enrolled in class successfully');
+                        }
+                    );
                 }
             );
         }
@@ -3061,29 +3076,30 @@ app.get('/api/teacher/class/:classCode/submissions', authenticateToken, authoriz
 app.get('/api/teacher/my-classes', authenticateToken, authorize('teacher'), (req, res) => {
     const teacherId = req.user.id;
     
+    // First get the teacher's class code from users table
     db.query(`
-        SELECT DISTINCT class_code FROM classroom_assignments WHERE teacher_id = ?
-    `, [teacherId], (err, classes) => {
-        if (err) return apiResponse(res, 500, 'Error fetching classes');
+        SELECT class_code FROM users WHERE id = ? AND role = ?
+    `, [teacherId, 'teacher'], (err, teacherResult) => {
+        if (err) return apiResponse(res, 500, 'Error fetching teacher info');
+        if (teacherResult.length === 0) return apiResponse(res, 404, 'Not a teacher');
         
-        // For each class, get students
-        Promise.all(classes.map(cls => {
-            return new Promise((resolve) => {
-                db.query(
-                    `SELECT u.id, u.email FROM student_enrollments se 
-                     JOIN users u ON se.student_id = u.id 
-                     WHERE se.class_code = ?`,
-                    [cls.class_code],
-                    (err, students) => {
-                        resolve({
-                            classCode: cls.class_code,
-                            studentCount: students?.length || 0,
-                            students: students || []
-                        });
-                    }
-                );
-            });
-        })).then(classData => {
+        const classCode = teacherResult[0].class_code;
+        if (!classCode) return apiResponse(res, 200, 'Classes retrieved', []);
+        
+        // Get all students in this teacher's class
+        db.query(`
+            SELECT DISTINCT u.id, u.email FROM student_enrollments se 
+            JOIN users u ON se.student_id = u.id 
+            WHERE se.class_code = ? AND se.teacher_id = ?
+        `, [classCode, teacherId], (err, students) => {
+            if (err) return apiResponse(res, 500, 'Error fetching students');
+            
+            const classData = [{
+                classCode: classCode,
+                studentCount: students?.length || 0,
+                students: students || []
+            }];
+            
             apiResponse(res, 200, 'Classes retrieved', classData);
         });
     });
