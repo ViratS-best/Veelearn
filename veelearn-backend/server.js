@@ -3002,11 +3002,13 @@ app.get('/api/student/assignments', authenticateToken, (req, res) => {
     const studentId = req.user.id;
 
     db.query(`
-        SELECT ca.*, u.email as teacher_email, c.title as course_title
+        SELECT ca.*, u.email as teacher_email, c.title as course_title,
+               asub.is_submitted
         FROM classroom_assignments ca
         JOIN student_enrollments se ON ca.class_code = se.class_code
         JOIN users u ON ca.teacher_id = u.id
         JOIN courses c ON ca.course_id = c.id
+        LEFT JOIN assignment_submissions asub ON ca.id = asub.assignment_id AND asub.student_id = se.student_id
         WHERE se.student_id = ?
         ORDER BY ca.due_date ASC
     `, [studentId], (err, results) => {
@@ -3170,11 +3172,7 @@ u.email,
     asub.submission_date,
     ca.due_date,
     asub.correct_answers,
-    COALESCE(
-        (SELECT COUNT(*) FROM user_quiz_attempts WHERE user_id = u.id AND question_id IN
-        (SELECT id FROM course_questions WHERE course_id = ca.course_id)),
-    0
-            ) as total_questions
+    asub.total_questions
         FROM assignment_submissions asub
         JOIN users u ON asub.student_id = u.id
         JOIN classroom_assignments ca ON asub.assignment_id = ca.id
@@ -3267,7 +3265,7 @@ app.get('/api/courses/all', authenticateToken, (req, res) => {
 LIMIT ? OFFSET ?
     `;
 
-    const searchTerm = search ? `% ${search}% ` : null;
+    const searchTerm = search ? `%${search}%` : null;
     const countParams = search ? [req.user.id, searchTerm, searchTerm] : [req.user.id];
     const dataParams = search
         ? [req.user.id, searchTerm, searchTerm, parseInt(limit), offset]

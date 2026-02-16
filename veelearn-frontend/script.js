@@ -1700,10 +1700,10 @@ function loadUserCourses() {
         if (myCoursesSearch) myCoursesSearch.value = '';
         renderUserCourses();
 
-        // If teacher, populate assignment dropdown
+        // If teacher, populate assignment dropdown (only if empty or fallback needed)
         if (currentUser.role === 'teacher' && myCourses.length > 0) {
           const dropdown = document.getElementById('assignment-course-select');
-          if (dropdown) {
+          if (dropdown && dropdown.options.length <= 1) { // Only if not already populated by all courses
             dropdown.innerHTML = '<option value="">Select a course...</option>' +
               myCourses.map(c => `<option value="${c.id}">${c.title}</option>`).join('');
           }
@@ -4386,9 +4386,17 @@ async function loadStudentAssignments() {
     });
 
     const result = await response.json();
-    if (result.success && result.data.length > 0) {
+    if (result.success) {
       const assignmentsDiv = document.getElementById('assignments-list');
-      assignmentsDiv.innerHTML = result.data.map(a => `
+      // Filter out assignments that are already submitted
+      const pendingAssignments = result.data.filter(a => !a.is_submitted);
+
+      if (pendingAssignments.length === 0) {
+        assignmentsDiv.innerHTML = '<p style="text-align: center; color: #999;">🎉 No pending assignments! You are all caught up.</p>';
+        return;
+      }
+
+      assignmentsDiv.innerHTML = pendingAssignments.map(a => `
         <div style="background: #222; padding: 12px; border-radius: 4px; margin-bottom: 10px; border-left: 4px solid #667eea;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <div>
@@ -4790,17 +4798,12 @@ function displayStudentAccuracy(submission) {
   const percent = submission.accuracy_percent;
   let color = '#888'; // Gray - not started
 
-  if (submission.accuracy === 0) {
-    color = '#888'; // Gray - not started
-  } else if (percent < 50) {
-    color = '#ef4444'; // Red - needs improvement
-  } else if (percent < 80) {
-    color = '#f59e0b'; // Yellow - good progress
-  } else {
-    color = '#22c55e'; // Green - excellent
+  // Handle caso where no submission exists or no questions in course
+  if (submission.total_questions === 0 || submission.correct_answers === null) {
+    return { html: '<span style="color: #999;">Not Started</span>', color: '#888' };
   }
 
-  const html = `${submission.accuracy}/${submission.total_questions} (${percent}%)`;
+  const html = `${submission.correct_answers}/${submission.total_questions} (${percent}%)`;
   return { html, color };
 }
 async function viewClassSubmissions(classCode) {
