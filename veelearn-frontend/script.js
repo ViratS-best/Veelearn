@@ -87,9 +87,9 @@ function initializeApp() {
   console.log("Initializing App...");
   setupAuthListeners();
   setupNavigationListeners();
+  setupLandingPageListeners();
   setupCourseEditorListeners();
   setupContentEditorListeners();
-  setupMessageListeners();
   setupMessageListeners();
   setupQuizModalListeners();
   setupPhetModalListeners();
@@ -99,7 +99,7 @@ function initializeApp() {
   if (authToken) {
     fetchUserProfile();
   } else {
-    showAuthSection();
+    showLandingPage();
   }
 }
 
@@ -523,6 +523,8 @@ if (typeof window !== 'undefined') {
 function setupNavigationListeners() {
   const dashboardLink = document.getElementById("dashboard-link");
   const homeLink = document.getElementById("home-link");
+  const loginLink = document.getElementById("login-link");
+  const registerLink = document.getElementById("register-link");
 
   if (dashboardLink) {
     dashboardLink.addEventListener("click", (e) => {
@@ -537,8 +539,42 @@ function setupNavigationListeners() {
       if (currentUser) {
         showDashboard();
       } else {
-        showAuthSection();
+        showLandingPage();
       }
+    });
+  }
+
+  if (loginLink) {
+    loginLink.addEventListener("click", (e) => {
+      e.preventDefault();
+      showAuthSection("login");
+    });
+  }
+
+  if (registerLink) {
+    registerLink.addEventListener("click", (e) => {
+      e.preventDefault();
+      showAuthSection("register");
+    });
+  }
+}
+
+function setupLandingPageListeners() {
+  const getStartedBtn = document.getElementById("get-started-btn");
+  const viewCoursesBtn = document.getElementById("view-courses-btn");
+
+  if (getStartedBtn) {
+    getStartedBtn.addEventListener("click", () => {
+      showAuthSection("register");
+    });
+  }
+
+  if (viewCoursesBtn) {
+    viewCoursesBtn.addEventListener("click", () => {
+      // Show available courses even if not logged in (they will prompt login to view)
+      showLandingPage(); // For now keep on landing page or scroll down if I added courses there
+      // Better: scroll to how it works or just show register
+      showAuthSection("register");
     });
   }
 }
@@ -1394,7 +1430,21 @@ function insertSimulatorBlock(blockId, title, type) {
 
 
 // ===== UI RENDERING =====
-function showAuthSection() {
+function showLandingPage() {
+  document.getElementById("landing-page").style.display = "block";
+  document.getElementById("auth-section").style.display = "none";
+  document.getElementById("dashboard-section").style.display = "none";
+  document.getElementById("course-editor-section").style.display = "none";
+  document.getElementById("course-viewer-section").style.display = "none";
+
+  document.getElementById("login-link").style.display = "inline";
+  document.getElementById("register-link").style.display = "inline";
+  document.getElementById("dashboard-link").style.display = "none";
+  document.getElementById("logout-button").style.display = "none";
+}
+
+function showAuthSection(type = "login") {
+  document.getElementById("landing-page").style.display = "none";
   document.getElementById("auth-section").style.display = "block";
   document.getElementById("dashboard-section").style.display = "none";
   document.getElementById("course-editor-section").style.display = "none";
@@ -1408,11 +1458,22 @@ function showAuthSection() {
 
   document.getElementById("login-link").style.display = "inline";
   document.getElementById("register-link").style.display = "inline";
+
+  if (type === "register") {
+    document.getElementById("login-form").style.display = "none";
+    document.getElementById("register-form").style.display = "block";
+    document.getElementById("forgot-password-form").style.display = "none";
+  } else {
+    document.getElementById("login-form").style.display = "block";
+    document.getElementById("register-form").style.display = "none";
+    document.getElementById("forgot-password-form").style.display = "none";
+  }
 }
 
 function showDashboard() {
   stopCourseTimer();
 
+  document.getElementById("landing-page").style.display = "none";
   document.getElementById("auth-section").style.display = "none";
   document.getElementById("dashboard-section").style.display = "block";
   document.getElementById("course-editor-section").style.display = "none";

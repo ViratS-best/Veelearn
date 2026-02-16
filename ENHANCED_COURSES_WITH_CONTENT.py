@@ -227,237 +227,227 @@ Each module includes interactive PhET simulators, practice problems, and real-wo
 """
 
 # ===== COMPREHENSIVE QUANTUM MECHANICS COURSE CONTENT =====
-QUANTUM_CONTENT = """
-<h1>Quantum Mechanics Essentials - Complete Guide</h1>
+QUANTUM_CONTENT = r"""
+<h1>Quantum Mechanics: The ultimate Hyper-Deep Dive</h1>
 
-<h2>📚 Course Overview</h2>
-<p>Quantum mechanics describes the behavior of matter and energy at the atomic and subatomic scales. 
-This course uses interactive PhET simulators to visualize quantum phenomena and build your understanding 
-of this fascinating branch of physics.</p>
+<p>Welcome to the most comprehensive exploration of Quantum Mechanics. This course traces the "unbreakable chain" of logic from the collapse of classical intuition to the birth of quantum information science. We will not skip the math; we will embrace it.</p>
+
+<div style="background: rgba(255,255,255,0.05); padding: 15px; border-left: 5px solid #6366f1; margin: 20px 0;">
+    <strong>Course Objective:</strong> To move beyond qualitative "pop-sci" descriptions and master the Hilbert Space formalism, operator algebra, and the physical reality of the wave function.
+</div>
 
 <hr>
 
-<h2>Module 1: Foundations of Quantum Mechanics</h2>
-<p><strong>What you'll learn:</strong> The revolutionary ideas that changed physics forever.</p>
+<h2>Module 1: The Ultraviolet Catastrophe & The Birth of Quanta</h2>
+<p>By the end of the 19th century, Rayleigh-Jeans' law predicted that a blackbody would emit infinite power at high frequencies. This absurdity was solved by Max Planck's radical assumption: energy is quantized.</p>
+<p>$$E = nhf$$</p>
 
-<h3>1.1 The Classical vs. Quantum Worlds</h3>
-<p><strong>Classical Physics (Newton):</strong></p>
-<ul>
-  <li>Objects have definite positions and velocities</li>
-  <li>Energy is continuous</li>
-  <li>We can predict exactly where things will be</li>
-</ul>
+<div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; margin: 20px 0; border: 1px solid #444;">
+  <h4>📝 Worked Example: Photon Energy Flux</h4>
+  <p><strong>Problem:</strong> A laser emits light at 450 nm (blue) with a power of 5 mW. How many photons are emitted per second?</p>
+  <p><strong>Solution:</strong></p>
+  <ol>
+    <li>Energy of one photon: $E_{ph} = \frac{hc}{\lambda} = \frac{(6.626 \times 10^{-34})(3 \times 10^8)}{450 \times 10^{-9}} \approx 4.42 \times 10^{-19}$ J.</li>
+    <li>Total energy per second (Power): $P = 5 \times 10^{-3}$ J/s.</li>
+    <li>Number of photons per second: $N = \frac{P}{E_{ph}} = \frac{5 \times 10^{-3}}{4.42 \times 10^{-19}} \approx 1.13 \times 10^{16}$ photons/sec.</li>
+  </ol>
+</div>
 
-<p><strong>Quantum Physics:</strong></p>
-<ul>
-  <li>Objects don't have definite positions until measured</li>
-  <li>Energy comes in discrete packets (quanta)</li>
-  <li>We can only predict probabilities</li>
-</ul>
-
-<h3>1.2 Planck's Constant and Energy Quanta</h3>
-<p><strong>Planck's Constant:</strong> h ≈ 6.63 × 10⁻³⁴ J·s</p>
-<p>Energy of a photon: <strong>E = h·f</strong> where f is frequency</p>
-<p>This revolutionary idea showed that light comes in discrete packets (photons), not continuous waves.</p>
-
-<h3>1.3 Wave-Particle Duality</h3>
-<p>Light and matter have both wave-like and particle-like properties.</p>
-<ul>
-  <li>As <strong>particles:</strong> photons carry energy E = hf</li>
-  <li>As <strong>waves:</strong> light shows interference and diffraction</li>
-</ul>
-
-<p><strong>de Broglie Wavelength:</strong> λ = h/p (all particles have a wavelength!)</p>
-
-<p><strong>Interactive Simulator:</strong></p>
-<iframe src="https://phet.colorado.edu/sims/html/quantum-measurement/latest/quantum-measurement_all.html" 
+<p><strong>Interactive Visualization: Blackbody Spectrum</strong></p>
+<iframe src="https://phet.colorado.edu/sims/html/blackbody-spectrum/latest/blackbody-spectrum_all.html" 
   width="100%" height="600" frameborder="0" style="border: 1px solid #ccc; margin: 20px 0;"></iframe>
-<p><em>Explore quantum effects and how measurement changes results. Essential for understanding wave-particle duality!</em></p>
 
 <hr>
 
-<h2>Module 2: The Schrödinger Equation</h2>
-<p><strong>What you'll learn:</strong> The fundamental equation of quantum mechanics.</p>
+<h2>Module 2: Rutherford Scattering & The Nuclear Atom</h2>
+<p>Ernest Rutherford's gold foil experiment shattered the "Plum Pudding" model. He discovered that the atom's positive charge is concentrated in a tiny, dense nucleus. This led to the planetary model, which, while revolutionary, was classical and unstable.</p>
 
-<h3>2.1 What is the Schrödinger Equation?</h3>
-<p>The time-dependent Schrödinger equation describes how quantum systems evolve:</p>
-<p><strong>iℏ ∂ψ/∂t = Ĥψ</strong></p>
-<p>Don't worry about the notation! The key idea: ψ (psi) is the <strong>wave function</strong> 
-that contains all information about a quantum system.</p>
-
-<h3>2.2 Wave Functions and Probability</h3>
-<p><strong>Key Insight:</strong> |ψ|² tells us the probability of finding a particle at a location.</p>
-<ul>
-  <li>ψ itself is complex (has imaginary parts)</li>
-  <li>|ψ|² is always real and positive (probability density)</li>
-  <li>∫|ψ|² dV = 1 (total probability must equal 1)</li>
-</ul>
-
-<p><strong>This is the fundamental difference from classical mechanics:</strong></p>
-<ul>
-  <li>Classical: Position is definite (either here or there)</li>
-  <li>Quantum: Position is probabilistic (probability distribution)</li>
-</ul>
-
-<h3>2.3 Observables and Measurements</h3>
-<p>In quantum mechanics, the act of measurement changes the system!</p>
-<ul>
-  <li>Before measurement: particle exists in a superposition of states</li>
-  <li>During measurement: we collapse the wave function to one state</li>
-  <li>After measurement: the system is in the measured state</li>
-</ul>
-
-<p><strong>Interactive Simulator:</strong></p>
-<iframe src="https://phet.colorado.edu/sims/html/quantum-coin-toss/latest/quantum-coin-toss_all.html" 
-  width="100%" height="600" frameborder="0" style="border: 1px solid #ccc; margin: 20px 0;"></iframe>
-<p><em>See how measurement affects quantum systems. Why do repeated measurements give different results? Explore superposition and quantum probability!</em></p>
-
-<hr>
-
-<h2>Module 3: Quantum Superposition</h2>
-<p><strong>What you'll learn:</strong> How particles can exist in multiple states simultaneously.</p>
-
-<h3>3.1 What is Superposition?</h3>
-<p><strong>Superposition:</strong> A quantum particle can exist in multiple states at the same time 
-until it's measured.</p>
-
-<p><strong>Example - Schrödinger's Cat:</strong></p>
-<p>Imagine a cat in a sealed box with a quantum particle. The cat is both alive AND dead (superposition) 
-until we open the box and measure (collapse the superposition).</p>
-
-<h3>3.2 The Stern-Gerlach Experiment</h3>
-<p>This famous experiment demonstrates quantum superposition:</p>
-<ol>
-  <li>Electrons have a property called "spin"</li>
-  <li>Spin can be measured as "up" or "down"</li>
-  <li>Before measurement, electrons are in superposition of spin-up AND spin-down</li>
-  <li>Measurement collapses the superposition to one state</li>
-</ol>
-
-<p><strong>Interactive Simulator:</strong></p>
+<p><strong>Interactive Visualization: Rutherford Scattering</strong></p>
 <iframe src="https://phet.colorado.edu/sims/html/rutherford-scattering/latest/rutherford-scattering_all.html" 
   width="100%" height="600" frameborder="0" style="border: 1px solid #ccc; margin: 20px 0;"></iframe>
-<p><em>See how particles interact with atoms. Explore how Rutherford discovered the atomic nucleus!</em></p>
 
 <hr>
 
-<h2>Module 4: Quantum Entanglement</h2>
-<p><strong>What you'll learn:</strong> The "spooky" connections between entangled particles.</p>
+<h2>Module 3: The Bohr Model & Wave-Particle Duality</h2>
+<p>Bohr's model introduced the first "quantum" stable orbits. However, it was Louis de Broglie who proposed the true key: matter itself has a wavelength.</p>
+<p>$$\lambda = \frac{h}{p}$$</p>
 
-<h3>4.1 What is Entanglement?</h3>
-<p><strong>Entanglement:</strong> Two particles become connected so their quantum states are correlated.</p>
-<ul>
-  <li>Measure particle A as spin-up → particle B instantly becomes spin-down</li>
-  <li>This happens even if particles are light-years apart!</li>
-  <li>No information travels between them (violates no laws)</li>
-</ul>
+<div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; margin: 20px 0; border: 1px solid #444;">
+  <h4>📝 Worked Example: Electron De Broglie Wavelength</h4>
+  <p><strong>Problem:</strong> Calculate the wavelength of an electron moving at $1 \times 10^6$ m/s ($m_e \approx 9.11 \times 10^{-31}$ kg).</p>
+  <p><strong>Solution:</strong> $\lambda = \frac{6.626 \times 10^{-34}}{(9.11 \times 10^{-31})(1 \times 10^6)} \approx 7.27 \times 10^{-10}$ m (or 0.727 nm). This is in the X-ray range!</p>
+</div>
 
-<h3>4.2 Bell's Theorem and the EPR Paradox</h3>
-<p>Einstein called this "spooky action at a distance" and didn't believe it was real.</p>
-<p><strong>Bell's Theorem (1964):</strong> Proved that entanglement is real!</p>
-<ul>
-  <li>Entanglement cannot be explained by hidden variables</li>
-  <li>Quantum mechanics is fundamentally probabilistic</li>
-  <li>Reality doesn't exist until measured</li>
-</ul>
-
-<h3>4.3 Applications of Entanglement</h3>
-<ul>
-  <li><strong>Quantum Cryptography:</strong> Unbreakable communication using entangled photons</li>
-  <li><strong>Quantum Computing:</strong> Entangled qubits can process information exponentially faster</li>
-  <li><strong>Quantum Teleportation:</strong> Transfer quantum states between particles</li>
-</ul>
-
-<hr>
-
-<h2>Module 5: Atomic Structure & Spectroscopy</h2>
-<p><strong>What you'll learn:</strong> How quantum mechanics explains atoms.</p>
-
-<h3>5.1 The Hydrogen Atom</h3>
-<p>Hydrogen is the simplest atom (1 proton + 1 electron). Quantum mechanics explains its structure perfectly!</p>
-
-<p><strong>Energy Levels:</strong> Electrons can only occupy specific energy levels:</p>
-<ul>
-  <li>n = 1 (ground state): Lowest energy</li>
-  <li>n = 2, 3, 4, ...: Excited states (higher energy)</li>
-</ul>
-
-<p><strong>Orbitals:</strong> Not circular orbits like planets! Instead, orbitals are probability clouds 
-showing where we're likely to find the electron.</p>
-
-<h3>5.2 Spectroscopy</h3>
-<p><strong>Emission Spectrum:</strong> When electrons fall from high to low energy levels, they emit photons.</p>
-<p>Energy of photon: <strong>ΔE = h·f = hc/λ</strong></p>
-<p>Each element has a unique spectral signature (like a fingerprint!).</p>
-
-<h3>5.3 Applications</h3>
-<ul>
-  <li><strong>Lasers:</strong> Stimulated emission of coherent light</li>
-  <li><strong>Fluorescence:</strong> Excited atoms emit visible light</li>
-  <li><strong>Neon Signs:</strong> Different noble gases produce different colors</li>
-</ul>
-
-<p><strong>Interactive Simulator:</strong></p>
+<p><strong>Interactive Visualization: Models of the Hydrogen Atom</strong></p>
 <iframe src="https://phet.colorado.edu/sims/html/models-of-the-hydrogen-atom/latest/models-of-the-hydrogen-atom_all.html" 
   width="100%" height="600" frameborder="0" style="border: 1px solid #ccc; margin: 20px 0;"></iframe>
-<p><em>Explore electron transitions and energy levels in the hydrogen atom. See different models (Bohr, Quantum Mechanical) in action!</em></p>
 
 <hr>
 
-<h2>Module 6: Quantum Computing Basics</h2>
-<p><strong>What you'll learn:</strong> How quantum mechanics enables revolutionary computing.</p>
+<h2>Module 4: The Schrödinger Equation & State Vectors</h2>
+<p>The central pillar of Quantum Mechanics is the Time-Dependent Schrödinger Equation (TDSE):</p>
+<p>$$i\hbar \frac{\partial}{\partial t} |\Psi(t)\rangle = \hat{H} |\Psi(t)\rangle$$</p>
+<p>Where $|\Psi\rangle$ is a vector in <strong>Hilbert Space</strong>, and $\hat{H}$ is the Hamiltonian operator representing total energy.</p>
 
-<h3>6.1 Classical Bits vs. Quantum Bits (Qubits)</h3>
-<p><strong>Classical Bit:</strong> Either 0 or 1 (like a light switch: on or off)</p>
-<p><strong>Qubit:</strong> Can be 0, 1, or BOTH at the same time (superposition!)</p>
-
-<h3>6.2 Quantum Advantage</h3>
-<p><strong>Classical Computer (3 bits):</strong> Can be in ONE state at a time</p>
-<ul>
-  <li>000, 001, 010, 011, 100, 101, 110, or 111</li>
-  <li>Process one value at a time</li>
-</ul>
-
-<p><strong>Quantum Computer (3 qubits):</strong> Can be in ALL states simultaneously!</p>
-<ul>
-  <li>Superposition allows processing all 8 values at once</li>
-  <li>For 300 qubits: 2³⁰⁰ states simultaneously (more than atoms in universe!)</li>
-</ul>
-
-<h3>6.3 Quantum Gates and Algorithms</h3>
-<p><strong>Quantum Gates:</strong> Operations that manipulate qubits (like transistors in classical computers)</p>
-<ul>
-  <li><strong>Hadamard Gate:</strong> Creates superposition</li>
-  <li><strong>CNOT Gate:</strong> Creates entanglement</li>
-  <li><strong>Phase Gates:</strong> Manipulate quantum phases</li>
-</ul>
-
-<p><strong>Famous Quantum Algorithms:</strong></p>
-<ul>
-  <li><strong>Shor's Algorithm:</strong> Factor large numbers exponentially faster</li>
-  <li><strong>Grover's Algorithm:</strong> Search unsorted databases exponentially faster</li>
-</ul>
-
-<h3>6.4 Current State of Quantum Computing</h3>
-<ul>
-  <li>IBM, Google, Rigetti: Building real quantum computers</li>
-  <li>Google's "Quantum Supremacy" (2019): Solved problem in 200 seconds 
-    (classical computer would take 10,000 years)</li>
-  <li>Challenges: Decoherence, error correction, scalability</li>
-</ul>
+<h3>4.1 Postulates of QM</h3>
+<ol>
+    <li><strong>The State:</strong> All information is contained in the state vector $|\psi\rangle$.</li>
+    <li><strong>Observables:</strong> Every physical observable corresponds to a <em>Hermitian Operator</em>.</li>
+    <li><strong>Measurement:</strong> Measurement values are eigenvalues of the operator.</li>
+    <li><strong>Born Rule:</strong> Probability $P(a) = |\langle a|\psi\rangle|^2$.</li>
+</ol>
 
 <hr>
 
-<h2>Summary & Key Takeaways</h2>
-<ul>
-  <li>Quantum mechanics rules the atomic and subatomic world</li>
-  <li>Particles don't have definite properties until measured (superposition)</li>
-  <li>Entanglement creates spooky connections between particles</li>
-  <li>Quantum mechanics perfectly explains atomic structure and spectra</li>
-  <li>Quantum computers will revolutionize computing in the coming decades</li>
-</ul>
+<h2>Module 5: Exact Solutions (Particle in a Box & QHO)</h2>
+<p>The infinite square well shows us <strong>Quantization</strong>. The particle cannot have zero energy (Zero-Point Energy).</p>
 
-<p><strong>Congratulations on learning quantum mechanics! Take the quiz to test your quantum knowledge.</strong></p>
+<div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; margin: 20px 0; border: 1px solid #444;">
+  <h4>📝 Worked Example: Uncertainty in an Infinite Well</h4>
+  <p><strong>Problem:</strong> For a particle in the ground state of a 1D box of width $L$, show that $\Delta x = L \sqrt{\frac{1}{12} - \frac{1}{2\pi^2}}$.</p>
+  <p><strong>Solution:</strong> We use $\langle x \rangle = L/2$ and $\langle x^2 \rangle = \int_0^L x^2 \frac{2}{L} \sin^2(\frac{\pi x}{L}) dx$. Solving the integral yields $\langle x^2 \rangle = L^2 (\frac{1}{3} - \frac{1}{2\pi^2})$. Thus, $(\Delta x)^2 = \langle x^2 \rangle - \langle x \rangle^2 = L^2 (\frac{1}{12} - \frac{1}{2\pi^2})$.</p>
+</div>
+
+<hr>
+
+<h2>Module 6: Quantum Measurement & Probability</h2>
+<p>Quantum states exist in <strong>Superposition</strong> until measured. This isn't just "ignorance"—it is a physical lack of a definite property.</p>
+
+<p><strong>Interactive Visualization: Quantum Measurement</strong></p>
+<iframe src="https://phet.colorado.edu/sims/html/quantum-measurement/latest/quantum-measurement_all.html" 
+  width="100%" height="600" frameborder="0" style="border: 1px solid #ccc; margin: 20px 0;"></iframe>
+
+<hr>
+
+<h2>Module 7: Spin & The Pauli Matrices</h2>
+<p>Spin is "intrinsic" angular momentum. It spans a 2D complex Hilbert space, described by the Pauli matrices $\sigma_x, \sigma_y, \sigma_z$.</p>
+<p>$$\sigma_z = \begin{pmatrix} 1 & 0 \\ 0 & -1 \end{pmatrix}$$</p>
+
+<hr>
+
+<h2>Module 8: Entanglement, Bell's Theorem & Quantum Computing</h2>
+<p>Entanglement is the non-local "wiring" of the universe. In a Bell state $|\Phi^+\rangle = \frac{1}{\sqrt{2}} (|00\rangle + |11\rangle)$, neither particle has a state of its own; only the system does.</p>
+
+<h3>8.1 The Qubit & Logic Gates</h3>
+<p>A qubit $|\psi\rangle = \alpha |0\rangle + \beta |1\rangle$ can represent infinitely more information through phase relations than a classic bit. Gates like <strong>Hadamard (H)</strong> create superposition, and <strong>CNOT</strong> creates entanglement.</p>
+
+<div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; margin: 20px 0; border: 1px solid #444;">
+  <h4>📝 Worked Example: Entanglement Entropy</h4>
+  <p><strong>Problem:</strong> Calculate the partial trace $\rho_A = Tr_B(|\Phi^+\rangle\langle\Phi^+|)$ for the Bell state.</p>
+  <p><strong>Solution:</strong> $\rho_{AB} = \frac{1}{2}(|00\rangle\langle 00| + |00\rangle\langle 11| + |11\rangle\langle 00| + |11\rangle\langle 11|)$. Tracing out B leaves $\rho_A = \frac{1}{2}(|0\rangle\langle 0| + |1\rangle\langle 1|)$. This is a <strong>Maximally Mixed State</strong>, meaning $A$ is completely unknown without $B$.</p>
+</div>
+
+<hr>
+
+<h2>Module 9: Approximating Reality - Perturbation Theory</h2>
+<p>Most real-world systems cannot be solved exactly. We use <strong>Time-Independent Perturbation Theory</strong> to handle small "nudges" to a known system.</p>
+<p>$$\hat{H} = \hat{H}^0 + \lambda \hat{H}'$$</p>
+<p>The first-order correction to energy is simply the expectation value of the perturbation in the unperturbed state:</p>
+<p>$$E_n^{(1)} = \langle \psi_n^0 | \hat{H}' | \psi_n^0 \rangle$$</p>
+
+<div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; margin: 20px 0; border: 1px solid #444;">
+  <h4>📝 Worked Example: Delta-Function Perturbation</h4>
+  <p><strong>Problem:</strong> A particle in an infinite well of width $L$ is perturbed by a small spike at the center: $\hat{H}' = \alpha \delta(x - L/2)$. Find the first-order energy shift for the ground state.</p>
+  <p><strong>Solution:</strong></p>
+  <ol>
+    <li>$E_1^{(1)} = \int_0^L \psi_1(x) \alpha \delta(x - L/2) \psi_1(x) dx$.</li>
+    <li>$E_1^{(1)} = \alpha |\psi_1(L/2)|^2$.</li>
+    <li>Since $\psi_1(L/2) = \sqrt{2/L} \sin(\pi/2) = \sqrt{2/L}$, then $E_1^{(1)} = \frac{2\alpha}{L}$.</li>
+  </ol>
+</div>
+
+<hr>
+
+<h2>Module 10: The Variational Principle & Helium Atom</h2>
+<p>The Variational Principle states that for <em>any</em> trial wave function $|\psi_{trial}\rangle$, the energy expectation value is an upper bound to the ground state energy $E_{gs}$:</p>
+<p>$$E_{trial} = \frac{\langle \psi_{trial} | \hat{H} | \psi_{trial} \rangle}{\langle \psi_{trial} | \psi_{trial} \rangle} \geq E_{gs}$$</p>
+
+<h3>10.1 Application: The Two-Electron Problem</h3>
+<p>In Helium, the electron-electron repulsion $\frac{e^2}{4\pi\epsilon_0 |r_1 - r_2|}$ makes the TISE unsolvable. Variational methods allow us to approximate the ground state energy within 2% error.</p>
+
+<hr>
+
+<h2>Module 11: Fine Structure & Relativistic Corrections</h2>
+<p>The "Bohr" energy levels are only the beginning. Small effects lead to the <strong>Fine Structure</strong>:</p>
+<ol>
+    <li><strong>Relativistic Kinetic Energy:</strong> Correcting $p^2/2m$ for high-speed electrons.</li>
+    <li><strong>Spin-Orbit Coupling:</strong> The interaction between the electron's spin and the magnetic field seen in its rest frame.</li>
+    <li><strong>Darwin Term:</strong> A correction for the "shaking" (Zitterbewegung) of the electron.</li>
+</ol>
+<p>The total shift is of order $\alpha^2 E_n$, where $\alpha \approx 1/137$ is the Fine Structure Constant.</p>
+
+<hr>
+
+<h2>Module 12: Scattering Theory & The Born Approximation</h2>
+<p>In particle physics, we don't find "states"—we measure <strong>Scattering Cross-Sections</strong>. We use the Lippmann-Schwinger equation and the <strong>First Born Approximation</strong> to predict how particles deflect off a potential $V(r)$.</p>
+<p>$$f(\theta) \approx -\frac{m}{2\pi\hbar^2} \int e^{iq \cdot r'} V(r') d^3r'$$</p>
+
+<hr>
+
+<h2>Module 13: Introduction to Second Quantization (QFT)</h2>
+<p>In advanced QM, we treat the wave function itself as an operator. We define <strong>Creation ($a^\dagger$)</strong> and <strong>Annihilation ($a$)</strong> operators for fields.</p>
+<p>$$[\hat{\phi}(\mathbf{x}), \hat{\pi}(\mathbf{y})] = i\delta^{(3)}(\mathbf{x}-\mathbf{y})$$</p>
+<p>This is the foundation of <strong>Quantum Electrodynamics (QED)</strong>—the most accurately tested theory in human history.</p>
+
+<hr>
+
+<h2>Module 14: Degenerate Perturbation Theory & The Stark Effect</h2>
+<p>When multiple states have the same energy (degeneracy), simple perturbation theory fails. We must diagonalize the perturbation matrix $W_{ij} = \langle \psi_i^0 | \hat{H}' | \psi_j^0 \rangle$.</p>
+<p><strong>Example: The Stark Effect.</strong> When a Hydrogen atom ($n=2$) is placed in an electric field, the four-fold degeneracy is lifted, splitting the spectral lines.</p>
+
+<div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; margin: 20px 0; border: 1px solid #444;">
+  <h4>📝 Worked Example: Stark Shift Selection Rules</h4>
+  <p><strong>Problem:</strong> Why is the first-order Stark shift zero for the ground state ($n=1$) of Hydrogen?</p>
+  <p><strong>Solution:</strong></p>
+  <ol>
+    <li>$\hat{H}' = -eEz$.</li>
+    <li>$E_1^{(1)} = \langle \psi_{100} | -eEz | \psi_{100} \rangle$.</li>
+    <li>$z$ is an odd function (parity), while $|\psi|^2$ for s-orbitals is even.</li>
+    <li>The integral of an odd function over symmetric space is zero. Thus, the ground state only has a <em>second-order</em> shift.</li>
+  </ol>
+</div>
+
+<hr>
+
+<h2>Module 15: The WKB Approximation & Quantum Tunneling</h2>
+<p>The Wentzel-Kramers-Brillouin (WKB) approximation is used for systems where the potential $V(x)$ varies slowly. It is the primary tool for calculating <strong>Tunneling Probabilities</strong> through barriers.</p>
+<p>$$T \approx e^{-2\gamma}, \text{ where } \gamma = \frac{1}{\hbar} \int_{x_1}^{x_2} \sqrt{2m(V(x)-E)} dx$$</p>
+
+<hr>
+
+<h2>Module 16: The Adiabatic Approximation & Berry's Phase</h2>
+<p>If a Hamiltonian changes very slowly, a system starting in an eigenstate stays in that corresponding "instantaneous" eigenstate. This is the <strong>Adiabatic Theorem</strong>.</p>
+<p>However, the state picks up a geometric factor called <strong>Berry's Phase</strong> ($\gamma$), which depends on the path taken in the parameter space.</p>
+
+<hr>
+
+<h2>Module 17: Time-Dependent Perturbation Theory (Fermi's Golden Rule)</h2>
+<p>Transitions between states aren't instantaneous. We use time-dependent theory to find the <strong>Transition Rate ($W$)</strong>:</p>
+<p>$$W_{i \to f} = \frac{2\pi}{\hbar} |\langle f | \hat{V} | i \rangle|^2 \rho(E_f)$$</p>
+<p>This "Golden Rule" is the heart of spectroscopy and nuclear decay calculations.</p>
+
+<hr>
+
+<h2>Module 18: Feynman's Path Integral Formulation</h2>
+<p>Richard Feynman proposed that a particle doesn't just take one path; it takes <em>all possible paths</em> simultaneously. The probability amplitude is the sum over all paths, weighted by $e^{iS/\hbar}$, where $S$ is the classical Action.</p>
+<p>$$K(x,t; x_0,t_0) = \int \mathcal{D}[x(t)] e^{i S[x(t)]/\hbar}$$</p>
+
+<hr>
+
+<h2>Module 19: Many-Body Systems & The Exchange Interaction</h2>
+<p>In systems with identical particles, the wave function must be symmetric (Bosons) or anti-symmetric (Fermions). This leads to an "effective" force called the <strong>Exchange Interaction</strong>, which is responsible for Ferromagnetism and the stability of matter.</p>
+
+<hr>
+
+<h2>Module 20: The Interpretations of Quantum Mechanics</h2>
+<p>We know <em>how</em> the math works, but <em>what does it mean</em>? We explore the three titans of interpretation:</p>
+<ol>
+    <li><strong>Copenhagen:</strong> The act of measurement causes collapse. "Shut up and calculate."</li>
+    <li><strong>Many-Worlds (Everett):</strong> Every measurement branches the universe. No collapse occurs.</li>
+    <li><strong>Pilot Wave (De Broglie-Bohm):</strong> Particles have definite paths, but are guided by a "hidden" wave.</li>
+</ol>
+
+<p><strong>Congratulations! You have completed the Giga-Hyper-Deep Dive. You now possess the depth of understanding required for a PhD in Theoretical Physics!</strong></p>
 """
 
 # ===== ENHANCED QUESTIONS =====
@@ -473,171 +463,258 @@ ALGEBRA_QUESTIONS = [
 ]
 
 QUANTUM_QUESTIONS = [
-     {"question_text": "Planck's constant is approximately:", "question_type": "multiple_choice", "options": ["3 × 10^8 m/s", "1.6 × 10^-19 C", "9.8 m/s²", "6.63 × 10^-34 J·s"], "correct_answer": "6.63 × 10^-34 J·s", "explanation": "Planck's constant h ≈ 6.63 × 10^-34 J·s is the fundamental constant in quantum mechanics. It relates a photon's energy to its frequency: E = hf. The tiny value shows why quantum effects are invisible at everyday scales. The other options are: speed of light, electron charge, and gravitational acceleration.", "points": 1, "order_index": 1},
-    {"question_text": "What is wave-particle duality?", "question_type": "multiple_choice", "options": ["Light acts as both wave and particle", "Objects have two velocities", "Particles can't be waves", "Waves don't have energy"], "correct_answer": "Light acts as both wave and particle", "explanation": "Light exhibits dual nature: Wave properties include interference and diffraction (shown in double-slit experiments). Particle properties include the photoelectric effect and momentum transfer. Depending on how we measure it, light behaves as either waves or particles—this is one of quantum mechanics' most profound insights.", "points": 1, "order_index": 2},
-    {"question_text": "What does the wave function ψ represent?", "question_type": "multiple_choice", "options": ["Probability amplitude of finding a particle", "The particle's velocity", "The particle's mass", "Light wavelength"], "correct_answer": "Probability amplitude of finding a particle", "explanation": "The wave function ψ is a mathematical function that encodes all information about a quantum system. The probability density is |ψ|² (the square of the wave function's magnitude). This means we can calculate the probability of finding a particle at a specific location by squaring the wave function. The particle doesn't have a definite position until measured!", "points": 1, "order_index": 3},
-    {"question_text": "Heisenberg Uncertainty Principle states:", "question_type": "multiple_choice", "options": ["Can't know position and momentum precisely simultaneously", "All measurements are uncertain", "Particles don't exist", "Energy is not conserved"], "correct_answer": "Can't know position and momentum precisely simultaneously", "explanation": "Mathematically: Δx·Δp ≥ ℏ/2 (where ℏ = h/2π). This isn't due to bad equipment—it's a fundamental property of nature! The more precisely we know position (small Δx), the less we know about momentum (large Δp), and vice versa. This applies to all quantum particles and is why electrons don't have definite orbits like planets.", "points": 1, "order_index": 4},
-    {"question_text": "What is superposition?", "question_type": "multiple_choice", "options": ["Particle exists in multiple states until measured", "Two particles in same location", "Adding sound waves", "Particle at rest"], "correct_answer": "Particle exists in multiple states until measured", "explanation": "In quantum superposition, a particle can exist in a combination of multiple states simultaneously. For example, an electron's spin can be in superposition of spin-up AND spin-down at the same time. Only when we measure it does the superposition 'collapse' to a definite state. This is radically different from classical objects, which always have definite properties.", "points": 1, "order_index": 5},
-    {"question_text": "What does the photoelectric effect demonstrate?", "question_type": "multiple_choice", "options": ["Light has particle properties", "Electrons have negative charge", "Light always travels in straight lines", "Metals are good conductors"], "correct_answer": "Light has particle properties", "explanation": "The photoelectric effect: When light hits a metal, it ejects electrons. Classical wave theory predicted the effect depends on light intensity, but experiments showed it depends on light frequency. Einstein explained this in 1905: Light consists of particles (photons) with energy E = hf. A single high-frequency photon can eject an electron, regardless of light intensity. This was revolutionary and won Einstein the Nobel Prize!", "points": 1, "order_index": 6},
-    {"question_text": "Quantum entanglement means:", "question_type": "multiple_choice", "options": ["Two particles' states are correlated instantly", "Particles are physically connected", "Particles move together", "Particles have same velocity"], "correct_answer": "Two particles' states are correlated instantly", "explanation": "When two particles become entangled, their quantum states become correlated perfectly. Measure particle A as spin-up? Particle B instantly becomes spin-down (or whatever the correlation is). Remarkably, this happens instantly even if they're light-years apart! Einstein called this 'spooky action at a distance' and doubted it, but Bell's theorem (1964) and experiments proved it's real. No information travels faster than light—only the correlation.", "points": 1, "order_index": 7},
-    {"question_text": "A qubit differs from a classical bit because:", "question_type": "multiple_choice", "options": ["Qubit can be 0, 1, or both via superposition", "Qubits are smaller", "Qubits never fail", "Qubits are slower"], "correct_answer": "Qubit can be 0, 1, or both via superposition", "explanation": "Classical bit: Always 0 or 1 (on/off). Quantum bit (qubit): Can be 0, 1, or both (superposition)! This is the power of quantum computing. With 3 classical bits, you can process ONE value (e.g., 000 or 101). With 3 qubits, you process ALL 8 values simultaneously! This exponential speedup is why quantum computers will revolutionize computing for certain problems like factoring and searching.", "points": 1, "order_index": 8},
-    {"question_text": "Ground state of hydrogen atom has n = ?", "question_type": "multiple_choice", "options": ["n = 0", "n = 2", "No fixed value", "n = 1"], "correct_answer": "n = 1", "explanation": "In the hydrogen atom, electrons occupy discrete energy levels labeled by n = 1, 2, 3, ... The ground state (lowest energy, most stable) is n = 1. Excited states (n = 2, 3, ...) have higher energy. When an electron falls from n = 2 to n = 1, it releases energy as a photon. This explains the hydrogen spectral lines that were a mystery before quantum mechanics!", "points": 1, "order_index": 9},
+    {"question_text": "Which of the following describes the normalization condition for a wave function ψ(x)?", "question_type": "multiple_choice", "options": ["∫ψ(x) dx = 1", "∫|ψ(x)|² dx = 1", "ψ(x) = ψ*(x)", "dψ/dx = 0"], "correct_answer": "∫|ψ(x)|² dx = 1", "explanation": "The square of the absolute value of the wave function represents probability density. For the particle to exist somewhere, the total probability (integral of density over all space) must equal 1.", "points": 1, "order_index": 1},
+    {"question_text": "What is the value of the commutator [x̂, p̂]?", "question_type": "multiple_choice", "options": ["0", "1", "iℏ", "-iℏ"], "correct_answer": "iℏ", "explanation": "As derived in the course, applying x̂p̂ - p̂x̂ to a test function yields iℏ times the function, using the product rule on the derivative in the momentum operator.", "points": 1, "order_index": 2},
+    {"question_text": "For a particle in the ground state of an infinite square well of width L, where is the probability density highest?", "question_type": "multiple_choice", "options": ["x = 0", "x = L", "x = L/2", "x = L/4"], "correct_answer": "x = L/2", "explanation": "The ground state wave function is proportional to sin(πx/L). The square of this sine function reaches its maximum at πx/L = π/2, which corresponds to x = L/2.", "points": 1, "order_index": 3},
+    {"question_text": "What are the eigenvalues of the Pauli matrix σz?", "question_type": "multiple_choice", "options": ["0, 1", "+1, -1", "i, -i", "1/2, -1/2"], "correct_answer": "+1, -1", "explanation": "σz is a diagonal matrix [[1, 0], [0, -1]]. Its diagonal entries are its eigenvalues, which represent the possible results of spin measurement along the z-axis (in units of ℏ/2).", "points": 1, "order_index": 4},
+    {"question_text": "If a particle state is |ψ⟩ = 1/√2 (|0⟩ + |1⟩), what is the probability of measuring the system in state |0⟩?", "question_type": "multiple_choice", "options": ["1", "1/2", "1/√2", "0"], "correct_answer": "1/2", "explanation": "According to the Born Rule, P = |⟨0|ψ⟩|². Here ⟨0|ψ⟩ = 1/√2, so P = (1/√2)² = 1/2.", "points": 1, "order_index": 5},
+    {"question_text": "The energy of the n=2 state in an infinite square well is how many times the ground state energy (E1)?", "question_type": "multiple_choice", "options": ["2 times", "√2 times", "4 times", "8 times"], "correct_answer": "4 times", "explanation": "Energy levels in the infinite square well scale with n², so En = n²E1. For n=2, E2 = 2²E1 = 4E1.", "points": 1, "order_index": 6},
+    {"question_text": "Which property must an operator have to represent a physical observable?", "question_type": "multiple_choice", "options": ["Unitary", "Hermitian", "Invertible", "Singular"], "correct_answer": "Hermitian", "explanation": "Hermitian operators have real eigenvalues, ensuring that physical measurements (which must be real numbers) are the only possible outcomes.", "points": 1, "order_index": 7},
+    {"question_text": "In the context of entanglement, if a pair of particles is in the singlet state 1/√2 (|↑↓⟩ - |↓↑⟩), measuring the first as 'up' forces the second to be:", "question_type": "multiple_choice", "options": ["Up", "Down", "In a superposition", "Undetermined"], "correct_answer": "Down", "explanation": "The singlet state is perfectly anti-correlated. If the first is 'up' (|↑⟩), the wave function collapses to the first term |↑↓⟩, meaning the second must be 'down' (|↓⟩).", "points": 1, "order_index": 8},
+    {"question_text": "Planck's constant (h) has units of:", "question_type": "multiple_choice", "options": ["Energy", "Force", "Action (Energy × Time)", "Power"], "correct_answer": "Action (Energy × Time)", "explanation": "h ≈ 6.626 × 10⁻³⁴ J·s. Joule-seconds are the units of action, which is the same as angular momentum.", "points": 1, "order_index": 9},
+    {"question_text": "What is the 'Zero-Point Energy' of a Quantum Harmonic Oscillator?", "question_type": "multiple_choice", "options": ["0", "1/2 ℏω", "ℏω", "3/2 ℏω"], "correct_answer": "1/2 ℏω", "explanation": "Even at n=0, the energy is E0 = (0 + 1/2)ℏω = 1/2 ℏω. This is a consequence of the uncertainty principle.", "points": 1, "order_index": 10},
+    {"question_text": "Which experiment first demonstrated the non-locality of quantum mechanics by violating a specific inequality?", "question_type": "multiple_choice", "options": ["Double-slit experiment", "Stern-Gerlach experiment", "Bell test experiments", "Photoelectric effect"], "correct_answer": "Bell test experiments", "explanation": "Bell tests (like those by Aspect et al.) showed that nature violates Bell's inequalities, proving that no local hidden variable theory can explain quantum correlations.", "points": 1, "order_index": 11},
+    {"question_text": "The wave function of a Fermion must be:", "question_type": "multiple_choice", "options": ["Symmetric", "Anti-symmetric", "Real", "Imaginary"], "correct_answer": "Anti-symmetric", "explanation": "Fermions have half-integer spin and follow the spin-statistics theorem, which requires their total wave function to change sign upon the exchange of any two identical particles.", "points": 1, "order_index": 12},
+    {"question_text": "What is the Hamiltonian operator (Ĥ) representing?", "question_type": "multiple_choice", "options": ["Total Momentum", "Total Torque", "Total Energy", "Total Entropy"], "correct_answer": "Total Energy", "explanation": "In both classical and quantum mechanics, the Hamiltonian represents the sum of kinetic and potential energy: Ĥ = T̂ + V̂.", "points": 1, "order_index": 13},
+    {"question_text": "Find the energy of a photon with wavelength 100 nm (use hc ≈ 1240 eV·nm).", "question_type": "multiple_choice", "options": ["1.24 eV", "12.4 eV", "124 eV", "0.124 eV"], "correct_answer": "12.4 eV", "explanation": "E = hc/λ = 1240 / 100 = 12.4 eV.", "points": 1, "order_index": 14},
+    {"question_text": "The 'collapse' of the wave function is associated with which quantum process?", "question_type": "multiple_choice", "options": ["Unitary evolution", "Interference", "Measurement", "Tunneling"], "correct_answer": "Measurement", "explanation": "Upon measurement, a state in a superposition collapses into one of the eigenstates of the observable being measured.", "points": 1, "order_index": 15},
+    {"question_text": "What is the result of the outer product |ψ⟩⟨ψ| if |ψ⟩ is normalized?", "question_type": "multiple_choice", "options": ["A scalar (1)", "The Identity operator", "A Projection operator", "A Zero operator"], "correct_answer": "A Projection operator", "explanation": "The outer product |ψ⟩⟨ψ| projects any state onto the direction of |ψ⟩.", "points": 1, "order_index": 16},
+    {"question_text": "Schrödinger's cat is an illustration of what quantum principle?", "question_type": "multiple_choice", "options": ["Tunneling", "Superposition", "Quantization", "Exclusion"], "correct_answer": "Superposition", "explanation": "The cat is simultaneously 'dead' and 'alive' until an observation causes the state to collapse.", "points": 1, "order_index": 17},
+    {"question_text": "In a 1D box of width L, what is the value of ψ(L)?", "question_type": "multiple_choice", "options": ["1", "0", "1/√L", "L"], "correct_answer": "0", "explanation": "The potential is infinite outside the box, so the wave function must vanish at the boundaries (x=0 and x=L) to be continuous.", "points": 1, "order_index": 18},
+    {"question_text": "Which Pauli matrix is used to find spin along the x-axis?", "question_type": "multiple_choice", "options": ["[[0, 1], [1, 0]]", "[[0, -i], [i, 0]]", "[[1, 0], [0, -1]]", "[[1, 1], [1, 1]]"], "correct_answer": "[[0, 1], [1, 0]]", "explanation": "σx = [[0, 1], [1, 0]]. Its eigenstates are used to describe spin 'left' and 'right'.", "points": 1, "order_index": 19},
+    {"question_text": "If Δx is reduced by a factor of 2, what happens to the minimum possible Δp?", "question_type": "multiple_choice", "options": ["Reduced by 2", "Doubled", "Stays same", "Quadrupled"], "correct_answer": "Doubled", "explanation": "Since ΔxΔp ≥ ℏ/2, they are inversely proportional. Reducing one doubling the minimum for the other.", "points": 1, "order_index": 20},
 ]
 
 # ===== COMPREHENSIVE CHEMISTRY COURSE CONTENT =====
-CHEMISTRY_CONTENT = """
-<h1>Chemistry Fundamentals - Complete Guide</h1>
+CHEMISTRY_CONTENT = r"""
+<h1>Chemistry: The ultimate Hyper-Deep Dive</h1>
 
-<h2>📚 Course Overview</h2>
-    <p>Master the essential concepts of chemistry from atoms and molecules to reactions and equilibrium. 
-    This course uses interactive PhET simulators to visualize chemical phenomena and build your understanding.</p>
+<p>Welcome to the Hyper-Deep Dive into the molecular world. We will trace the journey of an electron from its quantum home in an orbital, through the dance of chemical bonding, into the chaotic energy of thermodynamics, and finally to the harnessed power of an electrochemical cell.</p>
 
-    <hr>
+<hr>
 
-    <h2>Module 1: Atomic Structure & the Periodic Table</h2>
-    <p><strong>What you'll learn:</strong> Atoms, electrons, protons, neutrons, and the organization of the periodic table.</p>
+<h2>Module 1: The Electronic Architecture of Atoms</h2>
+<p>Modern chemistry begins with the realization that atoms are not solid balls, but complex probability clouds controlled by four quantum numbers.</p>
 
-    <h3>1.1 Structure of the Atom</h3>
-    <p>All matter is made of atoms, which consist of:</p>
-    <ul>
-    <li><strong>Nucleus:</strong> Contains protons (positive charge) and neutrons (neutral)</li>
-    <li><strong>Electron Cloud:</strong> Contains electrons (negative charge) orbiting the nucleus</li>
-    <li>Protons and electrons have equal but opposite charges</li>
-    <li>Atoms are electrically neutral when protons = electrons</li>
-    </ul>
+<div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; margin: 20px 0; border: 1px solid #444;">
+  <h4>📝 Worked Example: Orbital Multiplicity</h4>
+  <p><strong>Problem:</strong> How many total electrons can occupy the $n=4$ shell?</p>
+  <p><strong>Solution:</strong></p>
+  <ol>
+    <li>For $n=4$, $l$ can be 0, 1, 2, 3 (s, p, d, f).</li>
+    <li>Number of orbitals = $n^2 = 4^2 = 16$.</li>
+    <li>Each orbital holds 2 electrons (Pauli Principle).</li>
+    <li>Total electrons = $2 \times 16 = 32$.</li>
+  </ol>
+</div>
 
-    <h3>1.2 Periodic Table Organization</h3>
-    <p>Elements organized by atomic number and chemical properties:</p>
-    <ul>
-    <li><strong>Periods:</strong> Horizontal rows (increase from left to right)</li>
-    <li><strong>Groups:</strong> Vertical columns (similar chemical properties)</li>
-    <li><strong>Main Groups:</strong> Group 1 (alkali metals), 17 (halogens), 18 (noble gases)</li>
-    </ul>
+<p><strong>Interactive Visualization: Build an Atom</strong></p>
+<iframe src="https://phet.colorado.edu/sims/html/build-an-atom/latest/build-an-atom_all.html" 
+  width="100%" height="600" frameborder="0" style="border: 1px solid #ccc; margin: 20px 0;"></iframe>
 
-    <p><strong>Interactive Simulator:</strong></p>
-    <iframe src="https://phet.colorado.edu/sims/html/build-an-atom/latest/build-an-atom_all.html" 
-    width="100%" height="600" frameborder="0" style="border: 1px solid #ccc; margin: 20px 0;"></iframe>
-    <p><em>Build atoms by adding protons, neutrons, and electrons! See how atomic number and mass number change.</em></p>
+<hr>
 
-    <hr>
+<h2>Module 2: Molecular Geometry & Chemical Logic</h2>
+<p>Molecules are not random shapes; they are the result of <strong>VSEPR Theory</strong> (minimizing repulsion) and <strong>Hybridization</strong>.</p>
 
-    <h2>Module 2: Chemical Bonding</h2>
-    <p><strong>What you'll learn:</strong> How atoms bond together and why different bonds have different properties.</p>
+<div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; margin: 20px 0; border: 1px solid #444;">
+  <h4>📝 Worked Example: Dipole Moments</h4>
+  <p><strong>Problem:</strong> Is $CO_2$ polar or non-polar? What about $H_2O$?</p>
+  <p><strong>Solution:</strong> $CO_2$ is linear ($180^\circ$); the C=O dipoles cancel out (Non-polar). $H_2O$ is bent ($\approx 104.5^\circ$); the O-H dipoles add up (Polar).</p>
+</div>
 
-    <h3>2.1 Ionic Bonding</h3>
-    <p>Formed when electrons transfer from one atom to another.</p>
-    <ul>
-    <li>Metal loses electrons → becomes positively charged (cation)</li>
-    <li>Nonmetal gains electrons → becomes negatively charged (anion)</li>
-    <li>Electrostatic attraction holds them together</li>
-    <li>Example: NaCl (sodium chloride) - table salt</li>
-    </ul>
+<p><strong>Interactive Visualization: Molecule Shapes</strong></p>
+<iframe src="https://phet.colorado.edu/sims/html/molecule-shapes/latest/molecule-shapes_all.html" 
+  width="100%" height="600" frameborder="0" style="border: 1px solid #ccc; margin: 20px 0;"></iframe>
 
-    <h3>2.2 Covalent Bonding</h3>
-    <p>Formed when atoms share electrons.</p>
-    <ul>
-    <li><strong>Single Bond:</strong> Share 1 pair of electrons (H-H)</li>
-    <li><strong>Double Bond:</strong> Share 2 pairs of electrons (O=O)</li>
-    <li><strong>Triple Bond:</strong> Share 3 pairs of electrons (N≡N)</li>
-    <li>Covalent bonds found in most organic compounds</li>
-    </ul>
+<hr>
 
-    <p><strong>Interactive Simulator:</strong></p>
-    <iframe src="https://phet.colorado.edu/sims/html/molecule-shapes/latest/molecule-shapes_all.html" 
-    width="100%" height="600" frameborder="0" style="border: 1px solid #ccc; margin: 20px 0;"></iframe>
-    <p><em>Build molecules and predict their shapes using VSEPR theory! Experiment with lone pairs and bonding pairs.</em></p>
+<h2>Module 3: Thermodynamics & The Chaos of Matter</h2>
+<p>Thermodynamics tells us "if" a reaction will happen. It is governed by Enthalpy ($H$), Entropy ($S$), and the ultimate arbiter, Gibbs Free Energy ($G$).</p>
 
-    <hr>
+<div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; margin: 20px 0; border: 1px solid #444;">
+  <h4>📝 Worked Example: Spontaneity Calculation</h4>
+  <p><strong>Problem:</strong> A reaction has $\Delta H = -100$ kJ and $\Delta S = -200$ J/K. Is it spontaneous at 25°C?</p>
+  <p><strong>Solution:</strong> $\Delta G = \Delta H - T\Delta S = -100,000 - (298.15)(-200) = -100,000 + 59,630 = -40,370$ J. Since $\Delta G < 0$, it is <strong>Spontaneous</strong>.</p>
+</div>
 
-    <h2>Module 3: Chemical Reactions & Stoichiometry</h2>
-    <p><strong>What you'll learn:</strong> How to balance equations and calculate quantities in chemical reactions.</p>
+<p><strong>Interactive Visualization: States of Matter</strong></p>
+<iframe src="https://phet.colorado.edu/sims/html/states-of-matter/latest/states-of-matter_all.html" 
+  width="100%" height="600" frameborder="0" style="border: 1px solid #ccc; margin: 20px 0;"></iframe>
 
-    <h3>3.1 Balancing Chemical Equations</h3>
-    <p>Conservation of mass: atoms cannot be created or destroyed.</p>
-    <p><strong>Example:</strong> Fe + O₂ → Fe₂O₃</p>
-    <p><strong>Balanced:</strong> 4Fe + 3O₂ → 2Fe₂O₃</p>
+<hr>
 
-    <h3>3.2 Types of Reactions</h3>
-    <ul>
-    <li><strong>Synthesis:</strong> A + B → AB (two substances combine)</li>
-    <li><strong>Decomposition:</strong> AB → A + B (one substance breaks apart)</li>
-    <li><strong>Single Displacement:</strong> A + BC → AC + B (element replaces element)</li>
-    <li><strong>Double Displacement:</strong> AB + CD → AD + CB (ions exchange)</li>
-    <li><strong>Combustion:</strong> CₓHᵧ + O₂ → CO₂ + H₂O (burning with oxygen)</li>
-    </ul>
+<h2>Module 4: Chemical Kinetics & Transition States</h2>
+<p>Kinetics tells us "how fast." Reactants must overcome the <strong>Activation Energy ($E_a$)</strong> barrier by forming a high-energy transition state.</p>
 
-    <p><strong>Interactive Simulator:</strong></p>
-    <iframe src="https://phet.colorado.edu/sims/html/reactants-products-salts/latest/reactants-products-salts_all.html" 
-    width="100%" height="600" frameborder="0" style="border: 1px solid #ccc; margin: 20px 0;"></iframe>
-    <p><em>See what happens when you mix different chemicals! Observe reactions and the products formed.</em></p>
+<hr>
 
-    <hr>
+<h2>Module 5: Stoichiometry & The Math of Yield</h2>
+<p>The Law of Conservation of Mass requires balanced equations. Stoichiometry allows us to predict how much product we can get from a given amount of reactant.</p>
 
-    <h2>Module 4: Acids, Bases & pH</h2>
-    <p><strong>What you'll learn:</strong> Properties of acids and bases, pH scale, and neutralization reactions.</p>
+<p><strong>Interactive Visualization: Balancing Chemical Equations</strong></p>
+<iframe src="https://phet.colorado.edu/sims/html/balancing-chemical-equations/latest/balancing-chemical-equations_all.html" 
+  width="100%" height="600" frameborder="0" style="border: 1px solid #ccc; margin: 20px 0;"></iframe>
 
-    <h3>4.1 Acids and Bases (Arrhenius Definition)</h3>
-    <ul>
-    <li><strong>Acids:</strong> Produce H⁺ ions in solution (taste sour, turn litmus red)</li>
-    <li><strong>Bases:</strong> Produce OH⁻ ions in solution (taste bitter, turn litmus blue)</li>
-    <li><strong>Neutralization:</strong> Acid + Base → Salt + Water</li>
-    </ul>
+<p><strong>Interactive Visualization: Reactants, Products and Leftovers</strong></p>
+<iframe src="https://phet.colorado.edu/sims/html/reactants-products-and-leftovers/latest/reactants-products-and-leftovers_all.html" 
+  width="100%" height="600" frameborder="0" style="border: 1px solid #ccc; margin: 20px 0;"></iframe>
 
-    <h3>4.2 The pH Scale</h3>
-    <ul>
-    <li>pH = -log[H⁺] (measures hydrogen ion concentration)</li>
-    <li>pH 0-7: Acidic (more H⁺ ions)</li>
-    <li>pH = 7: Neutral (pure water)</li>
-    <li>pH 7-14: Basic/Alkaline (more OH⁻ ions)</li>
-    <li>Each step is 10x more acidic or basic</li>
-    </ul>
+<hr>
 
-    <p><strong>Interactive Simulator:</strong></p>
-    <iframe src="https://phet.colorado.edu/sims/html/ph-scale/latest/ph-scale_all.html" 
-    width="100%" height="600" frameborder="0" style="border: 1px solid #ccc; margin: 20px 0;"></iframe>
-    <p><em>Test different substances and measure their pH! See how concentration affects pH value.</em></p>
+<h2>Module 6: Acids, Bases & The pH Scale</h2>
+<p>The concentration of $H^+$ ions defines the acidity of a solution. This is measured on a logarithmic scale.</p>
 
-    <hr>
+<p><strong>Interactive Visualization: pH Scale</strong></p>
+<iframe src="https://phet.colorado.edu/sims/html/ph-scale/latest/ph-scale_all.html" 
+  width="100%" height="600" frameborder="0" style="border: 1px solid #ccc; margin: 20px 0;"></iframe>
 
-    <h2>Module 5: Thermochemistry & Energy</h2>
-    <p><strong>What you'll learn:</strong> Energy in chemical reactions, exothermic and endothermic processes.</p>
+<hr>
 
-    <h3>5.1 Exothermic vs Endothermic</h3>
-    <ul>
-    <li><strong>Exothermic:</strong> Releases energy (ΔH < 0) - gets hot, burns</li>
-    <li><strong>Endothermic:</strong> Absorbs energy (ΔH > 0) - gets cold</li>
-    <li><strong>Heat of Reaction:</strong> Amount of energy released or absorbed</li>
-    </ul>
+<h2>Module 7: Electrochemistry & Battery Technology</h2>
+<p>Electrochemistry is the study of <strong>Redox</strong> reactions. We can use the <strong>Nernst Equation</strong> to find cell potential under non-standard conditions.</p>
+<p>$$E = E^\circ - \frac{RT}{nF} \ln Q$$</p>
 
-    <h3>5.2 Real-World Examples</h3>
-    <ul>
-    <li><strong>Exothermic:</strong> Combustion, neutralization, rusting of iron</li>
-    <li><strong>Endothermic:</strong> Melting ice, evaporating water, photosynthesis</li>
-    </ul>
+<div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; margin: 20px 0; border: 1px solid #444;">
+  <h4>📝 Worked Example: Faraday's First Law</h4>
+  <p><strong>Problem:</strong> How many grams of Copper ($Cu$, $M=63.5$) are deposited by a 5A current running for 1 hour? ($Cu^{2+} + 2e^- \rightarrow Cu$)</p>
+  <p><strong>Solution:</strong></p>
+  <ol>
+    <li>Charge $Q = I \times t = 5 \times 3600 = 18,000$ C.</li>
+    <li>Moles of electrons $n_e = Q/F = 18,000 / 96,485 \approx 0.187$ mol.</li>
+    <li>Moles of Cu = $n_e / 2 \approx 0.0935$ mol.</li>
+    <li>Mass = $0.0935 \times 63.5 \approx 5.94$ g.</li>
+  </ol>
+</div>
 
-    <hr>
+<hr>
 
-    <h2>Summary & Key Takeaways</h2>
-    <ul>
-    <li>Atoms consist of protons, neutrons, and electrons</li>
-    <li>Atoms bond through ionic, covalent, or metallic bonding</li>
-    <li>Chemical equations must be balanced (conservation of mass)</li>
-    <li>Acids produce H⁺, bases produce OH⁻ ions</li>
-    <li>Reactions transfer or absorb energy</li>
-    </ul>
+<h2>Module 8: The Bridge to Organic Chemistry</h2>
+<p>Life is Carbon-based. Organic chemistry explores the infinite complexity of Carbon-Hydrogen-Oxygen-Nitrogen frameworks, where <strong>Resonance</strong> and <strong>Steric Hindrance</strong> govern behavior.</p>
 
-    <p><strong>You've completed Chemistry Fundamentals! Take the quiz to test your knowledge.</strong>
+<hr>
+
+<h2>Module 9: Statistical Mechanics - The Bridge from Micro to Macro</h2>
+<p>Statistical mechanics explains how the microscopic states of individual molecules lead to macroscopic properties like temperature and pressure. The central object is the <strong>Partition Function ($Z$)</strong>:</p>
+<p>$$Z = \sum_i e^{-\beta E_i}$$</p>
+<p>Where $\beta = 1/k_B T$. All thermodynamic variables, including Entropy and Internal Energy, can be derived from $Z$.</p>
+
+<div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; margin: 20px 0; border: 1px solid #444;">
+  <h4>📝 Worked Example: The Boltzmann Distribution</h4>
+  <p><strong>Problem:</strong> A system has two energy levels: $E_0 = 0$ and $E_1 = \epsilon$. What is the probability of finding the system in the excited state at temperature $T$?</p>
+  <p><strong>Solution:</strong></p>
+  <ol>
+    <li>Partition Function: $Z = e^{-0} + e^{-\epsilon/k_B T} = 1 + e^{-\epsilon/k_B T}$.</li>
+    <li>Probability $P_1 = \frac{1}{Z} e^{-\epsilon/k_B T} = \frac{e^{-\epsilon/k_B T}}{1 + e^{-\epsilon/k_B T}}$.</li>
+    <li>As $T \to \infty$, $P_1 \to 1/2$. As $T \to 0$, $P_1 \to 0$.</li>
+  </ol>
+</div>
+
+<hr>
+
+<h2>Module 10: Coordination Chemistry & Crystal Field Theory</h2>
+<p>Transition metals form complex ions where "ligands" surround a central metal. <strong>Crystal Field Theory (CFT)</strong> explains the colors and magnetic properties of these complexes by the splitting of d-orbitals.</p>
+<p>In an octahedral field, the five d-orbitals split into two sets: $t_{2g}$ (lower energy) and $e_g$ (higher energy). The energy difference is denoted as $\Delta_o$.</p>
+
+<div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; margin: 20px 0; border: 1px solid #444;">
+  <h4>📝 Worked Example: CFSE Calculation</h4>
+  <p><strong>Problem:</strong> Calculate the Crystal Field Stabilization Energy (CFSE) for a high-spin $d^5$ octahedral complex.</p>
+  <p><strong>Solution:</strong> In high-spin $d^5$, electrons fill as $(t_{2g})^3 (e_g)^2$. CFSE = $3(-0.4\Delta_o) + 2(0.6\Delta_o) = -1.2\Delta_o + 1.2\Delta_o = 0$. This explains why $Mn^{2+}$ complexes are often less stable than $Fe^{2+}$.</p>
+</div>
+
+<hr>
+
+<h2>Module 11: Solid State Chemistry & Band Theory</h2>
+<p>In solids, atomic orbitals merge into continuous <strong>Energy Bands</strong>. The gap between the <strong>Valence Band</strong> and the <strong>Conduction Band</strong> determines if a material is a conductor, semiconductor, or insulator.</p>
+<ul>
+    <li><strong>Metals:</strong> Overlapping bands (no gap).</li>
+    <li><strong>Semiconductors:</strong> Small gap ($\approx 1$ eV).</li>
+    <li><strong>Insulators:</strong> Large gap ($> 5$ eV).</li>
+</ul>
+
+<hr>
+
+<h2>Module 12: Advanced Chemical Equilibria & Activity</h2>
+<p>At high concentrations, the "ideal" concentration $M$ is no longer accurate. We must use <strong>Activity ($a$)</strong>, where $a = \gamma [C]$. The activity coefficient $\gamma$ accounts for inter-ionic attractions described by the <strong>Debye-Hückel Theory</strong>.</p>
+
+<hr>
+
+<h2>Module 13: The Frontiers of Nanochemistry & Supramolecular Chemistry</h2>
+<p>At the nanoscale, surface area dominates and quantum effects (like quantum dots) emerge. Supramolecular chemistry moves "beyond the molecule" to study <strong>Non-covalent Interactions</strong> like hydrogen bonding and $\pi-\pi$ stacking, which are the basis of life and molecular machines.</p>
+
+<hr>
+
+<h2>Module 14: Molecular Spectroscopy - The Eyes of Chemistry</h2>
+<p>How do we know the structure of a molecule? We use light to probe its vibrations and rotations.</p>
+<ul>
+    <li><strong>Infrared (IR) Spectroscopy:</strong> Measures the "stretching" and "bending" of bonds. For example, a $C=O$ bond always shows a sharp peak around $1700 \text{ cm}^{-1}$.</li>
+    <li><strong>NMR Spectroscopy:</strong> Uses the spin of nuclei to map the environment of atoms. It is the molecular equivalent of an MRI.</li>
+</ul>
+
+<hr>
+
+<h2>Module 15: Surface Chemistry & The Langmuir Isotherm</h2>
+<p>Reactions often happen at the interface of a solid and a gas (catalysis). The <strong>Langmuir Isotherm</strong> models how molecules adsorb onto a surface:</p>
+<p>$$\theta = \frac{KP}{1 + KP}$$</p>
+<p>Where $\theta$ is the fraction of surface covered, and $P$ is the pressure.</p>
+
+<hr>
+
+<h2>Module 16: Computational Chemistry & DFT</h2>
+<p>Since we can't solve the TISE for large molecules, we use <strong>Density Functional Theory (DFT)</strong>. Instead of the wave function, we calculate the <strong>Electron Density</strong> $\rho(r)$. This allows us to design new drugs and materials on supercomputers.</p>
+
+<hr>
+
+<h2>Module 17: Bio-Physical Chemistry & Enzyme Kinetics</h2>
+<p>Life is a series of chemical reactions catalyzed by enzymes. We use the <strong>Michaelis-Menten Equation</strong> to model the rate $v$:</p>
+<p>$$v = \frac{V_{max} [S]}{K_m + [S]}$$</p>
+
+<div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; margin: 20px 0; border: 1px solid #444;">
+  <h4>📝 Worked Example: Enzyme Efficiency</h4>
+  <p><strong>Problem:</strong> An enzyme has $K_m = 10^{-4}$ M. At what substrate concentration $[S]$ is the reaction speed half of $V_{max}$?</p>
+  <p><strong>Solution:</strong> Set $v = V_{max}/2$ in the Michaelis-Menten equation. $V_{max}/2 = \frac{V_{max} [S]}{K_m + [S]} \implies K_m + [S] = 2[S] \implies [S] = K_m$. So the concentration is $10^{-4}$ M.</p>
+</div>
+
+<hr>
+
+<h2>Module 18: Polymer Chemistry & Macromolecules</h2>
+<p>Polymers (plastics, DNA, proteins) are long chains of repeating units. We study their <strong>Degree of Polymerization</strong> and their mechanical properties (Viscoelasticity, Glass Transition Temperature).</p>
+
+<hr>
+
+<h2>Module 19: Nuclear Chemistry & The Age of the Earth</h2>
+<p>Chemical reactions involve electrons, but <strong>Nuclear Reactions</strong> involve the nucleus. We use carbon-14 dating and uranium-lead dating to track the history of the earth through the first-order decay law:</p>
+<p>$$N(t) = N_0 e^{-\lambda t}$$</p>
+
+<hr>
+
+<h2>Module 20: Green Chemistry & The Sustainability Logic</h2>
+<p>The ultimate goal of a chemist is to create products without destroying the environment. We follow the <strong>12 Principles of Green Chemistry</strong>, focusing on Atom Economy, Biodegradability, and Solvent-free Synthesis.</p>
+
+<p><strong>Congratulations! You have completed the Giga-Hyper-Deep Dive. You have bridged the gap from the fundamental electron to the future of our sustainable planet!</strong></p>
 """
 
 CHEMISTRY_QUESTIONS = [
-    {"question_text": "How many protons does a carbon atom have?", "question_type": "multiple_choice", "options": ["8", "7", "5", "6"], "correct_answer": "6", "explanation": "Carbon has atomic number 6, which means it has 6 protons. A neutral carbon atom also has 6 electrons. Protons are positively charged particles in the nucleus.", "points": 1, "order_index": 1},
-    {"question_text": "What type of bond shares electrons between atoms?", "question_type": "multiple_choice", "options": ["Metallic bond", "Hydrogen bond", "Covalent bond", "Ionic bond"], "correct_answer": "Covalent bond", "explanation": "Covalent bonds form when two atoms share one or more pairs of electrons. This is different from ionic bonds where electrons are transferred completely. Covalent bonds are found in molecules like O₂, H₂O, and CO₂.", "points": 1, "order_index": 2},
-    {"question_text": "What is the pH of pure water at 25°C?", "question_type": "multiple_choice", "options": ["0", "14", "7", "10"], "correct_answer": "7", "explanation": "Pure water has a pH of 7, which is considered neutral. This is because [H⁺] = [OH⁻] = 10⁻⁷ M. Any pH below 7 is acidic, and any pH above 7 is basic.", "points": 1, "order_index": 3},
-    {"question_text": "Which type of reaction involves a compound breaking into simpler substances?", "question_type": "multiple_choice", "options": ["Synthesis reaction", "Combustion reaction", "Decomposition reaction", "Double displacement"], "correct_answer": "Decomposition reaction", "explanation": "Decomposition reactions break down a compound into simpler substances. Example: 2H₂O → 2H₂ + O₂. This is the opposite of a synthesis reaction where simpler substances combine.", "points": 1, "order_index": 4},
-    {"question_text": "An exothermic reaction is one that:", "question_type": "multiple_choice", "options": ["Requires heat from surroundings", "Absorbs energy (ΔH > 0)", "Releases energy (ΔH < 0)", "Changes color"], "correct_answer": "Releases energy (ΔH < 0)", "explanation": "Exothermic reactions release energy to the surroundings, making the surroundings warmer. Examples include combustion and neutralization. The negative ΔH indicates energy is released.", "points": 1, "order_index": 5},
-    {"question_text": "What is the correct formula for sodium chloride?", "question_type": "multiple_choice", "options": ["NaClₙ", "Na₂Cl", "NaCl₂", "NaCl"], "correct_answer": "NaCl", "explanation": "Sodium (Na) has a +1 charge and chloride (Cl) has a -1 charge. Therefore, one sodium atom bonds with one chloride atom to form NaCl. This is common table salt.", "points": 1, "order_index": 6},
-    {"question_text": "Which substance is a strong acid?", "question_type": "multiple_choice", "options": ["Vinegar (acetic acid)", "Hydrochloric acid (HCl)", "Lemon juice (citric acid)", "Water"], "correct_answer": "Hydrochloric acid (HCl)", "explanation": "Hydrochloric acid (HCl) is one of the strong acids that completely ionizes in water. The other options are either weak acids or neutral. Strong acids include HCl, HBr, HI, HNO₃, H₂SO₄, and HClO₄.", "points": 1, "order_index": 7},
-    {"question_text": "In the reaction 2H₂ + O₂ → 2H₂O, how many moles of H₂O are produced from 4 moles of H₂?", "question_type": "multiple_choice", "options": ["1 mole", "2 moles", "4 moles", "8 moles"], "correct_answer": "4 moles", "explanation": "The stoichiometric ratio is 2:2 for H₂:H₂O (or 1:1). If 4 moles of H₂ react, then 4 moles of H₂O are produced. Always use the coefficients in the balanced equation to determine mole ratios.", "points": 1, "order_index": 8},
+    {"question_text": "What is the Rydberg formula used for in atomic chemistry?", "question_type": "multiple_choice", "options": ["Predicting electronic transitions", "Calculating bond order", "Determining molecular shape", "Calculating entropy"], "correct_answer": "Predicting electronic transitions", "explanation": "The Rydberg formula relates the wavelength of emitted or absorbed light to the change in principle quantum numbers during an electronic transition.", "points": 1, "order_index": 1},
+    {"question_text": "In MO theory, a 'Bond Order' of 0 implies what?", "question_type": "multiple_choice", "options": ["A stable triple bond", "The molecule does not exist", "A highly polar bond", "A paramagnetic molecule"], "correct_answer": "The molecule does not exist", "explanation": "A bond order of 0 means there is no net stabilization from electron sharing, so the atoms will not remain bonded (e.g., He2).", "points": 1, "order_index": 2},
+    {"question_text": "Which thermodynamic state function is defined as H - TS?", "question_type": "multiple_choice", "options": ["Internal Energy", "Enthalpy", "Gibbs Free Energy", "Helmholtz Energy"], "correct_answer": "Gibbs Free Energy", "explanation": "G = H - TS is the fundamental definition of Gibbs Free Energy, which determines spontaneity at constant T and P.", "points": 1, "order_index": 3},
+    {"question_text": "If a reaction is exothermic (ΔH < 0) and entropy decreases (ΔS < 0), it is spontaneous at:", "question_type": "multiple_choice", "options": ["All temperatures", "High temperatures only", "Low temperatures only", "Never"], "correct_answer": "Low temperatures only", "explanation": "For spontaneity, ΔH - TΔS must be negative. If ΔH is (-) and -TΔS is (+), only low T will keep the negative term dominant.", "points": 1, "order_index": 4},
+    {"question_text": "The rate law v = k[A][B]² represents a reaction of what overall order?", "question_type": "multiple_choice", "options": ["1", "2", "3", "0"], "correct_answer": "3", "explanation": "Overall order is the sum of the exponents in the rate law: 1 + 2 = 3.", "points": 1, "order_index": 5},
+    {"question_text": "What is the unit of the rate constant 'k' for a first-order reaction?", "question_type": "multiple_choice", "options": ["M/s", "1/s", "M⁻¹s⁻¹", "M⁻²s⁻¹"], "correct_answer": "1/s", "explanation": "For first order: Rate (M/s) = k [A] (M). Thus k = (M/s)/M = 1/s.", "points": 1, "order_index": 6},
+    {"question_text": "The Nernst Equation relates cell potential to what property?", "question_type": "multiple_choice", "options": ["Mass", "Volume", "Concentration (Q)", "Pressure"], "correct_answer": "Concentration (Q)", "explanation": "The Nernst Equation shows how the potential varies with the activity/concentration of reactants and products via the reaction quotient Q.", "points": 1, "order_index": 7},
+    {"question_text": "What is the standard potential (E°) of a Hydrogen electrode at pH 0?", "question_type": "multiple_choice", "options": ["1.0 V", "0.0 V", "-0.76 V", "+0.34 V"], "correct_answer": "0.0 V", "explanation": "By definition, the Standard Hydrogen Electrode (SHE) is assigned a potential of 0.00 V at all temperatures.", "points": 1, "order_index": 8},
+    {"question_text": "Which quantum number determines the shape of an orbital?", "question_type": "multiple_choice", "options": ["n", "l", "ml", "ms"], "correct_answer": "l", "explanation": "The angular momentum quantum number 'l' defines the type (s, p, d, f) and thus the shape of the orbital.", "points": 1, "order_index": 9},
+    {"question_text": "A catalyst increases reaction speed by doing what?", "question_type": "multiple_choice", "options": ["Increasing ΔH", "Decreasing ΔG", "Lowering Activation Energy (Ea)", "Increasing temperature"], "correct_answer": "Lowering Activation Energy (Ea)", "explanation": "Catalysts provide an alternative mechanism with a lower activation energy, allowing more molecules to react per unit time.", "points": 1, "order_index": 10},
+    {"question_text": "The LCAO approximation stands for:", "question_type": "multiple_choice", "options": ["Linear Combination of Atomic Orbitals", "Lowest Common Atomic Orbital", "Le Chatelier's Atomic Order", "Liquid Crystal Atomic Operation"], "correct_answer": "Linear Combination of Atomic Orbitals", "explanation": "LCAO is the mathematical method of adding atomic wave functions to form molecular wave functions.", "points": 1, "order_index": 11},
+    {"question_text": "Which law states that the total entropy of the universe always increases?", "question_type": "multiple_choice", "options": ["1st Law", "2nd Law", "3rd Law", "Hess's Law"], "correct_answer": "2nd Law", "explanation": "The Second Law of Thermodynamics governs the arrow of time and the spontaneity of processes.", "points": 1, "order_index": 12},
+    {"question_text": "For the half-reaction Cu²⁺ + 2e⁻ → Cu, what is 'n' in the Nernst Equation?", "question_type": "multiple_choice", "options": ["1", "2", "0", "0.5"], "correct_answer": "2", "explanation": "n represents the number of electrons transferred in the balanced half-reaction.", "points": 1, "order_index": 13},
+    {"question_text": "What is the geometry of an sp³ hybridized atom with no lone pairs?", "question_type": "multiple_choice", "options": ["Linear", "Trigonal Planar", "Tetrahedral", "Octahedral"], "correct_answer": "Tetrahedral", "explanation": "sp³ hybridization involves 4 equivalent orbitals pointing to the corners of a tetrahedron.", "points": 1, "order_index": 14},
+    {"question_text": "The Boltzmann constant (kB) relates entropy to:", "question_type": "multiple_choice", "options": ["Heat", "Microstates (W)", "Work", "Enthalpy"], "correct_answer": "Microstates (W)", "explanation": "S = kB ln W. This is the link between microscopic arrangements and macroscopic entropy.", "points": 1, "order_index": 15},
+    {"question_text": "In kinetics, a 'reaction intermediate' is:", "question_type": "multiple_choice", "options": ["A reactant", "A product", "Produced then consumed", "The transition state"], "correct_answer": "Produced then consumed", "explanation": "Intermediates appear in the mechanism but not in the overall balanced equation as they are used up as fast as they are made.", "points": 1, "order_index": 16},
+    {"question_text": "The Farady constant (F) represents the charge of:", "question_type": "multiple_choice", "options": ["1 electron", "1 mole of electrons", "1 proton", "1 kg of electrons"], "correct_answer": "1 mole of electrons", "explanation": "F ≈ 96485 Coulombs per mole of electrons.", "points": 1, "order_index": 17},
+    {"question_text": "Which principle states that electrons fill the lowest energy levels first?", "question_type": "multiple_choice", "options": ["Hund's Rule", "Pauli Principle", "Aufbau Principle", "Heisenberg Principle"], "correct_answer": "Aufbau Principle", "explanation": "Aufbau (building up) governs the order of orbital filling based on energy.", "points": 1, "order_index": 18},
+    {"question_text": "What is the bond order of N2 (which has 10 valence electrons in MOs)?", "question_type": "multiple_choice", "options": ["1", "2", "3", "4"], "correct_answer": "3", "explanation": "N2: (σ2s)² (σ*2s)² (π2p)⁴ (σ2p)². B.O. = (8 - 2)/2 = 3.", "points": 1, "order_index": 19},
+    {"question_text": "If a reaction quotient Q > K (equilibrium constant), the reaction will:", "question_type": "multiple_choice", "options": ["Proceed forward", "Proceed backward", "Stay at equilibrium", "Explode"], "correct_answer": "Proceed backward", "explanation": "If Q > K, there are too many products, so the system shifts toward the reactants.", "points": 1, "order_index": 20},
 ]
 
 def connect_to_aiven():
@@ -735,8 +812,8 @@ def main():
         print("="*70)
         print("\n📊 Updates:")
         print("  ✓ Algebra: Comprehensive teaching content + 8 questions (randomized answers)")
-        print("  ✓ Quantum: Comprehensive teaching content + 9 questions (randomized answers)")
-        print("  ✓ Chemistry: Comprehensive teaching content + 8 questions (randomized answers)")
+        print("  ✓ Quantum: Comprehensive teaching content + 20 questions (randomized answers)")
+        print("  ✓ Chemistry: Comprehensive teaching content + 20 questions (randomized answers)")
         print("  ✓ PhET simulators embedded and working")
         print("  ✓ All answer choices randomized so correct answer is NOT always first")
         print("\n🚀 Courses are now ready for students!")
