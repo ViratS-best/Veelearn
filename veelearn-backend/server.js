@@ -281,12 +281,26 @@ const initializeDatabase = async () => {
                 is_submitted BOOLEAN DEFAULT FALSE,
                 is_late BOOLEAN DEFAULT FALSE,
                 feedback TEXT,
+                correct_answers INT DEFAULT 0,
+                total_questions INT DEFAULT 0,
+                quiz_accuracy DECIMAL(5,2) DEFAULT 0,
                 submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 FOREIGN KEY (assignment_id) REFERENCES classroom_assignments(id) ON DELETE CASCADE,
                 FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
                 UNIQUE KEY unique_submission (assignment_id, student_id),
                 INDEX idx_student (student_id)
             )
+        `);
+        
+        // Add new columns if they don't exist (for existing tables)
+        await query(`
+            ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS correct_answers INT DEFAULT 0
+        `);
+        await query(`
+            ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS total_questions INT DEFAULT 0
+        `);
+        await query(`
+            ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS quiz_accuracy DECIMAL(5,2) DEFAULT 0
         `);
         console.log('✓ Assignment submissions table ready');
         
@@ -3003,7 +3017,7 @@ app.get('/api/student/assignments', authenticateToken, (req, res) => {
     });
 });
 
-// Submit assignment completion
+// Submit assignment completion with quiz accuracy tracking
 app.post('/api/student/submit-assignment', authenticateToken, (req, res) => {
     const { assignmentId, completionPercentage } = req.body;
     const studentId = req.user.id;
@@ -3011,48 +3025,161 @@ app.post('/api/student/submit-assignment', authenticateToken, (req, res) => {
     if (!assignmentId) return apiResponse(res, 400, 'Assignment ID required');
     if (completionPercentage === undefined) return apiResponse(res, 400, 'Completion percentage required');
     
-    // Check if assignment exists
+    // Get assignment details including course_id
     db.query(
-        'SELECT due_date FROM classroom_assignments WHERE id = ?',
+        'SELECT due_date, course_id FROM classroom_assignments WHERE id = ?',
         [assignmentId],
         (err, assignments) => {
             if (err) return apiResponse(res, 500, 'Error fetching assignment');
             if (assignments.length === 0) return apiResponse(res, 404, 'Assignment not found');
             
-            const isLate = assignments[0].due_date && new Date() > new Date(assignments[0].due_date);
+            const assignment = assignments[0];
+            const isLate = assignment.due_date && new Date() > new Date(assignment.due_date);
             const submissionDate = new Date();
             
+            // Get total questions count for the course
             db.query(
-                `INSERT INTO assignment_submissions 
-                 (assignment_id, student_id, submission_date, completion_percentage, is_submitted, is_late) 
-                 VALUES (?, ?, ?, ?, ?, ?)
-                 ON DUPLICATE KEY UPDATE 
-                 completion_percentage = ?, submission_date = ?, is_submitted = ?, is_late = ?`,
-                [assignmentId, studentId, submissionDate, completionPercentage, true, isLate,
-                 completionPercentage, submissionDate, true, isLate],
-                (err) => {
-                    if (err) return apiResponse(res, 500, 'Error submitting assignment');
-                    apiResponse(res, 200, 'Assignment submission recorded', { isLate });
+                'SELECT COUNT(*) as totalQuestions FROM course_questions WHERE course_id = ?',
+                [assignment.course_id],
+                (err, countResults) => {
+                    if (err) {
+                        console.error('Error counting questions:', err);
+                        const totalQuestions = 0;
+                        const correctAnswers = 0;
+                        const quizAccuracy = 0;
+                        performSubmission(totalQuestions, correctAnswers, quizAccuracy);
+                        return;
+                    }
+                    
+                    const totalQuestions = countResults[0].totalQuestions || 0;
+                    
+                    // Get correct answers count for this student on this course's questions
+                    db.query(
+                        `SELECT COUNT(*) as correctCount 
+                         FROM user_quiz_attempts uqa
+                         JOIN course_questions cq ON uqa.question_id = cq.id
+                         WHERE uqa.user_id = ? AND cq.course_id = ? AND uqa.is_correct = TRUE`,
+                        [studentId, assignment.course_id],
+                        (err, accuracyResults) => {
+                            if (err) {
+                                console.error('Error counting correct answers:', err);
+                                const correctAnswers = 0;
+                                const quizAccuracy = 0;
+                                performSubmission(totalQuestions, correctAnswers, quizAccuracy);
+                                return;
+                            }
+                            
+                            const correctAnswers = accuracyResults[0].correctCount || 0;
+                            const quizAccuracy = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
+                            performSubmission(totalQuestions, correctAnswers, quizAccuracy);
+                        }
+                    );
+                    
+                    function performSubmission(totalQuestions, correctAnswers, quizAccuracy) {
+                        db.query(
+                            `INSERT INTO assignment_submissions 
+                             (assignment_id, student_id, submission_date, completion_percentage, is_submitted, is_late, correct_answers, total_questions, quiz_accuracy) 
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                             ON DUPLICATE KEY UPDATE 
+                             completion_percentage = ?, submission_date = ?, is_submitted = ?, is_late = ?, correct_answers = ?, total_questions = ?, quiz_accuracy = ?`,
+                            [assignmentId, studentId, submissionDate, completionPercentage, true, isLate, correctAnswers, totalQuestions, quizAccuracy.toFixed(2),
+                             completionPercentage, submissionDate, true, isLate, correctAnswers, totalQuestions, quizAccuracy.toFixed(2)],
+                            (err) => {
+                                if (err) return apiResponse(res, 500, 'Error submitting assignment');
+                                apiResponse(res, 200, 'Assignment submission recorded', { 
+                                    isLate,
+                                    totalQuestions,
+                                    correctAnswers,
+                                    quizAccuracy: parseFloat(quizAccuracy.toFixed(2))
+                                });
+                            }
+                        );
+                    }
                 }
             );
         }
     );
 });
 
+// Get student's enrolled courses with progress tracking
+app.get('/api/student/enrolled-courses', authenticateToken, (req, res) => {
+    const studentId = req.user.id;
+    
+    db.query(`
+        SELECT DISTINCT
+            c.id as course_id,
+            c.title,
+            c.description,
+            u.email as teacher_email,
+            COUNT(ca.id) as total_assignments,
+            SUM(CASE WHEN asub.is_submitted THEN 1 ELSE 0 END) as completed_assignments,
+            GROUP_CONCAT(JSON_OBJECT(
+                'assignment_id', ca.id,
+                'title', ca.title,
+                'due_date', ca.due_date,
+                'correct_answers', asub.correct_answers,
+                'total_questions', asub.total_questions,
+                'is_submitted', asub.is_submitted
+            )) as submissions_json,
+            GROUP_CONCAT(JSON_OBJECT(
+                'id', ca.id,
+                'title', ca.title,
+                'due_date', ca.due_date
+            )) as assignments_json
+        FROM student_enrollments se
+        JOIN classroom_assignments ca ON se.class_code = ca.class_code
+        JOIN courses c ON ca.course_id = c.id
+        JOIN users u ON c.user_id = u.id
+        LEFT JOIN assignment_submissions asub ON ca.id = asub.assignment_id AND asub.student_id = ?
+        WHERE se.student_id = ?
+        GROUP BY c.id, c.title, u.email
+        ORDER BY c.title ASC
+    `, [studentId, studentId], (err, results) => {
+        if (err) {
+            console.error('Error fetching enrolled courses:', err);
+            return apiResponse(res, 500, 'Error fetching enrolled courses');
+        }
+        
+        // Parse JSON data and format response
+        const formattedResults = results.map(row => ({
+            course_id: row.course_id,
+            title: row.title,
+            description: row.description,
+            teacher_email: row.teacher_email,
+            total_assignments: row.total_assignments || 0,
+            completed_assignments: row.completed_assignments || 0,
+            assignments: row.assignments_json 
+                ? row.assignments_json.split(',').map(a => JSON.parse(a))
+                : [],
+            submissions: row.submissions_json 
+                ? row.submissions_json.split(',').map(s => JSON.parse(s))
+                : []
+        }));
+        
+        apiResponse(res, 200, 'Enrolled courses retrieved', formattedResults);
+    });
+});
+
 // Get student submissions for teacher
 app.get('/api/teacher/class/:classCode/submissions', authenticateToken, authorize('teacher'), (req, res) => {
     const { classCode } = req.params;
     const teacherId = req.user.id;
-    
+
     db.query(`
-        SELECT 
-            u.email, 
-            ca.title as assignment_title, 
-            asub.completion_percentage, 
+        SELECT
+            u.email,
+            ca.title as assignment_title,
+            asub.completion_percentage,
             asub.is_submitted,
             asub.is_late,
             asub.submission_date,
-            ca.due_date
+            ca.due_date,
+            asub.correct_answers,
+            COALESCE(
+                (SELECT COUNT(*) FROM user_quiz_attempts WHERE user_id = u.id AND question_id IN 
+                    (SELECT id FROM quiz_questions WHERE course_id = ca.course_id)),
+                0
+            ) as total_questions
         FROM assignment_submissions asub
         JOIN users u ON asub.student_id = u.id
         JOIN classroom_assignments ca ON asub.assignment_id = ca.id
@@ -3060,14 +3187,27 @@ app.get('/api/teacher/class/:classCode/submissions', authenticateToken, authoriz
         ORDER BY ca.id, u.email
     `, [teacherId, classCode], (err, results) => {
         if (err) return apiResponse(res, 500, 'Error fetching submissions');
-        
-        // Format results
-        const formatted = results.map(r => ({
-            ...r,
-            status: !r.is_submitted ? 'Not Started' : r.is_late ? 'Late' : 'On Time',
-            progressBar: `${r.completion_percentage}%`
-        }));
-        
+
+        // Format results with accuracy calculation
+        const formatted = results.map(r => {
+            let accuracy = null;
+            let accuracyPercent = null;
+            
+            // Calculate accuracy if quiz questions exist
+            if (r.total_questions > 0 && r.correct_answers !== null) {
+                accuracy = r.correct_answers;
+                accuracyPercent = Math.round((r.correct_answers / r.total_questions) * 100);
+            }
+            
+            return {
+                ...r,
+                accuracy: accuracy,
+                accuracy_percent: accuracyPercent,
+                status: !r.is_submitted ? 'Not Started' : r.is_late ? 'Late' : 'On Time',
+                progressBar: `${r.completion_percentage}%`
+            };
+        });
+
         apiResponse(res, 200, 'Submissions retrieved', formatted);
     });
 });
@@ -3103,6 +3243,183 @@ app.get('/api/teacher/my-classes', authenticateToken, authorize('teacher'), (req
             apiResponse(res, 200, 'Classes retrieved', classData);
         });
     });
+});
+
+// ===== NEW TEACHER/STUDENT API ENDPOINTS =====
+
+// Get all courses in system for teacher assignment (with pagination/search)
+app.get('/api/courses/all', authenticateToken, (req, res) => {
+    const { page = 1, limit = 10, search = '' } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    
+    // Base query to get all approved courses + user's own courses
+    const countQuery = `
+        SELECT COUNT(*) as total FROM courses c
+        LEFT JOIN users u ON c.creator_id = u.id
+        WHERE c.status = 'approved' OR c.creator_id = ?
+        ${search ? `AND (c.title LIKE ? OR c.description LIKE ?)` : ''}
+    `;
+    
+    const dataQuery = `
+        SELECT c.id, c.title, c.description, c.creator_id, u.email as creator_email, c.status, c.created_at
+        FROM courses c
+        LEFT JOIN users u ON c.creator_id = u.id
+        WHERE c.status = 'approved' OR c.creator_id = ?
+        ${search ? `AND (c.title LIKE ? OR c.description LIKE ?)` : ''}
+        ORDER BY c.created_at DESC
+        LIMIT ? OFFSET ?
+    `;
+    
+    const searchTerm = search ? `%${search}%` : null;
+    const countParams = search ? [req.user.id, searchTerm, searchTerm] : [req.user.id];
+    const dataParams = search 
+        ? [req.user.id, searchTerm, searchTerm, parseInt(limit), offset]
+        : [req.user.id, parseInt(limit), offset];
+    
+    db.query(countQuery, countParams, (err, countResults) => {
+        if (err) return apiResponse(res, 500, 'Error fetching courses count');
+        
+        const total = countResults[0].total;
+        
+        db.query(dataQuery, dataParams, (err, courses) => {
+            if (err) return apiResponse(res, 500, 'Error fetching courses');
+            
+            apiResponse(res, 200, 'All courses retrieved', {
+                courses,
+                pagination: {
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    total,
+                    pages: Math.ceil(total / parseInt(limit))
+                }
+            });
+        });
+    });
+});
+
+// Get student accuracy for a specific assignment
+app.get('/api/student/:studentId/assignment/:assignmentId/accuracy', authenticateToken, (req, res) => {
+    const { studentId, assignmentId } = req.params;
+    const requestingUserId = req.user.id;
+    
+    // Verify user is requesting their own accuracy or is a teacher/admin
+    if (parseInt(studentId) !== parseInt(requestingUserId) && 
+        req.user.role !== 'teacher' && req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+        return apiResponse(res, 403, 'Unauthorized access to student accuracy');
+    }
+    
+    // Get assignment course_id
+    db.query(
+        'SELECT course_id FROM classroom_assignments WHERE id = ?',
+        [assignmentId],
+        (err, assignments) => {
+            if (err) return apiResponse(res, 500, 'Error fetching assignment');
+            if (assignments.length === 0) return apiResponse(res, 404, 'Assignment not found');
+            
+            const courseId = assignments[0].course_id;
+            
+            // Get submission with accuracy data
+            db.query(
+                `SELECT correct_answers, total_questions, quiz_accuracy, completion_percentage, 
+                        is_submitted, is_late, submission_date
+                 FROM assignment_submissions 
+                 WHERE assignment_id = ? AND student_id = ?`,
+                [assignmentId, studentId],
+                (err, submissions) => {
+                    if (err) return apiResponse(res, 500, 'Error fetching submission');
+                    
+                    if (submissions.length === 0) {
+                        // No submission yet
+                        return apiResponse(res, 200, 'No submission yet', {
+                            assignmentId,
+                            studentId,
+                            correct_answers: 0,
+                            total_questions: 0,
+                            quiz_accuracy: 0,
+                            is_submitted: false
+                        });
+                    }
+                    
+                    const submission = submissions[0];
+                    apiResponse(res, 200, 'Student accuracy retrieved', {
+                        assignmentId,
+                        studentId,
+                        correct_answers: submission.correct_answers,
+                        total_questions: submission.total_questions,
+                        quiz_accuracy: submission.quiz_accuracy,
+                        completion_percentage: submission.completion_percentage,
+                        is_submitted: submission.is_submitted,
+                        is_late: submission.is_late,
+                        submission_date: submission.submission_date
+                    });
+                }
+            );
+        }
+    );
+});
+
+// Get all students' accuracy for an assignment (teacher view)
+app.get('/api/teacher/assignment/:assignmentId/student-accuracy', authenticateToken, authorize('teacher', 'admin', 'superadmin'), (req, res) => {
+    const { assignmentId } = req.params;
+    const teacherId = req.user.id;
+    
+    // Verify teacher owns this assignment
+    db.query(
+        'SELECT id, course_id FROM classroom_assignments WHERE id = ? AND teacher_id = ?',
+        [assignmentId, teacherId],
+        (err, assignments) => {
+            if (err) return apiResponse(res, 500, 'Error fetching assignment');
+            if (assignments.length === 0) return apiResponse(res, 403, 'Assignment not owned by this teacher');
+            
+            // Get all student submissions for this assignment
+            db.query(
+                `SELECT 
+                    asub.student_id,
+                    u.email as student_email,
+                    asub.correct_answers,
+                    asub.total_questions,
+                    asub.quiz_accuracy,
+                    asub.completion_percentage,
+                    asub.is_submitted,
+                    asub.is_late,
+                    asub.submission_date
+                 FROM assignment_submissions asub
+                 JOIN users u ON asub.student_id = u.id
+                 WHERE asub.assignment_id = ?
+                 ORDER BY u.email ASC`,
+                [assignmentId],
+                (err, submissions) => {
+                    if (err) return apiResponse(res, 500, 'Error fetching student submissions');
+                    
+                    // Calculate aggregate statistics
+                    const stats = {
+                        totalStudents: submissions.length,
+                        submittedCount: submissions.filter(s => s.is_submitted).length,
+                        averageAccuracy: submissions.length > 0 
+                            ? (submissions.reduce((sum, s) => sum + (s.quiz_accuracy || 0), 0) / submissions.length).toFixed(2)
+                            : 0,
+                        lateSubmissions: submissions.filter(s => s.is_late).length
+                    };
+                    
+                    apiResponse(res, 200, 'Student accuracy for assignment retrieved', {
+                        assignmentId,
+                        statistics: stats,
+                        students: submissions.map(s => ({
+                            studentId: s.student_id,
+                            studentEmail: s.student_email,
+                            correctAnswers: s.correct_answers,
+                            totalQuestions: s.total_questions,
+                            quizAccuracy: s.quiz_accuracy,
+                            completionPercentage: s.completion_percentage,
+                            isSubmitted: s.is_submitted,
+                            isLate: s.is_late,
+                            submissionDate: s.submission_date
+                        }))
+                    });
+                }
+            );
+        }
+    );
 });
 
 // ===== ERROR HANDLING =====

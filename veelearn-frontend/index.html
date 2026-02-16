@@ -176,6 +176,7 @@
           <h5>My Classes</h5>
           <div id="my-classes-list"></div>
           <h5>Create Assignment</h5>
+          <input type="text" id="assignmentCourseSearch" placeholder="🔍 Search courses..." style="width: 100%; padding: 10px; margin-bottom: 10px; background: #222; color: #fff; border: 1px solid #667eea; border-radius: 4px;" />
           <select id="assignment-course-select" style="width: 100%; padding: 10px; margin-bottom: 10px; background: #222; color: #fff; border: 1px solid #555; border-radius: 4px;">
             <option value="">Select a course...</option>
           </select>
@@ -188,14 +189,31 @@
         </button>
 
         <h4>My Courses</h4>
+        <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
+          <input type="text" id="myCoursesSearch" placeholder="Search your courses..." style="flex: 1; padding: 10px; border: 1px solid #555; border-radius: 4px; background: #222; color: #fff;" />
+          <button type="button" id="clearMyCoursesSearch" class="secondary-btn" style="padding: 8px 12px;">✕</button>
+        </div>
         <ul id="my-courses-list-user"></ul>
 
         <div id="student-assignments" style="display: none;">
           <h4>📚 Assignments for Me</h4>
+          <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
+            <input type="text" id="enrolledCoursesSearch" placeholder="Search enrolled courses..." style="flex: 1; padding: 10px; border: 1px solid #555; border-radius: 4px; background: #222; color: #fff;" />
+            <button type="button" id="clearEnrolledCoursesSearch" class="secondary-btn" style="padding: 8px 12px;">✕</button>
+          </div>
           <div id="assignments-list"></div>
         </div>
 
+        <div id="enrolled-courses-section" style="display: none;">
+          <h4>📈 Enrolled Courses (with Progress)</h4>
+          <div id="enrolled-courses-list"></div>
+        </div>
+
         <h4>Available Courses</h4>
+        <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
+          <input type="text" id="availableCoursesSearch" placeholder="Search available courses..." style="flex: 1; padding: 10px; border: 1px solid #555; border-radius: 4px; background: #222; color: #fff;" />
+          <button type="button" id="clearAvailableCoursesSearch" class="secondary-btn" style="padding: 8px 12px;">✕</button>
+        </div>
         <ul id="available-courses-list-user"></ul>
       </div>
 

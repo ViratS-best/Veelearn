@@ -34,7 +34,7 @@ let macroDetected = false;
 document.addEventListener('keydown', async (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key === 'z' && lastDeletedQuestion) {
     e.preventDefault();
-    console.log('⏪ Ctrl+Z pressed - Undoing quiz deletion');
+    console.log('âª Ctrl+Z pressed - Undoing quiz deletion');
 
     if (!currentEditingCourseId) {
       console.warn('Cannot undo: no course being edited');
@@ -54,7 +54,7 @@ document.addEventListener('keydown', async (e) => {
 
       const result = await response.json();
       if (result.success) {
-        alert('✅ Question restored!');
+        alert('âœ… Question restored!');
         await loadCourseQuestions(currentEditingCourseId);
 
         // Clear all placeholders and re-render
@@ -75,7 +75,7 @@ document.addEventListener('keydown', async (e) => {
 
 
 // ===== INITIALIZATION =====
-console.log("🚀 Veelearn Script v3 Loaded");
+console.log("ðŸš€ Veelearn Script v3 Loaded");
 
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", initializeApp);
@@ -94,6 +94,7 @@ function initializeApp() {
   setupQuizModalListeners();
   setupPhetModalListeners();
   setupLatexHelpModalListeners();
+  setupCourseSearchListeners();
 
   if (authToken) {
     fetchUserProfile();
@@ -109,7 +110,7 @@ function setupMessageListeners() {
     } else if (e.data.type === "save-simulator") {
       // Receive simulator data from popup (block-simulator.html sends this)
       const { data } = e.data;
-      console.log('💾 Received save-simulator message');
+      console.log('ðŸ’¾ Received save-simulator message');
       console.log('   blocks:', data?.blocks?.length, 'connections:', data?.connections?.length);
       console.log('   currentEditingSimulatorBlockId:', currentEditingSimulatorBlockId);
 
@@ -121,15 +122,15 @@ function setupMessageListeners() {
             blocks: data.blocks || [],
             connections: data.connections || []
           };
-          console.log('✅ Saved to block:', currentEditingSimulatorBlockId, 'at index:', blockIndex);
+          console.log('âœ… Saved to block:', currentEditingSimulatorBlockId, 'at index:', blockIndex);
         } else {
-          console.warn('⚠️ Block not found:', currentEditingSimulatorBlockId);
+          console.warn('âš ï¸ Block not found:', currentEditingSimulatorBlockId);
         }
       }
     } else if (e.data.type === "saveBlockSimulator") {
       // Legacy support - receive simulator data
       const { courseBlockId, blocks, connections } = e.data;
-      console.log('💾 Saving simulator data:', courseBlockId, 'Blocks:', blocks?.length, 'Connections:', connections?.length);
+      console.log('ðŸ’¾ Saving simulator data:', courseBlockId, 'Blocks:', blocks?.length, 'Connections:', connections?.length);
 
       const blockIndex = courseBlocks.findIndex(b => b.id === courseBlockId);
       if (blockIndex !== -1) {
@@ -137,14 +138,14 @@ function setupMessageListeners() {
           blocks: blocks || [],
           connections: connections || []
         };
-        console.log('✅ Simulator data saved to courseBlocks[' + blockIndex + ']');
+        console.log('âœ… Simulator data saved to courseBlocks[' + blockIndex + ']');
       } else {
-        console.warn('⚠️ Block not found:', courseBlockId);
+        console.warn('âš ï¸ Block not found:', courseBlockId);
       }
     } else if (e.data.type === "saveVisualSimulator") {
       // Receive visual simulator code
       const { courseBlockId, code, variables } = e.data;
-      console.log('💾 Saving visual simulator:', courseBlockId);
+      console.log('ðŸ’¾ Saving visual simulator:', courseBlockId);
 
       const blockIndex = courseBlocks.findIndex(b => b.id === courseBlockId);
       if (blockIndex !== -1) {
@@ -152,7 +153,7 @@ function setupMessageListeners() {
           code: code || "",
           variables: variables || {}
         };
-        console.log('✅ Visual simulator saved');
+        console.log('âœ… Visual simulator saved');
       }
     }
   });
@@ -462,7 +463,7 @@ function handleLogout() {
 
 function logout() {
   console.log("LOGOUT CALLED - Token will be cleared!");
-  console.warn("⚠️ Clearing token from localStorage");
+  console.warn("âš ï¸ Clearing token from localStorage");
   authToken = null;
   currentUser = null;
   localStorage.removeItem("token");
@@ -477,7 +478,7 @@ function logout() {
 function validateAuthToken() {
   const token = localStorage.getItem("token");
   if (!token) {
-    console.warn("⚠️ No token found in localStorage");
+    console.warn("âš ï¸ No token found in localStorage");
     return false;
   }
 
@@ -494,14 +495,14 @@ function validateAuthToken() {
     const expiryTime = payload.exp * 1000;
 
     if (Date.now() > expiryTime) {
-      console.warn("⚠️ Token expired at:", new Date(expiryTime).toISOString());
+      console.warn("âš ï¸ Token expired at:", new Date(expiryTime).toISOString());
       return false;
     }
 
-    console.log("✓ Token is valid, expires at:", new Date(expiryTime).toISOString());
+    console.log("âœ“ Token is valid, expires at:", new Date(expiryTime).toISOString());
     return true;
   } catch (e) {
-    console.error("❌ Invalid token format:", e.message);
+    console.error("âŒ Invalid token format:", e.message);
     return false;
   }
 }
@@ -512,7 +513,7 @@ if (typeof window !== 'undefined') {
   setInterval(() => {
     const currentToken = localStorage.getItem("token");
     if (!currentToken && authToken) {
-      console.warn("⚠️ WARNING: Token was cleared from localStorage but authToken still exists!");
+      console.warn("âš ï¸ WARNING: Token was cleared from localStorage but authToken still exists!");
       console.log("This may indicate an unexpected logout or session clear");
     }
   }, 2000);
@@ -712,7 +713,7 @@ function setupCourseEditorListeners() {
   if (saveDraftBtn) {
     saveDraftBtn.addEventListener("click", (e) => {
       e.preventDefault();
-      console.log("📝 Save Draft button clicked - action: draft");
+      console.log("ðŸ“ Save Draft button clicked - action: draft");
       saveCourse("draft");
     });
   }
@@ -721,7 +722,7 @@ function setupCourseEditorListeners() {
   if (submitApprovalBtn) {
     submitApprovalBtn.addEventListener("click", (e) => {
       e.preventDefault();
-      console.log("📝 Submit for Approval button clicked - action: pending");
+      console.log("ðŸ“ Submit for Approval button clicked - action: pending");
       saveCourse("pending");
     });
   }
@@ -1029,25 +1030,25 @@ function openLatexEditorModal() {
       <div style="margin-bottom: 20px;">
         <strong style="display: block; margin-bottom: 10px;">Common Symbols:</strong>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px;">
-          <button type="button" onclick="insertLatexSnippet('\\\\alpha')" class="latex-snippet-btn">α (alpha)</button>
-          <button type="button" onclick="insertLatexSnippet('\\\\beta')" class="latex-snippet-btn">β (beta)</button>
-          <button type="button" onclick="insertLatexSnippet('\\\\gamma')" class="latex-snippet-btn">γ (gamma)</button>
-          <button type="button" onclick="insertLatexSnippet('\\\\Delta')" class="latex-snippet-btn">Δ (Delta)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\alpha')" class="latex-snippet-btn">Î± (alpha)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\beta')" class="latex-snippet-btn">Î² (beta)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\gamma')" class="latex-snippet-btn">Î³ (gamma)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\Delta')" class="latex-snippet-btn">Î” (Delta)</button>
           <button type="button" onclick="insertLatexSnippet('\\\\frac{a}{b}')" class="latex-snippet-btn">a/b (fraction)</button>
-          <button type="button" onclick="insertLatexSnippet('\\\\sqrt{x}')" class="latex-snippet-btn">√x (sqrt)</button>
-          <button type="button" onclick="insertLatexSnippet('^{2}')" class="latex-snippet-btn">x² (power)</button>
-          <button type="button" onclick="insertLatexSnippet('_{i}')" class="latex-snippet-btn">xᵢ (subscript)</button>
-          <button type="button" onclick="insertLatexSnippet('\\\\sum_{i=1}^{n}')" class="latex-snippet-btn">Σ (sum)</button>
-          <button type="button" onclick="insertLatexSnippet('\\\\int_a^b')" class="latex-snippet-btn">∫ (integral)</button>
-          <button type="button" onclick="insertLatexSnippet('\\\\pm')" class="latex-snippet-btn">± (plus-minus)</button>
-          <button type="button" onclick="insertLatexSnippet('\\\\times')" class="latex-snippet-btn">× (times)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\sqrt{x}')" class="latex-snippet-btn">âˆšx (sqrt)</button>
+          <button type="button" onclick="insertLatexSnippet('^{2}')" class="latex-snippet-btn">xÂ² (power)</button>
+          <button type="button" onclick="insertLatexSnippet('_{i}')" class="latex-snippet-btn">xáµ¢ (subscript)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\sum_{i=1}^{n}')" class="latex-snippet-btn">Î£ (sum)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\int_a^b')" class="latex-snippet-btn">âˆ« (integral)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\pm')" class="latex-snippet-btn">Â± (plus-minus)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\times')" class="latex-snippet-btn">Ã— (times)</button>
         </div>
       </div>
       
       <div style="margin-bottom: 20px;">
         <strong style="display: block; margin-bottom: 10px;">Common Equations:</strong>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px;">
-          <button type="button" onclick="insertLatexSnippet('E = mc^2')" class="latex-template-btn">E = mc²</button>
+          <button type="button" onclick="insertLatexSnippet('E = mc^2')" class="latex-template-btn">E = mcÂ²</button>
           <button type="button" onclick="insertLatexSnippet('x = \\\\frac{-b \\\\pm \\\\sqrt{b^2-4ac}}{2a}')" class="latex-template-btn">Quadratic formula</button>
           <button type="button" onclick="insertLatexSnippet('\\\\lambda = \\\\frac{h}{p}')" class="latex-template-btn">de Broglie wavelength</button>
           <button type="button" onclick="insertLatexSnippet('\\\\Delta x \\\\cdot \\\\Delta p \\\\geq \\\\frac{h}{4\\\\pi}')" class="latex-template-btn">Uncertainty principle</button>
@@ -1319,7 +1320,7 @@ function insertSimulatorBlock(blockId, title, type) {
                 <p style="margin: 5px 0; color: #666;">${title}</p>
             </div>
             <div style="display: flex; gap: 10px;">
-                <button type="button" onclick="openSliderConfigModal(${blockId})" style="padding: 5px 10px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer;">⚙️ Configure Sliders</button>
+                <button type="button" onclick="openSliderConfigModal(${blockId})" style="padding: 5px 10px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer;">âš™ï¸ Configure Sliders</button>
                 <button type="button" onclick="handleEditSimulator(event, ${blockId})" style="padding: 5px 10px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">Edit</button>
                 <button type="button" onclick="handleRemoveSimulator(event, ${blockId})" style="padding: 5px 10px; background: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer;">Remove</button>
             </div>
@@ -1453,6 +1454,8 @@ function showDashboard() {
     } else {
       loadUserCourses();
       loadAvailableCourses();
+      loadStudentAssignments();
+      loadEnrolledCourses();
     }
   }, 0);
 }
@@ -1515,12 +1518,12 @@ function renderUserList() {
       (user) => {
         const pendingApproval = user.role === 'teacher' && !user.teacher_approved;
         const approveBtn = pendingApproval ? 
-          `<button onclick="approveTeacher(${user.id}, '${user.email}')" style="background: #ff9800; color: #fff;">⚠️ APPROVE TEACHER</button>` : '';
+          `<button onclick="approveTeacher(${user.id}, '${user.email}')" style="background: #ff9800; color: #fff;">âš ï¸ APPROVE TEACHER</button>` : '';
         
         return `
         <li>
             <strong>${user.email}</strong>
-            <p>Role: ${user.role} ${user.class_code ? `| Class Code: ${user.class_code}` : ''} | ${user.teacher_approved ? '✅ Approved' : user.role === 'teacher' ? '⏳ Pending Approval' : ''} | Shells: ${user.shells} | Volunteer: ${(user.total_volunteer_hours || 0).toFixed(1)}h ${user.is_verified_creator ? '✅' : ''}</p>
+            <p>Role: ${user.role} ${user.class_code ? `| Class Code: ${user.class_code}` : ''} | ${user.teacher_approved ? 'âœ… Approved' : user.role === 'teacher' ? 'â³ Pending Approval' : ''} | Shells: ${user.shells} | Volunteer: ${(user.total_volunteer_hours || 0).toFixed(1)}h ${user.is_verified_creator ? 'âœ…' : ''}</p>
             ${approveBtn}
             <button onclick="changeUserRole('${user.email}', 'admin')">Make Admin</button>
             <button onclick="changeUserRole('${user.email}', 'teacher')">Make Teacher</button>
@@ -1568,7 +1571,7 @@ function approveTeacher(userId, email) {
     .then((res) => res.json())
     .then((data) => {
       if (data.success) {
-        alert(`✅ Teacher ${email} approved! Students can now enroll in their class.`);
+        alert(`âœ… Teacher ${email} approved! Students can now enroll in their class.`);
         // Refresh user list to show updated status
         loadAllUsers();
         
@@ -1692,6 +1695,9 @@ function loadUserCourses() {
           (c) => c.creator_id === currentUser.id
         );
         console.log("Filtered user courses:", myCourses.length);
+        // Clear search box
+        const myCoursesSearch = document.getElementById('myCoursesSearch');
+        if (myCoursesSearch) myCoursesSearch.value = '';
         renderUserCourses();
         
         // If teacher, populate assignment dropdown
@@ -1732,18 +1738,41 @@ function loadAvailableCourses() {
           (c) => c.status === "approved" && c.creator_id !== currentUser.id
         );
         console.log("Filtered available courses:", availableCourses.length);
+        // Clear search box
+        const availableCoursesSearch = document.getElementById('availableCoursesSearch');
+        if (availableCoursesSearch) availableCoursesSearch.value = '';
         renderAvailableCourses();
       }
     })
     .catch((err) => console.error("Error loading available courses:", err));
 }
 
-function renderUserCourses() {
+
+
+function filterCourseList(courseArray, searchText) {
+  if (!searchText || searchText.trim() === "") {
+    return courseArray;
+  }
+
+  const search = searchText.toLowerCase();
+  return courseArray.filter((course) => {
+    const titleMatch = course.title.toLowerCase().includes(search);
+    const descriptionMatch = (course.description || "").toLowerCase().includes(search);
+    const creatorMatch = (course.creator_email || "").toLowerCase().includes(search);
+
+    return titleMatch || descriptionMatch || creatorMatch;
+  });
+}
+
+function renderUserCourses(searchText) {
   const lists = [
     document.getElementById("my-courses-list-user"),
     document.getElementById("my-courses-list-admin"),
     document.getElementById("my-courses-list-superadmin"),
   ];
+
+  // Filter courses based on search text
+  const filteredCourses = filterCourseList(myCourses, searchText);
 
   lists.forEach((list) => {
     if (!list) return;
@@ -1756,14 +1785,19 @@ function renderUserCourses() {
       return;
     }
 
+    if (filteredCourses.length === 0) {
+      list.innerHTML = `<li><em>No courses found matching "${searchText}"</em></li>`;
+      return;
+    }
+
     // INSTANT: Build and append items one by one instead of replacing all
-    myCourses.forEach((course) => {
+    filteredCourses.forEach((course) => {
       const li = document.createElement("li");
       const timeStr = formatCreationTime(course.creation_time);
       li.innerHTML = `
         <strong>${course.title}</strong>
         <p>${course.description || "No description"}</p>
-        ${timeStr ? `<span style="color: #999; font-size: 0.85em; display: block; margin: 4px 0;">⏱️ Active creation time: ${timeStr}</span>` : ''}
+        ${timeStr ? `<span style="color: #999; font-size: 0.85em; display: block; margin: 4px 0;">â±ï¸ Active creation time: ${timeStr}</span>` : ''}
         <span style="background: ${course.status === "pending" ? "#ff9800" : "#4caf50"
         }; color: white; padding: 4px 8px; border-radius: 3px; font-size: 0.9em;">
             ${course.status?.toUpperCase() || "UNKNOWN"}
@@ -1777,12 +1811,15 @@ function renderUserCourses() {
   });
 }
 
-function renderAvailableCourses() {
+function renderAvailableCourses(searchText) {
   const lists = [
     document.getElementById("available-courses-list-user"),
     document.getElementById("available-courses-list-admin"),
     document.getElementById("available-courses-list-superadmin"),
   ];
+
+  // Filter courses based on search text
+  const filteredCourses = filterCourseList(availableCourses, searchText);
 
   lists.forEach((list) => {
     if (!list) return;
@@ -1795,8 +1832,13 @@ function renderAvailableCourses() {
       return;
     }
 
+    if (filteredCourses.length === 0) {
+      list.innerHTML = `<li><em>No courses found matching "${searchText}"</em></li>`;
+      return;
+    }
+
     // INSTANT: Build and append items one by one instead of replacing all
-    availableCourses.forEach((course) => {
+    filteredCourses.forEach((course) => {
       const li = document.createElement("li");
       li.innerHTML = `
         <strong>${course.title}</strong>
@@ -1851,7 +1893,7 @@ function editCourse(courseId) {
       (typeof course.blocks === 'string' ? JSON.parse(course.blocks) : course.blocks)
       : [];
 
-    console.log("✓ Course loaded with", courseBlocks.length, "blocks");
+    console.log("âœ“ Course loaded with", courseBlocks.length, "blocks");
     console.log("  Blocks:", courseBlocks);
 
     // Load quiz questions for this course and re-render placeholders
@@ -1991,7 +2033,7 @@ function saveCourse(action = "draft") {
         // Set currentEditingCourseId if this was a new course
         if (!currentEditingCourseId) {
           currentEditingCourseId = data.data?.id || data.data;
-          console.log("✅ New course saved, currentEditingCourseId set to:", currentEditingCourseId);
+          console.log("âœ… New course saved, currentEditingCourseId set to:", currentEditingCourseId);
         }
 
         const message =
@@ -2160,7 +2202,7 @@ function convertSimulatorButtonsForViewer(courseId, course) {
     // Replace Edit/Remove buttons with Run button
     buttons.forEach((btn) => {
       if (btn.textContent.includes('Edit')) {
-        btn.textContent = '▶ Run Simulator';
+        btn.textContent = 'â–¶ Run Simulator';
         btn.style.background = '#4caf50';
         btn.onclick = () => runEmbeddedBlockSimulator(blockId, div.querySelector('strong')?.textContent || 'Simulator');
       } else if (btn.textContent.includes('Remove')) {
@@ -2178,7 +2220,7 @@ function runEmbeddedBlockSimulator(blockId, title) {
     return;
   }
 
-  console.log('🎮 Running simulator:', blockId, 'Type:', block.type);
+  console.log('ðŸŽ® Running simulator:', blockId, 'Type:', block.type);
   console.log('   Simulator data:', block.data);
 
   if (block.type === 'block-simulator') {
@@ -2266,7 +2308,7 @@ function displayCourseSimulators(blocks) {
 
   const simulatorSection = document.createElement("div");
   simulatorSection.style.marginTop = "30px";
-  simulatorSection.innerHTML = "<h2>📊 Simulators</h2>";
+  simulatorSection.innerHTML = "<h2>ðŸ“Š Simulators</h2>";
 
   blocks.forEach((block) => {
     if (block.type.includes("simulator")) {
@@ -2281,7 +2323,7 @@ function displayCourseSimulators(blocks) {
                         <strong>${block.title}</strong>
                         <p style="margin: 5px 0; color: #666;">Type: ${block.type}</p>
                     </div>
-                    <button type="button" style="padding: 8px 16px; background: #4caf50; color: white; border: none; border-radius: 4px; cursor: pointer;">▶ Run Simulator</button>
+                    <button type="button" style="padding: 8px 16px; background: #4caf50; color: white; border: none; border-radius: 4px; cursor: pointer;">â–¶ Run Simulator</button>
                 </div>
             `;
       simulatorSection.appendChild(simulatorDiv);
@@ -2434,7 +2476,7 @@ function setupQuizModalListeners() {
   if (insertQuizBtn) {
     insertQuizBtn.addEventListener('click', () => {
       if (!currentEditingCourseId) {
-        alert('⚠️ Please save the course first ("Save as Draft") before adding quiz questions.');
+        alert('âš ï¸ Please save the course first ("Save as Draft") before adding quiz questions.');
         return;
       }
       openQuizModal();
@@ -2445,10 +2487,10 @@ function setupQuizModalListeners() {
   if (deleteQuizBtn) {
     deleteQuizBtn.addEventListener('click', () => {
       if (currentEditingQuestionId) {
-        console.log('🗑️ Modal delete button clicked for question:', currentEditingQuestionId);
+        console.log('ðŸ—‘ï¸ Modal delete button clicked for question:', currentEditingQuestionId);
         deleteQuizQuestion(currentEditingQuestionId);
       } else {
-        console.warn('⚠️ No question selected for deletion');
+        console.warn('âš ï¸ No question selected for deletion');
       }
     });
   }
@@ -2513,7 +2555,7 @@ function setupQuizModalListeners() {
         e.preventDefault();
         e.stopPropagation();
         const questionId = parseInt(deleteBtn.dataset.questionId);
-        console.log(`🗑️ DELETE clicked for question:`, questionId);
+        console.log(`ðŸ—‘ï¸ DELETE clicked for question:`, questionId);
         deleteQuizQuestion(questionId);
         return;
       }
@@ -2523,7 +2565,7 @@ function setupQuizModalListeners() {
       if (placeholder && !e.target.closest('button')) {
         const questionId = placeholder.dataset.questionId;
         if (questionId) {
-          console.log(`📝 EDIT clicked for question:`, questionId);
+          console.log(`ðŸ“ EDIT clicked for question:`, questionId);
           openQuizModal(parseInt(questionId));
         }
       }
@@ -2683,8 +2725,8 @@ async function saveQuizQuestion() {
         const existing = editor.querySelector(`.quiz-question-placeholder[data-question-id="${currentEditingQuestionId}"]`);
         if (existing) {
           existing.innerHTML = `
-            <strong>❓ Quiz Question:</strong> ${questionText.substring(0, 100)}${questionText.length > 100 ? '...' : ''}
-            <button type="button" class="quiz-placeholder-delete-btn" data-question-id="${currentEditingQuestionId}" style="position: absolute; top: 5px; right: 5px; background: #e53e3e; color: white; border: none; border-radius: 4px; padding: 2px 6px; cursor: pointer; font-size: 0.8em; z-index: 10;">🗑️ Delete</button>
+            <strong>â“ Quiz Question:</strong> ${questionText.substring(0, 100)}${questionText.length > 100 ? '...' : ''}
+            <button type="button" class="quiz-placeholder-delete-btn" data-question-id="${currentEditingQuestionId}" style="position: absolute; top: 5px; right: 5px; background: #e53e3e; color: white; border: none; border-radius: 4px; padding: 2px 6px; cursor: pointer; font-size: 0.8em; z-index: 10;">ðŸ—‘ï¸ Delete</button>
             <div style="font-size: 0.85em; color: #999; margin-top: 0.5em;">Click to edit</div>
           `;
         }
@@ -2716,11 +2758,11 @@ function insertQuizPlaceholder(questionText, questionId) {
 
   let deleteBtnHtml = '';
   if (questionId) {
-    deleteBtnHtml = `<button type="button" class="quiz-placeholder-delete-btn" data-question-id="${questionId}" style="position: absolute; top: 5px; right: 5px; background: #e53e3e; color: white; border: none; border-radius: 4px; padding: 2px 6px; cursor: pointer; font-size: 0.8em; z-index: 10;">🗑️ Delete</button>`;
+    deleteBtnHtml = `<button type="button" class="quiz-placeholder-delete-btn" data-question-id="${questionId}" style="position: absolute; top: 5px; right: 5px; background: #e53e3e; color: white; border: none; border-radius: 4px; padding: 2px 6px; cursor: pointer; font-size: 0.8em; z-index: 10;">ðŸ—‘ï¸ Delete</button>`;
   }
 
   placeholder.innerHTML = `
-    <strong>❓ Quiz Question:</strong> ${questionText.substring(0, 100)}${questionText.length > 100 ? '...' : ''}
+    <strong>â“ Quiz Question:</strong> ${questionText.substring(0, 100)}${questionText.length > 100 ? '...' : ''}
     ${deleteBtnHtml}
     <div style="font-size: 0.85em; color: #999; margin-top: 0.5em;">Click to edit</div>
   `;
@@ -2782,12 +2824,12 @@ function insertQuizPlaceholder(questionText, questionId) {
 }
 
 async function deleteQuizQuestion(questionId, btnElement = null) {
-  console.log(`🗑️ Delete button clicked for question ID:`, questionId);
+  console.log(`ðŸ—‘ï¸ Delete button clicked for question ID:`, questionId);
   console.log(`   currentEditingCourseId:`, currentEditingCourseId);
   console.log(`   authToken exists:`, !!authToken);
 
   if (!currentEditingCourseId) {
-    alert('❌ Error: Course ID not set. Please save the course first.');
+    alert('âŒ Error: Course ID not set. Please save the course first.');
     return;
   }
 
@@ -2802,12 +2844,12 @@ async function deleteQuizQuestion(questionId, btnElement = null) {
       explanation: questionToDelete.explanation,
       points: questionToDelete.points
     };
-    console.log('💾 Stored question for undo:', lastDeletedQuestion);
+    console.log('ðŸ’¾ Stored question for undo:', lastDeletedQuestion);
   }
 
   // REMOVED confirmation dialog - it wasn't showing and was auto-cancelling
   // User can press Ctrl+Z to undo if they delete by accident
-  console.log(`🗑️ Proceeding with deletion of question ID:`, questionId);
+  console.log(`ðŸ—‘ï¸ Proceeding with deletion of question ID:`, questionId);
 
   try {
     const url = `${API_BASE_URL}/api/courses/${currentEditingCourseId}/questions/${questionId}`;
@@ -2830,12 +2872,12 @@ async function deleteQuizQuestion(questionId, btnElement = null) {
 
       // Remove from courseQuestions array
       courseQuestions = courseQuestions.filter(q => q.id !== questionId);
-      console.log(`✓ Removed from array. Remaining questions:`, courseQuestions.length);
+      console.log(`âœ“ Removed from array. Remaining questions:`, courseQuestions.length);
 
       // Remove placeholder from DOM by data attribute
       const editor = document.getElementById('course-content-editor');
       const placeholders = editor.querySelectorAll('.quiz-question-placeholder');
-      console.log(`📌 Found ${placeholders.length} placeholders in editor`);
+      console.log(`ðŸ“Œ Found ${placeholders.length} placeholders in editor`);
 
       // Match by data attribute value as string
       let removed = false;
@@ -2845,20 +2887,20 @@ async function deleteQuizQuestion(questionId, btnElement = null) {
         if (pId == questionId) {  // Use == to handle string/number comparison
           p.remove();
           removed = true;
-          console.log(`  ✓ Removed placeholder`);
+          console.log(`  âœ“ Removed placeholder`);
         }
       });
 
       if (!removed) {
-        console.warn(`⚠️ Warning: Placeholder not found for ID ${questionId}`);
+        console.warn(`âš ï¸ Warning: Placeholder not found for ID ${questionId}`);
       }
     } else {
-      console.error(`❌ Delete failed:`, result.message);
+      console.error(`âŒ Delete failed:`, result.message);
       alert('Error deleting question: ' + result.message);
       lastDeletedQuestion = null; // Clear if delete failed
     }
   } catch (error) {
-    console.error('❌ Error deleting question:', error);
+    console.error('âŒ Error deleting question:', error);
     alert('Error deleting question: ' + error.message);
     lastDeletedQuestion = null; // Clear if error
   }
@@ -2937,7 +2979,7 @@ function hydrateQuizPlaceholders() {
       unavailableEl.style.borderRadius = '8px';
       unavailableEl.style.margin = '1em 0';
       unavailableEl.innerHTML = `
-        <div style="color: #e94560; font-weight: bold;">⚠ Question not available</div>
+        <div style="color: #e94560; font-weight: bold;">âš  Question not available</div>
         <div style="color: #999; font-size: 0.9em; margin-top: 0.5em;">This quiz question (ID: ${questionId}) could not be loaded. Please try refreshing the page.</div>
       `;
       placeholder.replaceWith(unavailableEl);
@@ -3046,13 +3088,13 @@ async function submitQuizAnswer(questionId) {
       if (result.data.is_correct) {
         feedbackDiv.className = 'quiz-feedback correct';
         feedbackDiv.innerHTML = `
-          <div>✅ Correct!</div>
+          <div>âœ… Correct!</div>
           ${result.data.explanation ? `<div class="quiz-explanation">${result.data.explanation}</div>` : ''}
         `;
       } else {
         feedbackDiv.className = 'quiz-feedback incorrect';
         feedbackDiv.innerHTML = `
-          <div>❌ Incorrect. The correct answer is: ${result.data.correct_answer}</div>
+          <div>âŒ Incorrect. The correct answer is: ${result.data.correct_answer}</div>
           ${result.data.explanation ? `<div class="quiz-explanation">${result.data.explanation}</div>` : ''}
         `;
       }
@@ -3085,7 +3127,7 @@ async function openSliderConfigModal(blockId) {
   }
 
   currentConfiguringSimulatorId = blockId;
-  console.log('📊 Opening slider config for simulator block:', blockId);
+  console.log('ðŸ“Š Opening slider config for simulator block:', blockId);
 
   // Find the simulator block in courseBlocks
   const simBlock = courseBlocks.find(b => b.id === blockId);
@@ -3345,7 +3387,7 @@ const PHET_SIMS = [
   { title: "CCK AC: Virtual Lab", url: "https://phet.colorado.edu/sims/html/circuit-construction-kit-ac-virtual-lab/latest/circuit-construction-kit-ac-virtual-lab_all.html", description: "Advanced AC circuit lab" },
   { title: "Circuit Construction Kit (DC)", url: "https://phet.colorado.edu/sims/html/circuit-construction-kit-dc/latest/circuit-construction-kit-dc_all.html", description: "Build DC circuits" },
   { title: "CCK DC: Virtual Lab", url: "https://phet.colorado.edu/sims/html/circuit-construction-kit-dc-virtual-lab/latest/circuit-construction-kit-dc-virtual-lab_all.html", description: "Advanced DC circuit lab" },
-  { title: "Ohm's Law", url: "https://phet.colorado.edu/sims/html/ohms-law/latest/ohms-law_all.html", description: "V = I × R" },
+  { title: "Ohm's Law", url: "https://phet.colorado.edu/sims/html/ohms-law/latest/ohms-law_all.html", description: "V = I Ã— R" },
   { title: "Resistance in a Wire", url: "https://phet.colorado.edu/sims/html/resistance-in-a-wire/latest/resistance-in-a-wire_all.html", description: "How does resistance work?" },
   { title: "Faraday's Law", url: "https://phet.colorado.edu/sims/html/faradays-law/latest/faradays-law_all.html", description: "Generate electricity with magnets" },
   { title: "Faraday's Electromagnetic Lab", url: "https://phet.colorado.edu/sims/html/faradays-electromagnetic-lab/latest/faradays-electromagnetic-lab_all.html", description: "Explore electromagnetic phenomena" },
@@ -3510,7 +3552,7 @@ function renderPhetList(filter = "") {
     item.innerHTML = `
             <div style="text-align: center; margin-bottom: 8px;">
                 <div style="display: inline-block; padding: 6px 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 6px; margin-bottom: 8px;">
-                    <span style="color: white; font-weight: 600; font-size: 0.95em;">⚛️ ${sim.title}</span>
+                    <span style="color: white; font-weight: 600; font-size: 0.95em;">âš›ï¸ ${sim.title}</span>
                 </div>
             </div>
             <p style="margin: 0; font-size: 0.85em; color: #666; text-align: center; line-height: 1.4;">${sim.description}</p>
@@ -3557,6 +3599,111 @@ function setupLatexHelpModalListeners() {
       latexHelpModal.style.display = 'none';
     }
   });
+}
+
+function setupCourseSearchListeners() {
+  // Debounce helper function
+  const debounce = (func, delay) => {
+    let timeout;
+    return (...args) => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func(...args), delay);
+    };
+  };
+
+  // My Courses Search
+  const myCoursesSearch = document.getElementById('myCoursesSearch');
+  const clearMyCoursesSearch = document.getElementById('clearMyCoursesSearch');
+
+  if (myCoursesSearch) {
+    myCoursesSearch.addEventListener(
+      'input',
+      debounce((e) => {
+        renderUserCourses(e.target.value);
+      }, 150)
+    );
+  }
+
+  if (clearMyCoursesSearch) {
+    clearMyCoursesSearch.addEventListener('click', () => {
+      if (myCoursesSearch) {
+        myCoursesSearch.value = '';
+        renderUserCourses('');
+      }
+    });
+  }
+
+  // Available Courses Search
+  const availableCoursesSearch = document.getElementById('availableCoursesSearch');
+  const clearAvailableCoursesSearch = document.getElementById('clearAvailableCoursesSearch');
+
+  if (availableCoursesSearch) {
+    availableCoursesSearch.addEventListener(
+      'input',
+      debounce((e) => {
+        renderAvailableCourses(e.target.value);
+      }, 150)
+    );
+  }
+
+  if (clearAvailableCoursesSearch) {
+    clearAvailableCoursesSearch.addEventListener('click', () => {
+      if (availableCoursesSearch) {
+        availableCoursesSearch.value = '';
+        renderAvailableCourses('');
+      }
+    });
+  }
+
+  // Enrolled Courses Search
+  const enrolledCoursesSearch = document.getElementById('enrolledCoursesSearch');
+  const clearEnrolledCoursesSearch = document.getElementById('clearEnrolledCoursesSearch');
+
+  if (enrolledCoursesSearch) {
+    enrolledCoursesSearch.addEventListener(
+      'input',
+      debounce((e) => {
+        // Filter and re-render enrolled courses
+        const searchText = e.target.value;
+        const assignmentsList = document.getElementById('assignments-list');
+        if (assignmentsList) {
+          const filteredAssignments = filterCourseList(
+            Array.from(assignmentsList.querySelectorAll('[data-assignment-id]')),
+            searchText
+          );
+          
+          // Show/hide assignments based on filter
+          assignmentsList.querySelectorAll('[data-assignment-id]').forEach(elem => {
+            const courseTitle = elem.querySelector('h5')?.textContent || '';
+            const matches = courseTitle.toLowerCase().includes(searchText.toLowerCase());
+            elem.style.display = matches ? 'block' : 'none';
+          });
+
+          // Show "no results" message if needed
+          const hasVisibleItems = Array.from(assignmentsList.children).some(
+            child => child.style.display !== 'none'
+          );
+          if (!hasVisibleItems && searchText.trim()) {
+            assignmentsList.innerHTML = `<p><em>No assignments found matching "${searchText}"</em></p>`;
+          }
+        }
+      }, 150)
+    );
+  }
+
+  if (clearEnrolledCoursesSearch) {
+    clearEnrolledCoursesSearch.addEventListener('click', () => {
+      if (enrolledCoursesSearch) {
+        enrolledCoursesSearch.value = '';
+        const assignmentsList = document.getElementById('assignments-list');
+        if (assignmentsList) {
+          assignmentsList.querySelectorAll('[data-assignment-id]').forEach(elem => {
+            elem.style.display = 'block';
+          });
+        }
+      }
+    });
+  }
 }
 
 function setupContentEditorListeners() {
@@ -3879,9 +4026,9 @@ function insertSimulatorAtPosition(blockId, title, type, x, y) {
                 <p style="margin: 5px 0; color: #666;">${title}</p>
             </div>
             <div style="display: flex; gap: 10px;">
-                <button type="button" onclick="openSliderConfigModal(${blockId})" style="padding: 5px 10px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer;">⚙️</button>
-                <button type="button" onclick="handleEditSimulator(event, ${blockId})" style="padding: 5px 10px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">✏️</button>
-                <button type="button" onclick="handleRemoveSimulator(event, ${blockId})" style="padding: 5px 10px; background: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer;">🗑️</button>
+                <button type="button" onclick="openSliderConfigModal(${blockId})" style="padding: 5px 10px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer;">âš™ï¸</button>
+                <button type="button" onclick="handleEditSimulator(event, ${blockId})" style="padding: 5px 10px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">âœï¸</button>
+                <button type="button" onclick="handleRemoveSimulator(event, ${blockId})" style="padding: 5px 10px; background: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer;">ðŸ—‘ï¸</button>
             </div>
         </div>
         <!-- Dragger handle could be added here for moving it later -->
@@ -3958,8 +4105,8 @@ function insertQuizPlaceholderAtPosition(questionId, questionText, x, y) {
   `;
 
   placeholder.innerHTML = `
-    <strong>❓ Quiz Question:</strong> ${questionText.substring(0, 100)}${questionText.length > 100 ? '...' : ''}
-    <button type="button" class="quiz-placeholder-delete-btn" data-question-id="${questionId}" style="position: absolute; top: 5px; right: 5px; background: #e53e3e; color: white; border: none; border-radius: 4px; padding: 2px 6px; cursor: pointer; font-size: 0.8em; z-index: 10;">🗑️ Delete</button>
+    <strong>â“ Quiz Question:</strong> ${questionText.substring(0, 100)}${questionText.length > 100 ? '...' : ''}
+    <button type="button" class="quiz-placeholder-delete-btn" data-question-id="${questionId}" style="position: absolute; top: 5px; right: 5px; background: #e53e3e; color: white; border: none; border-radius: 4px; padding: 2px 6px; cursor: pointer; font-size: 0.8em; z-index: 10;">ðŸ—‘ï¸ Delete</button>
     <div style="font-size: 0.85em; color: #999; margin-top: 0.5em;">Click to edit</div>
   `;
 
@@ -4012,7 +4159,7 @@ function insertPhetSimAtPosition(sim, x, y) {
 
   wrapper.innerHTML = `
         <div style="background: #f0f0f0; padding: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; cursor: move;">
-            <strong>⚛️ ${sim.title}</strong>
+            <strong>âš›ï¸ ${sim.title}</strong>
             <button class="phet-remove-btn" style="background: #ff4444; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Remove</button>
         </div>
         <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
@@ -4072,20 +4219,20 @@ function renderVolunteerStats(data) {
 
   let certsHtml = '';
   if (certs.length > 0) {
-    certsHtml = '<div style="margin-top: 15px; border-top: 1px solid rgba(74, 222, 128, 0.2); padding-top: 15px;"><strong style="font-size: 15px;">📜 Your Certificates:</strong><div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">';
+    certsHtml = '<div style="margin-top: 15px; border-top: 1px solid rgba(74, 222, 128, 0.2); padding-top: 15px;"><strong style="font-size: 15px;">ðŸ“œ Your Certificates:</strong><div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">';
     certs.forEach(cert => {
       certsHtml += `
         <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(102, 126, 234, 0.1); border: 1px solid rgba(102, 126, 234, 0.3); border-radius: 8px; padding: 12px 16px; flex-wrap: wrap; gap: 10px;">
           <div style="display: flex; align-items: center; gap: 8px;">
-            <span style="font-size: 20px;">🏆</span>
+            <span style="font-size: 20px;">ðŸ†</span>
             <div>
               <strong>${cert.hours_certified} Hours Volunteer Certificate</strong>
               <div style="font-size: 12px; color: #999; margin-top: 2px;">Issued: ${new Date(cert.issued_at).toLocaleDateString()}</div>
             </div>
           </div>
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <a href="${API_BASE_URL}/api/certificates/verify/${cert.verification_code}?format=pdf" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px; cursor: pointer; transition: transform 0.2s;">📥 Download PDF</a>
-            <a href="${API_BASE_URL}/api/certificates/verify/${cert.verification_code}" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; background: rgba(74, 222, 128, 0.2); color: #4ade80; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 13px; border: 1px solid rgba(74, 222, 128, 0.3);">✓ Verify</a>
+            <a href="${API_BASE_URL}/api/certificates/verify/${cert.verification_code}?format=pdf" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px; cursor: pointer; transition: transform 0.2s;">ðŸ“¥ Download PDF</a>
+            <a href="${API_BASE_URL}/api/certificates/verify/${cert.verification_code}" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; background: rgba(74, 222, 128, 0.2); color: #4ade80; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 13px; border: 1px solid rgba(74, 222, 128, 0.3);">âœ“ Verify</a>
           </div>
         </div>`;
     });
@@ -4102,10 +4249,10 @@ function renderVolunteerStats(data) {
   }
 
   container.innerHTML = `
-        <h4 style="margin: 0 0 12px 0; color: #4ade80; font-size: 18px;">🤝 Volunteer Status</h4>
+        <h4 style="margin: 0 0 12px 0; color: #4ade80; font-size: 18px;">ðŸ¤ Volunteer Status</h4>
         <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
             <div style="background: rgba(0,0,0,0.2); padding: 8px 14px; border-radius: 6px;"><strong>Total Hours:</strong> ${hours.toFixed(1)}h</div>
-            <div style="background: rgba(0,0,0,0.2); padding: 8px 14px; border-radius: 6px;"><strong>Status:</strong> ${verified ? '✅ Verified Creator' : '⏳ Not Yet Verified (need 20h)'}</div>
+            <div style="background: rgba(0,0,0,0.2); padding: 8px 14px; border-radius: 6px;"><strong>Status:</strong> ${verified ? 'âœ… Verified Creator' : 'â³ Not Yet Verified (need 20h)'}</div>
             <div style="background: rgba(0,0,0,0.2); padding: 8px 14px; border-radius: 6px;"><strong>Next Milestone:</strong> ${getNextMilestone(hours)}h</div>
         </div>
         ${certsHtml}
@@ -4153,7 +4300,7 @@ window.grantVolunteerHours = grantVolunteerHours;
 
 // Become a teacher
 async function becomeTeacher() {
-  const confirm_msg = `⚠️ IMPORTANT: This action cannot be undone without superadmin approval.\n\n✓ You will get a unique class code immediately\n✓ You can see it and use it right away\n✗ BUT students can't enroll until superadmin approves\n\nContinue becoming a teacher?`;
+  const confirm_msg = `âš ï¸ IMPORTANT: This action cannot be undone without superadmin approval.\n\nâœ“ You will get a unique class code immediately\nâœ“ You can see it and use it right away\nâœ— BUT students can't enroll until superadmin approves\n\nContinue becoming a teacher?`;
   if (!confirm(confirm_msg)) return;
 
   try {
@@ -4167,7 +4314,7 @@ async function becomeTeacher() {
 
     const result = await response.json();
     if (result.success) {
-      alert(`✅ You're now a teacher!\n\nYour class code: ${result.data.classCode}\n\n📋 Next steps:\n1. Share this code with students\n2. Wait for superadmin to approve your teacher status\n3. Once approved, students can join using the code`);
+      alert(`âœ… You're now a teacher!\n\nYour class code: ${result.data.classCode}\n\nðŸ“‹ Next steps:\n1. Share this code with students\n2. Wait for superadmin to approve your teacher status\n3. Once approved, students can join using the code`);
       currentUser.role = 'teacher';
       currentUser.class_code = result.data.classCode;
       showUserDashboard();
@@ -4202,7 +4349,7 @@ async function enrollInClass() {
     if (result.success) {
       // Update current user role to student
       currentUser.role = 'student';
-      alert('✅ Enrolled in class successfully!');
+      alert('âœ… Enrolled in class successfully!');
       document.getElementById('class-code-input').value = '';
       // Refresh dashboard to show student view
       showUserDashboard();
@@ -4238,7 +4385,7 @@ async function loadStudentAssignments() {
               <small>Due: ${a.due_date ? new Date(a.due_date).toLocaleDateString() : 'No due date'}</small>
             </div>
             <button onclick="submitAssignmentWork(${a.id}, '${a.course_title}')" class="primary-btn" style="padding: 8px 16px;">
-              ▶ Work on Assignment
+              â–¶ Work on Assignment
             </button>
           </div>
         </div>
@@ -4251,16 +4398,59 @@ async function loadStudentAssignments() {
   }
 }
 
-// Submit assignment work
-async function submitAssignmentWork(assignmentId, courseTitle) {
-  const completionPercentage = prompt(`How much have you completed the "${courseTitle}" assignment?\nEnter completion %  (0-100):`, '100');
-  if (completionPercentage === null) return;
-
-  const percentage = parseInt(completionPercentage);
-  if (isNaN(percentage) || percentage < 0 || percentage > 100) {
-    alert('Please enter a valid percentage (0-100)');
-    return;
+// Track quiz answers and calculate progress
+function trackQuizAnswers(courseId) {
+  if (!courseId || courseQuestions.length === 0) {
+    return { correctAnswers: 0, totalQuestions: 0, percentage: 0 };
   }
+
+  let correctAnswers = 0;
+  const totalQuestions = courseQuestions.length;
+
+  // Check each quiz question for answers
+  courseQuestions.forEach(question => {
+    const questionElement = document.querySelector(`[data-question-id="${question.id}"]`);
+    if (questionElement) {
+      const selectedOption = questionElement.querySelector('input[type="radio"]:checked');
+      if (selectedOption) {
+        // Get the selected answer value
+        const selectedValue = selectedOption.value;
+        // Check if it's correct (correct answer is stored in question.correct_answer)
+        if (selectedValue === String(question.correct_answer)) {
+          correctAnswers++;
+        }
+      }
+    }
+  });
+
+  const percentage = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
+  console.log(`Progress calculated: ${correctAnswers}/${totalQuestions} correct = ${percentage}%`);
+
+  return {
+    correctAnswers,
+    totalQuestions,
+    percentage
+  };
+}
+
+// Calculate progress from quiz submissions
+function calculateProgress(courseId) {
+  const progress = trackQuizAnswers(courseId);
+  return progress.percentage;
+}
+
+// Submit assignment work with automatic progress calculation
+async function submitAssignmentWork(assignmentId, courseTitle) {
+  // Calculate progress automatically from quiz answers
+  const progress = trackQuizAnswers(null);
+  const { correctAnswers, totalQuestions, percentage } = progress;
+
+  // Show calculated progress to student
+  const confirmMessage = totalQuestions > 0
+    ? `ðŸ“Š Progress Detected:\n\n${correctAnswers} out of ${totalQuestions} questions answered correctly\n\nCompletion: ${percentage}%\n\nClick OK to submit.`
+    : `No quiz questions detected. Marking as 0% complete.\n\nClick OK to submit.`;
+
+  if (!confirm(confirmMessage)) return;
 
   try {
     const response = await fetch(`${API_BASE_URL}/api/student/submit-assignment`, {
@@ -4269,20 +4459,122 @@ async function submitAssignmentWork(assignmentId, courseTitle) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${authToken}`
       },
-      body: JSON.stringify({ assignmentId, completionPercentage: percentage })
+      body: JSON.stringify({
+        assignmentId,
+        completionPercentage: percentage,
+        correctAnswers,
+        totalQuestions
+      })
     });
 
     const result = await response.json();
     if (result.success) {
-      const statusMsg = result.data.isLate ? '⏰ LATE' : '✅ ON TIME';
-      alert(`✅ Work submitted!\n\nCompletion: ${percentage}%\nStatus: ${statusMsg}\n\nYour teacher has been notified.`);
+      const statusMsg = result.data.isLate ? 'â° LATE' : 'âœ… ON TIME';
+      alert(`âœ… Work submitted!\n\nProgress: ${correctAnswers}/${totalQuestions} (${percentage}%)\nStatus: ${statusMsg}\n\nYour teacher has been notified.`);
       loadStudentAssignments();
+      loadEnrolledCourses();
     } else {
       alert('Error: ' + result.message);
     }
   } catch (err) {
     console.error('Error:', err);
     alert('Error submitting work');
+  }
+}
+
+// Load and display enrolled courses with progress tracking
+async function loadEnrolledCourses() {
+  if (currentUser.role !== 'student' && currentUser.role !== 'user') return;
+
+  try {
+    // Get enrolled courses (via class code)
+    const response = await fetch(`${API_BASE_URL}/api/student/enrolled-courses`, {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+
+    const result = await response.json();
+    if (result.success && result.data.length > 0) {
+      const enrolledCoursesDiv = document.getElementById('enrolled-courses-list');
+      if (!enrolledCoursesDiv) {
+        console.warn('enrolled-courses-list div not found');
+        return;
+      }
+
+      enrolledCoursesDiv.innerHTML = result.data
+        .map(course => {
+          // Calculate progress from submissions
+          const progress = course.submissions
+            ? Math.round(
+              (course.submissions.filter(s => s.is_submitted).length / course.assignments.length) * 100
+            )
+            : 0;
+
+          // Determine status
+          let status = 'â³ Not Started';
+          let statusColor = '#888';
+          if (progress >= 100) {
+            status = 'âœ… Completed';
+            statusColor = '#4caf50';
+          } else if (progress > 0) {
+            status = 'â–¶ï¸ In Progress';
+            statusColor = '#2196f3';
+          }
+
+          // Calculate questions answered correctly if available
+          const correctAnswers = course.submissions
+            ? course.submissions.reduce((sum, s) => sum + (s.correct_answers || 0), 0)
+            : 0;
+          const totalQuestions = course.assignments
+            ? course.assignments.length
+            : 0;
+
+          return `
+            <div style="background: #222; padding: 12px; border-radius: 4px; margin-bottom: 10px; border-left: 4px solid #667eea;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div style="flex: 1;">
+                  <strong>${course.title}</strong><br/>
+                  <small style="color: #999;">Teacher: ${course.teacher_email}</small><br/>
+                  <small style="color: #ccc; margin-top: 5px;">
+                    ðŸ“Š Progress: ${correctAnswers}/${totalQuestions} questions answered (${progress}%)
+                  </small><br/>
+                  <div style="margin-top: 8px; background: #111; border-radius: 4px; height: 20px; overflow: hidden;">
+                    <div style="width: ${progress}%; height: 100%; background: linear-gradient(90deg, #667eea, #764ba2); transition: width 0.3s ease; display: flex; align-items: center; justify-content: center;">
+                      <span style="color: white; font-size: 0.75em; font-weight: bold; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">${progress}%</span>
+                    </div>
+                  </div>
+                  <small style="color: ${statusColor}; margin-top: 5px; display: block; font-weight: bold;">${status}</small>
+                </div>
+                <button onclick="viewEnrolledCourse(${course.course_id})" class="primary-btn" style="padding: 8px 16px; white-space: nowrap;">ðŸ‘ï¸ View</button>
+              </div>
+            </div>
+          `;
+        })
+        .join('');
+
+      document.getElementById('enrolled-courses-section').style.display = 'block';
+    } else {
+      document.getElementById('enrolled-courses-section').style.display = 'none';
+    }
+  } catch (err) {
+    console.error('Error loading enrolled courses:', err);
+  }
+}
+
+// View enrolled course
+async function viewEnrolledCourse(courseId) {
+  try {
+    // Load course content
+    const response = await fetch(`${API_BASE_URL}/api/courses/${courseId}`, {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+
+    const result = await response.json();
+    if (result.success) {
+      await loadCourseQuestions(courseId);
+      viewCourse(courseId);
+    }
+  } catch (err) {
+    console.error('Error loading course:', err);
   }
 }
 
@@ -4324,7 +4616,7 @@ async function createAssignment() {
 
     const result = await response.json();
     if (result.success) {
-      alert(`✅ Assignment created and sent to students in your class!\n\nAssignment ID: ${result.data.assignmentId}`);
+      alert(`âœ… Assignment created and sent to students in your class!\n\nAssignment ID: ${result.data.assignmentId}`);
       document.getElementById('assignment-course-select').value = '';
       document.getElementById('assignment-due-date').value = '';
     } else {
@@ -4336,22 +4628,106 @@ async function createAssignment() {
   }
 }
 
+// Store all courses for search filtering
+let allCoursesForAssignment = [];
+
 // Populate course dropdown for assignment creation
-function populateAssignmentCourseDropdown() {
+async function populateAssignmentCourseDropdown() {
   const select = document.getElementById('assignment-course-select');
   if (!select) return;
   
-  // Clear existing options except the default
+  try {
+    // Fetch all courses from backend for teacher assignments
+    // Use limit=1000 to get all courses at once without pagination
+    const response = await fetch(`${API_BASE_URL}/api/courses/all?limit=1000`, {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    
+    const result = await response.json();
+    
+    // Clear existing options except the default
+    select.innerHTML = '<option value="">Select a course...</option>';
+    
+    // Store all courses and add to dropdown
+    // The endpoint returns {courses: [...], pagination: {...}}
+    if (result.success && result.data && result.data.courses && result.data.courses.length > 0) {
+      allCoursesForAssignment = result.data.courses;
+      allCoursesForAssignment.forEach(course => {
+        const option = document.createElement('option');
+        option.value = course.id;
+        option.textContent = course.title;
+        option.dataset.description = course.description || '';
+        select.appendChild(option);
+      });
+    } else if (myCourses && myCourses.length > 0) {
+      // Fallback to user's own courses if endpoint not available
+      allCoursesForAssignment = myCourses;
+      myCourses.forEach(course => {
+        const option = document.createElement('option');
+        option.value = course.id;
+        option.textContent = course.title;
+        select.appendChild(option);
+      });
+    }
+  } catch (err) {
+    console.error('Error loading courses for assignment:', err);
+    // Fallback to user's courses
+    if (myCourses && myCourses.length > 0) {
+      select.innerHTML = '<option value="">Select a course...</option>';
+      allCoursesForAssignment = myCourses;
+      myCourses.forEach(course => {
+        const option = document.createElement('option');
+        option.value = course.id;
+        option.textContent = course.title;
+        select.appendChild(option);
+      });
+    }
+  }
+}
+
+// Search and filter assignment courses in real-time
+function searchAssignmentCourses() {
+  const searchInput = document.getElementById('assignmentCourseSearch');
+  const select = document.getElementById('assignment-course-select');
+  
+  if (!searchInput || !select) return;
+  
+  const searchText = searchInput.value.toLowerCase().trim();
+  
+  // Clear dropdown
   select.innerHTML = '<option value="">Select a course...</option>';
   
-  // Add user's courses to dropdown
-  if (myCourses && myCourses.length > 0) {
-    myCourses.forEach(course => {
+  if (!searchText) {
+    // Show all courses if search is empty
+    allCoursesForAssignment.forEach(course => {
       const option = document.createElement('option');
       option.value = course.id;
       option.textContent = course.title;
+      option.dataset.description = course.description || '';
       select.appendChild(option);
     });
+  } else {
+    // Filter courses by title or description (case-insensitive)
+    const filteredCourses = allCoursesForAssignment.filter(course => 
+      course.title.toLowerCase().includes(searchText) ||
+      (course.description && course.description.toLowerCase().includes(searchText))
+    );
+    
+    if (filteredCourses.length > 0) {
+      filteredCourses.forEach(course => {
+        const option = document.createElement('option');
+        option.value = course.id;
+        option.textContent = course.title;
+        option.dataset.description = course.description || '';
+        select.appendChild(option);
+      });
+    } else {
+      const option = document.createElement('option');
+      option.value = '';
+      option.textContent = 'No courses found...';
+      option.disabled = true;
+      select.appendChild(option);
+    }
   }
 }
 
@@ -4373,7 +4749,7 @@ async function loadTeacherClasses() {
         <div style="background: #222; padding: 12px; border-radius: 4px; margin-bottom: 10px; border-left: 4px solid #4ade80;">
           <strong>${cls.classCode}</strong> - ${cls.studentCount} student(s)
           <button onclick="viewClassSubmissions('${cls.classCode}')" class="primary-btn" style="padding: 6px 12px; margin-left: 10px; font-size: 0.85em;">
-            📊 View Progress
+            ðŸ“Š View Progress
           </button>
         </div>
       `).join('');
@@ -4387,6 +4763,28 @@ async function loadTeacherClasses() {
 }
 
 // View class submissions
+// Display student accuracy with color coding
+function displayStudentAccuracy(submission) {
+  if (submission.accuracy === null || submission.total_questions === 0) {
+    return { html: 'N/A', color: '#888' };
+  }
+  
+  const percent = submission.accuracy_percent;
+  let color = '#888'; // Gray - not started
+  
+  if (submission.accuracy === 0) {
+    color = '#888'; // Gray - not started
+  } else if (percent < 50) {
+    color = '#ef4444'; // Red - needs improvement
+  } else if (percent < 80) {
+    color = '#f59e0b'; // Yellow - good progress
+  } else {
+    color = '#22c55e'; // Green - excellent
+  }
+  
+  const html = `${submission.accuracy}/${submission.total_questions} (${percent}%)`;
+  return { html, color };
+}
 async function viewClassSubmissions(classCode) {
   try {
     const response = await fetch(`${API_BASE_URL}/api/teacher/class/${classCode}/submissions`, {
@@ -4398,17 +4796,19 @@ async function viewClassSubmissions(classCode) {
       const sectionDiv = document.getElementById('class-management-section');
       const submissionsDiv = document.getElementById('class-submissions');
 
-      let html = `<h3>📊 Class Progress - ${classCode}</h3><table style="width: 100%; border-collapse: collapse;">
+      let html = `<h3>ðŸ“Š Class Progress - ${classCode}</h3><table style="width: 100%; border-collapse: collapse;">
         <tr style="background: #333;">
           <th style="padding: 10px; border: 1px solid #555; text-align: left;">Student</th>
           <th style="padding: 10px; border: 1px solid #555;">Assignment</th>
-          <th style="padding: 10px; border: 1px solid #555;">Completion</th>
+          <th style="padding: 10px; border: 1px solid #555;">Completion %</th>
+          <th style="padding: 10px; border: 1px solid #555;">Accuracy</th>
           <th style="padding: 10px; border: 1px solid #555;">Status</th>
           <th style="padding: 10px; border: 1px solid #555;">Submitted</th>
         </tr>`;
 
       result.data.forEach(sub => {
         const statusColor = sub.status === 'On Time' ? '#4ade80' : sub.status === 'Late' ? '#ff6b6b' : '#999';
+        const accuracyDisplay = displayStudentAccuracy(sub);
         html += `<tr style="border: 1px solid #555;">
           <td style="padding: 10px; border: 1px solid #555;">${sub.email}</td>
           <td style="padding: 10px; border: 1px solid #555; font-size: 0.9em;">${sub.assignment_title}</td>
@@ -4419,8 +4819,13 @@ async function viewClassSubmissions(classCode) {
               </div>
             </div>
           </td>
+          <td style="padding: 10px; border: 1px solid #555; font-weight: bold;">
+            <span style="background: ${accuracyDisplay.color}; color: #fff; padding: 4px 8px; border-radius: 4px; display: inline-block; font-size: 0.9em;">
+              ${accuracyDisplay.html}
+            </span>
+          </td>
           <td style="padding: 10px; border: 1px solid #555; color: ${statusColor}; font-weight: bold;">${sub.status}</td>
-          <td style="padding: 10px; border: 1px solid #555;">${sub.is_submitted ? '✅ Yes' : '⏳ No'}</td>
+          <td style="padding: 10px; border: 1px solid #555;">${sub.is_submitted ? 'âœ… Yes' : 'â³ No'}</td>
         </tr>`;
       });
 
@@ -4443,10 +4848,20 @@ function setupTeacherStudentListeners() {
   const becomeTeacherBtn = document.getElementById('become-teacher-btn');
   const enrollBtn = document.getElementById('enroll-class-btn');
   const createAssignmentBtn = document.getElementById('create-assignment-btn');
+  const searchInput = document.getElementById('assignmentCourseSearch');
 
   if (becomeTeacherBtn) becomeTeacherBtn.addEventListener('click', becomeTeacher);
   if (enrollBtn) enrollBtn.addEventListener('click', enrollInClass);
   if (createAssignmentBtn) createAssignmentBtn.addEventListener('click', createAssignment);
+  if (searchInput) {
+    searchInput.addEventListener('input', searchAssignmentCourses);
+    // Also trigger on focus to ensure dropdown is populated
+    searchInput.addEventListener('focus', () => {
+      if (allCoursesForAssignment.length === 0) {
+        populateAssignmentCourseDropdown();
+      }
+    });
+  }
 
   // Update teacher/student UI when user loads
   if (currentUser) {
@@ -4486,7 +4901,7 @@ async function fetchAndDisplayClassCode() {
       
       if (classCodeSpan) {
         classCodeSpan.textContent = result.data.classCode;
-        console.log('✓ Class code displayed:', result.data.classCode);
+        console.log('âœ“ Class code displayed:', result.data.classCode);
       }
       
       // Update current user with fresh class code and approval status from server
@@ -4496,13 +4911,13 @@ async function fetchAndDisplayClassCode() {
       // Show approval status
       if (statusDiv) {
         if (result.data.approved) {
-          statusDiv.innerHTML = '<span style="color: #4ade80; font-weight: bold;">✅ Teacher approved! Students can join your class.</span>';
+          statusDiv.innerHTML = '<span style="color: #4ade80; font-weight: bold;">âœ… Teacher approved! Students can join your class.</span>';
         } else {
-          statusDiv.innerHTML = '<span style="color: #ff9800; font-weight: bold;">⏳ Waiting for superadmin approval... Students cannot join yet.</span>';
+          statusDiv.innerHTML = '<span style="color: #ff9800; font-weight: bold;">â³ Waiting for superadmin approval... Students cannot join yet.</span>';
         }
       }
     } else {
-      console.log('ℹ️ Teacher approval pending');
+      console.log('â„¹ï¸ Teacher approval pending');
       const classCodeSpan = document.getElementById('my-class-code');
       if (classCodeSpan) classCodeSpan.textContent = 'Pending superadmin approval...';
     }
@@ -4520,3 +4935,4 @@ window.closeClassManagement = closeClassManagement;
 window.becomeTeacher = becomeTeacher;
 window.enrollInClass = enrollInClass;
 window.createAssignment = createAssignment;
+
