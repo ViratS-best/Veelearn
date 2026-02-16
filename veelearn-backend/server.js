@@ -1048,6 +1048,57 @@ app.post('/api/courses', authenticateToken, (req, res) => {
     });
 });
 
+
+// Get all courses in system for teacher assignment (with pagination/search)
+app.get('/api/courses/all', authenticateToken, (req, res) => {
+    const { page = 1, limit = 10, search = '' } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+
+    // Base query to get all approved courses + user's own courses
+    const countQuery = `
+        SELECT COUNT(*) as total FROM courses c
+        LEFT JOIN users u ON c.creator_id = u.id
+        WHERE c.status = 'approved' OR c.creator_id = ?
+    ${search ? `AND (c.title LIKE ? OR c.description LIKE ?)` : ''}
+`;
+
+    const dataQuery = `
+        SELECT c.id, c.title, c.description, c.creator_id, u.email as creator_email, c.status, c.created_at
+        FROM courses c
+        LEFT JOIN users u ON c.creator_id = u.id
+        WHERE c.status = 'approved' OR c.creator_id = ?
+    ${search ? `AND (c.title LIKE ? OR c.description LIKE ?)` : ''}
+        ORDER BY c.created_at DESC
+LIMIT ? OFFSET ?
+    `;
+
+    const searchTerm = search ? `%${search}%` : null;
+    const countParams = search ? [req.user.id, searchTerm, searchTerm] : [req.user.id];
+    const dataParams = search
+        ? [req.user.id, searchTerm, searchTerm, parseInt(limit), offset]
+        : [req.user.id, parseInt(limit), offset];
+
+    db.query(countQuery, countParams, (err, countResults) => {
+        if (err) return apiResponse(res, 500, 'Error fetching courses count');
+
+        const total = countResults[0].total;
+
+        db.query(dataQuery, dataParams, (err, courses) => {
+            if (err) return apiResponse(res, 500, 'Error fetching courses');
+
+            apiResponse(res, 200, 'All courses retrieved', {
+                courses,
+                pagination: {
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    total,
+                    pages: Math.ceil(total / parseInt(limit))
+                }
+            });
+        });
+    });
+});
+
 app.get('/api/courses/:id', authenticateToken, (req, res) => {
     const courseId = req.params.id;
     const userId = req.user.id;
@@ -3236,58 +3287,6 @@ app.get('/api/teacher/my-classes', authenticateToken, authorize('teacher'), (req
             }];
 
             apiResponse(res, 200, 'Classes retrieved', classData);
-        });
-    });
-});
-
-// ===== NEW TEACHER/STUDENT API ENDPOINTS =====
-
-// Get all courses in system for teacher assignment (with pagination/search)
-app.get('/api/courses/all', authenticateToken, (req, res) => {
-    const { page = 1, limit = 10, search = '' } = req.query;
-    const offset = (parseInt(page) - 1) * parseInt(limit);
-
-    // Base query to get all approved courses + user's own courses
-    const countQuery = `
-        SELECT COUNT(*) as total FROM courses c
-        LEFT JOIN users u ON c.creator_id = u.id
-        WHERE c.status = 'approved' OR c.creator_id = ?
-    ${search ? `AND (c.title LIKE ? OR c.description LIKE ?)` : ''}
-`;
-
-    const dataQuery = `
-        SELECT c.id, c.title, c.description, c.creator_id, u.email as creator_email, c.status, c.created_at
-        FROM courses c
-        LEFT JOIN users u ON c.creator_id = u.id
-        WHERE c.status = 'approved' OR c.creator_id = ?
-    ${search ? `AND (c.title LIKE ? OR c.description LIKE ?)` : ''}
-        ORDER BY c.created_at DESC
-LIMIT ? OFFSET ?
-    `;
-
-    const searchTerm = search ? `%${search}%` : null;
-    const countParams = search ? [req.user.id, searchTerm, searchTerm] : [req.user.id];
-    const dataParams = search
-        ? [req.user.id, searchTerm, searchTerm, parseInt(limit), offset]
-        : [req.user.id, parseInt(limit), offset];
-
-    db.query(countQuery, countParams, (err, countResults) => {
-        if (err) return apiResponse(res, 500, 'Error fetching courses count');
-
-        const total = countResults[0].total;
-
-        db.query(dataQuery, dataParams, (err, courses) => {
-            if (err) return apiResponse(res, 500, 'Error fetching courses');
-
-            apiResponse(res, 200, 'All courses retrieved', {
-                courses,
-                pagination: {
-                    page: parseInt(page),
-                    limit: parseInt(limit),
-                    total,
-                    pages: Math.ceil(total / parseInt(limit))
-                }
-            });
         });
     });
 });
