@@ -300,9 +300,14 @@ const initializeDatabase = async () => {
         await query(`
             ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS quiz_accuracy DECIMAL(5,2) DEFAULT 0
         `);
-        console.log('✓ Assignment submissions table ready');
-
-        console.log('✓ Volunteer columns verified/added to users table');
+        // Migration: Add unique constraint to quiz attempts if not already present
+        // Note: Generic try/catch because MySQL 8.0 doesn't support IF NOT EXISTS for ADD UNIQUE
+        try {
+            await query(`ALTER TABLE user_quiz_attempts ADD UNIQUE KEY unique_attempt (user_id, question_id)`);
+            console.log('✓ Unique constraint added to user_quiz_attempts');
+        } catch (e) {
+            // Likely already exists
+        }
 
         // Simulators table (Parent)
         await query(`
@@ -465,7 +470,8 @@ const initializeDatabase = async () => {
                 attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
                 FOREIGN KEY (question_id) REFERENCES course_questions(id) ON DELETE CASCADE,
-                INDEX idx_user_question (user_id, question_id)
+                INDEX idx_user_question (user_id, question_id),
+                UNIQUE KEY unique_attempt (user_id, question_id)
             )
         `);
 
@@ -2489,10 +2495,14 @@ app.post('/api/courses/:courseId/questions/:questionId/answer', authenticateToke
         const question = results[0];
         const isCorrect = user_answer.trim().toLowerCase() === question.correct_answer.trim().toLowerCase();
 
-        // Record the attempt
+        // Record the attempt (Update if already exists to prevent double-counting)
         const insertQuery = `
             INSERT INTO user_quiz_attempts (user_id, question_id, user_answer, is_correct)
             VALUES (?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE 
+            user_answer = VALUES(user_answer),
+            is_correct = VALUES(is_correct),
+            attempted_at = CURRENT_TIMESTAMP
         `;
 
         db.query(insertQuery, [userId, questionId, user_answer, isCorrect], (err, result) => {
@@ -3104,9 +3114,9 @@ app.post('/api/student/submit-assignment', authenticateToken, (req, res) => {
 
                     const totalQuestions = countResults[0].totalQuestions || 0;
 
-                    // Get correct answers count for this student on this course's questions
+                    // Get correct distinct answers count for this student on this course's questions
                     db.query(
-                        `SELECT COUNT(*) as correctCount 
+                        `SELECT COUNT(DISTINCT uqa.question_id) as correctCount 
                          FROM user_quiz_attempts uqa
                          JOIN course_questions cq ON uqa.question_id = cq.id
                          WHERE uqa.user_id = ? AND cq.course_id = ? AND uqa.is_correct = TRUE`,
