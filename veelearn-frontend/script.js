@@ -2060,7 +2060,11 @@ function saveCourse(action = "draft") {
     });
 }
 
-async function viewCourse(courseId) {
+// Global variables for tracking context
+let currentAssignmentId = null;
+
+async function viewCourse(courseId, assignmentId = null) {
+  currentAssignmentId = assignmentId;
   const course = myCourses.find((c) => c.id === courseId) ||
     availableCourses.find((c) => c.id === courseId) ||
     pendingCourses.find((c) => c.id === courseId);
@@ -2174,7 +2178,12 @@ async function viewCourse(courseId) {
         renderViewerPage(currentViewerPageIndex);
       } else {
         // Finish course logic
-        alert("Course Completed! Great job!");
+        if (currentAssignmentId) {
+          console.log(`Course finished, auto-submitting assignment ${currentAssignmentId}`);
+          submitAssignmentWork(currentAssignmentId, course.title);
+        } else {
+          alert('Congratulations! You have completed the course content.');
+        }
         showDashboard();
       }
     });
@@ -4387,7 +4396,7 @@ async function loadStudentAssignments() {
               <small>Teacher: ${a.teacher_email}</small><br/>
               <small>Due: ${a.due_date ? new Date(a.due_date).toLocaleDateString() : 'No due date'}</small>
             </div>
-            <button onclick="submitAssignmentWork(${a.id}, '${a.course_title}')" class="primary-btn" style="padding: 8px 16px;">
+            <button onclick="viewCourse(${a.course_id}, ${a.id})" class="primary-btn" style="padding: 8px 16px;">
               ▶️ Work on Assignment
             </button>
           </div>
@@ -4403,7 +4412,8 @@ async function loadStudentAssignments() {
 
 // Track quiz answers and calculate progress
 function trackQuizAnswers(courseId) {
-  if (!courseId || courseQuestions.length === 0) {
+  // Use provided courseId or global courseQuestions if they belong to current course
+  if (!courseId && courseQuestions.length === 0) {
     return { correctAnswers: 0, totalQuestions: 0, percentage: 0 };
   }
 

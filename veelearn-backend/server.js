@@ -292,13 +292,11 @@ const initializeDatabase = async () => {
             )
         `);
 
-        // Add new columns if they don't exist (for existing tables)
-        await query(`
-            ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS correct_answers INT DEFAULT 0
-        `);
-        await query(`
-            ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS total_questions INT DEFAULT 0
-        `);
+        // Migration: Add columns to assignment_submissions if they don't exist
+        await addColumn('assignment_submissions', 'correct_answers', 'INT DEFAULT 0');
+        await addColumn('assignment_submissions', 'total_questions', 'INT DEFAULT 0');
+        await addColumn('assignment_submissions', 'quiz_accuracy', 'DECIMAL(5,2) DEFAULT 0');
+        console.log('✓ Assignment submission columns verified');
         await query(`
             ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS quiz_accuracy DECIMAL(5,2) DEFAULT 0
         `);
@@ -3126,22 +3124,8 @@ app.get('/api/student/enrolled-courses', authenticateToken, (req, res) => {
                 'title', ca.title,
                 'due_date', ca.due_date
             ) SEPARATOR '|||') as assignments_json
-        FROM (
-            -- Class-based enrollment
-            SELECT se.student_id, ca.course_id, ca.id as assignment_id
-            FROM student_enrollments se
-            JOIN classroom_assignments ca ON se.class_code = ca.class_code
-            
-            UNION
-            
-            -- Marketplace enrollment (direct course enrollment)
-            SELECT e.user_id as student_id, e.course_id, NULL as assignment_id
-            FROM enrollments e
-        ) se
-        JOIN courses c ON se.course_id = c.id
-        JOIN users u ON c.creator_id = u.id
         LEFT JOIN classroom_assignments ca ON ca.course_id = c.id AND (se.assignment_id IS NULL OR se.assignment_id = ca.id)
-        LEFT JOIN assignment_submissions asub ON ca.id = asub.assignment_id AND asub.student_id = se.student_id
+        LEFT JOIN assignment_submissions asub ON (ca.id = asub.assignment_id OR (se.assignment_id IS NULL AND asub.assignment_id IS NULL)) AND asub.student_id = se.student_id
         WHERE se.student_id = ?
         GROUP BY c.id, c.title, c.description, u.email
         ORDER BY c.title ASC
@@ -3214,6 +3198,8 @@ u.email,
                 ...r,
                 accuracy: accuracy,
                 accuracy_percent: accuracyPercent,
+                correct_answers: r.correct_answers,
+                total_questions: r.total_questions,
                 status: !r.is_submitted ? 'Not Started' : r.is_late ? 'Late' : 'On Time',
                 progressBar: `${r.completion_percentage}% `
             };
