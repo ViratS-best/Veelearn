@@ -229,7 +229,7 @@ const initializeDatabase = async () => {
         // Migration: Add volunteer columns to users table
         await addColumn('users', 'total_volunteer_hours', 'FLOAT DEFAULT 0');
         await addColumn('users', 'is_verified_creator', 'BOOLEAN DEFAULT FALSE');
-        
+
         // Migration: Add teacher-specific columns
         await addColumn('users', 'class_code', 'VARCHAR(20) UNIQUE');
         await addColumn('users', 'teacher_approved', 'BOOLEAN DEFAULT FALSE');
@@ -291,7 +291,7 @@ const initializeDatabase = async () => {
                 INDEX idx_student (student_id)
             )
         `);
-        
+
         // Add new columns if they don't exist (for existing tables)
         await query(`
             ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS correct_answers INT DEFAULT 0
@@ -303,7 +303,7 @@ const initializeDatabase = async () => {
             ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS quiz_accuracy DECIMAL(5,2) DEFAULT 0
         `);
         console.log('✓ Assignment submissions table ready');
-        
+
         console.log('✓ Volunteer columns verified/added to users table');
 
         // Simulators table (Parent)
@@ -2879,13 +2879,13 @@ const generateClassCode = () => {
 app.post('/api/user/become-teacher', authenticateToken, (req, res) => {
     const userId = req.user.id;
     const classCode = generateClassCode();
-    
+
     db.query(
         'UPDATE users SET role = ?, class_code = ?, teacher_approved = ? WHERE id = ?',
         ['teacher', classCode, false, userId],
         (err) => {
             if (err) return apiResponse(res, 500, 'Error updating role');
-            
+
             // Send notification email (would be sent by admin)
             apiResponse(res, 200, 'Teacher request submitted. Awaiting superadmin approval.', { classCode });
         }
@@ -2895,7 +2895,7 @@ app.post('/api/user/become-teacher', authenticateToken, (req, res) => {
 // Superadmin approves teacher
 app.put('/api/admin/approve-teacher/:userId', authenticateToken, authorize('superadmin'), (req, res) => {
     const { userId } = req.params;
-    
+
     db.query(
         'UPDATE users SET teacher_approved = ? WHERE id = ?',
         [true, userId],
@@ -2909,14 +2909,14 @@ app.put('/api/admin/approve-teacher/:userId', authenticateToken, authorize('supe
 // Get class code for teacher
 app.get('/api/user/class-code', authenticateToken, (req, res) => {
     const userId = req.user.id;
-    
+
     db.query(
         'SELECT class_code, teacher_approved FROM users WHERE id = ? AND role = ?',
         [userId, 'teacher'],
         (err, results) => {
             if (err) return apiResponse(res, 500, 'Error fetching class code');
             if (results.length === 0) return apiResponse(res, 404, 'Not a teacher');
-            apiResponse(res, 200, 'Class code retrieved', { 
+            apiResponse(res, 200, 'Class code retrieved', {
                 classCode: results[0].class_code,
                 approved: results[0].teacher_approved
             });
@@ -2928,9 +2928,9 @@ app.get('/api/user/class-code', authenticateToken, (req, res) => {
 app.post('/api/student/enroll-class', authenticateToken, (req, res) => {
     const { classCode } = req.body;
     const studentId = req.user.id;
-    
+
     if (!classCode) return apiResponse(res, 400, 'Class code required');
-    
+
     // Find teacher by class code
     db.query(
         'SELECT id FROM users WHERE class_code = ? AND role = ? AND teacher_approved = ?',
@@ -2938,9 +2938,9 @@ app.post('/api/student/enroll-class', authenticateToken, (req, res) => {
         (err, teachers) => {
             if (err) return apiResponse(res, 500, 'Error finding teacher');
             if (teachers.length === 0) return apiResponse(res, 404, 'Invalid class code or teacher not approved');
-            
+
             const teacherId = teachers[0].id;
-            
+
             // Enroll student
             db.query(
                 'INSERT INTO student_enrollments (student_id, class_code, teacher_id) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE enrolled_at = NOW()',
@@ -2952,7 +2952,7 @@ app.post('/api/student/enroll-class', authenticateToken, (req, res) => {
                         }
                         return apiResponse(res, 500, 'Error enrolling in class');
                     }
-                    
+
                     // Update student role to 'student' if they were 'user'
                     db.query(
                         'UPDATE users SET role = ? WHERE id = ? AND role = ?',
@@ -2975,9 +2975,9 @@ app.post('/api/student/enroll-class', authenticateToken, (req, res) => {
 app.post('/api/teacher/assign-course', authenticateToken, authorize('teacher'), (req, res) => {
     const { classCode, courseId, title, dueDate } = req.body;
     const teacherId = req.user.id;
-    
+
     if (!classCode || !courseId) return apiResponse(res, 400, 'Class code and course ID required');
-    
+
     // Verify teacher owns this class code
     db.query(
         'SELECT id FROM users WHERE id = ? AND class_code = ?',
@@ -2985,7 +2985,7 @@ app.post('/api/teacher/assign-course', authenticateToken, authorize('teacher'), 
         (err, results) => {
             if (err) return apiResponse(res, 500, 'Error verifying class');
             if (results.length === 0) return apiResponse(res, 403, 'Not authorized for this class');
-            
+
             // Create assignment
             db.query(
                 'INSERT INTO classroom_assignments (teacher_id, course_id, class_code, title, due_date) VALUES (?, ?, ?, ?, ?)',
@@ -3002,7 +3002,7 @@ app.post('/api/teacher/assign-course', authenticateToken, authorize('teacher'), 
 // Get assignments for student
 app.get('/api/student/assignments', authenticateToken, (req, res) => {
     const studentId = req.user.id;
-    
+
     db.query(`
         SELECT ca.*, u.email as teacher_email, c.title as course_title
         FROM classroom_assignments ca
@@ -3021,10 +3021,10 @@ app.get('/api/student/assignments', authenticateToken, (req, res) => {
 app.post('/api/student/submit-assignment', authenticateToken, (req, res) => {
     const { assignmentId, completionPercentage } = req.body;
     const studentId = req.user.id;
-    
+
     if (!assignmentId) return apiResponse(res, 400, 'Assignment ID required');
     if (completionPercentage === undefined) return apiResponse(res, 400, 'Completion percentage required');
-    
+
     // Get assignment details including course_id
     db.query(
         'SELECT due_date, course_id FROM classroom_assignments WHERE id = ?',
@@ -3032,11 +3032,11 @@ app.post('/api/student/submit-assignment', authenticateToken, (req, res) => {
         (err, assignments) => {
             if (err) return apiResponse(res, 500, 'Error fetching assignment');
             if (assignments.length === 0) return apiResponse(res, 404, 'Assignment not found');
-            
+
             const assignment = assignments[0];
             const isLate = assignment.due_date && new Date() > new Date(assignment.due_date);
             const submissionDate = new Date();
-            
+
             // Get total questions count for the course
             db.query(
                 'SELECT COUNT(*) as totalQuestions FROM course_questions WHERE course_id = ?',
@@ -3050,9 +3050,9 @@ app.post('/api/student/submit-assignment', authenticateToken, (req, res) => {
                         performSubmission(totalQuestions, correctAnswers, quizAccuracy);
                         return;
                     }
-                    
+
                     const totalQuestions = countResults[0].totalQuestions || 0;
-                    
+
                     // Get correct answers count for this student on this course's questions
                     db.query(
                         `SELECT COUNT(*) as correctCount 
@@ -3068,33 +3068,33 @@ app.post('/api/student/submit-assignment', authenticateToken, (req, res) => {
                                 performSubmission(totalQuestions, correctAnswers, quizAccuracy);
                                 return;
                             }
-                            
+
                             const correctAnswers = accuracyResults[0].correctCount || 0;
                             const quizAccuracy = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
-                            performSubmission(totalQuestions, correctAnswers, quizAccuracy);
+
+                            db.query(
+                                `INSERT INTO assignment_submissions 
+                                 (assignment_id, student_id, submission_date, completion_percentage, is_submitted, is_late, correct_answers, total_questions, quiz_accuracy) 
+                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                 ON DUPLICATE KEY UPDATE 
+                                 completion_percentage = ?, submission_date = ?, is_submitted = ?, is_late = ?, correct_answers = ?, total_questions = ?, quiz_accuracy = ?`,
+                                [assignmentId, studentId, submissionDate, completionPercentage, true, isLate, correctAnswers, totalQuestions, quizAccuracy.toFixed(2),
+                                    completionPercentage, submissionDate, true, isLate, correctAnswers, totalQuestions, quizAccuracy.toFixed(2)],
+                                (err) => {
+                                    if (err) {
+                                        console.error('Error submitting assignment:', err);
+                                        return apiResponse(res, 500, 'Error submitting assignment');
+                                    }
+                                    apiResponse(res, 200, 'Assignment submission recorded', {
+                                        isLate,
+                                        totalQuestions,
+                                        correctAnswers,
+                                        quizAccuracy: parseFloat(quizAccuracy.toFixed(2))
+                                    });
+                                }
+                            );
                         }
                     );
-                    
-                    function performSubmission(totalQuestions, correctAnswers, quizAccuracy) {
-                        db.query(
-                            `INSERT INTO assignment_submissions 
-                             (assignment_id, student_id, submission_date, completion_percentage, is_submitted, is_late, correct_answers, total_questions, quiz_accuracy) 
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                             ON DUPLICATE KEY UPDATE 
-                             completion_percentage = ?, submission_date = ?, is_submitted = ?, is_late = ?, correct_answers = ?, total_questions = ?, quiz_accuracy = ?`,
-                            [assignmentId, studentId, submissionDate, completionPercentage, true, isLate, correctAnswers, totalQuestions, quizAccuracy.toFixed(2),
-                             completionPercentage, submissionDate, true, isLate, correctAnswers, totalQuestions, quizAccuracy.toFixed(2)],
-                            (err) => {
-                                if (err) return apiResponse(res, 500, 'Error submitting assignment');
-                                apiResponse(res, 200, 'Assignment submission recorded', { 
-                                    isLate,
-                                    totalQuestions,
-                                    correctAnswers,
-                                    quizAccuracy: parseFloat(quizAccuracy.toFixed(2))
-                                });
-                            }
-                        );
-                    }
                 }
             );
         }
@@ -3104,42 +3104,53 @@ app.post('/api/student/submit-assignment', authenticateToken, (req, res) => {
 // Get student's enrolled courses with progress tracking
 app.get('/api/student/enrolled-courses', authenticateToken, (req, res) => {
     const studentId = req.user.id;
-    
+
     db.query(`
-        SELECT DISTINCT
-            c.id as course_id,
-            c.title,
-            c.description,
+        SELECT 
+            c.id as course_id, 
+            c.title, 
+            c.description, 
             u.email as teacher_email,
-            COUNT(ca.id) as total_assignments,
-            SUM(CASE WHEN asub.is_submitted THEN 1 ELSE 0 END) as completed_assignments,
-            GROUP_CONCAT(JSON_OBJECT(
+            COUNT(DISTINCT ca.id) as total_assignments,
+            COUNT(DISTINCT CASE WHEN asub.is_submitted = 1 THEN ca.id END) as completed_assignments,
+            GROUP_CONCAT(DISTINCT JSON_OBJECT(
                 'assignment_id', ca.id,
                 'title', ca.title,
                 'due_date', ca.due_date,
                 'correct_answers', asub.correct_answers,
                 'total_questions', asub.total_questions,
                 'is_submitted', asub.is_submitted
-            )) as submissions_json,
-            GROUP_CONCAT(JSON_OBJECT(
+            ) SEPARATOR '|||') as submissions_json,
+            GROUP_CONCAT(DISTINCT JSON_OBJECT(
                 'id', ca.id,
                 'title', ca.title,
                 'due_date', ca.due_date
-            )) as assignments_json
-        FROM student_enrollments se
-        JOIN classroom_assignments ca ON se.class_code = ca.class_code
-        JOIN courses c ON ca.course_id = c.id
-        JOIN users u ON c.user_id = u.id
-        LEFT JOIN assignment_submissions asub ON ca.id = asub.assignment_id AND asub.student_id = ?
+            ) SEPARATOR '|||') as assignments_json
+        FROM (
+            -- Class-based enrollment
+            SELECT se.student_id, ca.course_id, ca.id as assignment_id
+            FROM student_enrollments se
+            JOIN classroom_assignments ca ON se.class_code = ca.class_code
+            
+            UNION
+            
+            -- Marketplace enrollment (direct course enrollment)
+            SELECT e.user_id as student_id, e.course_id, NULL as assignment_id
+            FROM enrollments e
+        ) se
+        JOIN courses c ON se.course_id = c.id
+        JOIN users u ON c.creator_id = u.id
+        LEFT JOIN classroom_assignments ca ON ca.course_id = c.id AND (se.assignment_id IS NULL OR se.assignment_id = ca.id)
+        LEFT JOIN assignment_submissions asub ON ca.id = asub.assignment_id AND asub.student_id = se.student_id
         WHERE se.student_id = ?
-        GROUP BY c.id, c.title, u.email
+        GROUP BY c.id, c.title, c.description, u.email
         ORDER BY c.title ASC
-    `, [studentId, studentId], (err, results) => {
+    `, [studentId], (err, results) => {
         if (err) {
             console.error('Error fetching enrolled courses:', err);
             return apiResponse(res, 500, 'Error fetching enrolled courses');
         }
-        
+
         // Parse JSON data and format response
         const formattedResults = results.map(row => ({
             course_id: row.course_id,
@@ -3148,14 +3159,14 @@ app.get('/api/student/enrolled-courses', authenticateToken, (req, res) => {
             teacher_email: row.teacher_email,
             total_assignments: row.total_assignments || 0,
             completed_assignments: row.completed_assignments || 0,
-            assignments: row.assignments_json 
-                ? row.assignments_json.split(',').map(a => JSON.parse(a))
+            assignments: row.assignments_json
+                ? row.assignments_json.split('|||').map(a => JSON.parse(a))
                 : [],
-            submissions: row.submissions_json 
-                ? row.submissions_json.split(',').map(s => JSON.parse(s))
+            submissions: row.submissions_json
+                ? row.submissions_json.split('|||').map(s => JSON.parse(s))
                 : []
         }));
-        
+
         apiResponse(res, 200, 'Enrolled courses retrieved', formattedResults);
     });
 });
@@ -3166,45 +3177,45 @@ app.get('/api/teacher/class/:classCode/submissions', authenticateToken, authoriz
     const teacherId = req.user.id;
 
     db.query(`
-        SELECT
-            u.email,
-            ca.title as assignment_title,
-            asub.completion_percentage,
-            asub.is_submitted,
-            asub.is_late,
-            asub.submission_date,
-            ca.due_date,
-            asub.correct_answers,
-            COALESCE(
-                (SELECT COUNT(*) FROM user_quiz_attempts WHERE user_id = u.id AND question_id IN 
-                    (SELECT id FROM quiz_questions WHERE course_id = ca.course_id)),
-                0
+SELECT
+u.email,
+    ca.title as assignment_title,
+    asub.completion_percentage,
+    asub.is_submitted,
+    asub.is_late,
+    asub.submission_date,
+    ca.due_date,
+    asub.correct_answers,
+    COALESCE(
+        (SELECT COUNT(*) FROM user_quiz_attempts WHERE user_id = u.id AND question_id IN
+        (SELECT id FROM course_questions WHERE course_id = ca.course_id)),
+    0
             ) as total_questions
         FROM assignment_submissions asub
         JOIN users u ON asub.student_id = u.id
         JOIN classroom_assignments ca ON asub.assignment_id = ca.id
         WHERE ca.teacher_id = ? AND ca.class_code = ?
-        ORDER BY ca.id, u.email
-    `, [teacherId, classCode], (err, results) => {
+    ORDER BY ca.id, u.email
+        `, [teacherId, classCode], (err, results) => {
         if (err) return apiResponse(res, 500, 'Error fetching submissions');
 
         // Format results with accuracy calculation
         const formatted = results.map(r => {
             let accuracy = null;
             let accuracyPercent = null;
-            
+
             // Calculate accuracy if quiz questions exist
             if (r.total_questions > 0 && r.correct_answers !== null) {
                 accuracy = r.correct_answers;
                 accuracyPercent = Math.round((r.correct_answers / r.total_questions) * 100);
             }
-            
+
             return {
                 ...r,
                 accuracy: accuracy,
                 accuracy_percent: accuracyPercent,
                 status: !r.is_submitted ? 'Not Started' : r.is_late ? 'Late' : 'On Time',
-                progressBar: `${r.completion_percentage}%`
+                progressBar: `${r.completion_percentage}% `
             };
         });
 
@@ -3215,31 +3226,31 @@ app.get('/api/teacher/class/:classCode/submissions', authenticateToken, authoriz
 // Get teacher's classes and students
 app.get('/api/teacher/my-classes', authenticateToken, authorize('teacher'), (req, res) => {
     const teacherId = req.user.id;
-    
+
     // First get the teacher's class code from users table
     db.query(`
         SELECT class_code FROM users WHERE id = ? AND role = ?
     `, [teacherId, 'teacher'], (err, teacherResult) => {
         if (err) return apiResponse(res, 500, 'Error fetching teacher info');
         if (teacherResult.length === 0) return apiResponse(res, 404, 'Not a teacher');
-        
+
         const classCode = teacherResult[0].class_code;
         if (!classCode) return apiResponse(res, 200, 'Classes retrieved', []);
-        
+
         // Get all students in this teacher's class
         db.query(`
             SELECT DISTINCT u.id, u.email FROM student_enrollments se 
             JOIN users u ON se.student_id = u.id 
             WHERE se.class_code = ? AND se.teacher_id = ?
-        `, [classCode, teacherId], (err, students) => {
+    `, [classCode, teacherId], (err, students) => {
             if (err) return apiResponse(res, 500, 'Error fetching students');
-            
+
             const classData = [{
                 classCode: classCode,
                 studentCount: students?.length || 0,
                 students: students || []
             }];
-            
+
             apiResponse(res, 200, 'Classes retrieved', classData);
         });
     });
@@ -3251,39 +3262,39 @@ app.get('/api/teacher/my-classes', authenticateToken, authorize('teacher'), (req
 app.get('/api/courses/all', authenticateToken, (req, res) => {
     const { page = 1, limit = 10, search = '' } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
-    
+
     // Base query to get all approved courses + user's own courses
     const countQuery = `
         SELECT COUNT(*) as total FROM courses c
         LEFT JOIN users u ON c.creator_id = u.id
         WHERE c.status = 'approved' OR c.creator_id = ?
-        ${search ? `AND (c.title LIKE ? OR c.description LIKE ?)` : ''}
-    `;
-    
+    ${search ? `AND (c.title LIKE ? OR c.description LIKE ?)` : ''}
+`;
+
     const dataQuery = `
         SELECT c.id, c.title, c.description, c.creator_id, u.email as creator_email, c.status, c.created_at
         FROM courses c
         LEFT JOIN users u ON c.creator_id = u.id
         WHERE c.status = 'approved' OR c.creator_id = ?
-        ${search ? `AND (c.title LIKE ? OR c.description LIKE ?)` : ''}
+    ${search ? `AND (c.title LIKE ? OR c.description LIKE ?)` : ''}
         ORDER BY c.created_at DESC
-        LIMIT ? OFFSET ?
+LIMIT ? OFFSET ?
     `;
-    
-    const searchTerm = search ? `%${search}%` : null;
+
+    const searchTerm = search ? `% ${search}% ` : null;
     const countParams = search ? [req.user.id, searchTerm, searchTerm] : [req.user.id];
-    const dataParams = search 
+    const dataParams = search
         ? [req.user.id, searchTerm, searchTerm, parseInt(limit), offset]
         : [req.user.id, parseInt(limit), offset];
-    
+
     db.query(countQuery, countParams, (err, countResults) => {
         if (err) return apiResponse(res, 500, 'Error fetching courses count');
-        
+
         const total = countResults[0].total;
-        
+
         db.query(dataQuery, dataParams, (err, courses) => {
             if (err) return apiResponse(res, 500, 'Error fetching courses');
-            
+
             apiResponse(res, 200, 'All courses retrieved', {
                 courses,
                 pagination: {
@@ -3301,13 +3312,13 @@ app.get('/api/courses/all', authenticateToken, (req, res) => {
 app.get('/api/student/:studentId/assignment/:assignmentId/accuracy', authenticateToken, (req, res) => {
     const { studentId, assignmentId } = req.params;
     const requestingUserId = req.user.id;
-    
+
     // Verify user is requesting their own accuracy or is a teacher/admin
-    if (parseInt(studentId) !== parseInt(requestingUserId) && 
+    if (parseInt(studentId) !== parseInt(requestingUserId) &&
         req.user.role !== 'teacher' && req.user.role !== 'admin' && req.user.role !== 'superadmin') {
         return apiResponse(res, 403, 'Unauthorized access to student accuracy');
     }
-    
+
     // Get assignment course_id
     db.query(
         'SELECT course_id FROM classroom_assignments WHERE id = ?',
@@ -3315,19 +3326,19 @@ app.get('/api/student/:studentId/assignment/:assignmentId/accuracy', authenticat
         (err, assignments) => {
             if (err) return apiResponse(res, 500, 'Error fetching assignment');
             if (assignments.length === 0) return apiResponse(res, 404, 'Assignment not found');
-            
+
             const courseId = assignments[0].course_id;
-            
+
             // Get submission with accuracy data
             db.query(
-                `SELECT correct_answers, total_questions, quiz_accuracy, completion_percentage, 
-                        is_submitted, is_late, submission_date
+                `SELECT correct_answers, total_questions, quiz_accuracy, completion_percentage,
+    is_submitted, is_late, submission_date
                  FROM assignment_submissions 
-                 WHERE assignment_id = ? AND student_id = ?`,
+                 WHERE assignment_id = ? AND student_id = ? `,
                 [assignmentId, studentId],
                 (err, submissions) => {
                     if (err) return apiResponse(res, 500, 'Error fetching submission');
-                    
+
                     if (submissions.length === 0) {
                         // No submission yet
                         return apiResponse(res, 200, 'No submission yet', {
@@ -3339,7 +3350,7 @@ app.get('/api/student/:studentId/assignment/:assignmentId/accuracy', authenticat
                             is_submitted: false
                         });
                     }
-                    
+
                     const submission = submissions[0];
                     apiResponse(res, 200, 'Student accuracy retrieved', {
                         assignmentId,
@@ -3362,7 +3373,7 @@ app.get('/api/student/:studentId/assignment/:assignmentId/accuracy', authenticat
 app.get('/api/teacher/assignment/:assignmentId/student-accuracy', authenticateToken, authorize('teacher', 'admin', 'superadmin'), (req, res) => {
     const { assignmentId } = req.params;
     const teacherId = req.user.id;
-    
+
     // Verify teacher owns this assignment
     db.query(
         'SELECT id, course_id FROM classroom_assignments WHERE id = ? AND teacher_id = ?',
@@ -3370,37 +3381,37 @@ app.get('/api/teacher/assignment/:assignmentId/student-accuracy', authenticateTo
         (err, assignments) => {
             if (err) return apiResponse(res, 500, 'Error fetching assignment');
             if (assignments.length === 0) return apiResponse(res, 403, 'Assignment not owned by this teacher');
-            
+
             // Get all student submissions for this assignment
             db.query(
-                `SELECT 
-                    asub.student_id,
-                    u.email as student_email,
-                    asub.correct_answers,
-                    asub.total_questions,
-                    asub.quiz_accuracy,
-                    asub.completion_percentage,
-                    asub.is_submitted,
-                    asub.is_late,
-                    asub.submission_date
+                `SELECT
+asub.student_id,
+    u.email as student_email,
+    asub.correct_answers,
+    asub.total_questions,
+    asub.quiz_accuracy,
+    asub.completion_percentage,
+    asub.is_submitted,
+    asub.is_late,
+    asub.submission_date
                  FROM assignment_submissions asub
                  JOIN users u ON asub.student_id = u.id
                  WHERE asub.assignment_id = ?
-                 ORDER BY u.email ASC`,
+    ORDER BY u.email ASC`,
                 [assignmentId],
                 (err, submissions) => {
                     if (err) return apiResponse(res, 500, 'Error fetching student submissions');
-                    
+
                     // Calculate aggregate statistics
                     const stats = {
                         totalStudents: submissions.length,
                         submittedCount: submissions.filter(s => s.is_submitted).length,
-                        averageAccuracy: submissions.length > 0 
+                        averageAccuracy: submissions.length > 0
                             ? (submissions.reduce((sum, s) => sum + (s.quiz_accuracy || 0), 0) / submissions.length).toFixed(2)
                             : 0,
                         lateSubmissions: submissions.filter(s => s.is_late).length
                     };
-                    
+
                     apiResponse(res, 200, 'Student accuracy for assignment retrieved', {
                         assignmentId,
                         statistics: stats,
@@ -3431,6 +3442,6 @@ app.use((err, req, res, next) => {
 // ===== START SERVER =====
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`Server running on port ${PORT} `);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'} `);
 });

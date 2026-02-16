@@ -2376,6 +2376,9 @@ function enrollInCourse(courseId) {
         // INSTANT: Also reload in case there are other updates
         loadAvailableCourses();
         loadUserCourses();
+        if (typeof loadEnrolledCourses === 'function') {
+          loadEnrolledCourses();
+        }
       } else {
         alert("Error: " + data.message);
       }
@@ -4445,12 +4448,8 @@ async function submitAssignmentWork(assignmentId, courseTitle) {
   const progress = trackQuizAnswers(null);
   const { correctAnswers, totalQuestions, percentage } = progress;
 
-  // Show calculated progress to student
-  const confirmMessage = totalQuestions > 0
-    ? `📊 Progress Detected:\n\n${correctAnswers} out of ${totalQuestions} questions answered correctly\n\nCompletion: ${percentage}%\n\nClick OK to submit.`
-    : `No quiz questions detected. Marking as 0% complete.\n\nClick OK to submit.`;
-
-  if (!confirm(confirmMessage)) return;
+  // AUTO-TRACK: Removed the manual prompt/confirm as per user request
+  console.log(`Auto-submitting work for assignment ${assignmentId}: ${correctAnswers}/${totalQuestions} (${percentage}%)`);
 
   try {
     const response = await fetch(`${API_BASE_URL}/api/student/submit-assignment`, {
@@ -4462,8 +4461,8 @@ async function submitAssignmentWork(assignmentId, courseTitle) {
       body: JSON.stringify({
         assignmentId,
         completionPercentage: percentage,
-        correctAnswers,
-        totalQuestions
+        correctAnswers: correctAnswers,
+        totalQuestions: totalQuestions
       })
     });
 
@@ -4502,31 +4501,39 @@ async function loadEnrolledCourses() {
 
       enrolledCoursesDiv.innerHTML = result.data
         .map(course => {
-          // Calculate progress from submissions
-          const progress = course.submissions
-            ? Math.round(
-              (course.submissions.filter(s => s.is_submitted).length / course.assignments.length) * 100
-            )
+          // Calculate questions answered correctly across all assignments
+          const correctAnswers = course.submissions
+            ? course.submissions.reduce((sum, s) => sum + (s.correct_answers || 0), 0)
             : 0;
+          const totalQuestions = course.submissions
+            ? course.submissions.reduce((sum, s) => sum + (s.total_questions || 0), 0)
+            : 0;
+
+          // Use question-based progress as requested by user
+          const questionProgress = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
 
           // Determine status
           let status = '⏳ Not Started';
           let statusColor = '#888';
-          if (progress >= 100) {
+          if (questionProgress >= 100) {
             status = '✅ Completed';
             statusColor = '#4caf50';
-          } else if (progress > 0) {
+          } else if (questionProgress > 0) {
             status = '▶️ In Progress';
             statusColor = '#2196f3';
           }
 
-          // Calculate questions answered correctly if available
-          const correctAnswers = course.submissions
-            ? course.submissions.reduce((sum, s) => sum + (s.correct_answers || 0), 0)
-            : 0;
-          const totalQuestions = course.assignments
-            ? course.assignments.length
-            : 0;
+          // Find earliest upcoming due date
+          let earliestDueDate = null;
+          if (course.assignments && course.assignments.length > 0) {
+            const now = new Date();
+            const upcoming = course.assignments
+              .filter(a => a.due_date && new Date(a.due_date) > now)
+              .sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
+            if (upcoming.length > 0) {
+              earliestDueDate = new Date(upcoming[0].due_date).toLocaleDateString();
+            }
+          }
 
           return `
             <div style="background: #222; padding: 12px; border-radius: 4px; margin-bottom: 10px; border-left: 4px solid #667eea;">
@@ -4534,12 +4541,13 @@ async function loadEnrolledCourses() {
                 <div style="flex: 1;">
                   <strong>${course.title}</strong><br/>
                   <small style="color: #999;">Teacher: ${course.teacher_email}</small><br/>
+                  ${earliestDueDate ? `<small style="color: #ff9800; font-weight: bold;">⏰ Next Due: ${earliestDueDate}</small><br/>` : ''}
                   <small style="color: #ccc; margin-top: 5px;">
-                    📊 Progress: ${correctAnswers}/${totalQuestions} questions answered (${progress}%)
+                    📊 Progress: ${correctAnswers}/${totalQuestions} questions answered (${questionProgress}%)
                   </small><br/>
                   <div style="margin-top: 8px; background: #111; border-radius: 4px; height: 20px; overflow: hidden;">
-                    <div style="width: ${progress}%; height: 100%; background: linear-gradient(90deg, #667eea, #764ba2); transition: width 0.3s ease; display: flex; align-items: center; justify-content: center;">
-                      <span style="color: white; font-size: 0.75em; font-weight: bold; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">${progress}%</span>
+                    <div style="width: ${questionProgress}%; height: 100%; background: linear-gradient(90deg, #667eea, #764ba2); transition: width 0.3s ease; display: flex; align-items: center; justify-content: center;">
+                      <span style="color: white; font-size: 0.75em; font-weight: bold; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">${questionProgress}%</span>
                     </div>
                   </div>
                   <small style="color: ${statusColor}; margin-top: 5px; display: block; font-weight: bold;">${status}</small>
