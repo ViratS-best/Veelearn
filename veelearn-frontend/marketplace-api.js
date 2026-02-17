@@ -6,7 +6,7 @@
 class MarketplaceAPI {
     constructor(baseURL = 'http://localhost:3000/api') {
         this.baseURL = baseURL;
-        this.token = localStorage.getItem('auth_token') || null;
+        this.token = null; // No longer using localStorage for security
         this.cache = new Map();
         this.cacheTimeout = 5 * 60 * 1000; // 5 minutes
     }
@@ -17,7 +17,6 @@ class MarketplaceAPI {
      */
     setToken(token) {
         this.token = token;
-        localStorage.setItem('auth_token', token);
     }
 
     /**
@@ -33,7 +32,8 @@ class MarketplaceAPI {
             method,
             headers: {
                 'Content-Type': 'application/json'
-            }
+            },
+            credentials: 'include'
         };
 
         if (this.token) {
@@ -389,7 +389,6 @@ class MarketplaceAPI {
      */
     logout() {
         this.token = null;
-        localStorage.removeItem('auth_token');
         this.clearCache();
     }
 }

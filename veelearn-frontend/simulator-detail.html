@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -321,10 +322,12 @@
         }
     </style>
 </head>
+
 <body>
     <nav style="background: #333; color: white; padding: 15px 20px;">
         <div style="max-width: 1200px; margin: 0 auto;">
-            <a href="simulator-marketplace.html" style="color: white; text-decoration: none; margin-right: 20px;">← Back to Marketplace</a>
+            <a href="simulator-marketplace.html" style="color: white; text-decoration: none; margin-right: 20px;">← Back
+                to Marketplace</a>
         </div>
     </nav>
 
@@ -423,8 +426,10 @@
                 <div class="sidebar">
                     <div class="action-card">
                         <button class="action-btn primary" onclick="useInCourse()" id="useBtn">Use in Course</button>
-                        <button class="action-btn secondary" onclick="downloadSimulator()" id="downloadBtn">Download</button>
-                        <button class="action-btn secondary" onclick="forkSimulator()" id="forkBtn">Fork / Remix</button>
+                        <button class="action-btn secondary" onclick="downloadSimulator()"
+                            id="downloadBtn">Download</button>
+                        <button class="action-btn secondary" onclick="forkSimulator()" id="forkBtn">Fork /
+                            Remix</button>
                     </div>
 
                     <!-- Metadata -->
@@ -464,6 +469,16 @@
         const forkSystem = new SimulatorForkSystem(api);
         let currentSimulator = null;
         let selectedRating = 0;
+
+        function escapeHtml(unsafe) {
+            if (typeof unsafe !== 'string') return unsafe;
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
 
         // Get simulator ID from URL
         const urlParams = new URLSearchParams(window.location.search);
@@ -512,7 +527,7 @@
             document.getElementById('version').textContent = currentSimulator.version || '1.0.0';
 
             // Tags
-            const tagsHtml = (currentSimulator.tags || []).map(tag => `<span class="tag">${tag}</span>`).join('');
+            const tagsHtml = (currentSimulator.tags || []).map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join('');
             document.getElementById('tags').innerHTML = tagsHtml;
 
             // Ratings
@@ -535,8 +550,8 @@
             const comments = currentSimulator.comments || [];
             const html = comments.map(comment => `
                 <div class="comment">
-                    <div class="comment-author">${comment.user?.name || 'Anonymous'}</div>
-                    <div class="comment-text">${comment.comment}</div>
+                    <div class="comment-author">${escapeHtml(comment.user?.name || 'Anonymous')}</div>
+                    <div class="comment-text">${escapeHtml(comment.comment)}</div>
                     <div class="comment-date">${new Date(comment.created_at).toLocaleDateString()}</div>
                 </div>
             `).join('');
@@ -643,4 +658,5 @@
         }
     </script>
 </body>
+
 </html>

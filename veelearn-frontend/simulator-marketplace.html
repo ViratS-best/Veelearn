@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -44,7 +45,8 @@
             margin-bottom: 1.5em;
         }
 
-        .header-nav a, .header-nav button {
+        .header-nav a,
+        .header-nav button {
             padding: 0.7em 1.5em;
             border-radius: 6px;
             text-decoration: none;
@@ -54,22 +56,26 @@
             transition: all 0.3s;
         }
 
-        .header-nav a.btn-primary, .header-nav button.btn-primary {
+        .header-nav a.btn-primary,
+        .header-nav button.btn-primary {
             background: #667eea;
             color: white;
         }
 
-        .header-nav a.btn-primary:hover, .header-nav button.btn-primary:hover {
+        .header-nav a.btn-primary:hover,
+        .header-nav button.btn-primary:hover {
             background: #764ba2;
             transform: translateY(-2px);
         }
 
-        .header-nav a.btn-secondary, .header-nav button.btn-secondary {
+        .header-nav a.btn-secondary,
+        .header-nav button.btn-secondary {
             background: #f0f0f0;
             color: #333;
         }
 
-        .header-nav a.btn-secondary:hover, .header-nav button.btn-secondary:hover {
+        .header-nav a.btn-secondary:hover,
+        .header-nav button.btn-secondary:hover {
             background: #e0e0e0;
         }
 
@@ -570,6 +576,7 @@
         }
     </style>
 </head>
+
 <body>
     <header>
         <div class="container">
@@ -643,7 +650,8 @@
 
         <!-- Detail View -->
         <section id="detail-view">
-            <button class="btn-secondary" style="margin-bottom: 2em;" onclick="goBackToBrowse()">← Back to Browse</button>
+            <button class="btn-secondary" style="margin-bottom: 2em;" onclick="goBackToBrowse()">← Back to
+                Browse</button>
             <div id="detail-content">
                 <!-- Detail content will be loaded here -->
             </div>
@@ -658,6 +666,16 @@
         let currentCategory = '';
         let currentView = 'browse';
         let totalPages = 1;
+
+        function escapeHtml(unsafe) {
+            if (typeof unsafe !== 'string') return unsafe;
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
 
         // Load simulators on page load
         document.addEventListener('DOMContentLoaded', () => {
@@ -677,7 +695,7 @@
                     url += `&tags=${encodeURIComponent(currentCategory)}`;
                 }
 
-                const response = await fetch(url);
+                const response = await fetch(url, { credentials: 'include' });
                 const result = await response.json();
 
                 if (result.success) {
@@ -698,7 +716,7 @@
 
         async function loadTrendingSimulators() {
             try {
-                const response = await fetch(`${API_BASE_URL}/simulators/trending/all`);
+                const response = await fetch(`${API_BASE_URL}/simulators/trending/all`, { credentials: 'include' });
                 const result = await response.json();
 
                 if (result.success) {
@@ -711,7 +729,7 @@
 
         function renderSimulators(simulators) {
             const container = document.getElementById('simulators-container');
-            
+
             if (simulators.length === 0) {
                 container.innerHTML = '<div style="grid-column: 1 / -1;"><div class="empty-state"><p>No simulators found matching your criteria.</p></div></div>';
                 return;
@@ -741,7 +759,7 @@
 
         function renderTrendingSimulators(simulators) {
             const container = document.getElementById('trending-container');
-            
+
             if (simulators.length === 0) {
                 container.innerHTML = '<div style="grid-column: 1 / -1;"><div class="empty-state"><p>No trending simulators yet.</p></div></div>';
                 return;
@@ -788,7 +806,7 @@
 
         async function viewSimulatorDetail(simulatorId) {
             try {
-                const response = await fetch(`${API_BASE_URL}/simulators/${simulatorId}`);
+                const response = await fetch(`${API_BASE_URL}/simulators/${simulatorId}`, { credentials: 'include' });
                 const result = await response.json();
 
                 if (result.success) {
@@ -807,12 +825,12 @@
 
         function displaySimulatorDetail(simulator) {
             const container = document.getElementById('detail-content');
-            const tagsHtml = simulator.tags ? simulator.tags.split(',').map(tag => 
+            const tagsHtml = simulator.tags ? simulator.tags.split(',').map(tag =>
                 `<span class="tag">${escapeHtml(tag.trim())}</span>`
             ).join('') : '';
 
             let ratingHtml = '<p>No ratings yet</p>';
-            
+
             container.innerHTML = `
                 <div class="detail-container">
                     <div class="detail-header">
@@ -1033,8 +1051,8 @@
             }
             updateViewDisplay();
             document.querySelectorAll('.view-toggle button').forEach((btn, idx) => {
-                btn.classList.toggle('active', 
-                    (idx === 0 && view === 'browse') || 
+                btn.classList.toggle('active',
+                    (idx === 0 && view === 'browse') ||
                     (idx === 1 && view === 'trending') ||
                     (idx === 2 && view === 'my-simulators')
                 );
@@ -1100,7 +1118,7 @@
                     headers: { 'Authorization': `Bearer ${authToken}` }
                 });
                 const data = await response.json();
-                
+
                 if (data.success && data.data) {
                     const container = document.getElementById('my-simulators-container');
                     if (data.data.length === 0) {
@@ -1149,16 +1167,17 @@
         }
 
         function escapeHtml(text) {
-        if (!text) return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
-         function runSimulator(simulatorId) {
-             // Open simulator execution page
-             window.location.href = `simulator-view.html?id=${simulatorId}`;
-         }
-     </script>
+        function runSimulator(simulatorId) {
+            // Open simulator execution page
+            window.location.href = `simulator-view.html?id=${simulatorId}`;
+        }
+    </script>
 </body>
+
 </html>

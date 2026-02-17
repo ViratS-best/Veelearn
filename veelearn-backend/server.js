@@ -3,6 +3,7 @@ const mysql = require('mysql2');
 const dotenv = require('dotenv');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const path = require('path');
 const nodemailer = require('nodemailer');
@@ -93,7 +94,18 @@ if (!process.env.JWT_SECRET) {
 }
 
 app.use(express.json({ limit: '50mb' }));
-app.use(cors());
+app.use(cookieParser());
+app.use(cors({
+    origin: [
+        'http://localhost:5500',
+        'http://127.0.0.1:5500',
+        'https://virat-sisodiya.github.io', // Assuming this based on common GH pages patterns
+        /\.github\.io$/ // Allow any github.io subdomains
+    ],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
+}));
 
 // ===== DATABASE CONFIGURATION =====
 const dbConfig = {
@@ -578,9 +590,37 @@ const authenticateToken = (req, res, next) => {
 
     jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
         if (err) {
+            // If token in header is invalid, try cookie
+            const cookieToken = req.cookies.token;
+            if (cookieToken) {
+                return jwt.verify(cookieToken, process.env.JWT_SECRET, (err2, user2) => {
+                    if (err2) {
+                        console.error('❌ JWT Cookie Verification Error:', err2.message);
+                        return apiResponse(res, 403, 'Invalid or expired session');
+                    }
+                    req.user = user2;
+                    return next();
+                });
+            }
             console.error('❌ JWT Verification Error:', err.message);
-            console.error('   Token:', token.substring(0, 20) + '...');
             return apiResponse(res, 403, 'Invalid or expired token');
+        }
+        req.user = user;
+        next();
+    });
+};
+
+// Alternative middleware that ONLY checks cookies (preferred for new flow)
+const authenticateCookie = (req, res, next) => {
+    const token = req.cookies.token;
+
+    if (!token) {
+        return apiResponse(res, 401, 'Authentication required');
+    }
+
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+        if (err) {
+            return apiResponse(res, 403, 'Invalid or expired session');
         }
         req.user = user;
         next();
@@ -677,6 +717,18 @@ app.post('/api/register', rateLimiter, async (req, res) => {
                 { expiresIn: '24h' }
             );
 
+            // Set cookie
+            res.cookie('token', token, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'Lax',
+                maxAge: 24 * 60 * 60 * 1000 // 24 hours
+            });
+            app.post('/api/logout', (req, res) => {
+                res.clearCookie('token');
+                apiResponse(res, 200, 'Logged out successfully');
+            });
+
             apiResponse(res, 201, 'User registered successfully', { token, user: newUser });
         });
     } catch (error) {
@@ -715,6 +767,14 @@ app.post('/api/login', rateLimiter, async (req, res) => {
                 process.env.JWT_SECRET,
                 { expiresIn: '24h' }
             );
+
+            // Set cookie
+            res.cookie('token', token, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'Lax',
+                maxAge: 24 * 60 * 60 * 1000 // 24 hours
+            });
 
             const { password: _, ...userWithoutPassword } = user;
             apiResponse(res, 200, 'Logged in successfully', { token, user: userWithoutPassword });

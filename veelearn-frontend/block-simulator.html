@@ -730,13 +730,13 @@
 
           controlGroup.innerHTML = `
             <label class="control-label" style="color: #e94560; font-weight: 600; font-size: 0.9em; display: flex; justify-content: space-between; margin-bottom: 5px;">
-              ${label} (${varName})
+              ${escapeHtml(label)} (${escapeHtml(varName)})
               <span class="control-value" id="val-${block.id}" style="color: #ccc; font-weight: normal;">${val}</span>
             </label>
             <input type="range" class="control-slider" 
               min="${min}" max="${max}" value="${val}" 
               data-block-id="${block.id}"
-              data-var-name="${varName}"
+              data-var-name="${escapeHtml(varName)}"
               style="width: 100%; accent-color: #e94560; height: 6px; background: #0f3460; border-radius: 3px; outline: none;">
           `;
 
@@ -1233,10 +1233,20 @@
       logToConsole("Workspace cleared");
     }
 
+    function escapeHtml(unsafe) {
+      if (typeof unsafe !== 'string') return unsafe;
+      return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
     function updateConnections() {
-      const svg = document.getElementById("connections");
-      if (!svg) return;
-      svg.innerHTML = "";
+      const connectionsArea = document.getElementById("connections");
+      if (!connectionsArea) return;
+      connectionsArea.innerHTML = "";
 
       connections.forEach((conn) => {
         const fromEl = workspaceEl.querySelector(`[data-id="${conn.from}"]`);
@@ -1590,21 +1600,9 @@
         return;
       }
       try {
-        // DEBUG: Check token before processing
-        console.log("=== PUBLISH SIMULATOR DEBUG ===");
-        console.log("All localStorage keys:", Object.keys(localStorage));
-        console.log("Token key exists:", "token" in localStorage);
-
-        const authToken = localStorage.getItem("token");
-        console.log("Token value:", authToken ? authToken.substring(0, 30) + "..." : "NULL");
-
-        if (!authToken) {
-          console.log("CRITICAL: No token found!");
-          console.log("localStorage content:", JSON.stringify(localStorage));
-          alert("ERROR: Not authenticated. Cannot publish simulator. Please login again.");
-          logToConsole("ERROR: No authentication token found", "error");
-          return;
-        }
+        // Since we now use cookies, we don't need to manually pass the token from localStorage
+        // but we'll check if a token cookie exists (optional, as fetch with credentials handles it)
+        const hasTokenCookie = document.cookie.includes('token=');
 
         const simulatorData = {
           title: prompt("Enter simulator name:", "My Simulator") || "Unnamed Simulator",
@@ -1621,9 +1619,10 @@
         const response = await fetch("http://localhost:3000/api/simulators", {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${authToken}`,
+            "Content-Type": "application/json"
+            // Authorization header is now handled by HttpOnly cookie and credentials: 'include'
           },
+          credentials: 'include',
           body: JSON.stringify(simulatorData),
         });
 
@@ -1719,11 +1718,10 @@
       }
     });
 
-    // Listen for token from parent window
+    // Listen for token from parent window (legacy support, but we rely on cookies now)
     window.addEventListener("message", (e) => {
       if (e.data.type === "setup" && e.data.token) {
-        localStorage.setItem("token", e.data.token);
-        console.log("✓ Token received from parent window");
+        console.log("✓ Setup event received from parent window");
       }
     });
 

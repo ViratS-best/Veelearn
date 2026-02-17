@@ -6,7 +6,7 @@ let courseBlocks = [];
 let currentEditingCourseId = null;
 let currentEditingSimulatorBlockId = null;
 let simulatorCache = [];
-let authToken = localStorage.getItem("token") || null;
+let authToken = null; // No longer stored in localStorage for security
 let myCourses = [];
 let coursePages = [""]; // Array to store content for each page
 let currentPageIndex = 0;
@@ -96,11 +96,24 @@ function initializeApp() {
   setupLatexHelpModalListeners();
   setupCourseSearchListeners();
 
-  if (authToken) {
+  if (document.cookie.includes('token=') || authToken) {
     fetchUserProfile();
   } else {
     showLandingPage();
   }
+}
+
+/**
+ * Robust HTML escaping utility to prevent XSS
+ */
+function escapeHtml(unsafe) {
+  if (unsafe === null || unsafe === undefined) return "";
+  return String(unsafe)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 function setupMessageListeners() {
@@ -266,6 +279,7 @@ function handleForgotPassword() {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email }),
+    credentials: "include"
   })
     .then((res) => res.json())
     .then((data) => {
@@ -313,6 +327,7 @@ function handleResetPassword() {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, code, newPassword }),
+    credentials: "include"
   })
     .then((res) => res.json())
     .then((data) => {
@@ -360,12 +375,13 @@ function handleLogin() {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
+    credentials: "include"
   })
     .then((res) => res.json())
     .then((data) => {
       if (data.success) {
         authToken = data.data.token;
-        localStorage.setItem("token", authToken);
+        // localStorage.setItem("token", authToken); // DISABLED FOR SECURITY
         // Backend returns: {token, user: {id, email, role, shells}}
         const userData = data.data.user || data.data;
         currentUser = {
@@ -418,6 +434,7 @@ function handleRegister() {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
+    credentials: "include"
   })
     .then((res) => res.json())
     .then((data) => {
@@ -439,6 +456,7 @@ function fetchUserProfile() {
 
   fetch(`${API_BASE_URL}/api/users/profile`, {
     headers: { Authorization: `Bearer ${authToken}` },
+    credentials: "include"
   })
     .then((res) => res.json())
     .then((data) => {
@@ -463,11 +481,14 @@ function handleLogout() {
 
 function logout() {
   console.log("LOGOUT CALLED - Token will be cleared!");
-  console.warn("⚠️ Clearing token from localStorage");
+
+  // Call backend logout to clear cookie
+  fetch(`${API_BASE_URL}/api/logout`, { method: 'POST', credentials: 'include' })
+    .catch(err => console.warn('Logout API error:', err));
+
   authToken = null;
   currentUser = null;
-  localStorage.removeItem("token");
-  console.log("Token cleared from localStorage");
+  // localStorage.removeItem("token"); // DISABLED
   showAuthSection();
 }
 
@@ -1352,8 +1373,8 @@ function insertSimulatorBlock(blockId, title, type) {
   simulatorDiv.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <div>
-                <strong>${type}</strong>
-                <p style="margin: 5px 0; color: #666;">${title}</p>
+                <strong>${escapeHtml(type)}</strong>
+                <p style="margin: 5px 0; color: #666;">${escapeHtml(title)}</p>
             </div>
             <div style="display: flex; gap: 10px;">
                 <button type="button" onclick="openSliderConfigModal(${blockId})" style="padding: 5px 10px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer;">⚙️ Configure Sliders</button>
@@ -1557,6 +1578,7 @@ function showUserDashboard() {
 function loadAllUsers() {
   fetch(`${API_BASE_URL}/api/users`, {
     headers: { Authorization: `Bearer ${authToken}` },
+    credentials: "include"
   })
     .then((res) => res.json())
     .then((data) => {
@@ -1583,13 +1605,13 @@ function renderUserList() {
 
         return `
         <li>
-            <strong>${user.email}</strong>
-            <p>Role: ${user.role} ${user.class_code ? `| Class Code: ${user.class_code}` : ''} | ${user.teacher_approved ? '✅ Approved' : user.role === 'teacher' ? '⏳ Pending Approval' : ''} | Shells: ${user.shells} | Volunteer: ${(user.total_volunteer_hours || 0).toFixed(1)}h ${user.is_verified_creator ? '✅' : ''}</p>
+            <strong>${escapeHtml(user.email)}</strong>
+            <p>Role: ${escapeHtml(user.role)} ${user.class_code ? `| Class Code: ${escapeHtml(user.class_code)}` : ''} | ${user.teacher_approved ? '✅ Approved' : user.role === 'teacher' ? '⏳ Pending Approval' : ''} | Shells: ${user.shells} | Volunteer: ${(user.total_volunteer_hours || 0).toFixed(1)}h ${user.is_verified_creator ? '✅' : ''}</p>
             ${approveBtn}
-            <button onclick="changeUserRole('${user.email}', 'admin')">Make Admin</button>
-            <button onclick="changeUserRole('${user.email}', 'teacher')">Make Teacher</button>
-            <button onclick="changeUserRole('${user.email}', 'user')">Make User</button>
-            <button onclick="grantVolunteerHours(${user.id}, '${user.email}')" style="background: #4ade80; color: #000;">Grant Hours</button>
+            <button onclick="changeUserRole('${escapeHtml(user.email)}', 'admin')">Make Admin</button>
+            <button onclick="changeUserRole('${escapeHtml(user.email)}', 'teacher')">Make Teacher</button>
+            <button onclick="changeUserRole('${escapeHtml(user.email)}', 'user')">Make User</button>
+            <button onclick="grantVolunteerHours(${user.id}, '${escapeHtml(user.email)}')" style="background: #4ade80; color: #000;">Grant Hours</button>
         </li>
     `;
       }
@@ -1604,6 +1626,7 @@ function changeUserRole(email, newRole) {
       "Content-Type": "application/json",
       Authorization: `Bearer ${authToken}`,
     },
+    credentials: "include",
     body: JSON.stringify({ role: newRole }),
   })
     .then((res) => res.json())
@@ -1627,7 +1650,8 @@ function approveTeacher(userId, email) {
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${authToken}`,
-    }
+    },
+    credentials: "include"
   })
     .then((res) => res.json())
     .then((data) => {
@@ -1657,6 +1681,7 @@ window.approveTeacher = approveTeacher;
 function loadPendingCourses() {
   fetch(`${API_BASE_URL}/api/admin/courses/pending`, {
     headers: { Authorization: `Bearer ${authToken}` },
+    credentials: "include"
   })
     .then((res) => res.json())
     .then((data) => {
@@ -1683,8 +1708,8 @@ function renderPendingCourses(courses) {
     .map(
       (course) => `
         <li>
-            <strong>${course.title}</strong>
-            <p>${course.description || "No description"}</p>
+            <strong>${escapeHtml(course.title)}</strong>
+            <p>${escapeHtml(course.description || "No description")}</p>
             <button onclick="previewCourse(${course.id})">Preview</button>
             <button onclick="approveCourse(${course.id})">Approve</button>
             <button onclick="rejectCourse(${course.id})">Reject</button>
@@ -1705,6 +1730,7 @@ function approveCourse(courseId) {
       "Content-Type": "application/json",
       Authorization: `Bearer ${authToken}`,
     },
+    credentials: "include",
     body: JSON.stringify({ status: "approved" }),
   })
     .then((res) => res.json())
@@ -1728,6 +1754,7 @@ function rejectCourse(courseId) {
       "Content-Type": "application/json",
       Authorization: `Bearer ${authToken}`,
     },
+    credentials: "include",
     body: JSON.stringify({ status: "rejected", feedback: reason }),
   })
     .then((res) => res.json())
@@ -1744,6 +1771,7 @@ function loadUserCourses() {
   console.log("=== LOADING USER COURSES ===");
   fetch(`${API_BASE_URL}/api/courses`, {
     headers: { Authorization: `Bearer ${authToken}` },
+    credentials: "include"
   })
     .then((res) => res.json())
     .then((data) => {
@@ -1766,7 +1794,7 @@ function loadUserCourses() {
           const dropdown = document.getElementById('assignment-course-select');
           if (dropdown && dropdown.options.length <= 1) { // Only if not already populated by all courses
             dropdown.innerHTML = '<option value="">Select a course...</option>' +
-              myCourses.map(c => `<option value="${c.id}">${c.title}</option>`).join('');
+              myCourses.map(c => `<option value="${c.id}">${escapeHtml(c.title)}</option>`).join('');
           }
         }
       }
@@ -1778,6 +1806,7 @@ function loadAvailableCourses() {
   console.log("=== LOADING AVAILABLE COURSES ===");
   fetch(`${API_BASE_URL}/api/courses`, {
     headers: { Authorization: `Bearer ${authToken}` },
+    credentials: "include"
   })
     .then((res) => res.json())
     .then((data) => {
@@ -1847,7 +1876,7 @@ function renderUserCourses(searchText) {
     }
 
     if (filteredCourses.length === 0) {
-      list.innerHTML = `<li><em>No courses found matching "${searchText}"</em></li>`;
+      list.innerHTML = `<li><em>No courses found matching "${escapeHtml(searchText)}"</em></li>`;
       return;
     }
 
@@ -1856,12 +1885,12 @@ function renderUserCourses(searchText) {
       const li = document.createElement("li");
       const timeStr = formatCreationTime(course.creation_time);
       li.innerHTML = `
-        <strong>${course.title}</strong>
-        <p>${course.description || "No description"}</p>
-        ${timeStr ? `<span style="color: #999; font-size: 0.85em; display: block; margin: 4px 0;">⌛ Active creation time: ${timeStr}</span>` : ''}
+        <strong>${escapeHtml(course.title)}</strong>
+        <p>${escapeHtml(course.description || "No description")}</p>
+        ${timeStr ? `<span style="color: #999; font-size: 0.85em; display: block; margin: 4px 0;">⌛ Active creation time: ${escapeHtml(timeStr)}</span>` : ''}
         <span style="background: ${course.status === "pending" ? "#ff9800" : "#4caf50"
         }; color: white; padding: 4px 8px; border-radius: 3px; font-size: 0.9em;">
-            ${course.status?.toUpperCase() || "UNKNOWN"}
+            ${escapeHtml(course.status?.toUpperCase()) || "UNKNOWN"}
         </span>
         <button onclick="editCourse(${course.id})">Edit</button>
         <button onclick="viewCourse(${course.id})">View</button>
@@ -1894,7 +1923,7 @@ function renderAvailableCourses(searchText) {
     }
 
     if (filteredCourses.length === 0) {
-      list.innerHTML = `<li><em>No courses found matching "${searchText}"</em></li>`;
+      list.innerHTML = `<li><em>No courses found matching "${escapeHtml(searchText)}"</em></li>`;
       return;
     }
 
@@ -1902,8 +1931,8 @@ function renderAvailableCourses(searchText) {
     filteredCourses.forEach((course) => {
       const li = document.createElement("li");
       li.innerHTML = `
-        <strong>${course.title}</strong>
-        <p>${course.description || "No description"}</p>
+        <strong>${escapeHtml(course.title)}</strong>
+        <p>${escapeHtml(course.description || "No description")}</p>
         <button onclick="viewCourse(${course.id})">View</button>
         <button onclick="enrollInCourse(${course.id})">Enroll</button>
       `;
@@ -2085,6 +2114,7 @@ function saveCourse(action = "draft") {
       "Content-Type": "application/json",
       Authorization: `Bearer ${authToken}`,
     },
+    credentials: "include",
     body: JSON.stringify(courseData),
   })
     .then((res) => res.json())
@@ -2157,8 +2187,8 @@ async function viewCourse(courseId, assignmentId = null) {
 
   const renderViewerPage = (index) => {
     viewerContent.innerHTML = `
-         <h1>${course.title}</h1>
-         <p><strong>Description:</strong> ${course.description || "No description"}</p>
+         <h1>${escapeHtml(course.title)}</h1>
+         <p><strong>Description:</strong> ${escapeHtml(course.description || "No description")}</p>
          <div id="course-content-display" style="margin: 20px 0; position: relative; min-height: 400px;">
              ${viewerPages[index] || "No content"}
          </div>
@@ -2413,6 +2443,7 @@ function deleteCourse(courseId) {
   fetch(`${API_BASE_URL}/api/courses/${courseId}`, {
     method: "DELETE",
     headers: { Authorization: `Bearer ${authToken}` },
+    credentials: "include"
   })
     .then((res) => res.json())
     .then((data) => {
@@ -2436,6 +2467,7 @@ function enrollInCourse(courseId) {
   fetch(`${API_BASE_URL}/api/courses/${courseId}/enroll`, {
     method: "POST",
     headers: { Authorization: `Bearer ${authToken}` },
+    credentials: "include"
   })
     .then((res) => res.json())
     .then((data) => {
@@ -2798,7 +2830,7 @@ async function saveQuizQuestion() {
         const existing = editor.querySelector(`.quiz-question-placeholder[data-question-id="${currentEditingQuestionId}"]`);
         if (existing) {
           existing.innerHTML = `
-            <strong>❓ Quiz Question:</strong> ${questionText.substring(0, 100)}${questionText.length > 100 ? '...' : ''}
+            <strong>❓ Quiz Question:</strong> ${escapeHtml(questionText.substring(0, 100))}${questionText.length > 100 ? '...' : ''}
             <button type="button" class="quiz-placeholder-delete-btn" data-question-id="${currentEditingQuestionId}" style="position: absolute; top: 5px; right: 5px; background: #e53e3e; color: white; border: none; border-radius: 4px; padding: 2px 6px; cursor: pointer; font-size: 0.8em; z-index: 10;">🗑️ Delete</button>
             <div style="font-size: 0.85em; color: #999; margin-top: 0.5em;">Click to edit</div>
           `;
@@ -2835,7 +2867,7 @@ function insertQuizPlaceholder(questionText, questionId) {
   }
 
   placeholder.innerHTML = `
-    <strong>❓ Quiz Question:</strong> ${questionText.substring(0, 100)}${questionText.length > 100 ? '...' : ''}
+    <strong>❓ Quiz Question:</strong> ${escapeHtml(questionText.substring(0, 100))}${questionText.length > 100 ? '...' : ''}
     ${deleteBtnHtml}
     <div style="font-size: 0.85em; color: #999; margin-top: 0.5em;">Click to edit</div>
   `;
@@ -2932,7 +2964,8 @@ async function deleteQuizQuestion(questionId, btnElement = null) {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${authToken}`
-      }
+      },
+      credentials: 'include'
     });
 
     console.log(`   Response status:`, response.status);
@@ -2984,7 +3017,8 @@ async function loadCourseQuestions(courseId) {
     const response = await fetch(`${API_BASE_URL}/api/courses/${courseId}/questions`, {
       headers: {
         'Authorization': `Bearer ${authToken}`
-      }
+      },
+      credentials: 'include'
     });
 
     const result = await response.json();
@@ -3106,7 +3140,7 @@ function createQuizQuestionElement(question, index) {
 
   questionDiv.innerHTML = `
     <div class="quiz-question-header">
-      <div class="quiz-question-text">Question ${index + 1}: ${question.question_text}</div>
+      <div class="quiz-question-text">Question ${index + 1}: ${escapeHtml(question.question_text)}</div>
       <div class="quiz-points">${question.points} pts</div>
     </div>
     ${optionsHTML}
@@ -3149,6 +3183,7 @@ async function submitQuizAnswer(questionId) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${authToken}`
       },
+      credentials: 'include',
       body: JSON.stringify({ user_answer: userAnswer })
     });
 
@@ -3162,13 +3197,13 @@ async function submitQuizAnswer(questionId) {
         feedbackDiv.className = 'quiz-feedback correct';
         feedbackDiv.innerHTML = `
           <div>✅ Correct!</div>
-          ${result.data.explanation ? `<div class="quiz-explanation">${result.data.explanation}</div>` : ''}
+          ${result.data.explanation ? `<div class="quiz-explanation">${escapeHtml(result.data.explanation)}</div>` : ''}
         `;
       } else {
         feedbackDiv.className = 'quiz-feedback incorrect';
         feedbackDiv.innerHTML = `
-          <div>❌ Incorrect. The correct answer is: ${result.data.correct_answer}</div>
-          ${result.data.explanation ? `<div class="quiz-explanation">${result.data.explanation}</div>` : ''}
+          <div>❌ Incorrect. The correct answer is: ${escapeHtml(result.data.correct_answer)}</div>
+          ${result.data.explanation ? `<div class="quiz-explanation">${escapeHtml(result.data.explanation)}</div>` : ''}
         `;
       }
 
@@ -3228,7 +3263,8 @@ async function fetchSliderConfigs() {
 
   try {
     const response = await fetch(`${API_BASE_URL}/api/courses/${currentEditingCourseId}/params`, {
-      headers: { 'Authorization': `Bearer ${authToken}` }
+      headers: { 'Authorization': `Bearer ${authToken}` },
+      credentials: 'include'
     });
     const result = await response.json();
 
@@ -3259,8 +3295,8 @@ function renderSliderConfigs(configs) {
     const tr = document.createElement('tr');
     tr.style.borderBottom = '1px solid #eee';
     tr.innerHTML = `
-      <td style="padding: 10px;"><strong>${config.param_label || config.param_name}</strong></td>
-      <td style="padding: 10px; color: #666;">${config.param_name}</td>
+      <td style="padding: 10px;"><strong>${escapeHtml(config.param_label || config.param_name)}</strong></td>
+      <td style="padding: 10px; color: #666;">${escapeHtml(config.param_name)}</td>
       <td style="padding: 10px;">${config.min_value} - ${config.max_value} (step: ${config.step_value})</td>
       <td style="padding: 10px;">
         <button onclick="deleteSliderConfig(${config.id})" style="background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8em;">Delete</button>
@@ -3332,16 +3368,15 @@ async function saveSliderConfig() {
   saveBtn.textContent = 'Saving...';
 
   try {
-    // Note: block_id is currently hardcoded to 1 as we don't have granular block selection within simulator yet
-    // In a full implementation, we would let user select which block inside the simulator this param applies to
     const response = await fetch(`${API_BASE_URL}/api/courses/${currentEditingCourseId}/simulators/${currentConfiguringSimulatorId}/params`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${authToken}`
       },
+      credentials: 'include',
       body: JSON.stringify({
-        block_id: 1, // Default to 1 for now
+        block_id: 1,
         param_name: paramName,
         param_label: paramLabel,
         min_value: minValue,
@@ -3377,7 +3412,8 @@ async function deleteSliderConfig(configId) {
   try {
     const response = await fetch(`${API_BASE_URL}/api/courses/${currentEditingCourseId}/params/${configId}`, {
       method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${authToken}` }
+      headers: { 'Authorization': `Bearer ${authToken}` },
+      credentials: 'include'
     });
 
     const result = await response.json();
@@ -3625,10 +3661,10 @@ function renderPhetList(filter = "") {
     item.innerHTML = `
             <div style="text-align: center; margin-bottom: 8px;">
                 <div style="display: inline-block; padding: 6px 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 6px; margin-bottom: 8px;">
-                    <span style="color: white; font-weight: 600; font-size: 0.95em;">⚛️ ${sim.title}</span>
+                    <span style="color: white; font-weight: 600; font-size: 0.95em;">⚛️ ${escapeHtml(sim.title)}</span>
                 </div>
             </div>
-            <p style="margin: 0; font-size: 0.85em; color: #666; text-align: center; line-height: 1.4;">${sim.description}</p>
+            <p style="margin: 0; font-size: 0.85em; color: #666; text-align: center; line-height: 1.4;">${escapeHtml(sim.description)}</p>
             <div style="text-align: center; margin-top: 8px;">
                 <span style="font-size: 0.75em; color: #667eea; font-weight: 500;">Click to add to course</span>
             </div>
@@ -3756,8 +3792,9 @@ function setupCourseSearchListeners() {
           const hasVisibleItems = Array.from(assignmentsList.children).some(
             child => child.style.display !== 'none'
           );
-          if (!hasVisibleItems && searchText.trim()) {
-            assignmentsList.innerHTML = `<p><em>No assignments found matching "${searchText}"</em></p>`;
+          if (filteredAssignments.length === 0) {
+            assignmentsList.innerHTML = `<p><em>No assignments found matching "${escapeHtml(searchText)}"</em></p>`;
+            return;
           }
         }
       }, 150)
@@ -4095,8 +4132,8 @@ function insertSimulatorAtPosition(blockId, title, type, x, y) {
   simulatorDiv.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <div>
-                <strong>${type}</strong>
-                <p style="margin: 5px 0; color: #666;">${title}</p>
+                <strong>${escapeHtml(type)}</strong>
+                <p style="margin: 5px 0; color: #666;">${escapeHtml(title)}</p>
             </div>
             <div style="display: flex; gap: 10px;">
                 <button type="button" onclick="openSliderConfigModal(${blockId})" style="padding: 5px 10px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer;">⚙️</button>
@@ -4104,7 +4141,6 @@ function insertSimulatorAtPosition(blockId, title, type, x, y) {
                 <button type="button" onclick="handleRemoveSimulator(event, ${blockId})" style="padding: 5px 10px; background: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer;">🗑️</button>
             </div>
         </div>
-        <!-- Dragger handle could be added here for moving it later -->
     `;
 
   contentEditor.appendChild(simulatorDiv);
@@ -4178,7 +4214,7 @@ function insertQuizPlaceholderAtPosition(questionId, questionText, x, y) {
   `;
 
   placeholder.innerHTML = `
-    <strong>❓ Quiz Question:</strong> ${questionText.substring(0, 100)}${questionText.length > 100 ? '...' : ''}
+    <strong>❓ Quiz Question:</strong> ${escapeHtml(questionText.substring(0, 100))}${questionText.length > 100 ? '...' : ''}
     <button type="button" class="quiz-placeholder-delete-btn" data-question-id="${questionId}" style="position: absolute; top: 5px; right: 5px; background: #e53e3e; color: white; border: none; border-radius: 4px; padding: 2px 6px; cursor: pointer; font-size: 0.8em; z-index: 10;">🗑️ Delete</button>
     <div style="font-size: 0.85em; color: #999; margin-top: 0.5em;">Click to edit</div>
   `;
@@ -4232,13 +4268,12 @@ function insertPhetSimAtPosition(sim, x, y) {
 
   wrapper.innerHTML = `
         <div style="background: #f0f0f0; padding: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; cursor: move;">
-            <strong>⚛️ ${sim.title}</strong>
+            <strong>⚛️ ${escapeHtml(sim.title)}</strong>
             <button class="phet-remove-btn" style="background: #ff4444; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Remove</button>
         </div>
         <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
             <iframe src="${sim.url}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; pointer-events: auto;" allowfullscreen></iframe>
         </div>
-        <!-- Resize handle could be added here -->
     `;
 
   // Remove handler
@@ -4258,7 +4293,8 @@ function insertPhetSimAtPosition(sim, x, y) {
 async function loadVolunteerStats() {
   try {
     const response = await fetch(`${API_BASE_URL}/api/users/volunteer-stats`, {
-      headers: { 'Authorization': `Bearer ${authToken}` }
+      headers: { 'Authorization': `Bearer ${authToken}` },
+      credentials: 'include'
     });
     const result = await response.json();
     if (result.success) {
@@ -4304,8 +4340,8 @@ function renderVolunteerStats(data) {
             </div>
           </div>
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <a href="${API_BASE_URL}/api/certificates/verify/${cert.verification_code}?format=pdf" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px; cursor: pointer; transition: transform 0.2s;">⬇️ Download PDF</a>
-            <a href="${API_BASE_URL}/api/certificates/verify/${cert.verification_code}" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; background: rgba(74, 222, 128, 0.2); color: #4ade80; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 13px; border: 1px solid rgba(74, 222, 128, 0.3);">✔️ Verify</a>
+            <a href="${API_BASE_URL}/api/certificates/verify/${escapeHtml(cert.verification_code)}?format=pdf" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px; cursor: pointer; transition: transform 0.2s;">⬇️ Download PDF</a>
+            <a href="${API_BASE_URL}/api/certificates/verify/${escapeHtml(cert.verification_code)}" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; background: rgba(74, 222, 128, 0.2); color: #4ade80; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 13px; border: 1px solid rgba(74, 222, 128, 0.3);">✔️ Verify</a>
           </div>
         </div>`;
     });
@@ -4352,6 +4388,7 @@ async function grantVolunteerHours(userId, email) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${authToken}`
       },
+      credentials: 'include',
       body: JSON.stringify({ user_id: userId, hours_to_add: parseFloat(hours) })
     });
     const result = await response.json();
@@ -4382,7 +4419,8 @@ async function becomeTeacher() {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${authToken}`
-      }
+      },
+      credentials: 'include'
     });
 
     const result = await response.json();
@@ -4415,6 +4453,7 @@ async function enrollInClass() {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${authToken}`
       },
+      credentials: 'include',
       body: JSON.stringify({ classCode })
     });
 
@@ -4443,7 +4482,8 @@ async function loadStudentAssignments() {
 
   try {
     const response = await fetch(`${API_BASE_URL}/api/student/assignments`, {
-      headers: { 'Authorization': `Bearer ${authToken}` }
+      headers: { 'Authorization': `Bearer ${authToken}` },
+      credentials: 'include'
     });
 
     const result = await response.json();
@@ -4461,9 +4501,9 @@ async function loadStudentAssignments() {
         <div style="background: #222; padding: 12px; border-radius: 4px; margin-bottom: 10px; border-left: 4px solid #667eea;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <div>
-              <strong>${a.course_title}</strong> - ${a.title}<br/>
-              <small>Teacher: ${a.teacher_email}</small><br/>
-              <small>Due: ${a.due_date ? new Date(a.due_date).toLocaleDateString() : 'No due date'}</small>
+              <strong>${escapeHtml(a.course_title)}</strong> - ${escapeHtml(a.title)}<br/>
+              <small>Teacher: ${escapeHtml(a.teacher_email)}</small><br/>
+              <small>Due: ${a.due_date ? escapeHtml(new Date(a.due_date).toLocaleDateString()) : 'No due date'}</small>
             </div>
             <button onclick="viewCourse(${a.course_id}, ${a.id})" class="primary-btn" style="padding: 8px 16px;">
               ▶️ Work on Assignment
@@ -4567,7 +4607,8 @@ async function loadEnrolledCourses() {
   try {
     // Get enrolled courses (via class code)
     const response = await fetch(`${API_BASE_URL}/api/student/enrolled-courses`, {
-      headers: { 'Authorization': `Bearer ${authToken}` }
+      headers: { 'Authorization': `Bearer ${authToken}` },
+      credentials: 'include'
     });
 
     const result = await response.json();
@@ -4618,9 +4659,9 @@ async function loadEnrolledCourses() {
             <div style="background: #222; padding: 12px; border-radius: 4px; margin-bottom: 10px; border-left: 4px solid #667eea;">
               <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                 <div style="flex: 1;">
-                  <strong>${course.title}</strong><br/>
-                  <small style="color: #999;">Teacher: ${course.teacher_email}</small><br/>
-                  ${earliestDueDate ? `<small style="color: #ff9800; font-weight: bold;">⏰ Next Due: ${earliestDueDate}</small><br/>` : ''}
+                  <strong>${escapeHtml(course.title)}</strong><br/>
+                  <small style="color: #999;">Teacher: ${escapeHtml(course.teacher_email)}</small><br/>
+                  ${earliestDueDate ? `<small style="color: #ff9800; font-weight: bold;">⏰ Next Due: ${escapeHtml(earliestDueDate)}</small><br/>` : ''}
                   <small style="color: #ccc; margin-top: 5px;">
                     📊 Progress: ${correctAnswers}/${totalQuestions} questions answered (${questionProgress}%)
                   </small><br/>
@@ -4652,7 +4693,8 @@ async function viewEnrolledCourse(courseId) {
   try {
     // Load course content
     const response = await fetch(`${API_BASE_URL}/api/courses/${courseId}`, {
-      headers: { 'Authorization': `Bearer ${authToken}` }
+      headers: { 'Authorization': `Bearer ${authToken}` },
+      credentials: 'include'
     });
 
     const result = await response.json();
@@ -4727,7 +4769,8 @@ async function populateAssignmentCourseDropdown() {
     // Fetch all courses from backend for teacher assignments
     // Use limit=1000 to get all courses at once without pagination
     const response = await fetch(`${API_BASE_URL}/api/courses/all?limit=1000`, {
-      headers: { 'Authorization': `Bearer ${authToken}` }
+      headers: { 'Authorization': `Bearer ${authToken}` },
+      credentials: 'include'
     });
 
     const result = await response.json();
@@ -4824,7 +4867,8 @@ async function loadTeacherClasses() {
 
   try {
     const response = await fetch(`${API_BASE_URL}/api/teacher/my-classes`, {
-      headers: { 'Authorization': `Bearer ${authToken}` }
+      headers: { 'Authorization': `Bearer ${authToken}` },
+      credentials: 'include'
     });
 
     const result = await response.json();
@@ -4834,8 +4878,8 @@ async function loadTeacherClasses() {
       const classList = document.getElementById('my-classes-list');
       classList.innerHTML = result.data.map(cls => `
         <div style="background: #222; padding: 12px; border-radius: 4px; margin-bottom: 10px; border-left: 4px solid #4ade80;">
-          <strong>${cls.classCode}</strong> - ${cls.studentCount} student(s)
-          <button onclick="viewClassSubmissions('${cls.classCode}')" class="primary-btn" style="padding: 6px 12px; margin-left: 10px; font-size: 0.85em;">
+          <strong>${escapeHtml(cls.classCode)}</strong> - ${cls.studentCount} student(s)
+          <button onclick="viewClassSubmissions('${escapeHtml(cls.classCode)}')" class="primary-btn" style="padding: 6px 12px; margin-left: 10px; font-size: 0.85em;">
             📊 View Progress
           </button>
         </div>
@@ -4870,7 +4914,8 @@ function displayStudentAccuracy(submission) {
 async function viewClassSubmissions(classCode) {
   try {
     const response = await fetch(`${API_BASE_URL}/api/teacher/class/${classCode}/submissions`, {
-      headers: { 'Authorization': `Bearer ${authToken}` }
+      headers: { 'Authorization': `Bearer ${authToken}` },
+      credentials: 'include'
     });
 
     const result = await response.json();
@@ -4878,7 +4923,7 @@ async function viewClassSubmissions(classCode) {
       const sectionDiv = document.getElementById('class-management-section');
       const submissionsDiv = document.getElementById('class-submissions');
 
-      let html = `<h3>📊 Class Progress - ${classCode}</h3><table style="width: 100%; border-collapse: collapse;">
+      let html = `<h3>📊 Class Progress - ${escapeHtml(classCode)}</h3><table style="width: 100%; border-collapse: collapse;">
         <tr style="background: #333;">
           <th style="padding: 10px; border: 1px solid #555; text-align: left;">Student</th>
           <th style="padding: 10px; border: 1px solid #555;">Assignment</th>
@@ -4892,8 +4937,8 @@ async function viewClassSubmissions(classCode) {
         const statusColor = sub.status === 'On Time' ? '#4ade80' : sub.status === 'Late' ? '#ff6b6b' : '#999';
         const accuracyDisplay = displayStudentAccuracy(sub);
         html += `<tr style="border: 1px solid #555;">
-          <td style="padding: 10px; border: 1px solid #555;">${sub.email}</td>
-          <td style="padding: 10px; border: 1px solid #555; font-size: 0.9em;">${sub.assignment_title}</td>
+          <td style="padding: 10px; border: 1px solid #555;">${escapeHtml(sub.email)}</td>
+          <td style="padding: 10px; border: 1px solid #555; font-size: 0.9em;">${escapeHtml(sub.assignment_title)}</td>
           <td style="padding: 10px; border: 1px solid #555;">
             <div style="background: #333; border-radius: 4px; overflow: hidden; height: 20px;">
               <div style="background: #667eea; width: ${sub.completion_percentage}%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 0.8em;">
@@ -4906,7 +4951,7 @@ async function viewClassSubmissions(classCode) {
               ${accuracyDisplay.html}
             </span>
           </td>
-          <td style="padding: 10px; border: 1px solid #555; color: ${statusColor}; font-weight: bold;">${sub.status}</td>
+          <td style="padding: 10px; border: 1px solid #555; color: ${statusColor}; font-weight: bold;">${escapeHtml(sub.status)}</td>
           <td style="padding: 10px; border: 1px solid #555;">${sub.is_submitted ? '✅ Yes' : '⏳ No'}</td>
         </tr>`;
       });
@@ -4973,7 +5018,8 @@ function setupTeacherStudentListeners() {
 async function fetchAndDisplayClassCode() {
   try {
     const response = await fetch(`${API_BASE_URL}/api/user/class-code`, {
-      headers: { 'Authorization': `Bearer ${authToken}` }
+      headers: { 'Authorization': `Bearer ${authToken}` },
+      credentials: 'include'
     });
 
     const result = await response.json();
