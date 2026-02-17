@@ -625,6 +625,71 @@ li button:hover {
   }
 }
 
+/* ===== EPIC BATTLE ANIMATIONS ===== */
+@keyframes battleFlash {
+  0%, 100% { background-color: transparent; }
+  10% { background-color: rgba(239, 68, 68, 0.6); }
+  20% { background-color: rgba(59, 130, 246, 0.6); }
+  30% { background-color: rgba(239, 68, 68, 0.6); }
+  40% { background-color: rgba(59, 130, 246, 0.6); }
+  50% { background-color: rgba(16, 185, 129, 0.5); }
+}
+
+@keyframes monsterAppear {
+  0% {
+    opacity: 0;
+    transform: translateX(200px) scale(0.5);
+  }
+  60% {
+    transform: translateX(-10px) scale(1);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes heroAttack {
+  0% { transform: translateX(0) scale(1); }
+  30% { transform: translateX(100px) scale(1.1); }
+  60% { transform: translateX(150px) scale(1); }
+  100% { transform: translateX(0) scale(1); }
+}
+
+@keyframes monsterHit {
+  0% { transform: translateX(0) scale(1); }
+  20% { transform: translateX(-40px) scale(0.95); opacity: 1; }
+  40% { transform: translateX(-80px) scale(0.9); }
+  100% { transform: translateX(0) scale(1); opacity: 0.7; }
+}
+
+@keyframes energyBlast {
+  0% {
+    opacity: 1;
+    transform: translateX(0) scaleX(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(150px) scaleX(2);
+  }
+}
+
+@keyframes victoryGlow {
+  0% { opacity: 0; transform: scale(0); }
+  50% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.2); }
+}
+
+@keyframes textSlideIn {
+  0% { opacity: 0; transform: translateY(30px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes sceneWipeOut {
+  0% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+  100% { clip-path: polygon(100% 0, 100% 0, 100% 100%, 100% 100%); }
+}
+
 /* ===== AURORA ANIMATION ===== */
 @keyframes aurora {
   0% {
@@ -823,6 +888,96 @@ section.transition-in-active h2 {
 
 .modal-content.transition-in-active {
   animation: contentFadeInScale 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* ===== BATTLE SCENE CONTAINER ===== */
+.battle-scene-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+  z-index: 1000;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 40px;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.battle-flash-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  animation: battleFlash 0.6s ease-in-out;
+  pointer-events: none;
+}
+
+.hero-character {
+  font-size: 80px;
+  animation: heroAttack 0.8s ease-in-out;
+  filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.6));
+}
+
+.monster-character {
+  font-size: 80px;
+  animation: monsterAppear 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  filter: drop-shadow(0 0 20px rgba(239, 68, 68, 0.8));
+}
+
+.energy-blast {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.8), transparent);
+  border-radius: 50%;
+  left: 15%;
+  top: 50%;
+  animation: energyBlast 0.6s ease-out forwards;
+}
+
+.victory-star {
+  position: absolute;
+  font-size: 60px;
+  animation: victoryGlow 0.8s ease-out forwards;
+  filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.8));
+}
+
+.battle-text {
+  position: absolute;
+  font-size: 24px;
+  font-weight: bold;
+  color: #fbbf24;
+  text-shadow: 0 0 10px rgba(245, 158, 11, 0.8);
+  animation: textSlideIn 0.5s ease-out forwards;
+  opacity: 0;
+}
+
+/* Animation preference button */
+#animation-pref-btn {
+  background: transparent;
+  border: 2px solid var(--primary);
+  color: var(--primary);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+}
+
+#animation-pref-btn:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+}
+
+#animation-pref-btn.active {
+  background-color: var(--primary);
+  color: white;
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.6);
 }
 
 /* ===== MOUSE-FOLLOWING AURORA BALL ===== */

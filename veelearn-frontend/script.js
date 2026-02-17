@@ -42,6 +42,10 @@ let lastKeyPressed = null;
 let sameKeyCount = 0;
 let macroDetected = false;
 
+// Animation preference
+let animationMode = localStorage.getItem('animationMode') || 'short';
+let transitionCount = 0;
+
 // Global keyboard listener for Ctrl+Z undo
 document.addEventListener('keydown', async (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'z' && lastDeletedQuestion) {
@@ -207,11 +211,21 @@ function transitionPage(fromSection, toSection) {
         fromSection.classList.add('page-transition-out');
     }
 
-    // Create awesome wave transition
+    // Choose animation based on preference
+    if (animationMode === 'long') {
+        playEpicBattleAnimation(fromSection, toSection);
+    } else {
+        playShortTransition(fromSection, toSection);
+    }
+}
+
+/**
+ * Play short transition (original animations)
+ */
+function playShortTransition(fromSection, toSection) {
     createWaveTransition();
     createWaveBars();
 
-    // Show new section with entrance animation
     setTimeout(() => {
         if (fromSection) fromSection.style.display = 'none';
         if (fromSection) fromSection.classList.remove('page-transition-out');
@@ -219,7 +233,6 @@ function transitionPage(fromSection, toSection) {
         toSection.style.display = 'block';
         toSection.classList.add('transition-in-active');
 
-        // Stagger animate child sections
         setTimeout(() => {
             const sections = toSection.querySelectorAll('section');
             sections.forEach((section, index) => {
@@ -228,12 +241,228 @@ function transitionPage(fromSection, toSection) {
             });
         }, 100);
 
-        // Remove animation class after it finishes
         setTimeout(() => {
             toSection.classList.remove('transition-in-active');
         }, 800);
     }, 400);
 }
+
+/**
+ * Play epic battle animation with story
+ */
+function playEpicBattleAnimation(fromSection, toSection) {
+    transitionCount++;
+    const storyIndex = getRandomStory();
+    const stories = getBattleStories();
+    const story = stories[storyIndex];
+
+    createBattleScene(story, () => {
+        if (fromSection) fromSection.style.display = 'none';
+        if (fromSection) fromSection.classList.remove('page-transition-out');
+
+        toSection.style.display = 'block';
+        toSection.classList.add('transition-in-active');
+
+        setTimeout(() => {
+            const sections = toSection.querySelectorAll('section');
+            sections.forEach((section, index) => {
+                section.style.animation = `contentFadeInScale 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) ${index * 0.1}s forwards`;
+                section.style.opacity = '0';
+            });
+        }, 100);
+
+        setTimeout(() => {
+            toSection.classList.remove('transition-in-active');
+        }, 800);
+    });
+}
+
+/**
+ * Get random story with probability
+ */
+function getRandomStory() {
+    const rand = Math.random() * 100;
+    // Common stories (70% chance)
+    if (rand < 70) return Math.floor(Math.random() * 5);
+    // Uncommon stories (25% chance)
+    if (rand < 95) return 5 + Math.floor(Math.random() * 3);
+    // Ultra rare (5% chance)
+    return 8;
+}
+
+/**
+ * Get all battle stories
+ */
+function getBattleStories() {
+    return [
+        // Common stories
+        { hero: '🧑', monster: '👹', text: 'Learning Begins!', duration: 12000 },
+        { hero: '👨‍🎓', monster: '🐉', text: 'Mastering Knowledge!', duration: 14000 },
+        { hero: '👩‍🔬', monster: '👿', text: 'Science Prevails!', duration: 12000 },
+        { hero: '🧙', monster: '💀', text: 'Wisdom Triumphs!', duration: 13000 },
+        { hero: '⚔️', monster: '🦠', text: 'Defeating Ignorance!', duration: 12000 },
+        // Uncommon stories
+        { hero: '🤖', monster: '🌀', text: 'AI Enlightenment!', duration: 15000 },
+        { hero: '🚀', monster: '🛸', text: 'Space Knowledge!', duration: 15000 },
+        { hero: '⚛️', monster: '☢️', text: 'Atomic Victory!', duration: 16000 },
+        // Ultra rare (epic)
+        { hero: '👑', monster: '🐲', text: '✨ THE LEGEND AWAKENS ✨', duration: 20000, isEpic: true }
+    ];
+}
+
+/**
+ * Create battle scene with flashing lights
+ */
+function createBattleScene(story, onComplete) {
+    const container = document.createElement('div');
+    container.className = 'battle-scene-container';
+    document.body.appendChild(container);
+
+    // Flash overlay
+    const flash = document.createElement('div');
+    flash.className = 'battle-flash-overlay';
+    container.appendChild(flash);
+
+    // Hero
+    const hero = document.createElement('div');
+    hero.className = 'hero-character';
+    hero.textContent = story.hero;
+    container.appendChild(hero);
+
+    // Monster
+    const monster = document.createElement('div');
+    monster.className = 'monster-character';
+    monster.textContent = story.monster;
+    container.appendChild(monster);
+
+    // Energy blasts
+    for (let i = 0; i < 3; i++) {
+        setTimeout(() => {
+            const blast = document.createElement('div');
+            blast.className = 'energy-blast';
+            blast.style.top = (40 + i * 15) + '%';
+            container.appendChild(blast);
+        }, 300 + i * 200);
+    }
+
+    // Victory stars
+    for (let i = 0; i < 5; i++) {
+        setTimeout(() => {
+            const star = document.createElement('div');
+            star.className = 'victory-star';
+            star.textContent = '⭐';
+            star.style.left = (20 + Math.random() * 60) + '%';
+            star.style.top = (20 + Math.random() * 60) + '%';
+            container.appendChild(star);
+        }, 800 + i * 300);
+    }
+
+    // Battle text
+    const text = document.createElement('div');
+    text.className = 'battle-text';
+    text.textContent = story.text;
+    text.style.top = '50%';
+    text.style.left = '50%';
+    text.style.transform = 'translate(-50%, -50%)';
+    text.style.animationDelay = '0.8s';
+    container.appendChild(text);
+
+    // Add epic glow if special story
+    if (story.isEpic) {
+        container.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)';
+        // Extra flashing
+        for (let i = 0; i < 8; i++) {
+            setTimeout(() => {
+                const epicFlash = document.createElement('div');
+                epicFlash.style.position = 'absolute';
+                epicFlash.style.width = '100%';
+                epicFlash.style.height = '100%';
+                epicFlash.style.backgroundColor = 'rgba(245, 158, 11, 0.4)';
+                epicFlash.style.animation = 'fadeOut 0.3s ease-out forwards';
+                container.appendChild(epicFlash);
+            }, 1000 + i * 150);
+        }
+    }
+
+    // Remove battle scene
+    setTimeout(() => {
+        container.remove();
+        onComplete();
+    }, story.duration);
+}
+
+/**
+ * Setup animation preference listeners
+ */
+function setupAnimationPreference() {
+    const btn = document.getElementById('animation-pref-btn');
+    if (btn) {
+        btn.addEventListener('click', () => {
+            document.getElementById('animation-pref-modal').style.display = 'block';
+            updateAnimationButtonStates();
+        });
+    }
+}
+
+/**
+ * Set animation mode and save preference
+ */
+function setAnimationMode(mode) {
+    animationMode = mode;
+    localStorage.setItem('animationMode', mode);
+    updateAnimationButtonStates();
+    closeAnimationPrefModal();
+
+    const btn = document.getElementById('animation-pref-btn');
+    if (btn) {
+        if (mode === 'long') {
+            btn.classList.add('active');
+            btn.title = '🎬 Epic Battle Animations (ON)';
+        } else {
+            btn.classList.remove('active');
+            btn.title = '⚡ Short Animations (ON)';
+        }
+    }
+}
+
+/**
+ * Update animation button states
+ */
+function updateAnimationButtonStates() {
+    const shortBtn = document.getElementById('short-anim-btn');
+    const longBtn = document.getElementById('long-anim-btn');
+
+    if (shortBtn && longBtn) {
+        if (animationMode === 'short') {
+            shortBtn.style.borderColor = '#3b82f6';
+            shortBtn.style.backgroundColor = 'rgba(59, 130, 246, 0.2)';
+            longBtn.style.borderColor = 'transparent';
+            longBtn.style.backgroundColor = '#1e293b';
+        } else {
+            longBtn.style.borderColor = '#3b82f6';
+            longBtn.style.backgroundColor = 'rgba(59, 130, 246, 0.2)';
+            shortBtn.style.borderColor = 'transparent';
+            shortBtn.style.backgroundColor = '#1e293b';
+        }
+    }
+}
+
+/**
+ * Close animation preference modal
+ */
+function closeAnimationPrefModal() {
+    document.getElementById('animation-pref-modal').style.display = 'none';
+}
+
+// Add fade out animation
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+  }
+`;
+document.head.appendChild(style);
 
 function initializeApp() {
     console.log("Initializing App...");
@@ -248,6 +477,7 @@ function initializeApp() {
     setupPhetModalListeners();
     setupLatexHelpModalListeners();
     setupCourseSearchListeners();
+    setupAnimationPreference();
 
     if (document.cookie.includes('token=') || authToken) {
         fetchUserProfile();
