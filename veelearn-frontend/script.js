@@ -1,5 +1,8 @@
 // ===== GLOBAL STATE =====
-const API_BASE_URL = "https://veelearn.onrender.com"; // Production Render URL
+// Use relative path for API calls - allows deployment to different domains
+const API_BASE_URL = window.location.pathname.includes('github.io') 
+  ? "https://veelearn.onrender.com" 
+  : '/api/..'.replace('/api/..', ''); // Local dev will use same origin
 
 let currentUser = null;
 let courseBlocks = [];
@@ -2325,8 +2328,11 @@ function runEmbeddedBlockSimulator(blockId, title) {
 
   if (block.type === 'block-simulator') {
     // Create popup window for block simulator
+    const baseUrl = window.location.pathname.includes('github.io') 
+      ? 'https://virat-sisodiya.github.io/Veelearn/veelearn-frontend'
+      : window.location.origin;
     const popup = window.open(
-      `http://localhost:5000/block-simulator.html?embedded=true&courseBlockId=${blockId}&t=${Date.now()}`,
+      `${baseUrl}/block-simulator.html?embedded=true&courseBlockId=${blockId}&t=${Date.now()}`,
       "block-simulator",
       "width=1200,height=800"
     );
@@ -2348,8 +2354,11 @@ function runEmbeddedBlockSimulator(blockId, title) {
     }
   } else if (block.type === 'visual-simulator') {
     // Run visual/code-based simulator
+    const baseUrl = window.location.pathname.includes('github.io') 
+      ? 'https://virat-sisodiya.github.io/Veelearn/veelearn-frontend'
+      : window.location.origin;
     const popup = window.open(
-      `http://localhost:5000/visual-simulator.html?embedded=true`,
+      `${baseUrl}/visual-simulator.html?embedded=true`,
       "visual-simulator",
       "width=1200,height=800"
     );
@@ -2377,8 +2386,11 @@ function runEmbeddedVisualSimulator(blockId, title) {
     return;
   }
 
+  const baseUrl = window.location.pathname.includes('github.io') 
+    ? 'https://virat-sisodiya.github.io/Veelearn/veelearn-frontend'
+    : window.location.origin;
   const popup = window.open(
-    `http://localhost:5000/visual-simulator.html?embedded=true`,
+    `${baseUrl}/visual-simulator.html?embedded=true`,
     "visual-simulator",
     "width=1200,height=800"
   );
@@ -2505,8 +2517,11 @@ function handleEditSimulator(event, blockId) {
   currentEditingSimulatorBlockId = blockId; // Store for saving later
 
   if (block.type === "block-simulator") {
+    const baseUrl = window.location.pathname.includes('github.io') 
+      ? 'https://virat-sisodiya.github.io/Veelearn/veelearn-frontend'
+      : window.location.origin;
     const popup = window.open(
-      `http://localhost:5000/block-simulator.html?edit=true&courseBlockId=${blockId}&t=${Date.now()}`,
+      `${baseUrl}/block-simulator.html?edit=true&courseBlockId=${blockId}&t=${Date.now()}`,
       "block-simulator-editor",
       "width=1400,height=900"
     );
@@ -2528,8 +2543,11 @@ function handleEditSimulator(event, blockId) {
       }, 500);
     }
   } else if (block.type === "visual-simulator") {
+    const baseUrl = window.location.pathname.includes('github.io') 
+      ? 'https://virat-sisodiya.github.io/Veelearn/veelearn-frontend'
+      : window.location.origin;
     const popup = window.open(
-      `http://localhost:5000/visual-simulator.html?edit=true&courseBlockId=${blockId}&t=${Date.now()}`,
+      `${baseUrl}/visual-simulator.html?edit=true&courseBlockId=${blockId}&t=${Date.now()}`,
       "visual-simulator-editor",
       "width=1200,height=800"
     );

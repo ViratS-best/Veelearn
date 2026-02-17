@@ -93,14 +93,33 @@ if (!process.env.JWT_SECRET) {
     process.exit(1);
 }
 
+// ===== SECURITY HEADERS MIDDLEWARE =====
+app.use((req, res, next) => {
+    // Prevent clickjacking
+    res.setHeader('X-Frame-Options', 'DENY');
+    // Prevent MIME sniffing
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    // XSS Protection (legacy browsers)
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    // Content Security Policy - strict protection against XSS
+    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://api.github.com https://api.brevo.com");
+    // HSTS - Force HTTPS in production
+    if (process.env.NODE_ENV === 'production') {
+        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    }
+    // Referrer policy
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    next();
+});
+
 app.use(express.json({ limit: '50mb' }));
 app.use(cookieParser());
 app.use(cors({
     origin: [
         'http://localhost:5500',
         'http://127.0.0.1:5500',
-        'https://virat-sisodiya.github.io', // Assuming this based on common GH pages patterns
-        /\.github\.io$/ // Allow any github.io subdomains
+        'https://virat-sisodiya.github.io',
+        /\.github\.io$/
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -628,6 +647,17 @@ const authenticateCookie = (req, res, next) => {
 };
 
 // Role-based authorization middleware
+// ===== SANITIZATION FUNCTION (Defense in Depth) =====
+const sanitizeHtml = (input) => {
+    if (!input) return '';
+    return String(input)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+};
+
 const authorize = (...roles) => {
     return (req, res, next) => {
         if (!roles.includes(req.user.role)) {
@@ -724,10 +754,6 @@ app.post('/api/register', rateLimiter, async (req, res) => {
                 sameSite: 'Lax',
                 maxAge: 24 * 60 * 60 * 1000 // 24 hours
             });
-            app.post('/api/logout', (req, res) => {
-                res.clearCookie('token');
-                apiResponse(res, 200, 'Logged out successfully');
-            });
 
             apiResponse(res, 201, 'User registered successfully', { token, user: newUser });
         });
@@ -783,6 +809,17 @@ app.post('/api/login', rateLimiter, async (req, res) => {
         console.error('Login error:', error);
         apiResponse(res, 500, 'Server error');
     }
+});
+
+// ===== LOGOUT ROUTE =====
+app.post('/api/logout', (req, res) => {
+    res.clearCookie('token', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'Lax',
+        path: '/'
+    });
+    apiResponse(res, 200, 'Logged out successfully');
 });
 
 // ===== FORGOT / RESET PASSWORD =====
