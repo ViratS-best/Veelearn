@@ -1,8 +1,17 @@
 // ===== GLOBAL STATE =====
-// Use relative path for API calls - allows deployment to different domains
-const API_BASE_URL = window.location.pathname.includes('github.io') 
-  ? "https://veelearn.onrender.com" 
-  : '/api/..'.replace('/api/..', ''); // Local dev will use same origin
+// Determine API base URL based on environment
+const API_BASE_URL = (() => {
+  // If on GitHub Pages, use Render backend
+  if (window.location.hostname.includes('github.io')) {
+    return 'https://veelearn.onrender.com';
+  }
+  // If on localhost, use local backend
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return 'http://localhost:3000';
+  }
+  // Otherwise use same origin
+  return window.location.origin;
+})();
 
 let currentUser = null;
 let courseBlocks = [];
