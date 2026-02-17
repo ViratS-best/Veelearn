@@ -600,39 +600,39 @@ li button:hover {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(59, 130, 246, 0.4),
-    rgba(6, 182, 212, 0.3),
+    rgba(59, 130, 246, 0.3),
+    rgba(6, 182, 212, 0.25),
     transparent
   );
-  animation: auroraGlow1 4s ease-in-out infinite;
   top: 0;
-  left: 0;
+  left: -25%;
+  opacity: 0.7;
 }
 
 .aurora-light-2 {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(16, 185, 129, 0.3),
-    rgba(59, 130, 246, 0.2),
+    rgba(16, 185, 129, 0.2),
+    rgba(59, 130, 246, 0.15),
     transparent
   );
-  animation: auroraGlow2 5s ease-in-out infinite 0.5s;
   top: 20%;
-  left: 0;
+  left: -25%;
+  opacity: 0.5;
 }
 
 .aurora-light-3 {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(245, 158, 11, 0.25),
-    rgba(6, 182, 212, 0.25),
+    rgba(245, 158, 11, 0.2),
+    rgba(6, 182, 212, 0.2),
     transparent
   );
-  animation: auroraGlow3 6s ease-in-out infinite 1s;
   top: 40%;
-  left: 0;
+  left: -25%;
+  opacity: 0.4;
 }
 
 .page-transition-overlay {
@@ -651,6 +651,35 @@ li button:hover {
   animation: aurora 3s ease-in-out 1;
   pointer-events: none;
   z-index: 998;
+}
+
+/* ===== MOUSE-FOLLOWING AURORA BALL ===== */
+.aurora-ball {
+  position: fixed;
+  width: 400px;
+  height: 400px;
+  pointer-events: none;
+  z-index: 10;
+  filter: blur(80px);
+  margin-left: -200px;
+  margin-top: -200px;
+}
+
+.aurora-ball::before {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(
+    circle at 30% 30%,
+    rgba(59, 130, 246, 0.4) 0%,
+    rgba(59, 130, 246, 0.3) 20%,
+    rgba(6, 182, 212, 0.2) 40%,
+    rgba(16, 185, 129, 0.15) 60%,
+    transparent 80%
+  );
+  border-radius: 50%;
+  opacity: 0.8;
 }
 
 /* Apply transition animation to page sections */
