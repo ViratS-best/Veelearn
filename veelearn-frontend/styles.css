@@ -532,6 +532,99 @@ li button:hover {
   }
 }
 
+/* ===== WAVE TRANSITION ANIMATIONS ===== */
+@keyframes waveTransition {
+  0% {
+    clip-path: polygon(0 0, 0 0, 0 100%, 0 100%);
+  }
+  50% {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+  }
+  100% {
+    clip-path: polygon(100% 0, 100% 0, 100% 100%, 100% 100%);
+  }
+}
+
+@keyframes wavePulse {
+  0% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scaleY(1.1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scaleY(1);
+    opacity: 0;
+  }
+}
+
+@keyframes particleBurst {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--tx), var(--ty)) scale(0);
+    opacity: 0;
+  }
+}
+
+@keyframes pageGlowFlash {
+  0% {
+    background-color: rgba(59, 130, 246, 0);
+  }
+  40% {
+    background-color: rgba(59, 130, 246, 0.15);
+  }
+  100% {
+    background-color: rgba(59, 130, 246, 0);
+  }
+}
+
+@keyframes contentFadeInScale {
+  0% {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes headerSlideDown {
+  0% {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cardStaggerIn {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) rotateX(10deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) rotateX(0deg);
+  }
+}
+
+@keyframes buttonGlowPulse {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.6), 0 0 30px rgba(6, 182, 212, 0.3);
+  }
+}
+
 /* ===== AURORA ANIMATION ===== */
 @keyframes aurora {
   0% {
@@ -591,48 +684,48 @@ li button:hover {
 
 .aurora-light {
   position: absolute;
-  width: 200%;
+  width: 100%;
   height: 100%;
   opacity: 0;
 }
 
 .aurora-light-1 {
   background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(59, 130, 246, 0.3),
-    rgba(6, 182, 212, 0.25),
-    transparent
+    to right,
+    transparent 0%,
+    rgba(59, 130, 246, 0.25) 40%,
+    rgba(6, 182, 212, 0.2) 60%,
+    transparent 100%
   );
-  top: 0;
-  left: -25%;
-  opacity: 0.7;
+  top: 5%;
+  left: 0;
+  opacity: 0.6;
 }
 
 .aurora-light-2 {
   background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(16, 185, 129, 0.2),
-    rgba(59, 130, 246, 0.15),
-    transparent
+    to right,
+    transparent 0%,
+    rgba(16, 185, 129, 0.15) 35%,
+    rgba(59, 130, 246, 0.12) 65%,
+    transparent 100%
   );
-  top: 20%;
-  left: -25%;
-  opacity: 0.5;
+  top: 30%;
+  left: 0;
+  opacity: 0.4;
 }
 
 .aurora-light-3 {
   background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(245, 158, 11, 0.2),
-    rgba(6, 182, 212, 0.2),
-    transparent
+    to right,
+    transparent 0%,
+    rgba(245, 158, 11, 0.15) 50%,
+    rgba(6, 182, 212, 0.15) 50%,
+    transparent 100%
   );
-  top: 40%;
-  left: -25%;
-  opacity: 0.4;
+  top: 55%;
+  left: 0;
+  opacity: 0.3;
 }
 
 .page-transition-overlay {
@@ -651,6 +744,85 @@ li button:hover {
   animation: aurora 3s ease-in-out 1;
   pointer-events: none;
   z-index: 998;
+}
+
+/* ===== WAVE TRANSITION OVERLAY ===== */
+.wave-transition-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(59, 130, 246, 0.8) 0%,
+    rgba(6, 182, 212, 0.6) 50%,
+    rgba(16, 185, 129, 0.8) 100%
+  );
+  pointer-events: none;
+  z-index: 997;
+  animation: waveTransition 1.2s cubic-bezier(0.77, 0, 0.175, 1) forwards;
+}
+
+/* ===== WAVE PULSE BARS ===== */
+.wave-bar {
+  position: fixed;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(59, 130, 246, 0.8),
+    rgba(6, 182, 212, 0.8),
+    transparent
+  );
+  pointer-events: none;
+  z-index: 996;
+}
+
+/* ===== PARTICLE BURST CONTAINER ===== */
+.particle-burst-container {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 996;
+}
+
+.particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* ===== PAGE GLOW FLASH ===== */
+.page-glow-flash {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 995;
+  animation: pageGlowFlash 0.8s ease-out forwards;
+}
+
+/* ===== CONTENT ANIMATIONS ===== */
+section.transition-in-active {
+  animation: contentFadeInScale 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+section.transition-in-active h2 {
+  animation: headerSlideDown 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.modal-content.transition-in-active {
+  animation: contentFadeInScale 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 /* ===== MOUSE-FOLLOWING AURORA BALL ===== */

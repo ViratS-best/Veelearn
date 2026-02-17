@@ -123,14 +123,93 @@ function playPageTransition() {
     }, 3000);
 }
 
+/**
+ * Create awesome wave transition with particles and glow
+ */
+function createWaveTransition() {
+    // Wave overlay
+    const wave = document.createElement('div');
+    wave.className = 'wave-transition-overlay';
+    document.body.appendChild(wave);
+
+    // Create particle burst
+    createParticleBurst();
+
+    // Glow flash
+    const glow = document.createElement('div');
+    glow.className = 'page-glow-flash';
+    document.body.appendChild(glow);
+
+    // Remove overlays after animation
+    setTimeout(() => {
+        wave.remove();
+        glow.remove();
+    }, 1200);
+}
+
+/**
+ * Create particle burst effect at center
+ */
+function createParticleBurst() {
+    const container = document.createElement('div');
+    container.className = 'particle-burst-container';
+    document.body.appendChild(container);
+
+    const particleCount = 20;
+    const colors = [
+        'rgba(59, 130, 246, 0.8)',   // Blue
+        'rgba(6, 182, 212, 0.8)',    // Cyan
+        'rgba(16, 185, 129, 0.8)',   // Green
+        'rgba(245, 158, 11, 0.8)',   // Amber
+    ];
+
+    for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+
+        // Random direction
+        const angle = (i / particleCount) * Math.PI * 2;
+        const distance = 150 + Math.random() * 100;
+        const tx = Math.cos(angle) * distance;
+        const ty = Math.sin(angle) * distance;
+
+        particle.style.setProperty('--tx', `${tx}px`);
+        particle.style.setProperty('--ty', `${ty}px`);
+        particle.style.backgroundColor = colors[i % colors.length];
+        particle.style.animation = `particleBurst 0.8s ease-out forwards`;
+        particle.style.animationDelay = `${i * 0.02}s`;
+
+        container.appendChild(particle);
+    }
+
+    setTimeout(() => container.remove(), 1000);
+}
+
+/**
+ * Create wave pulse bars
+ */
+function createWaveBars() {
+    const barCount = 4;
+    for (let i = 0; i < barCount; i++) {
+        const bar = document.createElement('div');
+        bar.className = 'wave-bar';
+        bar.style.top = `${25 + i * 20}%`;
+        bar.style.animation = `wavePulse 0.6s ease-out ${i * 0.1}s forwards`;
+        document.body.appendChild(bar);
+
+        setTimeout(() => bar.remove(), 800);
+    }
+}
+
 function transitionPage(fromSection, toSection) {
     // Add exit animation to current section
     if (fromSection && fromSection.style.display !== 'none') {
         fromSection.classList.add('page-transition-out');
     }
 
-    // Play aurora transition
-    playPageTransition();
+    // Create awesome wave transition
+    createWaveTransition();
+    createWaveBars();
 
     // Show new section with entrance animation
     setTimeout(() => {
@@ -138,12 +217,21 @@ function transitionPage(fromSection, toSection) {
         if (fromSection) fromSection.classList.remove('page-transition-out');
 
         toSection.style.display = 'block';
-        toSection.classList.add('page-transition-in');
+        toSection.classList.add('transition-in-active');
+
+        // Stagger animate child sections
+        setTimeout(() => {
+            const sections = toSection.querySelectorAll('section');
+            sections.forEach((section, index) => {
+                section.style.animation = `contentFadeInScale 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) ${index * 0.1}s forwards`;
+                section.style.opacity = '0';
+            });
+        }, 100);
 
         // Remove animation class after it finishes
         setTimeout(() => {
-            toSection.classList.remove('page-transition-in');
-        }, 600);
+            toSection.classList.remove('transition-in-active');
+        }, 800);
     }, 400);
 }
 
