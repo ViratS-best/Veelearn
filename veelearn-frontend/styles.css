@@ -499,6 +499,7 @@ li button:hover {
   border: 1px solid var(--border);
 }
 
+/* ===== PAGE TRANSITION ANIMATIONS ===== */
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -507,6 +508,158 @@ li button:hover {
 @keyframes slideIn {
   from { transform: translateY(-50px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes pageTransitionIn {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pageTransitionOut {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+}
+
+/* ===== AURORA ANIMATION ===== */
+@keyframes aurora {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes auroraGlow1 {
+  0%, 100% {
+    opacity: 0.3;
+    transform: translateX(-100%);
+  }
+  50% {
+    opacity: 0.8;
+    transform: translateX(100%);
+  }
+}
+
+@keyframes auroraGlow2 {
+  0%, 100% {
+    opacity: 0.2;
+    transform: translateX(100%);
+  }
+  50% {
+    opacity: 0.6;
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes auroraGlow3 {
+  0%, 100% {
+    opacity: 0.25;
+    transform: translateX(-50%);
+  }
+  50% {
+    opacity: 0.7;
+    transform: translateX(50%);
+  }
+}
+
+.aurora-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 999;
+  overflow: hidden;
+}
+
+.aurora-light {
+  position: absolute;
+  width: 200%;
+  height: 100%;
+  opacity: 0;
+}
+
+.aurora-light-1 {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(59, 130, 246, 0.4),
+    rgba(6, 182, 212, 0.3),
+    transparent
+  );
+  animation: auroraGlow1 4s ease-in-out infinite;
+  top: 0;
+  left: 0;
+}
+
+.aurora-light-2 {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(16, 185, 129, 0.3),
+    rgba(59, 130, 246, 0.2),
+    transparent
+  );
+  animation: auroraGlow2 5s ease-in-out infinite 0.5s;
+  top: 20%;
+  left: 0;
+}
+
+.aurora-light-3 {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(245, 158, 11, 0.25),
+    rgba(6, 182, 212, 0.25),
+    transparent
+  );
+  animation: auroraGlow3 6s ease-in-out infinite 1s;
+  top: 40%;
+  left: 0;
+}
+
+.page-transition-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.2) 0%,
+    rgba(6, 182, 212, 0.15) 50%,
+    rgba(16, 185, 129, 0.2) 100%
+  );
+  background-size: 200% 200%;
+  animation: aurora 3s ease-in-out 1;
+  pointer-events: none;
+  z-index: 998;
+}
+
+/* Apply transition animation to page sections */
+section.page-transition-in {
+  animation: pageTransitionIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+section.page-transition-out {
+  animation: pageTransitionOut 0.4s ease-out;
 }
 
 .close-modal {

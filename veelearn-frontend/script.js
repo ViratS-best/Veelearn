@@ -95,8 +95,61 @@ if (document.readyState === "loading") {
   initializeApp();
 }
 
+// ===== PAGE TRANSITION HELPERS =====
+function createAuroraOverlay() {
+  // Create aurora overlay if it doesn't exist
+  if (!document.getElementById('aurora-overlay')) {
+    const overlay = document.createElement('div');
+    overlay.id = 'aurora-overlay';
+    overlay.className = 'aurora-overlay';
+    overlay.innerHTML = `
+      <div class="aurora-light aurora-light-1"></div>
+      <div class="aurora-light aurora-light-2"></div>
+      <div class="aurora-light aurora-light-3"></div>
+    `;
+    document.body.appendChild(overlay);
+  }
+}
+
+function playPageTransition() {
+  // Create transition overlay
+  const overlay = document.createElement('div');
+  overlay.className = 'page-transition-overlay';
+  document.body.appendChild(overlay);
+  
+  // Remove after animation
+  setTimeout(() => {
+    overlay.remove();
+  }, 3000);
+}
+
+function transitionPage(fromSection, toSection) {
+  // Add exit animation to current section
+  if (fromSection && fromSection.style.display !== 'none') {
+    fromSection.classList.add('page-transition-out');
+  }
+  
+  // Play aurora transition
+  playPageTransition();
+  
+  // Show new section with entrance animation
+  setTimeout(() => {
+    if (fromSection) fromSection.style.display = 'none';
+    if (fromSection) fromSection.classList.remove('page-transition-out');
+    
+    toSection.style.display = 'block';
+    toSection.classList.add('page-transition-in');
+    
+    // Remove animation class after it finishes
+    setTimeout(() => {
+      toSection.classList.remove('page-transition-in');
+    }, 600);
+  }, 400);
+}
+
 function initializeApp() {
   console.log("Initializing App...");
+  createAuroraOverlay();
   setupAuthListeners();
   setupNavigationListeners();
   setupLandingPageListeners();
@@ -1457,11 +1510,25 @@ function insertSimulatorBlock(blockId, title, type) {
 
 // ===== UI RENDERING =====
 function showLandingPage() {
-  document.getElementById("landing-page").style.display = "block";
-  document.getElementById("auth-section").style.display = "none";
-  document.getElementById("dashboard-section").style.display = "none";
-  document.getElementById("course-editor-section").style.display = "none";
-  document.getElementById("course-viewer-section").style.display = "none";
+  const landing = document.getElementById("landing-page");
+  const auth = document.getElementById("auth-section");
+  const dashboard = document.getElementById("dashboard-section");
+  const editor = document.getElementById("course-editor-section");
+  const viewer = document.getElementById("course-viewer-section");
+  
+  // Find currently visible section
+  const currentVisible = [auth, dashboard, editor, viewer].find(s => s && s.style.display !== 'none');
+  
+  if (currentVisible && currentVisible !== landing) {
+    transitionPage(currentVisible, landing);
+  } else {
+    landing.style.display = "block";
+  }
+
+  auth.style.display = "none";
+  dashboard.style.display = "none";
+  editor.style.display = "none";
+  viewer.style.display = "none";
 
   document.getElementById("login-link").style.display = "inline";
   document.getElementById("register-link").style.display = "inline";
@@ -1470,11 +1537,25 @@ function showLandingPage() {
 }
 
 function showAuthSection(type = "login") {
-  document.getElementById("landing-page").style.display = "none";
-  document.getElementById("auth-section").style.display = "block";
-  document.getElementById("dashboard-section").style.display = "none";
-  document.getElementById("course-editor-section").style.display = "none";
-  document.getElementById("course-viewer-section").style.display = "none";
+  const auth = document.getElementById("auth-section");
+  const landing = document.getElementById("landing-page");
+  const dashboard = document.getElementById("dashboard-section");
+  const editor = document.getElementById("course-editor-section");
+  const viewer = document.getElementById("course-viewer-section");
+  
+  // Find currently visible section
+  const currentVisible = [landing, dashboard, editor, viewer].find(s => s && s.style.display !== 'none');
+  
+  if (currentVisible && currentVisible !== auth) {
+    transitionPage(currentVisible, auth);
+  } else {
+    auth.style.display = "block";
+  }
+
+  landing.style.display = "none";
+  dashboard.style.display = "none";
+  editor.style.display = "none";
+  viewer.style.display = "none";
 
   document.getElementById("simulator-link").style.display = "none";
   document.getElementById("marketplace-link").style.display = "none";
@@ -1499,11 +1580,25 @@ function showAuthSection(type = "login") {
 function showDashboard() {
   stopCourseTimer();
 
-  document.getElementById("landing-page").style.display = "none";
-  document.getElementById("auth-section").style.display = "none";
-  document.getElementById("dashboard-section").style.display = "block";
-  document.getElementById("course-editor-section").style.display = "none";
-  document.getElementById("course-viewer-section").style.display = "none";
+  const dashboard = document.getElementById("dashboard-section");
+  const landing = document.getElementById("landing-page");
+  const auth = document.getElementById("auth-section");
+  const editor = document.getElementById("course-editor-section");
+  const viewer = document.getElementById("course-viewer-section");
+  
+  // Find currently visible section
+  const currentVisible = [landing, auth, editor, viewer].find(s => s && s.style.display !== 'none');
+  
+  if (currentVisible && currentVisible !== dashboard) {
+    transitionPage(currentVisible, dashboard);
+  } else {
+    dashboard.style.display = "block";
+  }
+
+  landing.style.display = "none";
+  auth.style.display = "none";
+  editor.style.display = "none";
+  viewer.style.display = "none";
 
   document.getElementById("simulator-link").style.display = "inline";
   document.getElementById("marketplace-link").style.display = "inline";
