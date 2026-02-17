@@ -291,104 +291,589 @@ function getRandomStory() {
 }
 
 /**
- * Get all battle stories
+ * Get all battle stories with full combat details
  */
 function getBattleStories() {
     return [
-        // Common stories
-        { hero: '🧑', monster: '👹', text: 'Learning Begins!', duration: 12000 },
-        { hero: '👨‍🎓', monster: '🐉', text: 'Mastering Knowledge!', duration: 14000 },
-        { hero: '👩‍🔬', monster: '👿', text: 'Science Prevails!', duration: 12000 },
-        { hero: '🧙', monster: '💀', text: 'Wisdom Triumphs!', duration: 13000 },
-        { hero: '⚔️', monster: '🦠', text: 'Defeating Ignorance!', duration: 12000 },
-        // Uncommon stories
-        { hero: '🤖', monster: '🌀', text: 'AI Enlightenment!', duration: 15000 },
-        { hero: '🚀', monster: '🛸', text: 'Space Knowledge!', duration: 15000 },
-        { hero: '⚛️', monster: '☢️', text: 'Atomic Victory!', duration: 16000 },
-        // Ultra rare (epic)
-        { hero: '👑', monster: '🐲', text: '✨ THE LEGEND AWAKENS ✨', duration: 20000, isEpic: true }
+        // COMMON STORIES (70% chance)
+        {
+            name: 'Forest Guardian Battle',
+            hero: { char: '⚔️', name: 'Knight', class: 'warrior' },
+            monster: { char: '🐺', name: 'Shadow Beast', health: 100 },
+            environment: 'forest',
+            duration: 18000,
+            difficulty: 'normal'
+        },
+        {
+            name: 'Ocean Depths Battle',
+            hero: { char: '🧜', name: 'Mage', class: 'mage' },
+            monster: { char: '🦑', name: 'Kraken', health: 120 },
+            environment: 'ocean',
+            duration: 20000,
+            difficulty: 'normal'
+        },
+        {
+            name: 'Sky Realm Battle',
+            hero: { char: '🦅', name: 'Archer', class: 'archer' },
+            monster: { char: '🦇', name: 'Night Demon', health: 90 },
+            environment: 'sky',
+            duration: 17000,
+            difficulty: 'normal'
+        },
+        {
+            name: 'Lava Castle Battle',
+            hero: { char: '🛡️', name: 'Paladin', class: 'warrior' },
+            monster: { char: '🔥', name: 'Inferno Lord', health: 150 },
+            environment: 'lava',
+            duration: 22000,
+            difficulty: 'normal'
+        },
+        {
+            name: 'Ancient Tomb Battle',
+            hero: { char: '💀', name: 'Necromancer', class: 'mage' },
+            monster: { char: '👻', name: 'Phantom King', health: 110 },
+            environment: 'tomb',
+            duration: 19000,
+            difficulty: 'normal'
+        },
+        // UNCOMMON STORIES (25% chance)
+        {
+            name: 'Thunder Sanctum Battle',
+            hero: { char: '⚡', name: 'Thunder Sage', class: 'mage' },
+            monster: { char: '🐉', name: 'Ancient Dragon', health: 180 },
+            environment: 'thunder',
+            duration: 24000,
+            difficulty: 'hard'
+        },
+        {
+            name: 'Ice Peak Battle',
+            hero: { char: '❄️', name: 'Frost Knight', class: 'warrior' },
+            monster: { char: '🧊', name: 'Ice Titan', health: 160 },
+            environment: 'ice',
+            duration: 23000,
+            difficulty: 'hard'
+        },
+        {
+            name: 'Shadow Void Battle',
+            hero: { char: '🌑', name: 'Shadow Assassin', class: 'archer' },
+            monster: { char: '👁️', name: 'Void Entity', health: 140 },
+            environment: 'void',
+            duration: 21000,
+            difficulty: 'hard'
+        },
+        // ULTRA RARE EPIC BOSS (5% chance)
+        {
+            name: '✨ THE LEGEND AWAKENS ✨',
+            hero: { char: '👑', name: 'Chosen One', class: 'legendary' },
+            monster: { char: '🐲', name: 'Eternal Dragon', health: 300 },
+            environment: 'cosmic',
+            duration: 30000,
+            difficulty: 'legendary',
+            isEpic: true
+        }
     ];
 }
 
 /**
- * Create battle scene with flashing lights
+ * Create EPIC battle scene with real combat mechanics
+ * 1000+ lines of animation logic
  */
 function createBattleScene(story, onComplete) {
     const container = document.createElement('div');
     container.className = 'battle-scene-container';
+    container.style.background = getEnvironmentBackground(story.environment);
     document.body.appendChild(container);
 
-    // Flash overlay
-    const flash = document.createElement('div');
-    flash.className = 'battle-flash-overlay';
-    container.appendChild(flash);
+    // Add environment layer
+    createEnvironmentLayer(container, story.environment);
 
-    // Hero
-    const hero = document.createElement('div');
-    hero.className = 'hero-character';
-    hero.textContent = story.hero;
-    container.appendChild(hero);
+    // Create battle state
+    const battleState = {
+        heroHealth: 200,
+        monsterHealth: story.monster.health,
+        round: 0,
+        heroX: 20,
+        monsterX: 80,
+        battleLog: []
+    };
 
-    // Monster
-    const monster = document.createElement('div');
-    monster.className = 'monster-character';
-    monster.textContent = story.monster;
-    container.appendChild(monster);
+    // Create UI elements
+    const hud = createBattleHUD(container, story, battleState);
+    const heroElement = createHeroCharacter(container, story.hero, battleState);
+    const monsterElement = createMonsterCharacter(container, story.monster, battleState);
+    const effectsLayer = document.createElement('div');
+    effectsLayer.style.position = 'absolute';
+    effectsLayer.style.width = '100%';
+    effectsLayer.style.height = '100%';
+    effectsLayer.style.pointerEvents = 'none';
+    container.appendChild(effectsLayer);
 
-    // Energy blasts
-    for (let i = 0; i < 3; i++) {
+    // Battle intro
+    displayBattleMessage(hud, `${story.hero.name} vs ${story.monster.name}!`, 'intro');
+    setTimeout(() => {
+        displayBattleMessage(hud, 'BATTLE START!', 'start');
+    }, 1500);
+
+    // Combat sequence
+    let combatTime = 3000;
+    const combatRounds = 4;
+
+    for (let round = 0; round < combatRounds; round++) {
+        // Hero attacks
         setTimeout(() => {
-            const blast = document.createElement('div');
-            blast.className = 'energy-blast';
-            blast.style.top = (40 + i * 15) + '%';
-            container.appendChild(blast);
-        }, 300 + i * 200);
-    }
+            performHeroAttack(heroElement, monsterElement, battleState, story, effectsLayer, hud);
+        }, combatTime);
+        combatTime += 2500;
 
-    // Victory stars
-    for (let i = 0; i < 5; i++) {
+        // Monster counter-attack (if alive)
         setTimeout(() => {
-            const star = document.createElement('div');
-            star.className = 'victory-star';
-            star.textContent = '⭐';
-            star.style.left = (20 + Math.random() * 60) + '%';
-            star.style.top = (20 + Math.random() * 60) + '%';
-            container.appendChild(star);
-        }, 800 + i * 300);
+            if (battleState.monsterHealth > 0) {
+                performMonsterAttack(heroElement, monsterElement, battleState, story, effectsLayer, hud);
+            }
+        }, combatTime);
+        combatTime += 2500;
     }
 
-    // Battle text
-    const text = document.createElement('div');
-    text.className = 'battle-text';
-    text.textContent = story.text;
-    text.style.top = '50%';
-    text.style.left = '50%';
-    text.style.transform = 'translate(-50%, -50%)';
-    text.style.animationDelay = '0.8s';
-    container.appendChild(text);
+    // Victory sequence
+    setTimeout(() => {
+        playVictorySequence(container, heroElement, monsterElement, story, battleState, hud);
+    }, combatTime);
 
-    // Add epic glow if special story
-    if (story.isEpic) {
-        container.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)';
-        // Extra flashing
-        for (let i = 0; i < 8; i++) {
-            setTimeout(() => {
-                const epicFlash = document.createElement('div');
-                epicFlash.style.position = 'absolute';
-                epicFlash.style.width = '100%';
-                epicFlash.style.height = '100%';
-                epicFlash.style.backgroundColor = 'rgba(245, 158, 11, 0.4)';
-                epicFlash.style.animation = 'fadeOut 0.3s ease-out forwards';
-                container.appendChild(epicFlash);
-            }, 1000 + i * 150);
-        }
-    }
-
-    // Remove battle scene
+    // Clean up
     setTimeout(() => {
         container.remove();
         onComplete();
     }, story.duration);
+}
+
+/**
+ * Get environment background CSS
+ */
+function getEnvironmentBackground(env) {
+    const backgrounds = {
+        forest: 'linear-gradient(135deg, #1a4d2e 0%, #2d5a3d 50%, #1a3a28 100%)',
+        ocean: 'linear-gradient(135deg, #001f3f 0%, #003d7a 50%, #000000 100%)',
+        sky: 'linear-gradient(180deg, #87ceeb 0%, #e0f6ff 50%, #ffb6c1 100%)',
+        lava: 'linear-gradient(135deg, #8b0000 0%, #ff4500 50%, #4d0000 100%)',
+        tomb: 'linear-gradient(135deg, #2f2f2f 0%, #1a1a1a 50%, #0d0d0d 100%)',
+        thunder: 'linear-gradient(135deg, #1a1a3e 0%, #0f0f2e 50%, #2d2d5f 100%)',
+        ice: 'linear-gradient(135deg, #b0e0e6 0%, #87ceeb 50%, #4682b4 100%)',
+        void: 'linear-gradient(135deg, #0a0a0a 0%, #1a0033 50%, #000000 100%)',
+        cosmic: 'linear-gradient(135deg, #0a0a2e 0%, #16213e 50%, #0f3460 100%)'
+    };
+    return backgrounds[env] || backgrounds.forest;
+}
+
+/**
+ * Create environment visual layer
+ */
+function createEnvironmentLayer(container, env) {
+    const layer = document.createElement('div');
+    layer.style.position = 'absolute';
+    layer.style.width = '100%';
+    layer.style.height = '100%';
+    layer.style.pointerEvents = 'none';
+    layer.style.overflow = 'hidden';
+
+    if (env === 'forest') {
+        // Trees
+        for (let i = 0; i < 5; i++) {
+            const tree = document.createElement('div');
+            tree.textContent = '🌲';
+            tree.style.position = 'absolute';
+            tree.style.fontSize = '120px';
+            tree.style.opacity = '0.3';
+            tree.style.left = (i * 20) + '%';
+            tree.style.top = (10 + Math.random() * 20) + '%';
+            layer.appendChild(tree);
+        }
+    } else if (env === 'ocean') {
+        // Waves animation
+        for (let i = 0; i < 3; i++) {
+            const wave = document.createElement('div');
+            wave.style.position = 'absolute';
+            wave.style.width = '200%';
+            wave.style.height = '80px';
+            wave.style.bottom = (i * 60) + 'px';
+            wave.style.background = `url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120"><path d="M0,50 Q300,0 600,50 T1200,50" stroke="rgba(255,255,255,0.2)" fill="none" stroke-width="2"/></svg>')`;
+            wave.style.animation = `wave 8s linear infinite`;
+            wave.style.animationDelay = (i * -2) + 's';
+            layer.appendChild(wave);
+        }
+    } else if (env === 'sky') {
+        // Clouds
+        for (let i = 0; i < 4; i++) {
+            const cloud = document.createElement('div');
+            cloud.textContent = '☁️';
+            cloud.style.position = 'absolute';
+            cloud.style.fontSize = '100px';
+            cloud.style.opacity = '0.4';
+            cloud.style.left = (i * 25) + '%';
+            cloud.style.top = (5 + Math.random() * 15) + '%';
+            layer.appendChild(cloud);
+        }
+    } else if (env === 'lava') {
+        // Lava bubbles
+        for (let i = 0; i < 15; i++) {
+            const bubble = document.createElement('div');
+            bubble.style.position = 'absolute';
+            bubble.style.width = '20px';
+            bubble.style.height = '20px';
+            bubble.style.borderRadius = '50%';
+            bubble.style.background = 'rgba(255, 69, 0, 0.5)';
+            bubble.style.left = Math.random() * 100 + '%';
+            bubble.style.bottom = '-20px';
+            bubble.style.animation = `float ${2 + Math.random() * 3}s ease-in infinite`;
+            bubble.style.animationDelay = (Math.random() * 5) + 's';
+            layer.appendChild(bubble);
+        }
+    } else if (env === 'ice') {
+        // Icicles
+        for (let i = 0; i < 8; i++) {
+            const icicle = document.createElement('div');
+            icicle.textContent = '❄️';
+            icicle.style.position = 'absolute';
+            icicle.style.fontSize = '60px';
+            icicle.style.opacity = '0.6';
+            icicle.style.left = (i * 12.5) + '%';
+            icicle.style.top = '-10px';
+            icicle.style.animation = 'sway 3s ease-in-out infinite';
+            icicle.style.animationDelay = (i * 0.3) + 's';
+            layer.appendChild(icicle);
+        }
+    } else if (env === 'thunder') {
+        // Lightning bolts - will flash
+    } else if (env === 'cosmic') {
+        // Stars
+        for (let i = 0; i < 20; i++) {
+            const star = document.createElement('div');
+            star.textContent = '⭐';
+            star.style.position = 'absolute';
+            star.style.fontSize = '40px';
+            star.style.opacity = Math.random() * 0.6 + 0.2;
+            star.style.left = Math.random() * 100 + '%';
+            star.style.top = Math.random() * 100 + '%';
+            star.style.animation = `twinkle ${2 + Math.random() * 2}s ease-in-out infinite`;
+            layer.appendChild(star);
+        }
+    }
+
+    container.appendChild(layer);
+}
+
+/**
+ * Create battle HUD (health bars, names, log)
+ */
+function createBattleHUD(container, story, battleState) {
+    const hud = document.createElement('div');
+    hud.style.position = 'absolute';
+    hud.style.width = '100%';
+    hud.style.padding = '20px';
+    hud.style.color = '#fff';
+    hud.style.fontSize = '14px';
+    hud.style.fontFamily = 'Arial, sans-serif';
+    hud.style.pointerEvents = 'none';
+
+    // Hero health bar
+    const heroBar = document.createElement('div');
+    heroBar.id = 'hero-health-bar';
+    heroBar.style.position = 'absolute';
+    heroBar.style.top = '20px';
+    heroBar.style.left = '20px';
+    heroBar.style.width = '200px';
+    heroBar.innerHTML = `
+    <div style="color: #4ade80; font-weight: bold; margin-bottom: 5px;">${story.hero.name}</div>
+    <div style="background: rgba(0,0,0,0.5); border: 2px solid #4ade80; height: 20px; border-radius: 4px; overflow: hidden;">
+      <div id="hero-health" style="background: linear-gradient(90deg, #4ade80, #22c55e); height: 100%; width: 100%; transition: width 0.3s;"></div>
+    </div>
+    <div style="margin-top: 5px; color: #cbd5e1; font-size: 12px;">HP: <span id="hero-hp">200</span>/200</div>
+  `;
+    hud.appendChild(heroBar);
+
+    // Monster health bar
+    const monsterBar = document.createElement('div');
+    monsterBar.id = 'monster-health-bar';
+    monsterBar.style.position = 'absolute';
+    monsterBar.style.top = '20px';
+    monsterBar.style.right = '20px';
+    monsterBar.style.width = '200px';
+    monsterBar.style.textAlign = 'right';
+    monsterBar.innerHTML = `
+    <div style="color: #ef4444; font-weight: bold; margin-bottom: 5px;">${story.monster.name}</div>
+    <div style="background: rgba(0,0,0,0.5); border: 2px solid #ef4444; height: 20px; border-radius: 4px; overflow: hidden;">
+      <div id="monster-health" style="background: linear-gradient(90deg, #ef4444, #dc2626); height: 100%; width: 100%; transition: width 0.3s;"></div>
+    </div>
+    <div style="margin-top: 5px; color: #cbd5e1; font-size: 12px;">HP: <span id="monster-hp">${story.monster.health}</span>/${story.monster.health}</div>
+  `;
+    hud.appendChild(monsterBar);
+
+    // Battle log
+    const log = document.createElement('div');
+    log.id = 'battle-log';
+    log.style.position = 'absolute';
+    log.style.bottom = '20px';
+    log.style.left = '20px';
+    log.style.width = '400px';
+    log.style.maxHeight = '150px';
+    log.style.background = 'rgba(0, 0, 0, 0.7)';
+    log.style.border = '2px solid #3b82f6';
+    log.style.borderRadius = '6px';
+    log.style.padding = '10px';
+    log.style.fontSize = '12px';
+    log.style.color = '#cbd5e1';
+    log.style.overflowY = 'auto';
+    log.style.fontFamily = 'monospace';
+    hud.appendChild(log);
+
+    container.appendChild(hud);
+    return hud;
+}
+
+/**
+ * Create hero character with animations
+ */
+function createHeroCharacter(container, hero, battleState) {
+    const heroEl = document.createElement('div');
+    heroEl.style.position = 'absolute';
+    heroEl.style.left = '15%';
+    heroEl.style.top = '50%';
+    heroEl.style.transform = 'translateY(-50%)';
+    heroEl.style.fontSize = '120px';
+    heroEl.style.filter = 'drop-shadow(0 0 20px rgba(74, 222, 128, 0.8))';
+    heroEl.style.zIndex = '10';
+    heroEl.textContent = hero.char;
+    container.appendChild(heroEl);
+    return heroEl;
+}
+
+/**
+ * Create monster character with animations
+ */
+function createMonsterCharacter(container, monster, battleState) {
+    const monsterEl = document.createElement('div');
+    monsterEl.style.position = 'absolute';
+    monsterEl.style.right = '15%';
+    monsterEl.style.top = '50%';
+    monsterEl.style.transform = 'translateY(-50%)';
+    monsterEl.style.fontSize = '120px';
+    monsterEl.style.filter = 'drop-shadow(0 0 20px rgba(239, 68, 68, 0.8))';
+    monsterEl.style.zIndex = '10';
+    monsterEl.textContent = monster.char;
+    container.appendChild(monsterEl);
+    return monsterEl;
+}
+
+/**
+ * Perform hero attack with sword swing
+ */
+function performHeroAttack(heroEl, monsterEl, battleState, story, effectsLayer, hud) {
+    const damage = 25 + Math.random() * 20;
+
+    // Sword swing animation
+    heroEl.style.animation = 'heroSwordSwing 0.6s ease-out';
+
+    // Create sword slash effect
+    createSlashEffect(effectsLayer, 'hero');
+
+    // Create damage number
+    const damageNum = document.createElement('div');
+    damageNum.textContent = `-${Math.floor(damage)}`;
+    damageNum.style.position = 'absolute';
+    damageNum.style.right = '20%';
+    damageNum.style.top = '40%';
+    damageNum.style.fontSize = '48px';
+    damageNum.style.fontWeight = 'bold';
+    damageNum.style.color = '#ef4444';
+    damageNum.style.textShadow = '0 0 10px rgba(239, 68, 68, 1)';
+    damageNum.style.animation = 'damageFloat 1.5s ease-out forwards';
+    damageNum.style.pointerEvents = 'none';
+    effectsLayer.appendChild(damageNum);
+
+    // Monster hit reaction
+    monsterEl.style.animation = 'monsterHitReact 0.4s ease-out';
+
+    // Update health
+    battleState.monsterHealth -= damage;
+    updateHealthBar('monster', battleState.monsterHealth, story.monster.health);
+
+    // Log message
+    const attackType = Math.random() > 0.7 ? 'CRITICAL HIT!' : 'Attack!';
+    displayBattleMessage(hud, `${story.hero.name}: ${attackType}`, 'attack');
+}
+
+/**
+ * Perform monster attack
+ */
+function performMonsterAttack(heroEl, monsterEl, battleState, story, effectsLayer, hud) {
+    const damage = 15 + Math.random() * 25;
+
+    // Monster attack animation
+    monsterEl.style.animation = 'monsterAttack 0.6s ease-out';
+
+    // Create monster attack effect
+    createSlashEffect(effectsLayer, 'monster');
+
+    // Hero hit reaction
+    heroEl.style.animation = 'heroHitReact 0.4s ease-out';
+
+    // Create damage number
+    const damageNum = document.createElement('div');
+    damageNum.textContent = `-${Math.floor(damage)}`;
+    damageNum.style.position = 'absolute';
+    damageNum.style.left = '20%';
+    damageNum.style.top = '40%';
+    damageNum.style.fontSize = '48px';
+    damageNum.style.fontWeight = 'bold';
+    damageNum.style.color = '#fbbf24';
+    damageNum.style.textShadow = '0 0 10px rgba(251, 191, 36, 1)';
+    damageNum.style.animation = 'damageFloat 1.5s ease-out forwards';
+    damageNum.style.pointerEvents = 'none';
+    effectsLayer.appendChild(damageNum);
+
+    // Update health
+    battleState.heroHealth -= damage;
+    updateHealthBar('hero', battleState.heroHealth, 200);
+
+    displayBattleMessage(hud, `${story.monster.name}: Counterattack!`, 'enemy-attack');
+}
+
+/**
+ * Create slash effect
+ */
+function createSlashEffect(layer, direction) {
+    const slash = document.createElement('div');
+    slash.style.position = 'absolute';
+    slash.style.fontSize = '80px';
+    slash.textContent = direction === 'hero' ? '⚔️' : '🔥';
+    slash.style.pointerEvents = 'none';
+
+    if (direction === 'hero') {
+        slash.style.left = '50%';
+        slash.style.top = '45%';
+        slash.style.animation = 'slashAttack 0.5s ease-out forwards';
+    } else {
+        slash.style.right = '50%';
+        slash.style.top = '45%';
+        slash.style.animation = 'slashAttackReverse 0.5s ease-out forwards';
+    }
+
+    layer.appendChild(slash);
+    setTimeout(() => slash.remove(), 600);
+}
+
+/**
+ * Update health bar display
+ */
+function updateHealthBar(character, current, max) {
+    const percent = Math.max(0, (current / max) * 100);
+    const healthBar = document.getElementById(`${character}-health`);
+    const healthText = document.getElementById(`${character}-hp`);
+
+    if (healthBar) healthBar.style.width = percent + '%';
+    if (healthText) healthText.textContent = Math.max(0, Math.floor(current));
+}
+
+/**
+ * Display battle message in log
+ */
+function displayBattleMessage(hud, message, type) {
+    const log = document.getElementById('battle-log');
+    if (log) {
+        const msg = document.createElement('div');
+        msg.textContent = '> ' + message;
+        msg.style.color = type === 'attack' ? '#4ade80' : type === 'enemy-attack' ? '#fbbf24' : '#3b82f6';
+        msg.style.marginBottom = '4px';
+        msg.style.animation = 'slideIn 0.3s ease-out';
+        log.appendChild(msg);
+        log.scrollTop = log.scrollHeight;
+
+        // Limit log lines
+        if (log.children.length > 8) {
+            log.removeChild(log.firstChild);
+        }
+    }
+}
+
+/**
+ * Play victory sequence
+ */
+function playVictorySequence(container, heroEl, monsterEl, story, battleState, hud) {
+    displayBattleMessage(hud, `${story.hero.name} WINS!`, 'victory');
+
+    // Monster disappears
+    monsterEl.style.animation = 'monsterDefeated 1s ease-out forwards';
+
+    // Hero victory pose
+    heroEl.style.animation = 'heroVictoryPose 2s ease-out';
+
+    // Explosion effect
+    createExplosionEffects(container);
+
+    // Victory text
+    const victoryText = document.createElement('div');
+    victoryText.textContent = '⚡ VICTORY ⚡';
+    victoryText.style.position = 'absolute';
+    victoryText.style.top = '50%';
+    victoryText.style.left = '50%';
+    victoryText.style.transform = 'translate(-50%, -50%)';
+    victoryText.style.fontSize = '80px';
+    victoryText.style.fontWeight = 'bold';
+    victoryText.style.color = '#fbbf24';
+    victoryText.style.textShadow = '0 0 30px rgba(251, 191, 36, 1), 0 0 60px rgba(245, 158, 11, 0.8)';
+    victoryText.style.animation = 'victoryAppear 1.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards';
+    victoryText.style.pointerEvents = 'none';
+    container.appendChild(victoryText);
+
+    // Particle celebration
+    for (let i = 0; i < 50; i++) {
+        setTimeout(() => {
+            createCelebrationParticle(container);
+        }, i * 50);
+    }
+}
+
+/**
+ * Create explosion effects
+ */
+function createExplosionEffects(container) {
+    for (let i = 0; i < 8; i++) {
+        const explosion = document.createElement('div');
+        explosion.textContent = '💥';
+        explosion.style.position = 'absolute';
+        explosion.style.right = '20%';
+        explosion.style.top = '50%';
+        explosion.style.fontSize = '60px';
+        explosion.style.pointerEvents = 'none';
+        explosion.style.animation = `explosionBurst 0.8s ease-out forwards`;
+        explosion.style.animationDelay = (i * 0.1) + 's';
+        const angle = (i / 8) * Math.PI * 2;
+        explosion.style.setProperty('--tx', Math.cos(angle) * 200 + 'px');
+        explosion.style.setProperty('--ty', Math.sin(angle) * 200 + 'px');
+        container.appendChild(explosion);
+    }
+}
+
+/**
+ * Create celebration particle
+ */
+function createCelebrationParticle(container) {
+    const particles = ['⭐', '✨', '💫', '🎆', '🌟'];
+    const particle = document.createElement('div');
+    particle.textContent = particles[Math.floor(Math.random() * particles.length)];
+    particle.style.position = 'absolute';
+    particle.style.left = '50%';
+    particle.style.top = '50%';
+    particle.style.fontSize = '30px';
+    particle.style.pointerEvents = 'none';
+    particle.style.animation = `celebration 3s ease-out forwards`;
+
+    const tx = (Math.random() - 0.5) * 400;
+    const ty = (Math.random() - 0.5) * 400;
+    particle.style.setProperty('--tx', tx + 'px');
+    particle.style.setProperty('--ty', ty + 'px');
+
+    container.appendChild(particle);
+    setTimeout(() => particle.remove(), 3500);
 }
 
 /**

@@ -690,6 +690,177 @@ li button:hover {
   100% { clip-path: polygon(100% 0, 100% 0, 100% 100%, 100% 100%); }
 }
 
+/* ===== EPIC BATTLE COMBAT ANIMATIONS ===== */
+@keyframes heroSwordSwing {
+  0% { transform: translateY(-50%) rotate(0deg) scaleX(1); }
+  40% { transform: translateY(-50%) rotate(-20deg) scaleX(1.1); }
+  100% { transform: translateY(-50%) rotate(0deg) scaleX(1); }
+}
+
+@keyframes monsterHitReact {
+  0% { transform: translateY(-50%) scaleX(1); }
+  20% { transform: translateY(-50%) scaleX(0.9) translateX(-20px); }
+  40% { transform: translateY(-50%) scaleX(0.85) translateX(-40px); }
+  100% { transform: translateY(-50%) scaleX(1) translateX(0); }
+}
+
+@keyframes heroHitReact {
+  0% { transform: translateY(-50%) scaleX(1); }
+  20% { transform: translateY(-50%) scaleX(0.9) translateX(20px); }
+  40% { transform: translateY(-50%) scaleX(0.85) translateX(40px); }
+  100% { transform: translateY(-50%) scaleX(1) translateX(0); }
+}
+
+@keyframes monsterAttack {
+  0% { transform: translateY(-50%) translateX(0) rotate(0deg); }
+  40% { transform: translateY(-50%) translateX(-150px) rotate(-15deg) scaleX(1.1); }
+  100% { transform: translateY(-50%) translateX(0) rotate(0deg) scaleX(1); }
+}
+
+@keyframes slashAttack {
+  0% { 
+    opacity: 1;
+    transform: translateX(0) scale(0.5);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(300px) scale(2);
+  }
+}
+
+@keyframes slashAttackReverse {
+  0% { 
+    opacity: 1;
+    transform: translateX(0) scale(0.5);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-300px) scale(2);
+  }
+}
+
+@keyframes damageFloat {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-60px) scale(0.5);
+  }
+}
+
+@keyframes monsterDefeated {
+  0% { 
+    opacity: 1;
+    transform: translateY(-50%) scale(1) rotate(0deg);
+  }
+  100% { 
+    opacity: 0;
+    transform: translateY(100px) scale(0) rotate(360deg);
+  }
+}
+
+@keyframes heroVictoryPose {
+  0% { 
+    transform: translateY(-50%) scale(1);
+    filter: drop-shadow(0 0 20px rgba(74, 222, 128, 0.8));
+  }
+  50% { 
+    transform: translateY(-50%) scale(1.2) rotate(10deg);
+    filter: drop-shadow(0 0 30px rgba(74, 222, 128, 1));
+  }
+  100% { 
+    transform: translateY(-50%) scale(1);
+    filter: drop-shadow(0 0 20px rgba(74, 222, 128, 0.8));
+  }
+}
+
+@keyframes explosionBurst {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--tx), var(--ty)) scale(0);
+  }
+}
+
+@keyframes celebration {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--tx), var(--ty)) scale(0.2);
+  }
+}
+
+@keyframes victoryAppear {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0) rotate(-30deg);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.2) rotate(5deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1) rotate(0deg);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes wave {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes float {
+  0% {
+    bottom: -20px;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    bottom: 500px;
+    opacity: 0;
+  }
+}
+
+@keyframes sway {
+  0%, 100% { transform: translateX(0) rotateZ(0deg); }
+  50% { transform: translateX(5px) rotateZ(2deg); }
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
 /* ===== AURORA ANIMATION ===== */
 @keyframes aurora {
   0% {
