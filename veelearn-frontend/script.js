@@ -531,17 +531,10 @@ function validateAuthToken() {
   }
 }
 
-// ===== TOKEN MONITORING =====
-// Monitor localStorage changes and warn if token is cleared unexpectedly
-if (typeof window !== 'undefined') {
-  setInterval(() => {
-    const currentToken = localStorage.getItem("token");
-    if (!currentToken && authToken) {
-      console.warn("⚠️ WARNING: Token was cleared from localStorage but authToken still exists!");
-      console.log("This may indicate an unexpected logout or session clear");
-    }
-  }, 2000);
-}
+// ===== TOKEN STORAGE (httpOnly Cookies) =====
+// Note: Tokens are now stored in httpOnly cookies for security
+// We no longer use localStorage for tokens (XSS protection)
+// The backend automatically sends/validates token via cookie header
 
 // ===== NAVIGATION =====
 function setupNavigationListeners() {
