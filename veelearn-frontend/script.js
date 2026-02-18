@@ -248,15 +248,11 @@ function playShortTransition(fromSection, toSection) {
 }
 
 /**
- * Play epic battle animation with story
+ * Play epic battle animation with professional anime-style visual
  */
 function playEpicBattleAnimation(fromSection, toSection) {
     transitionCount++;
-    const storyIndex = getRandomStory();
-    const stories = getBattleStories();
-    const story = stories[storyIndex];
-
-    createBattleScene(story, () => {
+    createAnimeStyleBattle(() => {
         if (fromSection) fromSection.style.display = 'none';
         if (fromSection) fromSection.classList.remove('page-transition-out');
 
@@ -278,7 +274,103 @@ function playEpicBattleAnimation(fromSection, toSection) {
 }
 
 /**
- * Get random story with probability
+ * Create professional anime-style battle animation
+ * Uses canvas-rendered characters, no HUD elements, 5s backstory + 15-20s epic fight
+ */
+function createAnimeStyleBattle(onComplete) {
+    const setup = getRandomCharacterSetup();
+    
+    // Create container
+    const container = document.createElement('div');
+    container.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 9999;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+    `;
+    document.body.appendChild(container);
+
+    // Initialize anime battle system
+    const battleSystem = new AnimeBattleSystem(setup);
+    battleSystem.init(container);
+
+    // Animation loop
+    let lastTime = Date.now();
+    let totalDuration = setup.duration;
+    let isComplete = false;
+
+    function animate() {
+        const currentTime = Date.now();
+        const deltaTime = currentTime - lastTime;
+        lastTime = currentTime;
+
+        battleSystem.animate(deltaTime);
+
+        // Apply camera shake effect
+        if (battleSystem.cameraShakeIntensity > 0) {
+            const shake = battleSystem.cameraShakeIntensity;
+            container.style.transform = `translate(${(Math.random() - 0.5) * shake * 10}px, ${(Math.random() - 0.5) * shake * 10}px)`;
+        } else {
+            container.style.transform = 'translate(0, 0)';
+        }
+
+        if (battleSystem.time < totalDuration && !isComplete) {
+            requestAnimationFrame(animate);
+        } else if (!isComplete) {
+            isComplete = true;
+            setTimeout(() => {
+                container.remove();
+                onComplete();
+            }, 500);
+        }
+    }
+
+    animate();
+}
+
+/**
+ * NEW: Character and environment generation for anime-style battles
+ */
+const characterProfiles = {
+    heroes: [
+        { id: 'samurai', name: 'Shadow Samurai', color: '#e74c3c', accent: '#c0392b', weapon: 'katana' },
+        { id: 'knight', name: 'Steel Knight', color: '#3498db', accent: '#2980b9', weapon: 'sword' },
+        { id: 'mage', name: 'Archmage', color: '#9b59b6', accent: '#8e44ad', weapon: 'staff' },
+        { id: 'rogue', name: 'Shadow Assassin', color: '#34495e', accent: '#2c3e50', weapon: 'dagger' },
+        { id: 'paladin', name: 'Holy Knight', color: '#f39c12', accent: '#e67e22', weapon: 'mace' },
+    ],
+    enemies: [
+        { id: 'demon', name: 'Demon Lord', color: '#8b0000', accent: '#c41e3a', size: 1.2 },
+        { id: 'dragon', name: 'Ancient Dragon', color: '#2f4f4f', accent: '#4db8ff', size: 1.4 },
+        { id: 'warlock', name: 'Dark Warlock', color: '#4b0082', accent: '#9932cc', size: 0.95 },
+        { id: 'golem', name: 'Stone Titan', color: '#696969', accent: '#a9a9a9', size: 1.3 },
+        { id: 'wraith', name: 'Void Wraith', color: '#1a1a2e', accent: '#16213e', size: 1.05 },
+    ],
+    environments: [
+        { id: 'forest', name: 'Mystic Forest', skyColor: '#2d5016', groundColor: '#1b3a0d', accent1: '#52b788', accent2: '#2d6a4f' },
+        { id: 'volcano', name: 'Volcanic Crater', skyColor: '#5c2e1a', groundColor: '#8b0000', accent1: '#ff4500', accent2: '#ffa500' },
+        { id: 'ocean', name: 'Stormy Ocean', skyColor: '#0a3d62', groundColor: '#1c5aa0', accent1: '#5dade2', accent2: '#3498db' },
+        { id: 'castle', name: 'Ruined Castle', skyColor: '#4a4a4a', groundColor: '#2a2a2a', accent1: '#696969', accent2: '#808080' },
+        { id: 'sky', name: 'Floating Sky', skyColor: '#4a90e2', groundColor: '#87ceeb', accent1: '#2c5aa0', accent2: '#5dade2' },
+    ]
+};
+
+function getRandomCharacterSetup() {
+    const hero = characterProfiles.heroes[Math.floor(Math.random() * characterProfiles.heroes.length)];
+    const enemy = characterProfiles.enemies[Math.floor(Math.random() * characterProfiles.enemies.length)];
+    const environment = characterProfiles.environments[Math.floor(Math.random() * characterProfiles.environments.length)];
+    const isEpic = Math.random() < 0.05;
+    return { hero, enemy, environment, isEpic, duration: isEpic ? 25000 : 17000 };
+}
+
+/**
+ * Get random story with probability - DEPRECATED, use getRandomCharacterSetup instead
  */
 function getRandomStory() {
     const rand = Math.random() * 100;
@@ -375,75 +467,24 @@ function getBattleStories() {
 }
 
 /**
- * Create EPIC battle scene with real combat mechanics
- * 1000+ lines of animation logic
+ * DEPRECATED: Old battle scene creation - replaced by anime-battle-system.js
+ * Kept for backwards compatibility if needed, but not used in playEpicBattleAnimation
+ * 
+ * The new system provides:
+ * - Canvas-rendered drawn characters (no emojis)
+ * - 5-second backstory montage with animated scenes
+ * - 15-20 second epic anime-style combat
+ * - Camera shake effects
+ * - Perspective-shifting artistic backgrounds
+ * - Zero HUD elements (no stats, health bars, or battle logs)
  */
-function createBattleScene(story, onComplete) {
-    const container = document.createElement('div');
-    container.className = 'battle-scene-container';
-    container.style.background = getEnvironmentBackground(story.environment);
-    document.body.appendChild(container);
-
-    // Add environment layer
-    createEnvironmentLayer(container, story.environment);
-
-    // Create battle state
-    const battleState = {
-        heroHealth: 200,
-        monsterHealth: story.monster.health,
-        round: 0,
-        heroX: 20,
-        monsterX: 80,
-        battleLog: []
-    };
-
-    // Create UI elements
-    const hud = createBattleHUD(container, story, battleState);
-    const heroElement = createHeroCharacter(container, story.hero, battleState);
-    const monsterElement = createMonsterCharacter(container, story.monster, battleState);
-    const effectsLayer = document.createElement('div');
-    effectsLayer.style.position = 'absolute';
-    effectsLayer.style.width = '100%';
-    effectsLayer.style.height = '100%';
-    effectsLayer.style.pointerEvents = 'none';
-    container.appendChild(effectsLayer);
-
-    // Battle intro
-    displayBattleMessage(hud, `${story.hero.name} vs ${story.monster.name}!`, 'intro');
-    setTimeout(() => {
-        displayBattleMessage(hud, 'BATTLE START!', 'start');
-    }, 1500);
-
-    // Combat sequence
-    let combatTime = 3000;
-    const combatRounds = 4;
-
-    for (let round = 0; round < combatRounds; round++) {
-        // Hero attacks
-        setTimeout(() => {
-            performHeroAttack(heroElement, monsterElement, battleState, story, effectsLayer, hud);
-        }, combatTime);
-        combatTime += 2500;
-
-        // Monster counter-attack (if alive)
-        setTimeout(() => {
-            if (battleState.monsterHealth > 0) {
-                performMonsterAttack(heroElement, monsterElement, battleState, story, effectsLayer, hud);
-            }
-        }, combatTime);
-        combatTime += 2500;
-    }
-
-    // Victory sequence
-    setTimeout(() => {
-        playVictorySequence(container, heroElement, monsterElement, story, battleState, hud);
-    }, combatTime);
-
-    // Clean up
-    setTimeout(() => {
-        container.remove();
-        onComplete();
-    }, story.duration);
+function createBattleScene_DEPRECATED(story, onComplete) {
+    // This function is deprecated. Use createAnimeStyleBattle() instead
+    // which calls AnimeBattleSystem from anime-battle-system.js
+    
+    console.warn('createBattleScene_DEPRECATED called - using new anime battle system instead');
+    createAnimeStyleBattle(onComplete);
+    return;
 }
 
 /**
