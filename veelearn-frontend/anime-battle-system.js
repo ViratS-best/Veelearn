@@ -1,15 +1,12 @@
 /**
  * ============================================
- * PROFESSIONAL ANIME-STYLE BATTLE SYSTEM v2
+ * PROFESSIONAL ANIME BATTLE SYSTEM v3
  * ============================================
- * 
- * Professional artistic battle animations with:
- * - High-quality character rendering with proper proportions
- * - Artistic strokes and shading
- * - Dynamic particle systems
- * - Professional visual effects
- * - Smooth easing and transitions
- * - Beautiful background art
+ * FULL COMBAT CHOREOGRAPHY WITH:
+ * - Dynamic character animations (arms, body, reactions)
+ * - Weapon swing effects with white column attacks
+ * - Hit reactions and pain expressions
+ * - Immediate end on completion (no delay)
  */
 
 class AnimeBattleSystem {
@@ -22,7 +19,11 @@ class AnimeBattleSystem {
         this.cameraShakeIntensity = 0;
         this.particles = [];
         this.slashes = [];
-        this.magic = [];
+        this.heroHitReaction = 0;
+        this.enemyHitReaction = 0;
+        this.heroArmSwing = 0;
+        this.enemyArmSwing = 0;
+        this.isComplete = false;
     }
 
     init(container) {
@@ -63,11 +64,16 @@ class AnimeBattleSystem {
             this.updateVictory();
         }
 
-        // Update and draw particles
+        // Update particles
         this.updateParticles();
         this.drawParticles();
         this.drawSlashes();
-        this.drawMagicEffects();
+
+        // Decay hit reactions
+        this.heroHitReaction *= 0.85;
+        this.enemyHitReaction *= 0.85;
+        this.heroArmSwing *= 0.92;
+        this.enemyArmSwing *= 0.92;
 
         // Apply camera shake
         if (this.cameraShakeIntensity > 0) {
@@ -85,14 +91,12 @@ class AnimeBattleSystem {
         const w = this.canvas.width;
         const h = this.canvas.height;
 
-        // Gradient background
         const gradient = this.ctx.createLinearGradient(0, 0, 0, h);
         gradient.addColorStop(0, env.skyColor);
         gradient.addColorStop(1, env.groundColor);
         this.ctx.fillStyle = gradient;
         this.ctx.fillRect(0, 0, w, h);
 
-        // Environment-specific details
         if (env.id === 'forest') {
             this.drawForestEnvironment();
         } else if (env.id === 'volcano') {
@@ -111,28 +115,24 @@ class AnimeBattleSystem {
         const h = this.canvas.height;
         const env = this.setup.environment;
 
-        // Distant trees (parallax layer 1)
         this.ctx.fillStyle = 'rgba(30, 60, 20, 0.3)';
         for (let i = 0; i < 3; i++) {
             const x = (w * 0.2) + (i * w * 0.3) + Math.sin(this.time / 3000) * 20;
             this.drawTreeShape(x, h * 0.25, 80, 0.3);
         }
 
-        // Mid trees (parallax layer 2)
         this.ctx.fillStyle = 'rgba(45, 90, 35, 0.5)';
         for (let i = 0; i < 4; i++) {
             const x = (i * w * 0.25) + Math.sin(this.time / 2000 + i) * 10;
             this.drawTreeShape(x, h * 0.45, 120, 0.5);
         }
 
-        // Foreground trees
         this.ctx.fillStyle = env.accent1;
         for (let i = 0; i < 5; i++) {
             const x = (i * w * 0.2);
             this.drawTreeShape(x, h * 0.65, 150, 0.8);
         }
 
-        // Ground mist
         const mistGradient = this.ctx.createLinearGradient(0, h * 0.7, 0, h);
         mistGradient.addColorStop(0, 'rgba(100, 150, 100, 0)');
         mistGradient.addColorStop(1, 'rgba(50, 80, 50, 0.3)');
@@ -144,7 +144,6 @@ class AnimeBattleSystem {
         const w = this.canvas.width;
         const h = this.canvas.height;
 
-        // Smoke clouds
         this.ctx.fillStyle = 'rgba(80, 40, 20, 0.3)';
         for (let i = 0; i < 5; i++) {
             const x = (i * w * 0.25) + Math.sin(this.time / 1500 + i) * 40;
@@ -152,12 +151,10 @@ class AnimeBattleSystem {
             this.drawSmoke(x, y, 100 + i * 10);
         }
 
-        // Lava glow
         const glowIntensity = Math.sin(this.time / 800) * 0.2 + 0.6;
         this.ctx.fillStyle = `rgba(255, 100, 0, ${0.15 * glowIntensity})`;
         this.ctx.fillRect(0, h * 0.4, w, h * 0.6);
 
-        // Volcanic rocks/ground
         this.ctx.fillStyle = '#6b3410';
         for (let i = 0; i < 4; i++) {
             const x = (i * w * 0.25) + w * 0.1;
@@ -170,7 +167,6 @@ class AnimeBattleSystem {
         const w = this.canvas.width;
         const h = this.canvas.height;
 
-        // Storm clouds
         this.ctx.fillStyle = 'rgba(30, 50, 70, 0.4)';
         for (let i = 0; i < 4; i++) {
             const x = (i * w * 0.3) + Math.sin(this.time / 3000 + i) * 50;
@@ -178,7 +174,6 @@ class AnimeBattleSystem {
             this.drawStormCloud(x, y, 120);
         }
 
-        // Waves with perspective
         this.ctx.strokeStyle = 'rgba(93, 173, 226, 0.4)';
         this.ctx.lineWidth = 3;
         for (let layer = 0; layer < 3; layer++) {
@@ -193,7 +188,6 @@ class AnimeBattleSystem {
             this.ctx.stroke();
         }
 
-        // Ocean foam
         this.ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
         this.ctx.fillRect(0, h * 0.55, w, 20);
     }
@@ -202,7 +196,6 @@ class AnimeBattleSystem {
         const w = this.canvas.width;
         const h = this.canvas.height;
 
-        // Twinkling stars
         for (let i = 0; i < 30; i++) {
             const seed = i * 123;
             const x = Math.sin(seed) * w * 0.5 + w * 0.5;
@@ -212,7 +205,6 @@ class AnimeBattleSystem {
             this.drawStar(x, y, 3);
         }
 
-        // Castle walls with perspective
         this.ctx.fillStyle = '#5a5a5a';
         this.drawPerspectiveWall(w * 0.1, h * 0.35, w * 0.25, h * 0.55, 0.3);
 
@@ -222,7 +214,6 @@ class AnimeBattleSystem {
         this.ctx.fillStyle = '#4a4a4a';
         this.drawPerspectiveWall(w * 0.65, h * 0.35, w * 0.25, h * 0.55, 0.3);
 
-        // Ground shadows
         this.ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
         this.ctx.fillRect(0, h * 0.8, w, h * 0.2);
     }
@@ -231,27 +222,22 @@ class AnimeBattleSystem {
         const w = this.canvas.width;
         const h = this.canvas.height;
 
-        // Floating islands with shadow
         for (let i = 0; i < 3; i++) {
             const x = (w * 0.2) + (i * w * 0.35);
             const y = h * 0.2 + (i * 30);
             const size = 100 + i * 20;
 
-            // Island shadow
             this.ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
             this.drawIsland(x, y + 20, size);
 
-            // Island
             this.ctx.fillStyle = '#6b8e23';
             this.drawIsland(x, y, size);
 
-            // Island glow
             this.ctx.strokeStyle = `rgba(100, 180, 200, ${0.3 + Math.sin(this.time / 2000 + i) * 0.2})`;
             this.ctx.lineWidth = 3;
             this.drawIslandOutline(x, y, size);
         }
 
-        // Clouds with depth
         for (let i = 0; i < 5; i++) {
             const alpha = 0.3 + (i * 0.1);
             this.ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
@@ -261,12 +247,17 @@ class AnimeBattleSystem {
         }
     }
 
-    // ===== CHARACTER DRAWING =====
+    // ===== CHARACTER DRAWING WITH ANIMATIONS =====
 
-    drawHeroCharacter(x, y, scale, hero, isAttacking) {
+    drawHeroCharacter(x, y, scale, hero, attackPhase, hitReaction) {
         this.ctx.save();
         this.ctx.translate(x, y);
         this.ctx.scale(scale, scale);
+
+        // Hit reaction knockback
+        if (hitReaction > 0) {
+            this.ctx.translate(hitReaction * 15, -hitReaction * 10);
+        }
 
         const headX = 0;
         const headY = -35;
@@ -274,18 +265,18 @@ class AnimeBattleSystem {
         const bodyWidth = 40;
         const bodyHeight = 50;
 
-        // Aura (when attacking)
-        if (isAttacking) {
-            this.ctx.strokeStyle = `rgba(${this.hexToRgb(hero.accent).r}, ${this.hexToRgb(hero.accent).g}, ${this.hexToRgb(hero.accent).b}, 0.4)`;
+        // Aura
+        if (attackPhase > 0.3) {
+            this.ctx.strokeStyle = `rgba(${this.hexToRgb(hero.accent).r}, ${this.hexToRgb(hero.accent).g}, ${this.hexToRgb(hero.accent).b}, ${0.4 * attackPhase})`;
             this.ctx.lineWidth = 8;
-            this.drawAura(0, bodyY, 80);
+            this.drawCircle(0, bodyY, 80);
 
-            this.ctx.strokeStyle = `rgba(${this.hexToRgb(hero.accent).r}, ${this.hexToRgb(hero.accent).g}, ${this.hexToRgb(hero.accent).b}, 0.2)`;
+            this.ctx.strokeStyle = `rgba(${this.hexToRgb(hero.accent).r}, ${this.hexToRgb(hero.accent).g}, ${this.hexToRgb(hero.accent).b}, ${0.2 * attackPhase})`;
             this.ctx.lineWidth = 4;
-            this.drawAura(0, bodyY, 100);
+            this.drawCircle(0, bodyY, 100);
         }
 
-        // Body with gradient
+        // Body
         const bodyGradient = this.ctx.createLinearGradient(-bodyWidth / 2, bodyY - bodyHeight / 2, -bodyWidth / 2, bodyY + bodyHeight / 2);
         bodyGradient.addColorStop(0, this.lighten(hero.color, 1.3));
         bodyGradient.addColorStop(0.5, hero.color);
@@ -294,13 +285,12 @@ class AnimeBattleSystem {
         this.roundRect(this.ctx, -bodyWidth / 2, bodyY - bodyHeight / 2, bodyWidth, bodyHeight, 8);
         this.ctx.fill();
 
-        // Outline
         this.ctx.strokeStyle = this.darken(hero.color, 0.6);
         this.ctx.lineWidth = 2;
         this.roundRect(this.ctx, -bodyWidth / 2, bodyY - bodyHeight / 2, bodyWidth, bodyHeight, 8);
         this.ctx.stroke();
 
-        // Head
+        // Head with pain expression
         const headGradient = this.ctx.createRadialGradient(headX, headY, 0, headX, headY, 22);
         headGradient.addColorStop(0, this.lighten(hero.color, 1.2));
         headGradient.addColorStop(1, hero.color);
@@ -313,58 +303,98 @@ class AnimeBattleSystem {
         this.ctx.lineWidth = 2;
         this.ctx.stroke();
 
-        // Eyes with shine
-        this.ctx.fillStyle = '#fff';
-        this.ctx.beginPath();
-        this.ctx.arc(headX - 8, headY - 3, 5, 0, Math.PI * 2);
-        this.ctx.arc(headX + 8, headY - 3, 5, 0, Math.PI * 2);
-        this.ctx.fill();
+        // Eyes - pain expression if hit
+        if (hitReaction > 0.2) {
+            // Squinting eyes (pain)
+            this.ctx.strokeStyle = '#000';
+            this.ctx.lineWidth = 3;
+            this.ctx.beginPath();
+            this.ctx.arc(headX - 8, headY - 3, 4, 0.2, Math.PI - 0.2);
+            this.ctx.stroke();
+            this.ctx.beginPath();
+            this.ctx.arc(headX + 8, headY - 3, 4, 0.2, Math.PI - 0.2);
+            this.ctx.stroke();
 
-        this.ctx.fillStyle = '#000';
-        this.ctx.beginPath();
-        this.ctx.arc(headX - 8, headY - 2, 3, 0, Math.PI * 2);
-        this.ctx.arc(headX + 8, headY - 2, 3, 0, Math.PI * 2);
-        this.ctx.fill();
+            // Pain marks (x marks)
+            this.ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+            this.ctx.lineWidth = 2;
+            this.ctx.beginPath();
+            this.ctx.moveTo(headX - 12, headY - 8);
+            this.ctx.lineTo(headX - 8, headY - 4);
+            this.ctx.moveTo(headX - 8, headY - 8);
+            this.ctx.lineTo(headX - 12, headY - 4);
+            this.ctx.stroke();
+        } else {
+            // Normal eyes
+            this.ctx.fillStyle = '#fff';
+            this.ctx.beginPath();
+            this.ctx.arc(headX - 8, headY - 3, 5, 0, Math.PI * 2);
+            this.ctx.arc(headX + 8, headY - 3, 5, 0, Math.PI * 2);
+            this.ctx.fill();
 
-        // Pupils with shine
-        this.ctx.fillStyle = '#4dd0ff';
-        this.ctx.beginPath();
-        this.ctx.arc(headX - 7.5, headY - 2.5, 1.5, 0, Math.PI * 2);
-        this.ctx.arc(headX + 8.5, headY - 2.5, 1.5, 0, Math.PI * 2);
-        this.ctx.fill();
+            this.ctx.fillStyle = '#000';
+            this.ctx.beginPath();
+            this.ctx.arc(headX - 8, headY - 2, 3, 0, Math.PI * 2);
+            this.ctx.arc(headX + 8, headY - 2, 3, 0, Math.PI * 2);
+            this.ctx.fill();
 
-        // Weapon/sword with glow
-        this.ctx.save();
-        if (isAttacking) {
-            this.ctx.rotate(0.3);
+            this.ctx.fillStyle = '#4dd0ff';
+            this.ctx.beginPath();
+            this.ctx.arc(headX - 7.5, headY - 2.5, 1.5, 0, Math.PI * 2);
+            this.ctx.arc(headX + 8.5, headY - 2.5, 1.5, 0, Math.PI * 2);
+            this.ctx.fill();
         }
-        
+
+        // Arms with attack animation
+        const armAngle = Math.sin(this.heroArmSwing * Math.PI) * 0.8;
+        this.drawHeroArm(this.ctx, -bodyWidth / 2 - 5, bodyY - 10, hero.color, armAngle);
+        this.drawHeroArm(this.ctx, bodyWidth / 2 + 5, bodyY - 10, hero.color, 0);
+
+        // Weapon with swing animation
+        this.ctx.save();
+        const weaponRotation = Math.sin(this.heroArmSwing * Math.PI) * 0.6;
+        this.ctx.translate(30, bodyY - 20);
+        this.ctx.rotate(weaponRotation);
+
+        // White column attack effect (when swinging)
+        if (this.heroArmSwing > 0.4 && this.heroArmSwing < 0.6) {
+            const intensity = Math.sin((this.heroArmSwing - 0.4) * Math.PI * 2.5) * 0.8;
+            // White column
+            this.ctx.fillStyle = `rgba(255, 255, 255, ${0.4 * intensity})`;
+            this.ctx.fillRect(-5, -80, 10, 160);
+
+            // Bright inner column
+            this.ctx.fillStyle = `rgba(255, 255, 200, ${0.8 * intensity})`;
+            this.ctx.fillRect(-2, -70, 4, 140);
+
+            // Glow
+            this.ctx.shadowColor = `rgba(255, 255, 200, ${intensity})`;
+            this.ctx.shadowBlur = 30;
+            this.ctx.fillRect(-5, -80, 10, 160);
+            this.ctx.shadowColor = 'transparent';
+        }
+
         // Sword glow
         this.ctx.shadowColor = `rgba(${this.hexToRgb(hero.accent).r}, ${this.hexToRgb(hero.accent).g}, ${this.hexToRgb(hero.accent).b}, 0.6)`;
         this.ctx.shadowBlur = 15;
-        
+
         this.ctx.strokeStyle = this.lighten(hero.accent, 1.2);
         this.ctx.lineWidth = 6;
         this.ctx.beginPath();
-        this.ctx.moveTo(30, bodyY - 20);
-        this.ctx.lineTo(70, bodyY - 70);
+        this.ctx.moveTo(0, 0);
+        this.ctx.lineTo(0, -70);
         this.ctx.stroke();
 
         this.ctx.strokeStyle = hero.accent;
         this.ctx.lineWidth = 3;
         this.ctx.stroke();
 
-        // Blade shine
         this.ctx.strokeStyle = '#fff';
         this.ctx.lineWidth = 1;
         this.ctx.stroke();
 
         this.ctx.shadowColor = 'transparent';
         this.ctx.restore();
-
-        // Arms
-        this.drawArm(this.ctx, -bodyWidth / 2 - 5, bodyY - 10, hero.color, isAttacking ? 0.4 : 0);
-        this.drawArm(this.ctx, bodyWidth / 2 + 5, bodyY - 10, hero.color, 0);
 
         // Legs
         this.drawLeg(this.ctx, -bodyWidth / 4, bodyY + bodyHeight / 2, hero.color);
@@ -373,10 +403,15 @@ class AnimeBattleSystem {
         this.ctx.restore();
     }
 
-    drawEnemyCharacter(x, y, scale, enemy, isAttacking) {
+    drawEnemyCharacter(x, y, scale, enemy, attackPhase, hitReaction) {
         this.ctx.save();
         this.ctx.translate(x, y);
         this.ctx.scale(scale, scale);
+
+        // Hit reaction knockback
+        if (hitReaction > 0) {
+            this.ctx.translate(-hitReaction * 20, -hitReaction * 15);
+        }
 
         const headX = 0;
         const headY = -35;
@@ -384,18 +419,18 @@ class AnimeBattleSystem {
         const bodyWidth = 45;
         const bodyHeight = 55;
 
-        // Dark aura (menacing)
-        this.ctx.strokeStyle = `rgba(${this.hexToRgb(enemy.accent).r}, 50, 50, ${isAttacking ? 0.6 : 0.3})`;
+        // Dark aura
+        this.ctx.strokeStyle = `rgba(${this.hexToRgb(enemy.accent).r}, 50, 50, ${0.3 + attackPhase * 0.3})`;
         this.ctx.lineWidth = 10;
-        this.drawAura(0, bodyY, 90);
+        this.drawCircle(0, bodyY, 90);
 
-        if (isAttacking) {
+        if (attackPhase > 0.4) {
             this.ctx.strokeStyle = `rgba(${this.hexToRgb(enemy.accent).r}, 100, 100, 0.2)`;
             this.ctx.lineWidth = 6;
-            this.drawAura(0, bodyY, 120);
+            this.drawCircle(0, bodyY, 120);
         }
 
-        // Body (darker, more menacing)
+        // Body
         const bodyGradient = this.ctx.createLinearGradient(-bodyWidth / 2, bodyY - bodyHeight / 2, -bodyWidth / 2, bodyY + bodyHeight / 2);
         bodyGradient.addColorStop(0, this.lighten(enemy.color, 0.9));
         bodyGradient.addColorStop(0.5, enemy.color);
@@ -404,13 +439,12 @@ class AnimeBattleSystem {
         this.roundRect(this.ctx, -bodyWidth / 2, bodyY - bodyHeight / 2, bodyWidth, bodyHeight, 8);
         this.ctx.fill();
 
-        // Dark outline
         this.ctx.strokeStyle = this.darken(enemy.color, 1.2);
         this.ctx.lineWidth = 3;
         this.roundRect(this.ctx, -bodyWidth / 2, bodyY - bodyHeight / 2, bodyWidth, bodyHeight, 8);
         this.ctx.stroke();
 
-        // Head (larger, more menacing)
+        // Head
         const headGradient = this.ctx.createRadialGradient(headX, headY, 0, headX, headY, 25);
         headGradient.addColorStop(0, this.lighten(enemy.accent, 0.8));
         headGradient.addColorStop(1, enemy.accent);
@@ -423,28 +457,59 @@ class AnimeBattleSystem {
         this.ctx.lineWidth = 3;
         this.ctx.stroke();
 
-        // Glowing red eyes (menacing)
+        // Eyes - pain expression if hit
         this.ctx.shadowColor = 'rgba(255, 100, 100, 0.8)';
         this.ctx.shadowBlur = 20;
 
-        this.ctx.fillStyle = '#ff4444';
-        this.ctx.beginPath();
-        this.ctx.arc(headX - 8, headY - 2, 6, 0, Math.PI * 2);
-        this.ctx.arc(headX + 8, headY - 2, 6, 0, Math.PI * 2);
-        this.ctx.fill();
+        if (hitReaction > 0.2) {
+            // Damage/pain state
+            this.ctx.fillStyle = '#ff6666';
+            this.ctx.beginPath();
+            this.ctx.arc(headX - 8, headY - 2, 6, 0, Math.PI * 2);
+            this.ctx.arc(headX + 8, headY - 2, 6, 0, Math.PI * 2);
+            this.ctx.fill();
 
-        // Inner glow
-        this.ctx.fillStyle = '#ffff00';
-        this.ctx.beginPath();
-        this.ctx.arc(headX - 8, headY - 2, 3, 0, Math.PI * 2);
-        this.ctx.arc(headX + 8, headY - 2, 3, 0, Math.PI * 2);
-        this.ctx.fill();
+            this.ctx.fillStyle = '#ffff00';
+            this.ctx.beginPath();
+            this.ctx.arc(headX - 8, headY - 2, 3, 0, Math.PI * 2);
+            this.ctx.arc(headX + 8, headY - 2, 3, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            // Pain X eyes
+            this.ctx.strokeStyle = '#fff';
+            this.ctx.lineWidth = 2;
+            this.ctx.beginPath();
+            this.ctx.moveTo(headX - 11, headY - 5);
+            this.ctx.lineTo(headX - 5, headY + 1);
+            this.ctx.moveTo(headX - 5, headY - 5);
+            this.ctx.lineTo(headX - 11, headY + 1);
+            this.ctx.stroke();
+            this.ctx.beginPath();
+            this.ctx.moveTo(headX + 5, headY - 5);
+            this.ctx.lineTo(headX + 11, headY + 1);
+            this.ctx.moveTo(headX + 11, headY - 5);
+            this.ctx.lineTo(headX + 5, headY + 1);
+            this.ctx.stroke();
+        } else {
+            // Normal angry eyes
+            this.ctx.fillStyle = '#ff4444';
+            this.ctx.beginPath();
+            this.ctx.arc(headX - 8, headY - 2, 6, 0, Math.PI * 2);
+            this.ctx.arc(headX + 8, headY - 2, 6, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            this.ctx.fillStyle = '#ffff00';
+            this.ctx.beginPath();
+            this.ctx.arc(headX - 8, headY - 2, 3, 0, Math.PI * 2);
+            this.ctx.arc(headX + 8, headY - 2, 3, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
 
         this.ctx.shadowColor = 'transparent';
 
-        // Dark energy radiates from body when attacking
-        if (isAttacking) {
-            this.ctx.strokeStyle = `rgba(255, 50, 50, 0.5)`;
+        // Dark energy attacks
+        if (attackPhase > 0.4) {
+            this.ctx.strokeStyle = `rgba(255, 50, 50, ${0.5 * attackPhase})`;
             this.ctx.lineWidth = 2;
             for (let i = 0; i < 6; i++) {
                 const angle = (i / 6) * Math.PI * 2 + this.time / 500;
@@ -457,9 +522,10 @@ class AnimeBattleSystem {
             }
         }
 
-        // Arms
-        this.drawArm(this.ctx, -bodyWidth / 2 - 8, bodyY - 5, enemy.color, isAttacking ? 0.5 : 0, true);
-        this.drawArm(this.ctx, bodyWidth / 2 + 8, bodyY - 5, enemy.color, 0, true);
+        // Arms with attack animation
+        const armAngle = Math.sin(this.enemyArmSwing * Math.PI) * 0.9;
+        this.drawEnemyArm(this.ctx, -bodyWidth / 2 - 8, bodyY - 5, enemy.color, armAngle);
+        this.drawEnemyArm(this.ctx, bodyWidth / 2 + 8, bodyY - 5, enemy.color, 0);
 
         // Legs
         this.drawLeg(this.ctx, -bodyWidth / 4, bodyY + bodyHeight / 2, enemy.color, true);
@@ -468,12 +534,34 @@ class AnimeBattleSystem {
         this.ctx.restore();
     }
 
-    drawArm(ctx, x, y, color, rotation, isEnemy = false) {
+    drawHeroArm(ctx, x, y, color, rotation) {
         ctx.save();
         ctx.translate(x, y);
-        if (rotation) ctx.rotate(rotation);
+        ctx.rotate(rotation);
 
-        const armColor = isEnemy ? this.darken(color, 0.3) : this.lighten(color, 0.5);
+        const armColor = this.lighten(color, 0.5);
+        const gradient = ctx.createLinearGradient(0, 0, 0, 30);
+        gradient.addColorStop(0, this.lighten(armColor, 1.2));
+        gradient.addColorStop(1, armColor);
+
+        ctx.fillStyle = gradient;
+        this.roundRect(ctx, -4, 0, 8, 35, 4);
+        ctx.fill();
+
+        ctx.strokeStyle = this.darken(color, 0.5);
+        ctx.lineWidth = 1;
+        this.roundRect(ctx, -4, 0, 8, 35, 4);
+        ctx.stroke();
+
+        ctx.restore();
+    }
+
+    drawEnemyArm(ctx, x, y, color, rotation) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(rotation);
+
+        const armColor = this.darken(color, 0.3);
         const gradient = ctx.createLinearGradient(0, 0, 0, 30);
         gradient.addColorStop(0, this.lighten(armColor, 1.2));
         gradient.addColorStop(1, armColor);
@@ -525,22 +613,6 @@ class AnimeBattleSystem {
         });
     }
 
-    createMagicEffect(x, y, color) {
-        for (let i = 0; i < 20; i++) {
-            const angle = (i / 20) * Math.PI * 2;
-            const speed = 1 + Math.random() * 2;
-            this.particles.push({
-                x: x,
-                y: y,
-                vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed,
-                life: 1,
-                color: color,
-                type: 'magic'
-            });
-        }
-    }
-
     createExplosion(x, y, particleCount = 50) {
         for (let i = 0; i < particleCount; i++) {
             const angle = Math.random() * Math.PI * 2;
@@ -561,7 +633,7 @@ class AnimeBattleSystem {
         this.particles = this.particles.filter(p => {
             p.x += p.vx;
             p.y += p.vy;
-            p.vy += 0.05; // gravity
+            p.vy += 0.05;
             p.life -= 0.02;
             return p.life > 0;
         });
@@ -569,7 +641,9 @@ class AnimeBattleSystem {
 
     drawParticles() {
         this.particles.forEach(p => {
-            this.ctx.fillStyle = p.color.replace(')', `, ${p.life})`).replace('rgba', 'rgba');
+            const alpha = Math.max(0, p.life);
+            const color = p.color.includes('hsl') ? p.color : p.color;
+            this.ctx.fillStyle = p.color.replace(')', `, ${alpha})`).replace('rgba', 'rgba');
             this.ctx.beginPath();
             this.ctx.arc(p.x, p.y, 3 + Math.random() * 2, 0, Math.PI * 2);
             this.ctx.fill();
@@ -578,7 +652,7 @@ class AnimeBattleSystem {
 
     drawSlashes() {
         this.slashes = this.slashes.filter(s => {
-            s.progress += 16.67 / s.duration; // 60 FPS
+            s.progress += 16.67 / s.duration;
             if (s.progress > 1) return false;
 
             const x = s.startX + (s.targetX - s.startX) * s.progress;
@@ -596,11 +670,7 @@ class AnimeBattleSystem {
         });
     }
 
-    drawMagicEffects() {
-        // Draw magic spirals
-    }
-
-    // ===== BACKSTORY (5 SECONDS) =====
+    // ===== BACKSTORY =====
 
     updateBackstory() {
         const backstoryDuration = 5000;
@@ -634,12 +704,10 @@ class AnimeBattleSystem {
         const y = this.canvas.height * 0.5;
 
         if (sceneNum === 1) {
-            // Beginning
-            this.drawHeroCharacter(x - 150, y, 0.6, this.setup.hero, false);
+            this.drawHeroCharacter(x - 150, y, 0.6, this.setup.hero, 0, 0);
             this.ctx.fillStyle = 'rgba(150, 150, 150, 0.3)';
             this.drawCircle(x - 150, y, 200);
 
-            // Floating memories
             for (let i = 0; i < 5; i++) {
                 const px = x - 150 + Math.cos(progress * Math.PI + i) * 120;
                 const py = y - 100 + Math.sin(progress * Math.PI * 2 + i) * 100;
@@ -647,15 +715,13 @@ class AnimeBattleSystem {
                 this.drawCircle(px, py, 5);
             }
         } else if (sceneNum === 2) {
-            // Training
-            this.drawHeroCharacter(x - 150, y, 0.8, this.setup.hero, false);
+            this.drawHeroCharacter(x - 150, y, 0.8, this.setup.hero, progress, 0);
 
             const energySize = 50 + progress * 50;
             this.ctx.strokeStyle = `rgba(255, 150, 0, ${0.5 * (1 - progress)})`;
             this.ctx.lineWidth = 4;
             this.drawCircle(x - 150, y, energySize);
 
-            // Energy rays
             for (let i = 0; i < 8; i++) {
                 const angle = (i / 8) * Math.PI * 2;
                 this.ctx.strokeStyle = `rgba(255, 150, 0, ${0.3 * (1 - progress)})`;
@@ -666,22 +732,19 @@ class AnimeBattleSystem {
                 this.ctx.stroke();
             }
         } else if (sceneNum === 3) {
-            // Previous battles
-            this.drawHeroCharacter(x - 150, y, 1, this.setup.hero, true);
+            this.drawHeroCharacter(x - 150, y, 1, this.setup.hero, 0.7, 0);
 
             for (let i = 0; i < 3; i++) {
                 const enemyX = x + 50 + i * 100;
                 const enemyAlpha = Math.max(0, 1 - progress);
                 this.ctx.globalAlpha = enemyAlpha * 0.5;
-                this.drawEnemyCharacter(enemyX, y + 20, 0.7, this.setup.enemy, false);
+                this.drawEnemyCharacter(enemyX, y + 20, 0.7, this.setup.enemy, 0, 0);
                 this.ctx.globalAlpha = 1;
             }
         } else {
-            // Rising power
             const scale = 0.9 + progress * 0.2;
-            this.drawHeroCharacter(x - 150, y - progress * 50, scale, this.setup.hero, false);
+            this.drawHeroCharacter(x - 150, y - progress * 50, scale, this.setup.hero, 0, 0);
 
-            // Aura rings
             for (let i = 0; i < 3; i++) {
                 const ringSize = 100 + (i * 50) + progress * 100;
                 this.ctx.strokeStyle = `rgba(255, 200, 0, ${0.6 * progress})`;
@@ -689,7 +752,6 @@ class AnimeBattleSystem {
                 this.drawCircle(x - 150, y, ringSize);
             }
 
-            // Rising light particles
             for (let i = 0; i < 10; i++) {
                 const px = x - 150 + (Math.random() - 0.5) * 80;
                 const py = y - (progress * 200 + Math.random() * 50);
@@ -699,7 +761,7 @@ class AnimeBattleSystem {
         }
     }
 
-    // ===== FIGHT (15-20 SECONDS) =====
+    // ===== FIGHT =====
 
     updateFight() {
         const fightDuration = (this.setup.isEpic ? 20000 : 15000) - 5000;
@@ -714,15 +776,15 @@ class AnimeBattleSystem {
         const w = this.canvas.width;
         const h = this.canvas.height;
 
-        // Different phases
-        if (progress < 0.2) {
-            // Entrance/Clash
-            const phaseProgress = progress * 5;
+        // Combat choreography
+        if (progress < 0.15) {
+            // Entrance
+            const phaseProgress = progress * 6.67;
             const heroX = -200 + phaseProgress * (w * 0.35 + 200);
             const enemyX = w + 200 - phaseProgress * (w * 0.35 - (w * 0.75) + 200);
 
-            this.drawHeroCharacter(heroX, h * 0.6, 1.2, this.setup.hero, false);
-            this.drawEnemyCharacter(enemyX, h * 0.55, 1.2 * this.setup.enemy.size, this.setup.enemy, false);
+            this.drawHeroCharacter(heroX, h * 0.6, 1.2, this.setup.hero, 0, 0);
+            this.drawEnemyCharacter(enemyX, h * 0.55, 1.2 * this.setup.enemy.size, this.setup.enemy, 0, 0);
 
             if (phaseProgress > 0.8) {
                 this.createExplosion(w * 0.5, h * 0.5, 30);
@@ -730,45 +792,76 @@ class AnimeBattleSystem {
                 this.ctx.fillStyle = `rgba(255, 255, 200, ${Math.min(flashAlpha * 0.3, 0.5)})`;
                 this.ctx.fillRect(0, 0, w, h);
             }
-        } else if (progress < 0.5) {
-            // Exchange
-            const phaseProgress = (progress - 0.2) * 3.33;
-            const heroX = w * 0.25 + Math.sin(phaseProgress * Math.PI) * 40;
-            const enemyX = w * 0.75 - Math.sin(phaseProgress * Math.PI) * 60;
+        } else if (progress < 0.4) {
+            // Hero attacks
+            const phaseProgress = (progress - 0.15) * 3.33;
+            const heroX = w * 0.25;
+            const enemyX = w * 0.75 - phaseProgress * 40;
 
-            this.drawHeroCharacter(heroX, h * 0.6, 1.1, this.setup.hero, phaseProgress % 0.5 < 0.25);
-            this.drawEnemyCharacter(enemyX, h * 0.55, 1.1 * this.setup.enemy.size, this.setup.enemy, phaseProgress % 0.5 >= 0.25);
+            this.heroArmSwing = phaseProgress % 0.5;
+            this.drawHeroCharacter(heroX, h * 0.6, 1.1, this.setup.hero, phaseProgress, 0);
+            this.drawEnemyCharacter(enemyX, h * 0.55, 1.1 * this.setup.enemy.size, this.setup.enemy, 0, Math.max(0, phaseProgress - 0.4));
 
-            // Attack effects
-            if (phaseProgress % 0.5 < 0.25) {
-                this.createSlash(heroX + 50, h * 0.5, heroX + 150, h * 0.4);
+            if (phaseProgress > 0.4 && phaseProgress < 0.6) {
+                this.createSlash(heroX + 50, h * 0.5, enemyX - 20, h * 0.4);
+                this.createExplosion(enemyX - 20, h * 0.4, 15);
             }
-        } else if (progress < 0.8) {
-            // Intense
-            const phaseProgress = (progress - 0.5) * 3.33;
-            const heroX = w * 0.25 + Math.sin(phaseProgress * Math.PI * 4) * 60;
-            const enemyX = w * 0.75 + Math.sin(phaseProgress * Math.PI * 4 + Math.PI) * 80;
 
-            this.drawHeroCharacter(heroX, h * 0.6, 1.2, this.setup.hero, true);
-            this.drawEnemyCharacter(enemyX, h * 0.55, 1.2 * this.setup.enemy.size, this.setup.enemy, true);
-
-            this.cameraShakeIntensity = 0.4;
-
-            // Multiple effects
-            if (Math.floor(phaseProgress * 10) % 3 === 0) {
-                this.createSlash(heroX + 60, h * 0.4, heroX + 160, h * 0.3);
-                this.createMagicEffect(enemyX - 60, h * 0.4, 'rgba(100, 150, 255, 0.6)');
+            if (phaseProgress > 0.4) {
+                this.enemyHitReaction = Math.max(this.enemyHitReaction, (phaseProgress - 0.4) * 2.5);
+                this.cameraShakeIntensity = 0.3;
             }
+        } else if (progress < 0.65) {
+            // Enemy counter
+            const phaseProgress = (progress - 0.4) * 4;
+            const heroX = w * 0.25 + phaseProgress * 30;
+            const enemyX = w * 0.75;
+
+            this.enemyArmSwing = phaseProgress % 0.5;
+            this.drawHeroCharacter(heroX, h * 0.6, 1.1, this.setup.hero, 0, Math.max(0, phaseProgress - 0.4));
+            this.drawEnemyCharacter(enemyX, h * 0.55, 1.1 * this.setup.enemy.size, this.setup.enemy, phaseProgress, 0);
+
+            if (phaseProgress > 0.4 && phaseProgress < 0.6) {
+                this.createExplosion(heroX + 30, h * 0.5, 15);
+            }
+
+            if (phaseProgress > 0.4) {
+                this.heroHitReaction = Math.max(this.heroHitReaction, (phaseProgress - 0.4) * 2.5);
+                this.cameraShakeIntensity = 0.3;
+            }
+        } else if (progress < 0.85) {
+            // Intense rapid combat
+            const phaseProgress = (progress - 0.65) * 4;
+            const heroX = w * 0.25 + Math.sin(phaseProgress * Math.PI * 6) * 40;
+            const enemyX = w * 0.75 - Math.sin(phaseProgress * Math.PI * 6) * 50;
+
+            this.heroArmSwing = phaseProgress % 0.3;
+            this.enemyArmSwing = (phaseProgress + 0.15) % 0.3;
+
+            this.drawHeroCharacter(heroX, h * 0.6, 1.2, this.setup.hero, 0.8, this.enemyHitReaction);
+            this.drawEnemyCharacter(enemyX, h * 0.55, 1.2 * this.setup.enemy.size, this.setup.enemy, 0.8, this.heroHitReaction);
+
+            if (Math.floor(phaseProgress * 20) % 4 === 0) {
+                this.createExplosion(enemyX, h * 0.5, 10);
+            }
+            if (Math.floor(phaseProgress * 20) % 4 === 2) {
+                this.createExplosion(heroX, h * 0.5, 10);
+            }
+
+            this.cameraShakeIntensity = 0.5;
         } else {
             // Final strike
-            const phaseProgress = (progress - 0.8) * 5;
+            const phaseProgress = (progress - 0.85) * 6.67;
             const heroX = w * 0.25 + phaseProgress * (w * 0.4);
             const enemyX = w * 0.75 - phaseProgress * (w * 0.25);
 
-            this.drawHeroCharacter(heroX, h * 0.6, 1.3, this.setup.hero, true);
-            this.drawEnemyCharacter(enemyX, h * 0.55, 1.3 * this.setup.enemy.size, this.setup.enemy, true);
+            this.heroArmSwing = Math.min(1, phaseProgress * 1.5);
+            this.drawHeroCharacter(heroX, h * 0.6, 1.3, this.setup.hero, 1, 0);
+            this.drawEnemyCharacter(enemyX, h * 0.55, 1.3 * this.setup.enemy.size, this.setup.enemy, 0.5, Math.max(0, (phaseProgress - 0.5) * 2));
 
-            this.createSlash(heroX + 100, h * 0.5, heroX + 250, h * 0.3);
+            this.createSlash(heroX + 100, h * 0.5, enemyX - 20, h * 0.4);
+            this.createExplosion(enemyX, h * 0.5, 30);
+
             this.cameraShakeIntensity = 0.8 * (1 - phaseProgress);
 
             if (phaseProgress > 0.7) {
@@ -777,7 +870,7 @@ class AnimeBattleSystem {
             }
         }
 
-        // Apply camera shake
+        // Camera shake
         if (this.cameraShakeIntensity > 0) {
             const shake = this.cameraShakeIntensity;
             this.ctx.translate((Math.random() - 0.5) * shake * 20, (Math.random() - 0.5) * shake * 20);
@@ -787,9 +880,10 @@ class AnimeBattleSystem {
     // ===== VICTORY =====
 
     updateVictory() {
-        const victoryDuration = 3000;
+        const victoryDuration = 2000; // Reduced from 3000 for faster completion
 
         if (this.time > victoryDuration) {
+            this.isComplete = true;
             return;
         }
 
@@ -800,31 +894,27 @@ class AnimeBattleSystem {
         const heroScale = 1 + progress * 0.4;
         const heroY = h * 0.6 - progress * 150;
 
-        this.drawHeroCharacter(w * 0.5, heroY, heroScale, this.setup.hero, false);
+        this.drawHeroCharacter(w * 0.5, heroY, heroScale, this.setup.hero, 1, 0);
 
-        // Victory glow
         const glowSize = 200 + progress * 400;
         this.ctx.strokeStyle = `rgba(255, 200, 0, ${0.8 * (1 - progress)})`;
         this.ctx.lineWidth = 6;
         this.drawCircle(w * 0.5, heroY, glowSize);
 
-        // Celebration particles
         if (Math.floor(progress * 100) % 3 === 0) {
             this.createExplosion(w * 0.5, heroY, 10);
         }
     }
 
-    // ===== HELPER FUNCTIONS =====
+    // ===== HELPERS =====
 
     drawTreeShape(x, y, height, opacity) {
         this.ctx.save();
         this.ctx.globalAlpha = opacity;
 
-        // Trunk
         this.ctx.fillStyle = '#6b4423';
         this.ctx.fillRect(x - height * 0.12, y, height * 0.24, height * 0.35);
 
-        // Foliage (triangle)
         this.ctx.beginPath();
         this.ctx.moveTo(x, y - height * 0.4);
         this.ctx.lineTo(x - height * 0.35, y);
@@ -913,19 +1003,12 @@ class AnimeBattleSystem {
         this.ctx.fill();
     }
 
-    drawAura(x, y, radius) {
-        this.ctx.beginPath();
-        this.ctx.arc(x, y, radius, 0, Math.PI * 2);
-        this.ctx.stroke();
-    }
-
     drawCircle(x, y, radius) {
         this.ctx.beginPath();
         this.ctx.arc(x, y, radius, 0, Math.PI * 2);
         this.ctx.fill();
     }
 
-    // Utility functions
     roundRect(ctx, x, y, width, height, radius) {
         ctx.beginPath();
         ctx.moveTo(x + radius, y);

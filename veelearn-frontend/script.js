@@ -302,7 +302,6 @@ function createAnimeStyleBattle(onComplete) {
 
     // Animation loop
     let lastTime = Date.now();
-    let totalDuration = setup.duration;
     let isComplete = false;
 
     function animate() {
@@ -320,14 +319,13 @@ function createAnimeStyleBattle(onComplete) {
             container.style.transform = 'translate(0, 0)';
         }
 
-        if (battleSystem.time < totalDuration && !isComplete) {
-            requestAnimationFrame(animate);
-        } else if (!isComplete) {
+        // Check if battle complete (immediately, no delay)
+        if (battleSystem.isComplete && !isComplete) {
             isComplete = true;
-            setTimeout(() => {
-                container.remove();
-                onComplete();
-            }, 500);
+            container.remove();
+            onComplete();
+        } else if (!isComplete) {
+            requestAnimationFrame(animate);
         }
     }
 
