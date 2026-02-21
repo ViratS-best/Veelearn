@@ -116,6 +116,8 @@ app.use(express.json({ limit: '50mb' }));
 app.use(cookieParser());
 app.use(cors({
     origin: [
+        'https://veelearn.org',
+        'https://www.veelearn.org',
         'http://localhost:5500',
         'http://127.0.0.1:5500',
         'https://virat-sisodiya.github.io',
