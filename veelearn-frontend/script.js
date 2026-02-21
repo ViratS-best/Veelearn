@@ -1,6 +1,9 @@
 // ===== GLOBAL STATE =====
 // Determine API base URL based on environment
 const API_BASE_URL = (() => {
+    if (window.location.hostname.includes('veelearn.org')) {
+        return 'https://api.veelearn.org';
+    }
     // If on GitHub Pages, use Render backend
     if (window.location.hostname.includes('github.io')) {
         return 'https://veelearn.onrender.com';
