@@ -215,6 +215,7 @@
             text-overflow: ellipsis;
             display: -webkit-box;
             -webkit-line-clamp: 2;
+            line-clamp: 2;
             -webkit-box-orient: vertical;
         }
 
@@ -659,7 +660,12 @@
     </main>
 
     <script>
-        const API_BASE_URL = 'http://localhost:3000/api';
+        const API_BASE_URL = (() => {
+            if (window.location.hostname.includes('veelearn.org')) return 'https://api.veelearn.org';
+            if (window.location.hostname.includes('github.io')) return 'https://veelearn.onrender.com';
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') return 'http://localhost:3000';
+            return window.location.origin;
+        })() + '/api';
         let currentPage = 1;
         let currentSearch = '';
         let currentSort = 'newest';

@@ -602,6 +602,13 @@
 
   <script>
     // Visual Simulator Creator - Main Logic
+    const API_BASE_URL = (() => {
+      if (window.location.hostname.includes('veelearn.org')) return 'https://api.veelearn.org';
+      if (window.location.hostname.includes('github.io')) return 'https://veelearn.onrender.com';
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') return 'http://localhost:3000';
+      return window.location.origin;
+    })();
+
     let blocks = [];
     let connections = [];
     let selectedBlock = null;
@@ -1616,7 +1623,7 @@
           return;
         }
 
-        const response = await fetch("http://localhost:3000/api/simulators", {
+        const response = await fetch(`${API_BASE_URL}/api/simulators`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json"

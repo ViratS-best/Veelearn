@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -188,6 +189,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="execute-container">
         <div class="header-bar">
@@ -236,10 +238,16 @@
 
     <script>
         // Global state
-         let simulator = null;
-         let simulatorId = null;
-         let authToken = localStorage.getItem('token');
-         let isRunning = false;
+        const API_BASE_URL = (() => {
+            if (window.location.hostname.includes('veelearn.org')) return 'https://api.veelearn.org';
+            if (window.location.hostname.includes('github.io')) return 'https://veelearn.onrender.com';
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') return 'http://localhost:3000';
+            return window.location.origin;
+        })();
+
+        let simulator = null;
+        let simulatorId = null;
+        let isRunning = false;
         let animationFrameId = null;
         let canvas = document.getElementById('simulatorCanvas');
         let ctx = canvas.getContext('2d');
@@ -262,47 +270,41 @@
             }
             loadSimulator();
         });
-
         // Load simulator from backend
         function loadSimulator() {
-            if (!authToken) {
-                showError('Not authenticated. Please login first.');
-                return;
-            }
-
             console.log('Loading simulator ID:', simulatorId);
 
-            fetch(`http://localhost:3000/api/simulators/${simulatorId}`, {
-                headers: { 'Authorization': `Bearer ${authToken}` }
+            fetch(`${API_BASE_URL}/api/simulators/${simulatorId}`, {
+                credentials: 'include'
             })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    simulator = data.data;
-                    console.log('Simulator loaded:', simulator);
-                    
-                    document.getElementById('simulatorTitle').textContent = simulator.title || 'Simulator';
-                    document.getElementById('creatorInfo').textContent = `Creator: ${simulator.creator_email || 'Unknown'}`;
-                    document.getElementById('typeInfo').textContent = `Type: Block-based`;
-                    document.getElementById('dateInfo').textContent = `Created: ${new Date(simulator.created_at).toLocaleDateString()}`;
-                    
-                    // Log blocks and connections
-                    console.log('Blocks:', simulator.blocks);
-                    console.log('Connections:', simulator.connections);
-                    
-                    if (!simulator.blocks || simulator.blocks.length === 0) {
-                        showSuccess('Simulator loaded (no blocks configured)');
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        simulator = data.data;
+                        console.log('Simulator loaded:', simulator);
+
+                        document.getElementById('simulatorTitle').textContent = simulator.title || 'Simulator';
+                        document.getElementById('creatorInfo').textContent = `Creator: ${simulator.creator_email || 'Unknown'}`;
+                        document.getElementById('typeInfo').textContent = `Type: Block-based`;
+                        document.getElementById('dateInfo').textContent = `Created: ${new Date(simulator.created_at).toLocaleDateString()}`;
+
+                        // Log blocks and connections
+                        console.log('Blocks:', simulator.blocks);
+                        console.log('Connections:', simulator.connections);
+
+                        if (!simulator.blocks || simulator.blocks.length === 0) {
+                            showSuccess('Simulator loaded (no blocks configured)');
+                        } else {
+                            showSuccess(`Simulator loaded with ${simulator.blocks.length} blocks`);
+                        }
                     } else {
-                        showSuccess(`Simulator loaded with ${simulator.blocks.length} blocks`);
+                        showError(data.message || 'Failed to load simulator');
                     }
-                } else {
-                    showError(data.message || 'Failed to load simulator');
-                }
-            })
-            .catch(err => {
-                console.error('Error loading simulator:', err);
-                showError('Connection error. Make sure backend is running on port 3000');
-            });
+                })
+                .catch(err => {
+                    console.error('Error loading simulator:', err);
+                    showError('Connection error. Make sure backend is running on port 3000');
+                });
         }
 
         // Run simulator
@@ -317,13 +319,13 @@
                 isRunning = true;
                 updateStatus('RUNNING', 'running');
                 clearCanvas();
-                
+
                 // Get blocks from simulator data
                 const blocks = simulator.blocks || [];
                 const connections = simulator.connections || [];
-                
+
                 console.log('Running simulation with', blocks.length, 'blocks');
-                
+
                 // Execute blocks
                 if (blocks && blocks.length > 0) {
                     console.log('Executing blocks:', blocks);
@@ -333,7 +335,7 @@
                 } else {
                     showSuccess('Simulator executed (no blocks to run)');
                 }
-                
+
                 // Animate the simulation
                 animateSimulation(blocks);
             } catch (err) {
@@ -367,7 +369,7 @@
             // This would use the block execution engine
             // For now, just clear and draw
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
+
             // Draw simulator content if it has visualization data
             if (simulator.visualization) {
                 drawVisualization(JSON.parse(simulator.visualization));
@@ -446,4 +448,5 @@
         updateStatus('LOADING', 'ready');
     </script>
 </body>
+
 </html>

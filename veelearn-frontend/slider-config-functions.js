@@ -48,7 +48,7 @@ Enter 1, 2, or 3 (or cancel to close)`;
 // View existing slider configurations
 async function viewSliderConfigs() {
     try {
-        const response = await fetch(`http://localhost:3000/api/courses/${currentEditingCourseId}/params`, {
+        const response = await fetch(`${API_BASE_URL}/api/courses/${currentEditingCourseId}/params`, {
             headers: { 'Authorization': `Bearer ${authToken}` }
         });
         const result = await response.json();
@@ -80,7 +80,7 @@ async function addSliderConfig() {
     const defaultValue = prompt('Default value:', '50');
 
     try {
-        const response = await fetch(`http://localhost:3000/api/courses/${currentEditingCourseId}/simulators/${currentConfiguringSimulatorId}/params`, {
+        const response = await fetch(`${API_BASE_URL}/api/courses/${currentEditingCourseId}/simulators/${currentConfiguringSimulatorId}/params`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -113,7 +113,7 @@ async function addSliderConfig() {
 async function deleteSliderConfig() {
     try {
         // First, get all configs to show list
-        const response = await fetch(`http://localhost:3000/api/courses/${currentEditingCourseId}/params`, {
+        const response = await fetch(`${API_BASE_URL}/api/courses/${currentEditingCourseId}/params`, {
             headers: { 'Authorization': `Bearer ${authToken}` }
         });
         const result = await response.json();
@@ -130,7 +130,7 @@ async function deleteSliderConfig() {
 
             if (index && configs[parseInt(index) - 1]) {
                 const paramId = configs[parseInt(index) - 1].id;
-                const deleteResponse = await fetch(`http://localhost:3000/api/courses/${currentEditingCourseId}/params/${paramId}`, {
+                const deleteResponse = await fetch(`${API_BASE_URL}/api/courses/${currentEditingCourseId}/params/${paramId}`, {
                     method: 'DELETE',
                     headers: { 'Authorization': `Bearer ${authToken}` }
                 });

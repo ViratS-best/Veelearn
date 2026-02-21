@@ -282,7 +282,7 @@ function playEpicBattleAnimation(fromSection, toSection) {
  */
 function createAnimeStyleBattle(onComplete) {
     const setup = getRandomCharacterSetup();
-    
+
     // Create container
     const container = document.createElement('div');
     container.style.cssText = `
@@ -482,7 +482,7 @@ function getBattleStories() {
 function createBattleScene_DEPRECATED(story, onComplete) {
     // This function is deprecated. Use createAnimeStyleBattle() instead
     // which calls AnimeBattleSystem from anime-battle-system.js
-    
+
     console.warn('createBattleScene_DEPRECATED called - using new anime battle system instead');
     createAnimeStyleBattle(onComplete);
     return;
@@ -1303,6 +1303,8 @@ function handleLogin() {
                 console.log("Login successful, currentUser set:", currentUser);
                 // INSTANT: Show dashboard immediately without needing a reload
                 showDashboard();
+                // Setup teacher/student UI right away after login
+                setupTeacherStudentListeners();
                 // Also load initial data in background
                 setTimeout(() => {
                     if (currentUser?.role === "superadmin") {
@@ -1362,26 +1364,32 @@ function handleRegister() {
 }
 
 function fetchUserProfile() {
-    if (!authToken) return;
+    // Use cookie-based auth - authToken may be null on page reload but cookie is preserved
+    const headers = {};
+    if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+    }
 
     fetch(`${API_BASE_URL}/api/users/profile`, {
-        headers: { Authorization: `Bearer ${authToken}` },
+        headers,
         credentials: "include"
     })
         .then((res) => res.json())
         .then((data) => {
             if (data.success) {
                 currentUser = data.data;
+                // Sync authToken from cookie/response if available
+                if (data.data.token) authToken = data.data.token;
                 showDashboard();
-                // NOW setup teacher/student UI after currentUser is loaded
+                // Setup teacher/student UI after currentUser is loaded
                 setupTeacherStudentListeners();
             } else {
-                logout();
+                showLandingPage();
             }
         })
         .catch((err) => {
             console.error("Profile fetch error:", err);
-            logout();
+            showLandingPage();
         });
 }
 
