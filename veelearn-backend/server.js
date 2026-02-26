@@ -355,9 +355,6 @@ const initializeDatabase = async () => {
         await addColumn('assignment_submissions', 'total_questions', 'INT DEFAULT 0');
         await addColumn('assignment_submissions', 'quiz_accuracy', 'DECIMAL(5,2) DEFAULT 0');
         console.log('✓ Assignment submission columns verified');
-        await query(`
-            ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS quiz_accuracy DECIMAL(5,2) DEFAULT 0
-        `);
         // Migration: Add unique constraint to quiz attempts if not already present
         // Note: Generic try/catch because MySQL 8.0 doesn't support IF NOT EXISTS for ADD UNIQUE
         try {
