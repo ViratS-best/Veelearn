@@ -87,6 +87,7 @@ async function sendEmail({ to, subject, html }) {
 }
 
 const app = express();
+app.set('trust proxy', 1); // Trust first proxy (Render/Nginx) for rate limiting
 
 
 // Check for critical environment variables
@@ -927,6 +928,40 @@ app.post('/api/reset-password', authLimiter, async (req, res) => {
     } catch (error) {
         console.error('Reset password error:', error);
         apiResponse(res, 500, 'Server error');
+    }
+});
+
+// ===== GLOBAL SEARCH ROUTE =====
+app.get('/api/search', async (req, res) => {
+    try {
+        const queryStr = req.query.q || '';
+        const searchPhrase = `%${queryStr}%`;
+
+        const courses = await query(`
+            SELECT id, title, description, creator_email, user_id 
+            FROM courses 
+            WHERE is_published = 1 AND (title LIKE ? OR description LIKE ?) 
+            LIMIT 20
+        `, [searchPhrase, searchPhrase]);
+
+        const simulators = await query(`
+            SELECT id, title, description, creator_email, visibility 
+            FROM simulators 
+            WHERE visibility = 'public' AND (title LIKE ? OR description LIKE ? OR tags LIKE ?) 
+            LIMIT 20
+        `, [searchPhrase, searchPhrase, searchPhrase]);
+
+        // Ensure returning arrays (some MySQL wrappers return arrays, some return objects)
+        const coursesArr = Array.isArray(courses) ? courses : [];
+        const simulatorsArr = Array.isArray(simulators) ? simulators : [];
+
+        apiResponse(res, 200, 'Search results fetched successfully', {
+            courses: coursesArr,
+            simulators: simulatorsArr
+        });
+    } catch (error) {
+        console.error('Search API error:', error);
+        apiResponse(res, 500, 'Server error during search');
     }
 });
 
