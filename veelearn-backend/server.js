@@ -5,6 +5,9 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
+const helmet = require('helmet');
+const xss = require('xss');
+const rateLimit = require('express-rate-limit');
 const path = require('path');
 const nodemailer = require('nodemailer');
 
@@ -94,21 +97,43 @@ if (!process.env.JWT_SECRET) {
 }
 
 // ===== SECURITY HEADERS MIDDLEWARE =====
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", "data:", "https:"],
+            fontSrc: ["'self'", "data:"],
+            connectSrc: ["'self'", "https://api.veelearn.org", "https://api.github.com", "https://api.brevo.com"]
+        }
+    },
+    crossOriginEmbedderPolicy: false
+}));
+
+// XSS Mitigation Middleware
 app.use((req, res, next) => {
-    // Prevent clickjacking
-    res.setHeader('X-Frame-Options', 'DENY');
-    // Prevent MIME sniffing
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    // XSS Protection (legacy browsers)
-    res.setHeader('X-XSS-Protection', '1; mode=block');
-    // Content Security Policy - strict protection against XSS
-    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://api.veelearn.org https://api.github.com https://api.brevo.com");
-    // HSTS - Force HTTPS in production
-    if (process.env.NODE_ENV === 'production') {
-        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    if (req.body) {
+        for (let key in req.body) {
+            if (typeof req.body[key] === 'string') {
+                req.body[key] = xss(req.body[key]);
+            }
+        }
     }
-    // Referrer policy
-    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    if (req.query) {
+        for (let key in req.query) {
+            if (typeof req.query[key] === 'string') {
+                req.query[key] = xss(req.query[key]);
+            }
+        }
+    }
+    if (req.params) {
+        for (let key in req.params) {
+            if (typeof req.params[key] === 'string') {
+                req.params[key] = xss(req.params[key]);
+            }
+        }
+    }
     next();
 });
 
@@ -669,36 +694,21 @@ const authorize = (...roles) => {
     };
 };
 
-// Rate limiting setup (basic implementation)
-const loginAttempts = new Map();
-const rateLimiter = (req, res, next) => {
-    const ip = req.ip;
-    const now = Date.now();
-    const windowMs = 15 * 60 * 1000; // 15 minutes
-    const maxAttempts = 50; // INCREASED for testing - was 5
+// Rate limiting setup
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 200, // limit each IP to 200 requests per windowMs
+    message: { success: false, message: 'Too many requests from this IP, please try again later.' }
+});
 
-    if (!loginAttempts.has(ip)) {
-        loginAttempts.set(ip, { count: 1, resetTime: now + windowMs });
-        console.log(`✓ Rate limiter: New IP ${ip}, attempts: 1/${maxAttempts}`);
-        return next();
-    }
+const authLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 10, // limit each IP to 10 login/register requests per hour
+    message: { success: false, message: 'Too many accounts created or login attempts from this IP, please try again after an hour.' }
+});
 
-    const attempts = loginAttempts.get(ip);
-    if (now > attempts.resetTime) {
-        loginAttempts.set(ip, { count: 1, resetTime: now + windowMs });
-        console.log(`✓ Rate limiter: Reset for IP ${ip}, attempts: 1/${maxAttempts}`);
-        return next();
-    }
-
-    if (attempts.count >= maxAttempts) {
-        console.error(`❌ Rate limit exceeded for IP ${ip}: ${attempts.count}/${maxAttempts}`);
-        return apiResponse(res, 429, 'Too many attempts. Please try again later.');
-    }
-
-    attempts.count++;
-    console.log(`✓ Rate limiter: IP ${ip}, attempts: ${attempts.count}/${maxAttempts}`);
-    next();
-};
+// Apply generic rate limiter to all /api/ routes
+app.use('/api/', apiLimiter);
 
 // ===== ROUTES =====
 
@@ -708,7 +718,7 @@ app.get('/', (req, res) => {
 });
 
 // ===== AUTHENTICATION ROUTES =====
-app.post('/api/register', rateLimiter, async (req, res) => {
+app.post('/api/register', authLimiter, async (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
@@ -765,7 +775,7 @@ app.post('/api/register', rateLimiter, async (req, res) => {
     }
 });
 
-app.post('/api/login', rateLimiter, async (req, res) => {
+app.post('/api/login', authLimiter, async (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
@@ -827,7 +837,7 @@ app.post('/api/logout', (req, res) => {
 // ===== FORGOT / RESET PASSWORD =====
 const resetCodes = new Map(); // email -> { code, expiresAt }
 
-app.post('/api/forgot-password', rateLimiter, async (req, res) => {
+app.post('/api/forgot-password', authLimiter, async (req, res) => {
     const { email } = req.body;
 
     if (!email) {
@@ -884,7 +894,7 @@ app.post('/api/forgot-password', rateLimiter, async (req, res) => {
     }
 });
 
-app.post('/api/reset-password', rateLimiter, async (req, res) => {
+app.post('/api/reset-password', authLimiter, async (req, res) => {
     const { email, code, newPassword } = req.body;
 
     if (!email || !code || !newPassword) {
@@ -3523,6 +3533,37 @@ asub.student_id,
             );
         }
     );
+});
+
+// ===== SEARCH ROUTE =====
+app.get('/api/search', async (req, res) => {
+    const queryStr = req.query.q;
+    if (!queryStr || queryStr.trim().length === 0) {
+        return apiResponse(res, 200, 'Search results', { courses: [], simulators: [] });
+    }
+
+    const searchTerm = `%${queryStr.trim()}%`;
+
+    try {
+        const courses = await query(
+            `SELECT id, title, description, status FROM courses 
+             WHERE status = 'published' AND (title LIKE ? OR description LIKE ?)
+             LIMIT 20`,
+            [searchTerm, searchTerm]
+        );
+
+        const simulators = await query(
+            `SELECT id, title, description, tags, downloads, rating FROM simulators 
+             WHERE is_public = TRUE AND (title LIKE ? OR description LIKE ? OR tags LIKE ?)
+             LIMIT 20`,
+            [searchTerm, searchTerm, searchTerm]
+        );
+
+        apiResponse(res, 200, 'Search results fetched', { courses, simulators });
+    } catch (error) {
+        console.error('Search error:', error);
+        apiResponse(res, 500, 'Server error during search');
+    }
 });
 
 // ===== ERROR HANDLING =====

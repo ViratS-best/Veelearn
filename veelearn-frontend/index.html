@@ -21,6 +21,9 @@
       <a href="simulator-cretor.html" id="creator-link" style="display: none"></a>
       <a href="#" id="login-link">Login</a>
       <a href="#" id="register-link">Register</a>
+      <button id="global-search-btn" title="Search Veelearn"
+        style="background: transparent; border: 1px solid #667eea; padding: 5px 10px; color: white; border-radius: 4px; cursor: pointer;">🔍
+        Search</button>
       <button id="animation-pref-btn" title="Toggle animation mode (Short/Long with epic battle scenes!)">⚙️
         Animations</button>
     </nav>
@@ -52,6 +55,27 @@
         <p style="text-align: center; color: #cbd5e1; font-size: 0.85em; margin-top: 15px;">
           Every page transition will feature a unique story. Some animations are common, some are extremely rare!
         </p>
+      </div>
+    </div>
+
+    <!-- GLOBAL SEARCH MODAL -->
+    <div id="search-modal" class="modal" style="display: none;">
+      <div class="modal-content" style="max-width: 600px; max-height: 80vh; display: flex; flex-direction: column;">
+        <span class="close-modal" id="close-search-modal" style="cursor:pointer;">&times;</span>
+        <h2>Search Veelearn</h2>
+        <input type="text" id="global-search-input" placeholder="Search courses and simulators..."
+          style="margin-bottom: 15px; padding: 12px; font-size: 16px; width: 100%; border: 1px solid #667eea; border-radius: 4px; background: #222; color: white;" />
+        <button id="execute-search-btn" class="primary-btn" style="width: 100%; margin-bottom: 20px;">Search</button>
+
+        <div id="search-results-container" style="flex: 1; overflow-y: auto;">
+          <h3 id="search-courses-header" style="display: none; border-bottom: 1px solid #444; padding-bottom: 5px;">
+            Courses</h3>
+          <div id="search-courses-list" style="display: grid; gap: 10px; margin-bottom: 20px;"></div>
+
+          <h3 id="search-simulators-header" style="display: none; border-bottom: 1px solid #444; padding-bottom: 5px;">
+            Simulators</h3>
+          <div id="search-simulators-list" style="display: grid; gap: 10px;"></div>
+        </div>
       </div>
     </div>
   </header>

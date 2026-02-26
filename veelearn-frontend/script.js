@@ -6077,3 +6077,125 @@ window.becomeTeacher = becomeTeacher;
 window.enrollInClass = enrollInClass;
 window.createAssignment = createAssignment;
 
+// ===== GLOBAL SEARCH SYSTEM =====
+document.addEventListener('DOMContentLoaded', () => {
+    const searchBtn = document.getElementById('global-search-btn');
+    const searchModal = document.getElementById('search-modal');
+    const closeSearchBtn = document.getElementById('close-search-modal');
+    const executeSearchBtn = document.getElementById('execute-search-btn');
+    const searchInput = document.getElementById('global-search-input');
+
+    if (searchBtn && searchModal && closeSearchBtn && executeSearchBtn && searchInput) {
+        // Open modal
+        searchBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            searchModal.style.display = 'flex';
+            searchInput.focus();
+        });
+
+        // Close modal
+        closeSearchBtn.addEventListener('click', () => {
+            searchModal.style.display = 'none';
+        });
+
+        // Close on clicking outside
+        window.addEventListener('click', (e) => {
+            if (e.target === searchModal) {
+                searchModal.style.display = 'none';
+            }
+        });
+
+        // Execute search on button click
+        executeSearchBtn.addEventListener('click', performGlobalSearch);
+
+        // Execute search on Enter key
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                performGlobalSearch();
+            }
+        });
+    }
+});
+
+async function performGlobalSearch() {
+    const searchInput = document.getElementById('global-search-input');
+    const query = searchInput.value.trim();
+    if (!query) return;
+
+    const executeBtn = document.getElementById('execute-search-btn');
+    const originalText = executeBtn.textContent;
+    executeBtn.textContent = 'Searching...';
+    executeBtn.disabled = true;
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/search?q=${encodeURIComponent(query)}`, {
+            headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {},
+            credentials: 'omit' // public search mostly
+        });
+        const result = await response.json();
+
+        if (result.success) {
+            renderSearchResults(result.data.courses, result.data.simulators);
+        } else {
+            console.error('Search failed:', result.message);
+            alert('Search failed. Please try again later.');
+        }
+    } catch (err) {
+        console.error('Error performing search:', err);
+        alert('Error performing search. Check connection.');
+    } finally {
+        executeBtn.textContent = originalText;
+        executeBtn.disabled = false;
+    }
+}
+
+function renderSearchResults(courses, simulators) {
+    const coursesHeader = document.getElementById('search-courses-header');
+    const coursesList = document.getElementById('search-courses-list');
+    const simulatorsHeader = document.getElementById('search-simulators-header');
+    const simulatorsList = document.getElementById('search-simulators-list');
+
+    // Render Courses
+    if (courses && courses.length > 0) {
+        coursesHeader.style.display = 'block';
+        coursesList.innerHTML = courses.map(c => `
+            <div style="background: #333; padding: 10px; border-radius: 4px; border-left: 4px solid #667eea; cursor: pointer;"
+                 onclick="viewCourseFromSearch(${c.id})">
+                <strong style="color: #fff; font-size: 16px;">${escapeHtml(c.title)}</strong>
+                <p style="color: #ccc; font-size: 14px; margin: 5px 0 0 0;">${escapeHtml(c.description || 'No description available.')}</p>
+                <small style="color: #999;">By ${escapeHtml(c.creator_email)}</small>
+            </div>
+        `).join('');
+    } else {
+        coursesHeader.style.display = 'block';
+        coursesList.innerHTML = '<p style="color: #999; font-style: italic;">No courses found for this query.</p>';
+    }
+
+    // Render Simulators
+    if (simulators && simulators.length > 0) {
+        simulatorsHeader.style.display = 'block';
+        simulatorsList.innerHTML = simulators.map(s => `
+            <div style="background: #333; padding: 10px; border-radius: 4px; border-left: 4px solid #4ade80; cursor: pointer;"
+                 onclick="window.open('${s.url}', '_blank')">
+                <strong style="color: #fff; font-size: 16px;">${escapeHtml(s.title)}</strong>
+                <p style="color: #ccc; font-size: 14px; margin: 5px 0 0 0;">${escapeHtml(s.description || 'No description available.')}</p>
+                <small style="color: #999;">By ${escapeHtml(s.creator_email)}</small>
+            </div>
+        `).join('');
+    } else {
+        simulatorsHeader.style.display = 'block';
+        simulatorsList.innerHTML = '<p style="color: #999; font-style: italic;">No simulators found for this query.</p>';
+    }
+}
+
+function viewCourseFromSearch(courseId) {
+    // Close modal and view course
+    document.getElementById('search-modal').style.display = 'none';
+
+    // We already have viewCourse(courseId) available globally
+    if (typeof viewCourse === 'function') {
+        viewCourse(courseId);
+    } else {
+        console.error('viewCourse is not available in this context.');
+    }
+}
