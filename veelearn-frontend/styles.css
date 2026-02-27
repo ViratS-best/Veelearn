@@ -1378,10 +1378,31 @@ section.page-transition-out {
 /* ===== LATEX & EQUATIONS ===== */
 .latex-equation {
   display: inline;
-  padding: 0;
+  padding: 0 0.2em;
   background: transparent;
-  font-style: italic;
+  font-style: normal;
   color: var(--text-light);
+  margin: 0 0.1em;
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* Ensure MathJax-rendered math displays properly */
+.MathJax {
+  display: inline !important;
+  font-size: inherit;
+}
+
+/* Display mode equations (block) */
+.MathJax[display="block"] {
+  display: block !important;
+  text-align: center;
+  margin: 1em 0;
+}
+
+/* Inline equations */
+.MathJax[display="true"] {
+  display: inline !important;
 }
 
 #latex-preview {

@@ -651,30 +651,52 @@ const authenticateToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
-    if (!token) {
-        return apiResponse(res, 401, 'Access token required');
-    }
-
-    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-        if (err) {
-            // If token in header is invalid, try cookie
+    // Try Authorization header first
+    if (token) {
+        return jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+            if (!err) {
+                req.user = user;
+                return next();
+            }
+            
+            // If Authorization header token fails, try cookie fallback
             const cookieToken = req.cookies.token;
             if (cookieToken) {
                 return jwt.verify(cookieToken, process.env.JWT_SECRET, (err2, user2) => {
-                    if (err2) {
-                        console.error('❌ JWT Cookie Verification Error:', err2.message);
-                        return apiResponse(res, 403, 'Invalid or expired session');
+                    if (!err2) {
+                        req.user = user2;
+                        return next();
                     }
-                    req.user = user2;
-                    return next();
+                    console.error('❌ JWT Verification Error (header & cookie failed):', {
+                        headerErr: err.message,
+                        cookieErr: err2.message
+                    });
+                    return apiResponse(res, 403, 'Invalid or expired token');
                 });
             }
-            console.error('❌ JWT Verification Error:', err.message);
+            
+            // Header token failed and no cookie available
+            console.error('❌ JWT Header Verification Error:', err.message);
             return apiResponse(res, 403, 'Invalid or expired token');
-        }
-        req.user = user;
-        next();
-    });
+        });
+    }
+
+    // No Authorization header, try cookie
+    const cookieToken = req.cookies.token;
+    if (cookieToken) {
+        return jwt.verify(cookieToken, process.env.JWT_SECRET, (err, user) => {
+            if (err) {
+                console.error('❌ JWT Cookie Verification Error:', err.message);
+                return apiResponse(res, 403, 'Invalid or expired session');
+            }
+            req.user = user;
+            return next();
+        });
+    }
+
+    // No token in header or cookie
+    console.warn('⚠️ No authentication token provided (no Authorization header, no cookie)');
+    return apiResponse(res, 401, 'Access token required. Please log in.');
 };
 
 // Alternative middleware that ONLY checks cookies (preferred for new flow)

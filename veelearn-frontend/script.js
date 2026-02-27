@@ -2164,6 +2164,11 @@ function confirmLatexInsertion() {
 // Preserves already-processed equations
 function processLatexInEditor() {
     const contentEditor = document.getElementById('course-content-editor');
+    if (!contentEditor) {
+        console.warn("⚠️ LaTeX: course-content-editor not found");
+        return;
+    }
+    
     const latexPattern = /\$\$([^$]+)\$\$|\$([^$]+)\$/g;
 
     // Walk through all text nodes and find unprocessed LaTeX patterns
@@ -2234,9 +2239,20 @@ function processLatexInEditor() {
 
     // Trigger MathJax rendering for new equations
     if (window.MathJax && window.MathJax.typesetPromise && nodesToProcess.length > 0) {
-        setTimeout(() => {
-            window.MathJax.typesetPromise([contentEditor]).catch(err => console.log('MathJax error:', err));
-        }, 50);
+        // Use longer timeout and ensure proper rendering
+        setTimeout(async () => {
+            try {
+                console.log("🔵 LaTeX: Processing", nodesToProcess.length, "text nodes");
+                await window.MathJax.typesetPromise([contentEditor]);
+                console.log("✅ LaTeX: All equations rendered");
+            } catch (err) {
+                console.error("❌ LaTeX render error:", err);
+            }
+        }, 100);
+    } else if (window.MathJax && window.MathJax.typesetPromise) {
+        console.log("ℹ️ LaTeX: No new equations to process");
+    } else {
+        console.warn("⚠️ LaTeX: MathJax not loaded yet");
     }
 }
 
@@ -3224,8 +3240,8 @@ async function viewCourse(courseId, assignmentId = null) {
         }
 
         // Re-attach event listeners for interactive elements (quizzes, sims)
-        // We need to wait for DOM update
-        setTimeout(() => {
+        // We need to wait for DOM update AND for MathJax to be ready
+        setTimeout(async () => {
             if (typeof setupViewerInteractions === 'function') {
                 setupViewerInteractions(course.id);
             } else {
@@ -3233,11 +3249,23 @@ async function viewCourse(courseId, assignmentId = null) {
             }
             // Convert simulator buttons for this page
             convertSimulatorButtonsForViewer(course.id, course);
-            // Render LaTeX
-            if (window.MathJax) {
-                window.MathJax.typesetPromise([viewerContent]).catch(err => console.log('MathJax error:', err));
+            
+            // Render LaTeX - CRITICAL: Must wait for MathJax to be fully loaded
+            if (window.MathJax && window.MathJax.typesetPromise) {
+                try {
+                    console.log("🔵 MathJax: Typesetting course content...");
+                    const contentDisplay = document.getElementById("course-content-display");
+                    if (contentDisplay) {
+                        await window.MathJax.typesetPromise([contentDisplay]);
+                        console.log("✅ MathJax: Content typeset successfully");
+                    }
+                } catch (err) {
+                    console.error("❌ MathJax error:", err);
+                }
+            } else {
+                console.warn("⚠️ MathJax not available or typesetPromise not loaded");
             }
-        }, 0);
+        }, 100);
     };
 
     // Define setupViewerInteractions if it's not already defined globally
@@ -6226,12 +6254,19 @@ async function toggleCourseLike(courseId, buttonElement) {
         const endpoint = `/api/courses/${courseId}/like`;
         const method = currentlyLiked ? 'DELETE' : 'POST';
 
+        const token = localStorage.getItem('token');
+        if (!token) {
+            alert('Please log in to like courses');
+            return;
+        }
+
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             method: method,
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
-            }
+            },
+            credentials: 'include'
         });
 
         const result = await response.json();
@@ -6249,8 +6284,9 @@ async function toggleCourseLike(courseId, buttonElement) {
         // Get updated like count
         const likeCountResponse = await fetch(`${API_BASE_URL}/api/courses/${courseId}/likes`, {
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
+                'Authorization': `Bearer ${token}`
+            },
+            credentials: 'include'
         });
         const likeCountResult = await likeCountResponse.json();
         const newLikeCount = likeCountResult.data.like_count;

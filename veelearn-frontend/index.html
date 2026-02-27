@@ -585,21 +585,34 @@
   <script src="script.js?v=5"></script>
 
   <!-- MathJax for LaTeX Support -->
-  <!-- Polyfill removed due to reliability issues -->
-  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <!-- Configuration MUST come before script src -->
   <script>
-    // MathJax configuration
+    // MathJax configuration - MUST be before loading MathJax
     window.MathJax = {
       tex: {
         inlineMath: [['$', '$'], ['\\(', '\\)']],
         displayMath: [['$$', '$$'], ['\\[', '\\]']],
-        processEscapes: true
+        processEscapes: true,
+        processEnvironments: true
       },
       svg: {
-        fontCache: 'global'
+        fontCache: 'global',
+        displayAlign: 'center',
+        displayIndent: '0em'
+      },
+      chtml: {
+        displayAlign: 'center',
+        displayIndent: '0em'
+      },
+      startup: {
+        pageReady: () => {
+          console.log("✅ MathJax: Ready and configured");
+          return window.MathJax.typesetPromise();
+        }
       }
     };
   </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </body>
 
 </html>
