@@ -1027,6 +1027,23 @@ function escapeHtml(unsafe) {
         .replace(/'/g, "&#039;");
 }
 
+function getYoutubeEmbedUrl(url) {
+    if (!url) return null;
+    let videoId = null;
+    try {
+        if (url.includes('youtube.com/watch')) {
+            videoId = new URL(url).searchParams.get('v');
+        } else if (url.includes('youtu.be/')) {
+            videoId = url.split('youtu.be/')[1].split(/[?#]/)[0];
+        } else if (url.includes('youtube.com/embed/')) {
+            return url;
+        }
+    } catch (e) {
+        console.warn('Invalid YouTube URL:', url);
+    }
+    return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+}
+
 function setupMessageListeners() {
     window.addEventListener("message", (e) => {
         if (e.data.type === "closeBlockSimulator") {
@@ -3013,6 +3030,8 @@ function editCourse(courseId) {
         document.getElementById("course-title").value = course.title;
         document.getElementById("course-description").value =
             course.description || "";
+        document.getElementById("course-video-url").value =
+            course.video_url || "";
 
         // Split content into pages
         const rawContent = course.content || "";
@@ -3109,6 +3128,7 @@ function saveCourse(action = "draft") {
     const title = document.getElementById("course-title").value;
     const description = document.getElementById("course-description").value;
     const gradeLevel = document.getElementById("course-grade-level").value;
+    const videoUrl = document.getElementById("course-video-url").value;
 
     // Save current page content before gathering all content
     saveCurrentPageContent();
@@ -3150,7 +3170,8 @@ function saveCourse(action = "draft") {
         content,
         blocks: JSON.stringify(courseBlocks), // Save the blocks array
         status: status,
-        creation_time: courseTimer.totalSeconds
+        creation_time: courseTimer.totalSeconds,
+        video_url: videoUrl || null
     };
 
     console.log(`Sending ${method} request to ${url}`);
@@ -3219,6 +3240,24 @@ async function viewCourse(courseId, assignmentId = null) {
     document.getElementById("dashboard-section").style.display = "none";
     document.getElementById("course-editor-section").style.display = "none";
     document.getElementById("course-viewer-section").style.display = "block";
+
+    // Handle Video Logic
+    const videoContainer = document.getElementById("viewer-video-container");
+    const videoIframe = document.getElementById("viewer-video-iframe");
+    const videoLink = document.getElementById("viewer-video-link");
+    const noVideoPlaceholder = document.getElementById("viewer-no-video");
+
+    const embedUrl = getYoutubeEmbedUrl(course.video_url);
+    if (embedUrl) {
+        videoIframe.src = embedUrl;
+        videoLink.href = course.video_url;
+        videoContainer.style.display = "block";
+        noVideoPlaceholder.style.display = "none";
+    } else {
+        videoIframe.src = "";
+        videoContainer.style.display = "none";
+        noVideoPlaceholder.style.display = "block";
+    }
 
     const viewerContent = document.getElementById("course-viewer-content");
 

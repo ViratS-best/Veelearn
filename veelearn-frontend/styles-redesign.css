@@ -1133,6 +1133,27 @@ body {
   letter-spacing: 0.5px;
 }
 
+.editor-sidebar input,
+.editor-sidebar select,
+.editor-sidebar textarea {
+  width: 100%;
+  padding: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-light);
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.editor-sidebar input:focus,
+.editor-sidebar select:focus,
+.editor-sidebar textarea:focus {
+  border-color: var(--primary);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+}
+
 /* Smooth transitions for all interactive elements */
 *:not(script) {
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;

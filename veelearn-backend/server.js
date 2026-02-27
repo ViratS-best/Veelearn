@@ -293,6 +293,9 @@ const initializeDatabase = async () => {
         // Migration: Add grade_level column if it doesn't exist
         await addColumn('courses', 'grade_level', 'INT CHECK (grade_level >= 1 AND grade_level <= 13)');
 
+        // Migration: Add video_url column if it doesn't exist
+        await addColumn('courses', 'video_url', 'VARCHAR(255)');
+
         // Migration: Add volunteer columns to users table
         await addColumn('users', 'total_volunteer_hours', 'FLOAT DEFAULT 0');
         await addColumn('users', 'is_verified_creator', 'BOOLEAN DEFAULT FALSE');
@@ -658,7 +661,7 @@ const authenticateToken = (req, res, next) => {
                 req.user = user;
                 return next();
             }
-            
+
             // If Authorization header token fails, try cookie fallback
             const cookieToken = req.cookies.token;
             if (cookieToken) {
@@ -674,7 +677,7 @@ const authenticateToken = (req, res, next) => {
                     return apiResponse(res, 403, 'Invalid or expired token');
                 });
             }
-            
+
             // Header token failed and no cookie available
             console.error('❌ JWT Header Verification Error:', err.message);
             return apiResponse(res, 403, 'Invalid or expired token');
@@ -1164,7 +1167,7 @@ app.put('/api/superadmin/users/:id/role', authenticateToken, authorize('superadm
 
 // ===== COURSE ROUTES =====
 app.post('/api/courses', authenticateToken, (req, res) => {
-    const { title, description, content, blocks, status, creation_time, grade_level } = req.body;
+    const { title, description, content, blocks, status, creation_time, grade_level, video_url } = req.body;
     const creator_id = req.user.id;
 
     console.log('📝 CREATE COURSE DEBUG:');
@@ -1201,8 +1204,8 @@ app.post('/api/courses', authenticateToken, (req, res) => {
     console.log('  Database:', dbConfig.database);
     console.log('  Host:', dbConfig.host);
 
-    const insertCourseQuery = 'INSERT INTO courses (title, description, content, blocks, creator_id, status, creation_time, grade_level) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
-    db.query(insertCourseQuery, [title, description || '', content || '', blocksJson, creator_id, courseStatus, creationTime, gradeLevelValue], (err, result) => {
+    const insertCourseQuery = 'INSERT INTO courses (title, description, content, blocks, creator_id, status, creation_time, grade_level, video_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)';
+    db.query(insertCourseQuery, [title, description || '', content || '', blocksJson, creator_id, courseStatus, creationTime, gradeLevelValue, video_url || null], (err, result) => {
         if (err) {
             console.error('❌ Error creating course:', err);
             return apiResponse(res, 500, 'Server error creating course', { details: err.message });
@@ -1335,7 +1338,7 @@ app.get('/api/courses/:id', authenticateToken, (req, res) => {
     console.log('  Database:', dbConfig.database);
 
     const query = `
-        SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time, grade_level
+        SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time, grade_level, video_url
         FROM courses
         WHERE id = ?
     `;
@@ -1367,7 +1370,7 @@ app.get('/api/courses/:id', authenticateToken, (req, res) => {
 app.put('/api/courses/:id', authenticateToken, (req, res) => {
     const courseId = req.params.id;
     const userId = req.user.id;
-    const { title, description, content, blocks, status, creation_time, grade_level } = req.body;
+    const { title, description, content, blocks, status, creation_time, grade_level, video_url } = req.body;
 
     console.log('📝 UPDATE COURSE DEBUG:');
     console.log('  Course ID:', courseId);
@@ -1443,6 +1446,11 @@ app.put('/api/courses/:id', authenticateToken, (req, res) => {
             params.push(parseInt(grade_level));
         }
 
+        if (video_url !== undefined) {
+            updateQuery += ', video_url = ?';
+            params.push(video_url);
+        }
+
         updateQuery += ' WHERE id = ?';
         params.push(courseId);
 
@@ -1513,7 +1521,7 @@ app.get('/api/courses', authenticateToken, (req, res) => {
     const userId = req.user.id;
     const sortBy = req.query.sort || 'newest'; // most_liked, newest, trending, popular
     const { grade_level } = req.query;
-    
+
     // Determine ORDER BY clause based on sort parameter
     let orderByClause = 'c.created_at DESC'; // default newest
     if (sortBy === 'most_liked') {
@@ -1526,7 +1534,7 @@ app.get('/api/courses', authenticateToken, (req, res) => {
 
     // Show approved courses from everyone + own courses (even if pending)
     let query = `
-SELECT c.id, c.title, c.description, c.content, c.blocks, c.creator_id, c.status, c.is_paid, c.shells_cost, c.creation_time, c.grade_level,
+SELECT c.id, c.title, c.description, c.content, c.blocks, c.creator_id, c.status, c.is_paid, c.shells_cost, c.creation_time, c.grade_level, c.video_url,
        c.like_count, u.email as creator_email,
        CASE WHEN cl.user_id IS NOT NULL THEN true ELSE false END as is_liked
 FROM courses c
@@ -1541,7 +1549,7 @@ WHERE (c.status = 'approved' OR c.creator_id = ?)
     }
 
     query += `ORDER BY ${orderByClause}`;
-    
+
     const params = [userId, userId];
     if (grade_level !== undefined && grade_level !== null) {
         params.push(parseInt(grade_level));
@@ -1674,7 +1682,7 @@ app.get('/api/users/:userId/courses', authenticateToken, (req, res) => {
         return apiResponse(res, 403, 'Access denied. You can only view your own courses');
     }
 
-    const query = 'SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time, grade_level FROM courses WHERE creator_id = ?';
+    const query = 'SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time, grade_level, video_url FROM courses WHERE creator_id = ?';
     db.query(query, [userId], (err, results) => {
         if (err) {
             console.error('Error fetching user courses:', err);
@@ -1702,7 +1710,7 @@ app.get('/api/users/:userId/courses', authenticateToken, (req, res) => {
 
 // ===== ADMIN ROUTES =====
 app.get('/api/admin/courses/pending', authenticateToken, authorize('admin', 'superadmin'), (req, res) => {
-    const query = "SELECT c.id, c.title, c.description, c.content, c.blocks, c.creator_id, u.email as creator_email, c.created_at, c.grade_level FROM courses c JOIN users u ON c.creator_id = u.id WHERE c.status = 'pending'";
+    const query = "SELECT c.id, c.title, c.description, c.content, c.blocks, c.creator_id, u.email as creator_email, c.created_at, c.grade_level, c.video_url FROM courses c JOIN users u ON c.creator_id = u.id WHERE c.status = 'pending'";
 
     db.query(query, (err, results) => {
         if (err) {
@@ -1718,7 +1726,7 @@ app.get('/api/admin/courses/:id/preview', authenticateToken, authorize('admin', 
     const courseId = req.params.id;
 
     const query = `
-        SELECT c.id, c.title, c.description, c.content, c.blocks, c.creator_id, 
+        SELECT c.id, c.title, c.description, c.content, c.blocks, c.creator_id, c.video_url,
                u.email as creator_email, c.status, c.created_at, c.feedback, c.grade_level
         FROM courses c
         JOIN users u ON c.creator_id = u.id

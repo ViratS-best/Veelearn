@@ -392,6 +392,11 @@
             <option value="13">College</option>
           </select>
 
+          <h3>Course Video (Optional)</h3>
+          <p class="info-text" style="font-size: 11px; margin-bottom: 8px;">Add a YouTube link for your course
+            intro/walkthrough.</p>
+          <input type="url" id="course-video-url" placeholder="e.g. https://www.youtube.com/watch?v=..." />
+
           <div id="course-timer-display"
             style="display: flex; align-items: center; gap: 10px; padding: 12px; background: rgba(102, 126, 234, 0.15); border-radius: 8px; margin-top: 20px; font-family: monospace;">
             <span style="color: var(--text-muted); font-weight: bold; font-size: 11px; text-transform: uppercase;">⏱️
@@ -502,20 +507,29 @@
 
         <!-- SIDEBAR -->
         <div class="related-courses">
-          <h3>✨ Related Info</h3>
-          <div class="related-item">
-            <h4 style="color: var(--primary);">PLATFORM</h4>
-            <h4>Veelearn Support</h4>
-            <p>Always here to help.</p>
+          <h3>✨ Course Video</h3>
+          <div id="viewer-video-container" style="display: none; margin-bottom: 20px;">
+            <div
+              style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px; background: var(--bg-card); border: 1px solid var(--border);">
+              <iframe id="viewer-video-iframe" src=""
+                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen></iframe>
+            </div>
+            <a id="viewer-video-link" href="#" target="_blank"
+              style="display: block; margin-top: 10px; color: var(--primary); font-size: 14px; text-decoration: none; font-weight: 600;">📺
+              View on YouTube</a>
           </div>
-          <div
-            style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-top: 20px;">
-            <h4 style="margin-top: 0;">Need Help?</h4>
-            <p style="color: var(--text-muted); font-size: 13px; margin: 0 0 12px 0;">Join our community or contact
-              support if you have issues.</p>
-            <button
-              style="width: 100%; padding: 10px; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">💬
-              Contact Support</button>
+          <div id="viewer-no-video"
+            style="padding: 20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; text-align: center; color: var(--text-muted);">
+            <p style="margin: 0; font-size: 14px;">No walkthrough video available for this course.</p>
+          </div>
+
+          <h3 style="margin-top: 30px;">✨ Platform Info</h3>
+          <div class="related-item">
+            <h4 style="color: var(--primary);">VEELEARN</h4>
+            <h4>Hyper-Personalized Learning</h4>
+            <p>Veelearn leverages AI to tailor your educational journey.</p>
           </div>
         </div>
       </div>
