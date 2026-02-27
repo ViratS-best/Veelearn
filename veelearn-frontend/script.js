@@ -3242,6 +3242,16 @@ async function viewCourse(courseId, assignmentId = null) {
         // Re-attach event listeners for interactive elements (quizzes, sims)
         // We need to wait for DOM update AND for MathJax to be ready
         setTimeout(async () => {
+            // Trigger MathJax to render any LaTeX equations on the page
+            if (window.MathJax && window.MathJax.typesetPromise) {
+                try {
+                    await window.MathJax.typesetPromise([document.getElementById('course-content-display')]);
+                    console.log('✅ MathJax rendered LaTeX equations');
+                } catch (err) {
+                    console.error('MathJax rendering error:', err);
+                }
+            }
+
             if (typeof setupViewerInteractions === 'function') {
                 setupViewerInteractions(course.id);
             } else {

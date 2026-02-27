@@ -1578,6 +1578,7 @@ WHERE (c.status = 'approved' OR c.creator_id = ?)
 app.post('/api/courses/:id/like', authenticateToken, (req, res) => {
     const courseId = req.params.id;
     const userId = req.user.id;
+    console.log('✅ Like endpoint - User:', userId, 'Course:', courseId);
 
     // Insert like
     const insertQuery = 'INSERT INTO course_likes (course_id, user_id) VALUES (?, ?)';
@@ -3541,7 +3542,10 @@ app.get('/api/student/enrolled-courses', authenticateToken, (req, res) => {
                 'title', ca.title,
                 'due_date', ca.due_date
             ) SEPARATOR '|||') as assignments_json
-        LEFT JOIN classroom_assignments ca ON ca.course_id = c.id AND (se.assignment_id IS NULL OR se.assignment_id = ca.id)
+        FROM courses c
+        JOIN student_enrollments se ON se.course_id = c.id
+        LEFT JOIN users u ON u.id = c.created_by
+        LEFT JOIN classroom_assignments ca ON ca.course_id = c.id
         LEFT JOIN assignment_submissions asub ON (ca.id = asub.assignment_id OR (se.assignment_id IS NULL AND asub.assignment_id IS NULL)) AND asub.student_id = se.student_id
         WHERE se.student_id = ?
         GROUP BY c.id, c.title, c.description, u.email
