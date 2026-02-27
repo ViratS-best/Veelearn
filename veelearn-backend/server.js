@@ -936,18 +936,19 @@ app.get('/api/search', async (req, res) => {
     try {
         const queryStr = req.query.q || '';
         const searchPhrase = `%${queryStr}%`;
-
         const courses = await query(`
-            SELECT id, title, description, creator_email, user_id 
-            FROM courses 
-            WHERE is_published = 1 AND (title LIKE ? OR description LIKE ?) 
+            SELECT c.id, c.title, c.description, u.email as creator_email, c.creator_id as user_id 
+            FROM courses c
+            LEFT JOIN users u ON c.creator_id = u.id
+            WHERE c.is_published = 1 AND (c.title LIKE ? OR c.description LIKE ?) 
             LIMIT 20
         `, [searchPhrase, searchPhrase]);
 
         const simulators = await query(`
-            SELECT id, title, description, creator_email, visibility 
-            FROM simulators 
-            WHERE visibility = 'public' AND (title LIKE ? OR description LIKE ? OR tags LIKE ?) 
+            SELECT s.id, s.title, s.description, u.email as creator_email, s.visibility 
+            FROM simulators s
+            LEFT JOIN users u ON s.creator_id = u.id
+            WHERE s.visibility = 'public' AND (s.title LIKE ? OR s.description LIKE ? OR s.tags LIKE ?) 
             LIMIT 20
         `, [searchPhrase, searchPhrase, searchPhrase]);
 
