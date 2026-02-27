@@ -1292,7 +1292,7 @@ function handleLogin() {
         .then((data) => {
             if (data.success) {
                 authToken = data.data.token;
-                // localStorage.setItem("token", authToken); // DISABLED FOR SECURITY
+                localStorage.setItem("token", authToken); // Store for API calls like 'like' feature
                 // Backend returns: {token, user: {id, email, role, shells}}
                 const userData = data.data.user || data.data;
                 currentUser = {
@@ -1407,7 +1407,7 @@ function logout() {
 
     authToken = null;
     currentUser = null;
-    // localStorage.removeItem("token"); // DISABLED
+    localStorage.removeItem("token"); // Clear from localStorage on logout
     showAuthSection();
 }
 

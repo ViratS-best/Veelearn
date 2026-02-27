@@ -3546,7 +3546,7 @@ app.get('/api/student/enrolled-courses', authenticateToken, (req, res) => {
         JOIN student_enrollments se ON se.course_id = c.id
         LEFT JOIN users u ON u.id = c.created_by
         LEFT JOIN classroom_assignments ca ON ca.course_id = c.id
-        LEFT JOIN assignment_submissions asub ON (ca.id = asub.assignment_id OR (se.assignment_id IS NULL AND asub.assignment_id IS NULL)) AND asub.student_id = se.student_id
+        LEFT JOIN assignment_submissions asub ON ca.id = asub.assignment_id AND asub.student_id = se.student_id
         WHERE se.student_id = ?
         GROUP BY c.id, c.title, c.description, u.email
         ORDER BY c.title ASC
