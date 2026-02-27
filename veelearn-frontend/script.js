@@ -2948,25 +2948,27 @@ function renderAvailableCourses(searchText) {
         }
 
         // INSTANT: Build and append items one by one instead of replacing all
-        filteredCourses.forEach((course) => {
-            const li = document.createElement("li");
-            const isLiked = course.is_liked ? true : false;
-            const likeCount = course.like_count || 0;
-            const likeButtonText = isLiked ? `❤️ ${likeCount}` : `🤍 ${likeCount}`;
-            
-            li.innerHTML = `
-        <strong>${escapeHtml(course.title)}</strong>
-        <p>${escapeHtml(course.description || "No description")}</p>
-        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
-          <button onclick="viewCourse(${course.id})">View</button>
-          <button onclick="enrollInCourse(${course.id})">Enroll</button>
-          <button onclick="toggleCourseLike(${course.id}, this)" class="like-btn" data-course-id="${course.id}" data-liked="${isLiked}" style="background: ${isLiked ? '#ec4899' : '#475569'};">
-            ${likeButtonText}
-          </button>
-        </div>
-      `;
-            list.appendChild(li);
-        });
+         filteredCourses.forEach((course) => {
+             const li = document.createElement("li");
+             const isLiked = course.is_liked ? true : false;
+             const likeCount = course.like_count || 0;
+             const likeButtonText = isLiked ? `❤️ ${likeCount}` : `🤍 ${likeCount}`;
+             const gradeLevelText = course.grade_level ? (course.grade_level === 13 ? 'College' : `Grade ${course.grade_level}`) : 'Any Level';
+             
+             li.innerHTML = `
+         <strong>${escapeHtml(course.title)}</strong>
+         <p>${escapeHtml(course.description || "No description")}</p>
+         <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; align-items: center;">
+           <span style="background: #667eea; padding: 4px 8px; border-radius: 3px; font-size: 0.85em; color: white;">📚 ${gradeLevelText}</span>
+           <button onclick="viewCourse(${course.id})">View</button>
+           <button onclick="enrollInCourse(${course.id})">Enroll</button>
+           <button onclick="toggleCourseLike(${course.id}, this)" class="like-btn" data-course-id="${course.id}" data-liked="${isLiked}" style="background: ${isLiked ? '#ec4899' : '#475569'};">
+             ${likeButtonText}
+           </button>
+         </div>
+        `;
+             list.appendChild(li);
+         });
     });
 }
 
@@ -3091,6 +3093,7 @@ function editCourse(courseId) {
 function saveCourse(action = "draft") {
     const title = document.getElementById("course-title").value;
     const description = document.getElementById("course-description").value;
+    const gradeLevel = document.getElementById("course-grade-level").value;
 
     // Save current page content before gathering all content
     saveCurrentPageContent();
@@ -3128,6 +3131,7 @@ function saveCourse(action = "draft") {
     const courseData = {
         title,
         description,
+        grade_level: gradeLevel ? parseInt(gradeLevel) : null,
         content,
         blocks: JSON.stringify(courseBlocks), // Save the blocks array
         status: status,
@@ -6330,11 +6334,7 @@ async function toggleCourseLike(courseId, buttonElement) {
  */
 async function loadCoursesWithSort(sortBy = 'newest') {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/courses?sort=${sortBy}`, {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
-        });
+        const response = await fetch(`${API_BASE_URL}/api/courses?sort=${sortBy}`);
 
         const result = await response.json();
         if (!response.ok) {
