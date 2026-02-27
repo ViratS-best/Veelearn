@@ -940,7 +940,7 @@ app.get('/api/search', async (req, res) => {
             SELECT c.id, c.title, c.description, u.email as creator_email, c.creator_id as user_id 
             FROM courses c
             LEFT JOIN users u ON c.creator_id = u.id
-            WHERE c.is_published = 1 AND (c.title LIKE ? OR c.description LIKE ?) 
+            WHERE c.status = 'approved' AND (c.title LIKE ? OR c.description LIKE ?) 
             LIMIT 20
         `, [searchPhrase, searchPhrase]);
 
