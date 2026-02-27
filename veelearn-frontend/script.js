@@ -2168,7 +2168,7 @@ function processLatexInEditor() {
         console.warn("⚠️ LaTeX: course-content-editor not found");
         return;
     }
-    
+
     const latexPattern = /\$\$([^$]+)\$\$|\$([^$]+)\$/g;
 
     // Walk through all text nodes and find unprocessed LaTeX patterns
@@ -2900,20 +2900,26 @@ function renderUserCourses(searchText) {
             const li = document.createElement("li");
             const timeStr = formatCreationTime(course.creation_time);
             const likeCount = course.like_count || 0;
-            
+
+            li.className = "course-card";
+            li.style.display = "block";
+            li.style.listStyle = "none";
+
             li.innerHTML = `
-        <strong>${escapeHtml(course.title)}</strong>
-        <p>${escapeHtml(course.description || "No description")}</p>
-        ${timeStr ? `<span style="color: #999; font-size: 0.85em; display: block; margin: 4px 0;">⌛ Active creation time: ${escapeHtml(timeStr)}</span>` : ''}
-        <span style="background: ${course.status === "pending" ? "#ff9800" : "#4caf50"
-                }; color: white; padding: 4px 8px; border-radius: 3px; font-size: 0.9em;">
-            ${escapeHtml(course.status?.toUpperCase()) || "UNKNOWN"}
-        </span>
-        <span style="color: #999; font-size: 0.85em; display: inline-block; margin-left: 8px;">❤️ ${likeCount} ${likeCount === 1 ? 'like' : 'likes'}</span>
-        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
-          <button onclick="editCourse(${course.id})">Edit</button>
-          <button onclick="viewCourse(${course.id})">View</button>
-          <button onclick="deleteCourse(${course.id})">Delete</button>
+        <div class="course-card-image" style="font-size: 40px; height: 120px;">🎓</div>
+        <div class="course-card-content">
+          <div class="course-card-title">${escapeHtml(course.title)}</div>
+          <div class="course-card-status" style="background: ${course.status === "pending" ? "rgba(255,152,0,0.1)" : "rgba(74,222,128,0.1)"}; color: ${course.status === "pending" ? "#ff9800" : "var(--success)"}">${escapeHtml(course.status?.toUpperCase()) || "UNKNOWN"}</div>
+          <div class="course-progress">
+             <div class="progress-text" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 8px;">${escapeHtml(course.description || "No description")}</div>
+             <div class="progress-text" style="margin-top: 8px; color: var(--text-muted);">❤️ ${likeCount} ${likeCount === 1 ? 'like' : 'likes'}</div>
+             ${timeStr ? `<div class="progress-text" style="margin-top: 4px; font-size: 0.8em; color: var(--text-muted);">⌛ Created: ${escapeHtml(timeStr)}</div>` : ''}
+          </div>
+          <div style="display: flex; gap: 8px; margin-top: 15px;">
+              <button onclick="editCourse(${course.id})" style="flex: 1; background: var(--primary); color: white; border-radius: 6px; padding: 8px; border: none; cursor: pointer;">Edit</button>
+              <button onclick="viewCourse(${course.id})" style="flex: 1; background: #475569; color: white; border-radius: 6px; padding: 8px; border: none; cursor: pointer;">View</button>
+              <button onclick="deleteCourse(${course.id})" style="flex: 1; background: var(--danger); color: white; border-radius: 6px; padding: 8px; border: none; cursor: pointer;">Delete</button>
+          </div>
         </div>
       `;
             list.appendChild(li);
@@ -2948,27 +2954,36 @@ function renderAvailableCourses(searchText) {
         }
 
         // INSTANT: Build and append items one by one instead of replacing all
-         filteredCourses.forEach((course) => {
-             const li = document.createElement("li");
-             const isLiked = course.is_liked ? true : false;
-             const likeCount = course.like_count || 0;
-             const likeButtonText = isLiked ? `❤️ ${likeCount}` : `🤍 ${likeCount}`;
-             const gradeLevelText = course.grade_level ? (course.grade_level === 13 ? 'College' : `Grade ${course.grade_level}`) : 'Any Level';
-             
-             li.innerHTML = `
-         <strong>${escapeHtml(course.title)}</strong>
-         <p>${escapeHtml(course.description || "No description")}</p>
-         <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; align-items: center;">
-           <span style="background: #667eea; padding: 4px 8px; border-radius: 3px; font-size: 0.85em; color: white;">📚 ${gradeLevelText}</span>
-           <button onclick="viewCourse(${course.id})">View</button>
-           <button onclick="enrollInCourse(${course.id})">Enroll</button>
-           <button onclick="toggleCourseLike(${course.id}, this)" class="like-btn" data-course-id="${course.id}" data-liked="${isLiked}" style="background: ${isLiked ? '#ec4899' : '#475569'};">
-             ${likeButtonText}
-           </button>
+        filteredCourses.forEach((course) => {
+            const li = document.createElement("li");
+            const isLiked = course.is_liked ? true : false;
+            const likeCount = course.like_count || 0;
+            const likeButtonText = isLiked ? `❤️ ${likeCount}` : `🤍 ${likeCount}`;
+            const gradeLevelText = course.grade_level ? (course.grade_level === 13 ? 'College' : `Grade ${course.grade_level}`) : 'Any Level';
+
+            li.className = "course-card";
+            li.style.display = "block";
+            li.style.listStyle = "none";
+
+            li.innerHTML = `
+         <div class="course-card-image" style="font-size: 40px; height: 120px;">🎓</div>
+         <div class="course-card-content">
+           <div class="course-card-title">${escapeHtml(course.title)}</div>
+           <div class="course-card-status" style="background: rgba(102,126,234,0.1); color: var(--primary);">📚 ${gradeLevelText}</div>
+           <div class="course-progress">
+             <div class="progress-text" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 8px;">${escapeHtml(course.description || "No description")}</div>
+           </div>
+           <div style="display: flex; gap: 8px; margin-top: 15px;">
+             <button onclick="viewCourse(${course.id})" style="flex: 1; background: #475569; color: white; border-radius: 6px; padding: 8px; border: none; cursor: pointer;">View</button>
+             <button onclick="enrollInCourse(${course.id})" style="flex: 1; background: var(--primary); color: white; border-radius: 6px; padding: 8px; border: none; cursor: pointer;">Enroll</button>
+             <button onclick="toggleCourseLike(${course.id}, this)" class="like-btn" data-course-id="${course.id}" data-liked="${isLiked}" style="flex: 1; border-radius: 6px; padding: 8px; border: none; cursor: pointer; background: ${isLiked ? 'var(--secondary)' : '#475569'}; color: white;">
+               ${likeButtonText}
+             </button>
+           </div>
          </div>
         `;
-             list.appendChild(li);
-         });
+            list.appendChild(li);
+        });
     });
 }
 
@@ -3263,7 +3278,7 @@ async function viewCourse(courseId, assignmentId = null) {
             }
             // Convert simulator buttons for this page
             convertSimulatorButtonsForViewer(course.id, course);
-            
+
             // Render LaTeX - CRITICAL: Must wait for MathJax to be fully loaded
             if (window.MathJax && window.MathJax.typesetPromise) {
                 try {
@@ -6344,7 +6359,7 @@ async function loadCoursesWithSort(sortBy = 'newest') {
 
         // Update available courses
         availableCourses = result.data.filter(c => c.status === 'approved');
-        
+
         // Update my courses (with like count)
         myCourses = result.data.filter(c => c.creator_id === currentUser.id);
 

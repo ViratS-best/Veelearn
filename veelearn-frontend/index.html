@@ -217,10 +217,14 @@
     </section>
 
     <!-- DASHBOARD SECTION -->
-    <section id="dashboard-section" style="display: none">
-      <h2>Your Dashboard</h2>
-      <p>Welcome, <span id="user-email"></span>!</p>
-
+    <section id="dashboard-section" style="display: none; padding: 40px;">
+      <div class="dashboard-header">
+        <div>
+          <h1>Your Dashboard</h1>
+          <p class="subtext" style="font-size: 16px;">Welcome to Veelearn, <span id="user-email"
+              style="font-weight: 600; color: var(--primary);"></span>! 👋</p>
+        </div>
+      </div>
       <!-- SUPERADMIN DASHBOARD -->
       <div id="superadmin-dashboard" style="display: none">
         <h3>Superadmin Panel</h3>
@@ -340,7 +344,8 @@
         <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
           <input type="text" id="availableCoursesSearch" placeholder="Search available courses..."
             style="flex: 1; padding: 10px; border: 1px solid #555; border-radius: 4px; background: #222; color: #fff;" />
-          <select id="courseSortDropdown" style="padding: 10px; border: 1px solid #555; border-radius: 4px; background: #222; color: #fff;">
+          <select id="courseSortDropdown"
+            style="padding: 10px; border: 1px solid #555; border-radius: 4px; background: #222; color: #fff;">
             <option value="newest">📅 Newest</option>
             <option value="most_liked">❤️ Most Liked</option>
             <option value="trending">🔥 Trending</option>
@@ -360,127 +365,159 @@
     </section>
 
     <!-- COURSE EDITOR -->
-    <section id="course-editor-section" style="display: none">
-      <h2>Course Editor</h2>
-      <p class="info-text">
-        Use the toolbar to format your content and add interactive simulators.
-        Changes are auto-saved every 30 seconds.
-      </p>
+    <section id="course-editor-section" style="display: none; padding: 0;">
+      <form id="course-form" class="course-editor-layout">
 
-      <p class="info-text">
-        Use the toolbar to format your content and add interactive simulators.
-        Changes are auto-saved every 30 seconds.
-      </p>
+        <!-- LEFT SIDEBAR -->
+        <div class="editor-sidebar">
+          <h3>Course Details</h3>
+          <input type="text" id="course-title" placeholder="Course Title" maxlength="255" required />
+          <textarea id="course-description" placeholder="Course Description (optional)" rows="3"></textarea>
 
-      <div id="course-timer-display"
-        style="display: flex; align-items: center; gap: 10px; padding: 8px 15px; background: rgba(102, 126, 234, 0.15); border-radius: 6px; margin-bottom: 10px; font-family: monospace;">
-        <span style="color: var(--light); font-weight: bold;">⏱️ Active Time:</span>
-        <span id="course-timer-value" style="color: #4ade80; font-size: 1.2em; font-weight: bold;">00:00:00</span>
-        <span id="course-timer-status" style="font-size: 0.85em; color: #999;">(tracking...)</span>
-      </div>
+          <h3>Target Audience</h3>
+          <select id="course-grade-level">
+            <option value="">Select Grade Level</option>
+            <option value="1">1st Grade</option>
+            <option value="2">2nd Grade</option>
+            <option value="3">3rd Grade</option>
+            <option value="4">4th Grade</option>
+            <option value="5">5th Grade</option>
+            <option value="6">6th Grade</option>
+            <option value="7">7th Grade</option>
+            <option value="8">8th Grade</option>
+            <option value="9">9th Grade</option>
+            <option value="10">10th Grade</option>
+            <option value="11">11th Grade</option>
+            <option value="12">12th Grade</option>
+            <option value="13">College</option>
+          </select>
 
-      <form id="course-form">
-        <input type="text" id="course-title" placeholder="Course Title" maxlength="255" required />
-        <textarea id="course-description" placeholder="Course Description (optional)" rows="3"></textarea>
-        
-        <label for="course-grade-level" style="display: block; margin-top: 10px; font-weight: bold; color: var(--light);">Grade Level</label>
-        <select id="course-grade-level" style="width: 100%; padding: 8px; background: #2a2a3e; color: var(--light); border: 1px solid #667eea; border-radius: 4px; margin-bottom: 15px;">
-          <option value="">Select Grade Level</option>
-          <option value="1">1st Grade</option>
-          <option value="2">2nd Grade</option>
-          <option value="3">3rd Grade</option>
-          <option value="4">4th Grade</option>
-          <option value="5">5th Grade</option>
-          <option value="6">6th Grade</option>
-          <option value="7">7th Grade</option>
-          <option value="8">8th Grade</option>
-          <option value="9">9th Grade</option>
-          <option value="10">10th Grade</option>
-          <option value="11">11th Grade</option>
-          <option value="12">12th Grade</option>
-          <option value="13">College</option>
-        </select>
-
-        <div class="editor-toolbar">
-          <button type="button" data-command="bold" title="Bold">
-            <b>B</b>
-          </button>
-          <button type="button" data-command="italic" title="Italic">
-            <i>I</i>
-          </button>
-          <button type="button" data-command="underline" title="Underline">
-            <u>U</u>
-          </button>
-          <button type="button" data-command="insertUnorderedList" title="Bullet List">
-            &#x2022; List
-          </button>
-          <button type="button" data-command="insertOrderedList" title="Numbered List">
-            1. List
-          </button>
-          <button type="button" id="insert-phet-simulator" title="Add PhET Simulator">
-            ⚛️ PhET Simulator
-          </button>
-          <button type="button" id="insert-quiz-question" title="Add Quiz Question">
-            ❓ Add Question
-          </button>
-          <button type="button" id="insert-latex" title="Insert LaTeX Equation">
-            ∑ LaTeX Equation
-          </button>
+          <div id="course-timer-display"
+            style="display: flex; align-items: center; gap: 10px; padding: 12px; background: rgba(102, 126, 234, 0.15); border-radius: 8px; margin-top: 20px; font-family: monospace;">
+            <span style="color: var(--text-muted); font-weight: bold; font-size: 11px; text-transform: uppercase;">⏱️
+              Active Time</span>
+            <span id="course-timer-value"
+              style="color: #4ade80; font-size: 1.1em; font-weight: bold; margin-left: auto;">00:00:00</span>
+            <span id="course-timer-status" style="display: none;"></span>
+          </div>
         </div>
 
-        <div class="pagination-controls"
-          style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px; padding: 10px; background: rgba(102, 126, 234, 0.1); border-radius: 4px;">
-          <button type="button" id="prev-page-btn" disabled>Previous Page</button>
-          <span id="page-indicator" style="color: var(--light); font-weight: bold;">Page 1 of 1</span>
-          <button type="button" id="next-page-btn" disabled>Next Page</button>
-          <button type="button" id="add-page-btn" style="margin-left: auto; background: var(--success);">+ Add
-            Page</button>
-          <button type="button" id="delete-page-btn" style="background: var(--danger);">Delete Page</button>
+        <!-- CENTER EDITOR -->
+        <div class="editor-main">
+          <div class="editor-header">
+            <div>
+              <h1 style="margin: 0; font-size: 24px;">Content Editor</h1>
+              <p class="info-text" style="color: var(--text-muted); font-size: 13px; margin: 5px 0 0 0;">Auto-saved
+                every 30s. Auto-tracking time.</p>
+            </div>
+            <div class="editor-actions form-actions" style="margin: 0;">
+              <button type="submit" id="save-draft-btn" class="btn-save" data-action="draft">💾 Draft</button>
+              <button type="submit" id="submit-approval-btn" class="btn-publish" data-action="pending">✅ Submit</button>
+              <button type="button" id="cancel-course-edit" class="secondary-btn"
+                style="padding: 8px 16px; border-radius: 8px;">Cancel</button>
+            </div>
+          </div>
+
+          <div class="editor-toolbar">
+            <button type="button" data-command="bold" title="Bold"><b>B</b></button>
+            <button type="button" data-command="italic" title="Italic"><i>I</i></button>
+            <button type="button" data-command="underline" title="Underline"><u>U</u></button>
+            <button type="button" data-command="insertUnorderedList" title="Bullet List">• List</button>
+            <button type="button" data-command="insertOrderedList" title="Numbered List">1. List</button>
+            <button type="button" id="insert-phet-simulator" title="Add PhET Simulator">⚛️ Simulator</button>
+            <button type="button" id="insert-quiz-question" title="Add Quiz Question">❓ Question</button>
+            <button type="button" id="insert-latex" title="Insert LaTeX Equation">∑ LaTeX</button>
+          </div>
+
+          <div class="pagination-controls"
+            style="display: flex; gap: 10px; align-items: center; margin-bottom: 20px; padding: 10px; background: rgba(102, 126, 234, 0.05); border: 1px solid var(--border); border-radius: 8px;">
+            <button type="button" id="prev-page-btn" style="padding: 6px 12px; border-radius: 6px;"
+              disabled>Previous</button>
+            <span id="page-indicator" style="color: var(--text-light); font-weight: 600; font-size: 14px;">Page 1 /
+              1</span>
+            <button type="button" id="next-page-btn" style="padding: 6px 12px; border-radius: 6px;"
+              disabled>Next</button>
+            <button type="button" id="add-page-btn"
+              style="margin-left: auto; background: var(--success); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">+
+              Add Page</button>
+            <button type="button" id="delete-page-btn"
+              style="background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">Delete</button>
+          </div>
+
+          <div id="course-content-editor" contenteditable="true"
+            placeholder="Start typing your course content here... Use the toolbar above to format text and add simulators."
+            class="editor-content" spellcheck="true"></div>
         </div>
 
-        <div id="course-content-editor" contenteditable="true"
-          placeholder="Start typing your course content here... Use the toolbar above to format text and add simulators."
-          class="rich-text-editor" spellcheck="true"></div>
-
-        <div class="form-actions">
-          <button type="submit" id="save-draft-btn" class="primary-btn" data-action="draft">💾 Save as Draft</button>
-          <button type="submit" id="submit-approval-btn" class="success-btn" data-action="pending">✅ Submit for
-            Approval</button>
-          <button type="button" id="cancel-course-edit" class="secondary-btn">
-            Cancel
-          </button>
+        <!-- RIGHT SIDEBAR (Inspector Prototype) -->
+        <div class="editor-inspector">
+          <h4>Editor Hints</h4>
+          <div class="inspector-item">
+            <strong style="font-size: 13px;">Text Formatting</strong>
+            <small>Highlight text and use the toolbar to make it bold, italic, or a list.</small>
+          </div>
+          <div class="inspector-item">
+            <strong style="font-size: 13px;">Simulators</strong>
+            <small>Interactive content is isolated in blocks. Delete by selecting and backspacing.</small>
+          </div>
+          <div class="inspector-item">
+            <strong style="font-size: 13px;">LaTeX Support</strong>
+            <small>Click ∑ to see equations cheat sheet. MathJax processes them instantly.</small>
+          </div>
         </div>
       </form>
     </section>
 
     <!-- COURSE VIEWER -->
-    <section id="course-viewer-section" style="display: none">
-      <h2 id="course-viewer-title"></h2>
-      <p id="course-viewer-description" class="course-description"></p>
-      <hr />
-      <div id="course-viewer-content"></div>
+    <section id="course-viewer-section" style="display: none; padding: 40px 0;">
+      <div class="viewer-layout">
+        <!-- MAIN CONTENT -->
+        <div class="viewer-content">
+          <div class="viewer-header">
+            <h2 id="course-viewer-title" style="margin: 0 0 16px 0; font-size: 32px; font-weight: 700;"></h2>
+            <p id="course-viewer-description" class="course-description description"
+              style="color: var(--text-muted); font-size: 16px; line-height: 1.6;"></p>
+          </div>
+          <div class="content-body" id="course-viewer-content"></div>
 
-      <div id="viewer-pagination-controls"
-        style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding: 15px; background: rgba(102, 126, 234, 0.1); border-radius: 8px;">
-        <button type="button" id="viewer-prev-btn" class="secondary-btn" disabled>Previous Page</button>
-        <span id="viewer-page-indicator" style="color: var(--light); font-weight: bold; font-size: 1.1em;">Page 1 of
-          1</span>
-        <button type="button" id="viewer-next-btn" class="primary-btn">Next Page</button>
-      </div>
+          <div id="viewer-pagination-controls" class="viewer-footer" style="margin-top: 40px;">
+            <div class="pagination-buttons">
+              <button type="button" id="viewer-prev-btn" disabled>← Previous Page</button>
+              <button type="button" id="viewer-next-btn">Next Page →</button>
+            </div>
+            <span id="viewer-page-indicator" style="color: var(--light); font-weight: bold;">Page 1 of 1</span>
+          </div>
 
-      <!-- Simulators Section -->
-      <div id="course-simulators-section" style="display: none; margin-top: 2em;">
-        <h3>📊 Course Simulators</h3>
-        <div id="course-simulators-list"
-          style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1em; margin-top: 1em;">
-          <!-- Simulators will be populated here -->
+          <!-- Simulators Section -->
+          <div id="course-simulators-section" style="display: none; margin-top: 3em;">
+            <h3 style="margin-bottom: 20px;">📊 Course Simulators</h3>
+            <div id="course-simulators-list"
+              style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1em;"></div>
+          </div>
+
+          <div class="form-actions" style="margin-top: 30px;">
+            <button type="button" id="back-to-dashboard" class="secondary-btn">Back to Dashboard</button>
+          </div>
         </div>
-      </div>
 
-      <div class="form-actions">
-        <button type="button" id="back-to-dashboard" class="secondary-btn">
-          Back to Dashboard
-        </button>
+        <!-- SIDEBAR -->
+        <div class="related-courses">
+          <h3>✨ Related Info</h3>
+          <div class="related-item">
+            <h4 style="color: var(--primary);">PLATFORM</h4>
+            <h4>Veelearn Support</h4>
+            <p>Always here to help.</p>
+          </div>
+          <div
+            style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-top: 20px;">
+            <h4 style="margin-top: 0;">Need Help?</h4>
+            <p style="color: var(--text-muted); font-size: 13px; margin: 0 0 12px 0;">Join our community or contact
+              support if you have issues.</p>
+            <button
+              style="width: 100%; padding: 10px; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">💬
+              Contact Support</button>
+          </div>
+        </div>
       </div>
     </section>
   </main>

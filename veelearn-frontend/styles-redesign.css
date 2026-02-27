@@ -1138,7 +1138,11 @@ body {
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
-button, a, input, select, textarea {
+button,
+a,
+input,
+select,
+textarea {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -1177,12 +1181,29 @@ button, a, input, select, textarea {
   .quick-actions {
     grid-template-columns: 1fr;
   }
-  
+
   .section-title {
     font-size: 20px;
   }
-  
+
   .dashboard-card {
     padding: 16px;
   }
+}
+
+/* APPLY REDESIGN TO EXISTING VEELEARN LISTS */
+#my-courses-list-user,
+#my-courses-list-admin,
+#my-courses-list-superadmin,
+#available-courses-list-user,
+#available-courses-list-admin,
+#available-courses-list-superadmin,
+#assignments-list,
+#enrolled-courses-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  list-style: none;
+  padding: 0;
+  margin-top: 20px;
 }
