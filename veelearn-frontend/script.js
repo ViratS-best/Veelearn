@@ -1004,6 +1004,7 @@ function initializeApp() {
     setupPhetModalListeners();
     setupLatexHelpModalListeners();
     setupCourseSearchListeners();
+    setupCourseSortListener();
     setupAnimationPreference();
 
     if (document.cookie.includes('token=') || authToken) {
@@ -2882,6 +2883,8 @@ function renderUserCourses(searchText) {
         filteredCourses.forEach((course) => {
             const li = document.createElement("li");
             const timeStr = formatCreationTime(course.creation_time);
+            const likeCount = course.like_count || 0;
+            
             li.innerHTML = `
         <strong>${escapeHtml(course.title)}</strong>
         <p>${escapeHtml(course.description || "No description")}</p>
@@ -2890,9 +2893,12 @@ function renderUserCourses(searchText) {
                 }; color: white; padding: 4px 8px; border-radius: 3px; font-size: 0.9em;">
             ${escapeHtml(course.status?.toUpperCase()) || "UNKNOWN"}
         </span>
-        <button onclick="editCourse(${course.id})">Edit</button>
-        <button onclick="viewCourse(${course.id})">View</button>
-        <button onclick="deleteCourse(${course.id})">Delete</button>
+        <span style="color: #999; font-size: 0.85em; display: inline-block; margin-left: 8px;">❤️ ${likeCount} ${likeCount === 1 ? 'like' : 'likes'}</span>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
+          <button onclick="editCourse(${course.id})">Edit</button>
+          <button onclick="viewCourse(${course.id})">View</button>
+          <button onclick="deleteCourse(${course.id})">Delete</button>
+        </div>
       `;
             list.appendChild(li);
         });
@@ -2928,11 +2934,20 @@ function renderAvailableCourses(searchText) {
         // INSTANT: Build and append items one by one instead of replacing all
         filteredCourses.forEach((course) => {
             const li = document.createElement("li");
+            const isLiked = course.is_liked ? true : false;
+            const likeCount = course.like_count || 0;
+            const likeButtonText = isLiked ? `❤️ ${likeCount}` : `🤍 ${likeCount}`;
+            
             li.innerHTML = `
         <strong>${escapeHtml(course.title)}</strong>
         <p>${escapeHtml(course.description || "No description")}</p>
-        <button onclick="viewCourse(${course.id})">View</button>
-        <button onclick="enrollInCourse(${course.id})">Enroll</button>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
+          <button onclick="viewCourse(${course.id})">View</button>
+          <button onclick="enrollInCourse(${course.id})">Enroll</button>
+          <button onclick="toggleCourseLike(${course.id}, this)" class="like-btn" data-course-id="${course.id}" data-liked="${isLiked}" style="background: ${isLiked ? '#ec4899' : '#475569'};">
+            ${likeButtonText}
+          </button>
+        </div>
       `;
             list.appendChild(li);
         });
@@ -6197,5 +6212,116 @@ function viewCourseFromSearch(courseId) {
         viewCourse(courseId);
     } else {
         console.error('viewCourse is not available in this context.');
+    }
+}
+
+// ===== COURSE LIKES FUNCTIONALITY =====
+
+/**
+ * Toggle like/unlike a course
+ */
+async function toggleCourseLike(courseId, buttonElement) {
+    try {
+        const currentlyLiked = buttonElement.dataset.liked === 'true';
+        const endpoint = `/api/courses/${courseId}/like`;
+        const method = currentlyLiked ? 'DELETE' : 'POST';
+
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method: method,
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            console.error('Like toggle error:', result.message);
+            alert('Error: ' + result.message);
+            return;
+        }
+
+        // Update the button state
+        const isNowLiked = result.data.liked;
+        buttonElement.dataset.liked = isNowLiked;
+
+        // Get updated like count
+        const likeCountResponse = await fetch(`${API_BASE_URL}/api/courses/${courseId}/likes`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        const likeCountResult = await likeCountResponse.json();
+        const newLikeCount = likeCountResult.data.like_count;
+
+        // Update button appearance
+        const likeButtonText = isNowLiked ? `❤️ ${newLikeCount}` : `🤍 ${newLikeCount}`;
+        buttonElement.textContent = likeButtonText;
+        buttonElement.style.background = isNowLiked ? '#ec4899' : '#475569';
+
+        // Update course data in arrays
+        const courseInAvailable = availableCourses.find(c => c.id === courseId);
+        if (courseInAvailable) {
+            courseInAvailable.is_liked = isNowLiked;
+            courseInAvailable.like_count = newLikeCount;
+        }
+
+        const courseInMy = myCourses.find(c => c.id === courseId);
+        if (courseInMy) {
+            courseInMy.like_count = newLikeCount;
+        }
+
+        console.log(`✓ Course ${courseId} ${isNowLiked ? 'liked' : 'unliked'} successfully!`);
+    } catch (error) {
+        console.error('Error toggling course like:', error);
+        alert('Failed to update like status. Please try again.');
+    }
+}
+
+/**
+ * Load courses with sorting applied
+ */
+async function loadCoursesWithSort(sortBy = 'newest') {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/courses?sort=${sortBy}`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+
+        const result = await response.json();
+        if (!response.ok) {
+            console.error('Error loading courses:', result.message);
+            return;
+        }
+
+        // Update available courses
+        availableCourses = result.data.filter(c => c.status === 'approved');
+        
+        // Update my courses (with like count)
+        myCourses = result.data.filter(c => c.creator_id === currentUser.id);
+
+        // Re-render with sorted courses
+        renderUserCourses('');
+        renderAvailableCourses('');
+
+        console.log(`✓ Courses loaded with sort: ${sortBy}`);
+    } catch (error) {
+        console.error('Error loading courses with sort:', error);
+        alert('Failed to load courses. Please try again.');
+    }
+}
+
+/**
+ * Initialize course sort dropdown listener
+ */
+function setupCourseSortListener() {
+    const sortDropdown = document.getElementById('courseSortDropdown');
+    if (sortDropdown) {
+        sortDropdown.addEventListener('change', (e) => {
+            const sortBy = e.target.value;
+            loadCoursesWithSort(sortBy);
+        });
     }
 }

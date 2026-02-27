@@ -237,11 +237,13 @@ const initializeDatabase = async () => {
                 is_paid BOOLEAN DEFAULT FALSE,
                 shells_cost INT DEFAULT 50,
                 feedback TEXT,
+                grade_level INT CHECK (grade_level >= 1 AND grade_level <= 13),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE CASCADE,
                 INDEX idx_status (status),
-                INDEX idx_creator (creator_id)
+                INDEX idx_creator (creator_id),
+                INDEX idx_grade_level (grade_level)
             )
         `);
         console.log('✓ Courses table ready');
@@ -284,6 +286,12 @@ const initializeDatabase = async () => {
 
         // Migration: Add creation_time column if it doesn't exist
         await addColumn('courses', 'creation_time', 'INT DEFAULT 0');
+
+        // Migration: Add like_count column to courses
+        await addColumn('courses', 'like_count', 'INT DEFAULT 0');
+
+        // Migration: Add grade_level column if it doesn't exist
+        await addColumn('courses', 'grade_level', 'INT CHECK (grade_level >= 1 AND grade_level <= 13)');
 
         // Migration: Add volunteer columns to users table
         await addColumn('users', 'total_volunteer_hours', 'FLOAT DEFAULT 0');
@@ -425,6 +433,21 @@ const initializeDatabase = async () => {
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
                 FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
                 UNIQUE KEY unique_enrollment (user_id, course_id)
+            )
+        `);
+
+        // Course likes table
+        await query(`
+            CREATE TABLE IF NOT EXISTS course_likes (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                course_id INT NOT NULL,
+                user_id INT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                UNIQUE KEY unique_like (course_id, user_id),
+                INDEX idx_course (course_id),
+                INDEX idx_user (user_id)
             )
         `);
         console.log('✓ User-Course relationship tables ready');
@@ -945,10 +968,10 @@ app.get('/api/search', async (req, res) => {
         `, [searchPhrase, searchPhrase]);
 
         const simulators = await query(`
-            SELECT s.id, s.title, s.description, u.email as creator_email, s.visibility 
+            SELECT s.id, s.title, s.description, u.email as creator_email, s.is_public 
             FROM simulators s
             LEFT JOIN users u ON s.creator_id = u.id
-            WHERE s.visibility = 'public' AND (s.title LIKE ? OR s.description LIKE ? OR s.tags LIKE ?) 
+            WHERE s.is_public = TRUE AND (s.title LIKE ? OR s.description LIKE ? OR s.tags LIKE ?) 
             LIMIT 20
         `, [searchPhrase, searchPhrase, searchPhrase]);
 
@@ -1119,7 +1142,7 @@ app.put('/api/superadmin/users/:id/role', authenticateToken, authorize('superadm
 
 // ===== COURSE ROUTES =====
 app.post('/api/courses', authenticateToken, (req, res) => {
-    const { title, description, content, blocks, status, creation_time } = req.body;
+    const { title, description, content, blocks, status, creation_time, grade_level } = req.body;
     const creator_id = req.user.id;
 
     console.log('📝 CREATE COURSE DEBUG:');
@@ -1129,6 +1152,7 @@ app.post('/api/courses', authenticateToken, (req, res) => {
     console.log('  Content length:', content ? content.length : 0, 'chars');
     console.log('  Blocks count:', Array.isArray(blocks) ? blocks.length : 'NOT PROVIDED');
     console.log('  Status:', status || 'draft');
+    console.log('  Grade Level:', grade_level || 'NOT PROVIDED');
 
     if (!title) {
         return apiResponse(res, 400, 'Course title is required');
@@ -1138,16 +1162,25 @@ app.post('/api/courses', authenticateToken, (req, res) => {
         return apiResponse(res, 400, 'Course title too long (max 255 characters)');
     }
 
+    // Validate grade_level if provided
+    if (grade_level !== undefined && grade_level !== null) {
+        const gradeNum = parseInt(grade_level);
+        if (isNaN(gradeNum) || gradeNum < 1 || gradeNum > 13) {
+            return apiResponse(res, 400, 'Grade level must be an integer between 1 and 13 (13 = College)');
+        }
+    }
+
     // Use provided status or default to 'draft'
     const courseStatus = status || 'draft';
     const blocksJson = blocks ? (typeof blocks === 'string' ? blocks : JSON.stringify(blocks)) : '[]';
 
     const creationTime = parseInt(creation_time) || 0;
+    const gradeLevelValue = grade_level !== undefined && grade_level !== null ? parseInt(grade_level) : null;
     console.log('  Database:', dbConfig.database);
     console.log('  Host:', dbConfig.host);
 
-    const insertCourseQuery = 'INSERT INTO courses (title, description, content, blocks, creator_id, status, creation_time) VALUES (?, ?, ?, ?, ?, ?, ?)';
-    db.query(insertCourseQuery, [title, description || '', content || '', blocksJson, creator_id, courseStatus, creationTime], (err, result) => {
+    const insertCourseQuery = 'INSERT INTO courses (title, description, content, blocks, creator_id, status, creation_time, grade_level) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
+    db.query(insertCourseQuery, [title, description || '', content || '', blocksJson, creator_id, courseStatus, creationTime, gradeLevelValue], (err, result) => {
         if (err) {
             console.error('❌ Error creating course:', err);
             return apiResponse(res, 500, 'Server error creating course', { details: err.message });
@@ -1197,34 +1230,56 @@ app.post('/api/courses', authenticateToken, (req, res) => {
 });
 
 
-// Get all courses in system for teacher assignment (with pagination/search)
+// Get all courses in system for teacher assignment (with pagination/search/grade_level filter)
 app.get('/api/courses/all', authenticateToken, (req, res) => {
-    const { page = 1, limit = 10, search = '' } = req.query;
+    const { page = 1, limit = 10, search = '', grade_level } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
     // Base query to get all approved courses + user's own courses
     const countQuery = `
         SELECT COUNT(*) as total FROM courses c
         LEFT JOIN users u ON c.creator_id = u.id
-        WHERE c.status = 'approved' OR c.creator_id = ?
+        WHERE (c.status = 'approved' OR c.creator_id = ?)
     ${search ? `AND (c.title LIKE ? OR c.description LIKE ?)` : ''}
+    ${grade_level !== undefined && grade_level !== null ? `AND c.grade_level = ?` : ''}
 `;
 
     const dataQuery = `
-        SELECT c.id, c.title, c.description, c.creator_id, u.email as creator_email, c.status, c.created_at
+        SELECT c.id, c.title, c.description, c.creator_id, u.email as creator_email, c.status, c.created_at, c.grade_level
         FROM courses c
         LEFT JOIN users u ON c.creator_id = u.id
-        WHERE c.status = 'approved' OR c.creator_id = ?
+        WHERE (c.status = 'approved' OR c.creator_id = ?)
     ${search ? `AND (c.title LIKE ? OR c.description LIKE ?)` : ''}
+    ${grade_level !== undefined && grade_level !== null ? `AND c.grade_level = ?` : ''}
         ORDER BY c.created_at DESC
 LIMIT ? OFFSET ?
     `;
 
     const searchTerm = search ? `%${search}%` : null;
-    const countParams = search ? [req.user.id, searchTerm, searchTerm] : [req.user.id];
-    const dataParams = search
-        ? [req.user.id, searchTerm, searchTerm, parseInt(limit), offset]
-        : [req.user.id, parseInt(limit), offset];
+    const gradeNum = grade_level !== undefined && grade_level !== null ? parseInt(grade_level) : null;
+
+    // Build parameter arrays dynamically
+    const countParams = [];
+    countParams.push(req.user.id);
+    if (search) {
+        countParams.push(searchTerm);
+        countParams.push(searchTerm);
+    }
+    if (gradeNum !== null) {
+        countParams.push(gradeNum);
+    }
+
+    const dataParams = [];
+    dataParams.push(req.user.id);
+    if (search) {
+        dataParams.push(searchTerm);
+        dataParams.push(searchTerm);
+    }
+    if (gradeNum !== null) {
+        dataParams.push(gradeNum);
+    }
+    dataParams.push(parseInt(limit));
+    dataParams.push(offset);
 
     db.query(countQuery, countParams, (err, countResults) => {
         if (err) return apiResponse(res, 500, 'Error fetching courses count');
@@ -1258,7 +1313,7 @@ app.get('/api/courses/:id', authenticateToken, (req, res) => {
     console.log('  Database:', dbConfig.database);
 
     const query = `
-        SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time
+        SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time, grade_level
         FROM courses
         WHERE id = ?
     `;
@@ -1290,7 +1345,7 @@ app.get('/api/courses/:id', authenticateToken, (req, res) => {
 app.put('/api/courses/:id', authenticateToken, (req, res) => {
     const courseId = req.params.id;
     const userId = req.user.id;
-    const { title, description, content, blocks, status, creation_time } = req.body;
+    const { title, description, content, blocks, status, creation_time, grade_level } = req.body;
 
     console.log('📝 UPDATE COURSE DEBUG:');
     console.log('  Course ID:', courseId);
@@ -1299,11 +1354,20 @@ app.put('/api/courses/:id', authenticateToken, (req, res) => {
     console.log('  Content length:', content ? content.length : 0, 'chars');
     console.log('  Blocks count:', Array.isArray(blocks) ? blocks.length : 'NOT PROVIDED');
     console.log('  Status:', status || 'unchanged');
+    console.log('  Grade Level:', grade_level || 'unchanged');
     console.log('  Database:', dbConfig.database);
     console.log('  Host:', dbConfig.host);
 
     if (!title) {
         return apiResponse(res, 400, 'Course title is required');
+    }
+
+    // Validate grade_level if provided
+    if (grade_level !== undefined && grade_level !== null) {
+        const gradeNum = parseInt(grade_level);
+        if (isNaN(gradeNum) || gradeNum < 1 || gradeNum > 13) {
+            return apiResponse(res, 400, 'Grade level must be an integer between 1 and 13 (13 = College)');
+        }
     }
 
     // Check if course exists
@@ -1333,7 +1397,7 @@ app.put('/api/courses/:id', authenticateToken, (req, res) => {
         // Prepare blocks JSON
         const blocksJson = blocks ? (typeof blocks === 'string' ? blocks : JSON.stringify(blocks)) : undefined;
 
-        // Update with optional status parameter
+        // Update with optional parameters
         let updateQuery = 'UPDATE courses SET title = ?, description = ?, content = ?';
         const params = [title, description || '', content || ''];
 
@@ -1350,6 +1414,11 @@ app.put('/api/courses/:id', authenticateToken, (req, res) => {
         if (creation_time !== undefined) {
             updateQuery += ', creation_time = ?';
             params.push(parseInt(creation_time) || 0);
+        }
+
+        if (grade_level !== undefined && grade_level !== null) {
+            updateQuery += ', grade_level = ?';
+            params.push(parseInt(grade_level));
         }
 
         updateQuery += ' WHERE id = ?';
@@ -1420,16 +1489,43 @@ app.delete('/api/courses/:id', authenticateToken, (req, res) => {
 
 app.get('/api/courses', authenticateToken, (req, res) => {
     const userId = req.user.id;
+    const sortBy = req.query.sort || 'newest'; // most_liked, newest, trending, popular
+    const { grade_level } = req.query;
+    
+    // Determine ORDER BY clause based on sort parameter
+    let orderByClause = 'c.created_at DESC'; // default newest
+    if (sortBy === 'most_liked') {
+        orderByClause = 'c.like_count DESC, c.created_at DESC';
+    } else if (sortBy === 'trending') {
+        orderByClause = '(c.like_count / DATEDIFF(NOW(), c.created_at) + 1) DESC, c.created_at DESC';
+    } else if (sortBy === 'popular') {
+        orderByClause = 'c.like_count DESC';
+    }
+
     // Show approved courses from everyone + own courses (even if pending)
-    const query = `
-SELECT c.id, c.title, c.description, c.content, c.blocks, c.creator_id, c.status, c.is_paid, c.shells_cost, c.creation_time, u.email as creator_email
+    let query = `
+SELECT c.id, c.title, c.description, c.content, c.blocks, c.creator_id, c.status, c.is_paid, c.shells_cost, c.creation_time, c.grade_level,
+       c.like_count, u.email as creator_email,
+       CASE WHEN cl.user_id IS NOT NULL THEN true ELSE false END as is_liked
 FROM courses c
 LEFT JOIN users u ON c.creator_id = u.id
-WHERE c.status = 'approved' OR c.creator_id = ?
-ORDER BY c.created_at DESC
+LEFT JOIN course_likes cl ON c.id = cl.course_id AND cl.user_id = ?
+WHERE (c.status = 'approved' OR c.creator_id = ?)
 `;
 
-    db.query(query, [userId], (err, results) => {
+    // Add grade_level filter if provided
+    if (grade_level !== undefined && grade_level !== null) {
+        query += `AND c.grade_level = ? `;
+    }
+
+    query += `ORDER BY ${orderByClause}`;
+    
+    const params = [userId, userId];
+    if (grade_level !== undefined && grade_level !== null) {
+        params.push(parseInt(grade_level));
+    }
+
+    db.query(query, params, (err, results) => {
         if (err) {
             console.error('Error fetching courses:', err);
             return apiResponse(res, 500, 'Server error fetching courses');
@@ -1454,6 +1550,100 @@ ORDER BY c.created_at DESC
     });
 });
 
+// ===== COURSE LIKES ENDPOINTS =====
+
+// POST /api/courses/:id/like - User likes a course
+app.post('/api/courses/:id/like', authenticateToken, (req, res) => {
+    const courseId = req.params.id;
+    const userId = req.user.id;
+
+    // Insert like
+    const insertQuery = 'INSERT INTO course_likes (course_id, user_id) VALUES (?, ?)';
+    db.query(insertQuery, [courseId, userId], (err) => {
+        if (err) {
+            if (err.code === 'ER_DUP_ENTRY') {
+                return apiResponse(res, 400, 'You have already liked this course');
+            }
+            console.error('Error liking course:', err);
+            return apiResponse(res, 500, 'Server error liking course');
+        }
+
+        // Update like_count in courses table
+        const updateQuery = 'UPDATE courses SET like_count = like_count + 1 WHERE id = ?';
+        db.query(updateQuery, [courseId], (updateErr) => {
+            if (updateErr) {
+                console.error('Error updating like count:', updateErr);
+                return apiResponse(res, 500, 'Server error updating like count');
+            }
+
+            apiResponse(res, 200, 'Course liked successfully', { liked: true });
+        });
+    });
+});
+
+// DELETE /api/courses/:id/like - User unlikes a course
+app.delete('/api/courses/:id/like', authenticateToken, (req, res) => {
+    const courseId = req.params.id;
+    const userId = req.user.id;
+
+    // Delete like
+    const deleteQuery = 'DELETE FROM course_likes WHERE course_id = ? AND user_id = ?';
+    db.query(deleteQuery, [courseId, userId], (err, results) => {
+        if (err) {
+            console.error('Error unliking course:', err);
+            return apiResponse(res, 500, 'Server error unliking course');
+        }
+
+        if (results.affectedRows === 0) {
+            return apiResponse(res, 400, 'You have not liked this course');
+        }
+
+        // Update like_count in courses table
+        const updateQuery = 'UPDATE courses SET like_count = GREATEST(like_count - 1, 0) WHERE id = ?';
+        db.query(updateQuery, [courseId], (updateErr) => {
+            if (updateErr) {
+                console.error('Error updating like count:', updateErr);
+                return apiResponse(res, 500, 'Server error updating like count');
+            }
+
+            apiResponse(res, 200, 'Course unliked successfully', { liked: false });
+        });
+    });
+});
+
+// GET /api/courses/:id/likes - Get like count for a course
+app.get('/api/courses/:id/likes', authenticateToken, (req, res) => {
+    const courseId = req.params.id;
+
+    const query = 'SELECT COUNT(*) as like_count FROM course_likes WHERE course_id = ?';
+    db.query(query, [courseId], (err, results) => {
+        if (err) {
+            console.error('Error fetching like count:', err);
+            return apiResponse(res, 500, 'Server error fetching like count');
+        }
+
+        const likeCount = results[0].like_count;
+        apiResponse(res, 200, 'Like count fetched successfully', { like_count: likeCount });
+    });
+});
+
+// GET /api/courses/:id/liked - Check if current user liked this course
+app.get('/api/courses/:id/liked', authenticateToken, (req, res) => {
+    const courseId = req.params.id;
+    const userId = req.user.id;
+
+    const query = 'SELECT id FROM course_likes WHERE course_id = ? AND user_id = ?';
+    db.query(query, [courseId, userId], (err, results) => {
+        if (err) {
+            console.error('Error checking if course is liked:', err);
+            return apiResponse(res, 500, 'Server error checking like status');
+        }
+
+        const isLiked = results.length > 0;
+        apiResponse(res, 200, 'Like status fetched successfully', { is_liked: isLiked });
+    });
+});
+
 app.get('/api/users/:userId/courses', authenticateToken, (req, res) => {
     const userId = req.params.userId;
 
@@ -1461,7 +1651,7 @@ app.get('/api/users/:userId/courses', authenticateToken, (req, res) => {
         return apiResponse(res, 403, 'Access denied. You can only view your own courses');
     }
 
-    const query = 'SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time FROM courses WHERE creator_id = ?';
+    const query = 'SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time, grade_level FROM courses WHERE creator_id = ?';
     db.query(query, [userId], (err, results) => {
         if (err) {
             console.error('Error fetching user courses:', err);
@@ -1489,7 +1679,7 @@ app.get('/api/users/:userId/courses', authenticateToken, (req, res) => {
 
 // ===== ADMIN ROUTES =====
 app.get('/api/admin/courses/pending', authenticateToken, authorize('admin', 'superadmin'), (req, res) => {
-    const query = "SELECT c.id, c.title, c.description, c.content, c.blocks, c.creator_id, u.email as creator_email, c.created_at FROM courses c JOIN users u ON c.creator_id = u.id WHERE c.status = 'pending'";
+    const query = "SELECT c.id, c.title, c.description, c.content, c.blocks, c.creator_id, u.email as creator_email, c.created_at, c.grade_level FROM courses c JOIN users u ON c.creator_id = u.id WHERE c.status = 'pending'";
 
     db.query(query, (err, results) => {
         if (err) {
@@ -1506,7 +1696,7 @@ app.get('/api/admin/courses/:id/preview', authenticateToken, authorize('admin', 
 
     const query = `
         SELECT c.id, c.title, c.description, c.content, c.blocks, c.creator_id, 
-               u.email as creator_email, c.status, c.created_at, c.feedback
+               u.email as creator_email, c.status, c.created_at, c.feedback, c.grade_level
         FROM courses c
         JOIN users u ON c.creator_id = u.id
         WHERE c.id = ? AND c.status = 'pending'
