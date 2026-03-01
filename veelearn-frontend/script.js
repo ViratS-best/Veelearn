@@ -2069,7 +2069,7 @@ function updateLatexPreview() {
     const type = document.querySelector('input[name="latex-type"]:checked').value;
 
     if (!input.value.trim()) {
-        preview.innerHTML = '(preview will appear here)';
+        preview.innerHTML = '(enter LaTeX to preview)';
         return;
     }
 
@@ -2080,11 +2080,29 @@ function updateLatexPreview() {
         latex = '$' + latex + '$';
     }
 
-    preview.innerHTML = latex;
+    // Clear previous content and error states
+    preview.innerHTML = '';
+    preview.classList.remove('error');
+    
+    // Create a container for the math
+    const mathContainer = document.createElement('div');
+    mathContainer.textContent = latex;
+    preview.appendChild(mathContainer);
 
-    // Trigger MathJax to render preview
-    if (window.MathJax) {
-        window.MathJax.typesetPromise([preview]).catch(err => console.log('MathJax error:', err));
+    // Trigger MathJax to render with error handling
+    if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise([mathContainer])
+            .then(() => {
+                preview.classList.add('success');
+            })
+            .catch(err => {
+                preview.classList.add('error');
+                console.log('LaTeX preview error:', err);
+            });
+    } else {
+        // Fallback if MathJax not ready
+        preview.classList.add('warning');
+        mathContainer.textContent = 'MathJax loading...';
     }
 }
 
