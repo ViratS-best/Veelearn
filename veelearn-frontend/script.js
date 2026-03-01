@@ -2016,18 +2016,18 @@ function openLatexEditorModal() {
       <div style="margin-bottom: 20px;">
         <strong style="display: block; margin-bottom: 10px;">Common Symbols:</strong>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px;">
-          <button type="button" onclick="insertLatexSnippet('\\alpha')" class="latex-snippet-btn">α (alpha)</button>
-          <button type="button" onclick="insertLatexSnippet('\\beta')" class="latex-snippet-btn">β (beta)</button>
-          <button type="button" onclick="insertLatexSnippet('\\gamma')" class="latex-snippet-btn">γ (gamma)</button>
-          <button type="button" onclick="insertLatexSnippet('\\Delta')" class="latex-snippet-btn">Δ (Delta)</button>
-          <button type="button" onclick="insertLatexSnippet('\\frac{a}{b}')" class="latex-snippet-btn">a/b (fraction)</button>
-          <button type="button" onclick="insertLatexSnippet('\\sqrt{x}')" class="latex-snippet-btn">√x (sqrt)</button>
-          <button type="button" onclick="insertLatexSnippet('^{2}')" class="latex-snippet-btn">x² (power)</button>
-          <button type="button" onclick="insertLatexSnippet('_{i}')" class="latex-snippet-btn">xᵢ (subscript)</button>
-          <button type="button" onclick="insertLatexSnippet('\\sum_{i=1}^{n}')" class="latex-snippet-btn">Σ (sum)</button>
-          <button type="button" onclick="insertLatexSnippet('\\int_a^b')" class="latex-snippet-btn">∫ (integral)</button>
-          <button type="button" onclick="insertLatexSnippet('\\pm')" class="latex-snippet-btn">± (plus-minus)</button>
-          <button type="button" onclick="insertLatexSnippet('\\times')" class="latex-snippet-btn">× (times)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\alpha')" class="latex-snippet-btn">α (alpha)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\beta')" class="latex-snippet-btn">β (beta)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\gamma')" class="latex-snippet-btn">γ (gamma)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\Delta')" class="latex-snippet-btn">Δ (Delta)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\frac{a}{b}')" class="latex-snippet-btn">a/b (fraction)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\sqrt{x}')" class="latex-snippet-btn">√x (sqrt)</button>
+          <button type="button" onclick="insertLatexSnippet('x^{2}')" class="latex-snippet-btn">x² (power)</button>
+          <button type="button" onclick="insertLatexSnippet('x_{i}')" class="latex-snippet-btn">xᵢ (subscript)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\sum_{i=1}^{n}')" class="latex-snippet-btn">Σ (sum)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\int_a^b')" class="latex-snippet-btn">∫ (integral)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\pm')" class="latex-snippet-btn">± (plus-minus)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\times')" class="latex-snippet-btn">× (times)</button>
         </div>
       </div>
       
@@ -2035,10 +2035,10 @@ function openLatexEditorModal() {
         <strong style="display: block; margin-bottom: 10px;">Common Equations:</strong>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px;">
           <button type="button" onclick="insertLatexSnippet('E = mc^2')" class="latex-template-btn">E = mc²</button>
-          <button type="button" onclick="insertLatexSnippet('x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}')" class="latex-template-btn">Quadratic formula</button>
-          <button type="button" onclick="insertLatexSnippet('\\lambda = \\frac{h}{p}')" class="latex-template-btn">de Broglie wavelength</button>
-          <button type="button" onclick="insertLatexSnippet('\\Delta x \\cdot \\Delta p \\geq \\frac{h}{4\\pi}')" class="latex-template-btn">Uncertainty principle</button>
-          <button type="button" onclick="insertLatexSnippet('\\int_0^\\infty e^{-x} dx = 1')" class="latex-template-btn">Integral example</button>
+          <button type="button" onclick="insertLatexSnippet('x = \\\\frac{-b \\\\pm \\\\sqrt{b^2 - 4ac}}{2a}')" class="latex-template-btn">Quadratic formula</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\lambda = \\\\frac{h}{p}')" class="latex-template-btn">de Broglie wavelength</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\Delta x \\\\cdot \\\\Delta p \\\\geq \\\\frac{h}{4\\\\pi}')" class="latex-template-btn">Uncertainty principle</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\int_0^\\\\infty e^{-x} dx = 1')" class="latex-template-btn">Integral example</button>
           <button type="button" onclick="insertLatexSnippet('F = ma')" class="latex-template-btn">Newton's 2nd law</button>
         </div>
       </div>
