@@ -1782,6 +1782,7 @@ function showSimulatorSelectionModal(simulators, type) {
         <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999;">
             <div style="background: white; padding: 20px; border-radius: 8px; max-width: 600px; max-height: 80vh; overflow-y: auto;">
                 <h3>Select a Simulator</h3>
+                <button onclick="openSimulatorStudio(); closeSimulatorModal();" style="padding: 8px 16px; background: var(--primary); color: white; border: none; border-radius: 4px; cursor: pointer; margin-bottom: 15px;">✨ Create New Simulator</button>
                 <div id="simulator-list" style="margin: 20px 0;">
                     ${simulators
             .map(
@@ -2313,15 +2314,14 @@ function addBlockSimulator() {
     courseBlocks.push({
         id: blockId,
         type: "block-simulator",
-        title: "Block-based Logic Simulator",
+        title: "Interactive Simulator",
         data: { blocks: [], connections: [] },
     });
 
-    // Start placement mode instead of direct insertion
     startPlacementMode('block-simulator', {
         id: blockId,
-        title: "Block-based Logic",
-        type: "Block-based Simulator"
+        title: "Interactive Simulator",
+        type: "Interactive Simulator"
     });
 }
 
@@ -2574,6 +2574,7 @@ function showDashboard() {
     // INSTANT: Load all data asynchronously in background without blocking UI
     setTimeout(() => {
         loadVolunteerStats();
+        renderSimulatorMarketplace();
         if (currentUser?.role === "superadmin") {
             loadAllUsers();
             loadPendingCourses();
@@ -3451,14 +3452,14 @@ function runEmbeddedBlockSimulator(blockId, title) {
     console.log('   Simulator data:', block.data);
 
     if (block.type === 'block-simulator') {
-        // Create popup window for block simulator
+        // Create popup window for simulator studio
         const baseUrl = window.location.pathname.includes('github.io')
             ? 'https://virat-sisodiya.github.io/Veelearn/veelearn-frontend'
             : window.location.origin;
         const popup = window.open(
-            `${baseUrl}/block-simulator.html?embedded=true&courseBlockId=${blockId}&t=${Date.now()}`,
-            "block-simulator",
-            "width=1200,height=800"
+            `${baseUrl}/simulator-studio.html?embedded=true&courseBlockId=${blockId}&t=${Date.now()}`,
+            "simulator-studio",
+            "width=1400,height=900"
         );
 
         // Send the simulator's blocks and connections
@@ -3570,7 +3571,10 @@ function displayCourseSimulators(blocks) {
 }
 
 function viewSimulator(simulatorId) {
-    window.location.href = `http://localhost:5000/simulator-view.html?id=${simulatorId}`;
+    const baseUrl = window.location.pathname.includes('github.io')
+        ? 'https://virat-sisodiya.github.io/Veelearn/veelearn-frontend'
+        : window.location.origin;
+    window.open(`${baseUrl}/simulator-studio.html?viewOnly=true&simId=${simulatorId}`, '_blank');
 }
 
 function deleteCourse(courseId) {
@@ -3645,8 +3649,8 @@ function handleEditSimulator(event, blockId) {
             ? 'https://virat-sisodiya.github.io/Veelearn/veelearn-frontend'
             : window.location.origin;
         const popup = window.open(
-            `${baseUrl}/block-simulator.html?edit=true&courseBlockId=${blockId}&t=${Date.now()}`,
-            "block-simulator-editor",
+            `${baseUrl}/simulator-studio.html?edit=true&courseBlockId=${blockId}&t=${Date.now()}`,
+            "simulator-studio-editor",
             "width=1400,height=900"
         );
 
@@ -4988,6 +4992,156 @@ window.confirmLatexInsertion = confirmLatexInsertion;
 window.insertLatexSnippet = insertLatexSnippet;
 window.updateLatexPreview = updateLatexPreview;
 window.processLatexInEditor = processLatexInEditor;
+
+// ===== SIMULATOR MARKETPLACE & STUDIO INTEGRATION =====
+
+function renderSimulatorMarketplace() {
+    const container = document.getElementById('simulator-marketplace-section');
+    if (!container) return;
+
+    container.innerHTML = '<h3>🎮 Simulator Marketplace</h3><p style="color: var(--text-muted);">Loading...</p>';
+
+    fetch(`${API_BASE_URL}/api/simulators?limit=12&sort=popular`, {
+        credentials: 'include'
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (!data.success) return;
+        const sims = data.data.simulators || [];
+
+        let html = `<h3>🎮 Simulator Marketplace</h3>
+        <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+            <button onclick="openSimulatorStudio()" class="primary-btn" style="padding: 8px 16px;">✨ Create New Simulator</button>
+            <button onclick="showFullMarketplace()" class="secondary-btn" style="padding: 8px 16px;">Browse All →</button>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px;">`;
+
+        sims.forEach(sim => {
+            html += `
+            <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 15px; cursor: pointer;" onclick="viewSimulatorDetail(${sim.id})">
+                <h4 style="color: var(--text-light); margin-bottom: 8px;">${escapeHtml(sim.title)}</h4>
+                <p style="color: var(--text-muted); font-size: 0.85em; margin-bottom: 10px;">${escapeHtml(sim.description || 'No description')}</p>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8em; color: var(--text-muted);">
+                    <span>by ${escapeHtml(sim.creator_email || 'Unknown')}</span>
+                    <span>⬇️ ${sim.downloads || 0} | ⭐ ${sim.rating || '0.00'}</span>
+                </div>
+                <div style="display: flex; gap: 8px; margin-top: 10px;">
+                    <button onclick="event.stopPropagation(); forkSimulator(${sim.id})" style="flex:1; padding: 6px; background: var(--primary); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8em;">🍴 Fork</button>
+                    <button onclick="event.stopPropagation(); viewSimulatorInStudio(${sim.id})" style="flex:1; padding: 6px; background: var(--secondary); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8em;">▶ Run</button>
+                </div>
+            </div>`;
+        });
+
+        html += '</div>';
+        container.innerHTML = html;
+    })
+    .catch(err => {
+        console.error('Error loading marketplace:', err);
+        container.innerHTML = '<h3>🎮 Simulator Marketplace</h3><p style="color: var(--text-muted);">Failed to load simulators.</p>';
+    });
+}
+
+function openSimulatorStudio() {
+    const baseUrl = window.location.pathname.includes('github.io')
+        ? 'https://virat-sisodiya.github.io/Veelearn/veelearn-frontend'
+        : window.location.origin;
+    window.open(`${baseUrl}/simulator-studio.html`, 'simulator-studio', 'width=1400,height=900');
+}
+
+function viewSimulatorInStudio(simulatorId) {
+    const baseUrl = window.location.pathname.includes('github.io')
+        ? 'https://virat-sisodiya.github.io/Veelearn/veelearn-frontend'
+        : window.location.origin;
+    window.open(`${baseUrl}/simulator-studio.html?viewOnly=true&simId=${simulatorId}`, 'simulator-studio', 'width=1400,height=900');
+}
+
+function viewSimulatorDetail(simulatorId) {
+    fetch(`${API_BASE_URL}/api/simulators/${simulatorId}`, { credentials: 'include' })
+    .then(r => r.json())
+    .then(data => {
+        if (!data.success) return;
+        const sim = data.data;
+
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.style.display = 'block';
+        modal.innerHTML = `
+        <div class="modal-content" style="max-width: 700px;">
+            <span class="close-modal" onclick="this.closest('.modal').remove()">&times;</span>
+            <h2>${escapeHtml(sim.title)}</h2>
+            <p style="color: var(--text-muted); margin: 10px 0;">${escapeHtml(sim.description || 'No description')}</p>
+            <div style="display: flex; gap: 15px; margin: 15px 0; color: var(--text-muted); font-size: 0.9em;">
+                <span>👤 ${escapeHtml(sim.creator_email || 'Unknown')}</span>
+                <span>⬇️ ${sim.downloads || 0} downloads</span>
+                <span>⭐ ${sim.rating || '0.00'}</span>
+                <span>🍴 ${sim.fork_count || 0} forks</span>
+                ${sim.forked_from ? `<span>Forked from #${sim.forked_from}</span>` : ''}
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button onclick="viewSimulatorInStudio(${sim.id}); this.closest('.modal').remove();" class="primary-btn">▶ Run Simulator</button>
+                <button onclick="forkSimulator(${sim.id}); this.closest('.modal').remove();" class="secondary-btn">🍴 Fork & Edit</button>
+                <button onclick="addMarketplaceSimToCourse(${sim.id}, '${escapeHtml(sim.title).replace(/'/g, "\\'")}'); this.closest('.modal').remove();" style="padding: 8px 16px; background: var(--accent); color: #000; border: none; border-radius: 4px; cursor: pointer;">📚 Add to Course</button>
+            </div>
+        </div>`;
+        document.body.appendChild(modal);
+        modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+    })
+    .catch(err => console.error('Error:', err));
+}
+
+async function forkSimulator(simulatorId) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/simulators/${simulatorId}/fork`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include'
+        });
+        const data = await response.json();
+        if (data.success) {
+            alert('Simulator forked! Opening in editor...');
+            const baseUrl = window.location.pathname.includes('github.io')
+                ? 'https://virat-sisodiya.github.io/Veelearn/veelearn-frontend'
+                : window.location.origin;
+            window.open(`${baseUrl}/simulator-studio.html?simId=${data.data.simulatorId}`, 'simulator-studio', 'width=1400,height=900');
+        } else {
+            alert('Fork failed: ' + data.message);
+        }
+    } catch (err) {
+        console.error('Fork error:', err);
+        alert('Error forking simulator');
+    }
+}
+
+function addMarketplaceSimToCourse(simulatorId, title) {
+    if (!currentEditingCourseId) {
+        alert('Please open a course editor first, then add simulators from the toolbar.');
+        return;
+    }
+    const blockId = Date.now();
+    courseBlocks.push({
+        id: blockId,
+        type: 'marketplace-simulator',
+        title: title,
+        simulatorId: simulatorId,
+        data: { simulatorId: simulatorId }
+    });
+    insertSimulatorBlock(blockId, title, 'Marketplace Simulator');
+}
+
+function showFullMarketplace() {
+    const baseUrl = window.location.pathname.includes('github.io')
+        ? 'https://virat-sisodiya.github.io/Veelearn/veelearn-frontend'
+        : window.location.origin;
+    window.open(`${baseUrl}/simulator-marketplace.html`, '_blank');
+}
+
+window.openSimulatorStudio = openSimulatorStudio;
+window.viewSimulatorInStudio = viewSimulatorInStudio;
+window.viewSimulatorDetail = viewSimulatorDetail;
+window.forkSimulator = forkSimulator;
+window.addMarketplaceSimToCourse = addMarketplaceSimToCourse;
+window.showFullMarketplace = showFullMarketplace;
+window.renderSimulatorMarketplace = renderSimulatorMarketplace;
 
 // ===== PAGINATION FUNCTIONS =====
 

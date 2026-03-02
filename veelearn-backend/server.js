@@ -402,6 +402,13 @@ const initializeDatabase = async () => {
         `);
         console.log('✓ Simulators table ready');
 
+        // Migration: Add simulator fork and code mode columns
+        await addColumn('simulators', 'forked_from', 'INT');
+        await addColumn('simulators', 'fork_count', 'INT DEFAULT 0');
+        await addColumn('simulators', 'code_mode', 'LONGTEXT');
+        await addColumn('simulators', 'sim_type', "VARCHAR(50) DEFAULT 'block'");
+        console.log('✓ Simulator fork/code columns verified/added');
+
         // Dependents on Users & Courses
         await query(`
             CREATE TABLE IF NOT EXISTS admin_favorites (
@@ -2004,6 +2011,7 @@ app.get('/api/simulators', (req, res) => {
         SELECT 
             s.id, s.title, s.description, s.creator_id, u.email as creator_email,
             s.tags, s.downloads, s.rating, s.version, s.preview_image,
+            s.forked_from, s.fork_count, s.sim_type,
             s.created_at, COUNT(DISTINCT sr.id) as review_count
         FROM simulators s
         LEFT JOIN users u ON s.creator_id = u.id
@@ -2048,7 +2056,8 @@ app.get('/api/simulators/:id', (req, res) => {
         SELECT 
             s.id, s.title, s.description, s.creator_id, u.email as creator_email,
             s.blocks, s.connections, s.tags, s.downloads, s.rating, s.version,
-            s.preview_image, s.is_public, s.created_at, s.updated_at
+            s.preview_image, s.is_public, s.forked_from, s.fork_count,
+            s.code_mode, s.sim_type, s.created_at, s.updated_at
         FROM simulators s
         LEFT JOIN users u ON s.creator_id = u.id
         WHERE s.id = ?
@@ -2073,13 +2082,22 @@ app.get('/api/simulators/:id', (req, res) => {
             console.error('Error parsing simulator JSON:', e);
         }
 
+        // Parse code_mode if it's JSON
+        if (simulator.code_mode) {
+            try {
+                simulator.code_mode = JSON.parse(simulator.code_mode);
+            } catch (e) {
+                // code_mode is plain text, keep as-is
+            }
+        }
+
         apiResponse(res, 200, 'Simulator fetched successfully', simulator);
     });
 });
 
 // Create new simulator
 app.post('/api/simulators', authenticateToken, (req, res) => {
-    const { title, description, blocks, connections, tags, preview_image, is_public, status } = req.body;
+    const { title, description, blocks, connections, tags, preview_image, is_public, status, code_mode, sim_type, forked_from } = req.body;
     const creator_id = req.user.id;
 
     console.log('📝 CREATE SIMULATOR DEBUG:');
@@ -2105,19 +2123,20 @@ app.post('/api/simulators', authenticateToken, (req, res) => {
 
     try {
         const insertQuery = `
-            INSERT INTO simulators (creator_id, title, description, blocks, connections, tags, preview_image, is_public, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+            INSERT INTO simulators (creator_id, title, description, blocks, connections, tags, preview_image, is_public, code_mode, sim_type, forked_from, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
         `;
 
         const blocksJson = typeof blocks === 'string' ? blocks : JSON.stringify(blocks);
         const connectionsJson = typeof connections === 'string' ? connections : JSON.stringify(connections || []);
+        const codeModeJson = code_mode ? (typeof code_mode === 'string' ? code_mode : JSON.stringify(code_mode)) : null;
 
         console.log('✓ Blocks JSON length:', blocksJson.length);
         console.log('✓ Connections JSON length:', connectionsJson.length);
 
         db.query(
             insertQuery,
-            [creator_id, title, description || '', blocksJson, connectionsJson, tags || '', preview_image || '', is_public ? 1 : 0],
+            [creator_id, title, description || '', blocksJson, connectionsJson, tags || '', preview_image || '', is_public ? 1 : 0, codeModeJson, sim_type || 'block', forked_from || null],
             (err, result) => {
                 if (err) {
                     console.error('❌ Database error:', err);
@@ -2137,7 +2156,7 @@ app.post('/api/simulators', authenticateToken, (req, res) => {
 app.put('/api/simulators/:id', authenticateToken, (req, res) => {
     const simulatorId = req.params.id;
     const userId = req.user.id;
-    const { title, description, blocks, connections, tags, preview_image, is_public } = req.body;
+    const { title, description, blocks, connections, tags, preview_image, is_public, code_mode, sim_type } = req.body;
 
     if (!title) {
         return apiResponse(res, 400, 'Title is required');
@@ -2160,17 +2179,23 @@ app.put('/api/simulators/:id', authenticateToken, (req, res) => {
         try {
             const blocksJson = blocks ? (typeof blocks === 'string' ? blocks : JSON.stringify(blocks)) : null;
             const connectionsJson = connections ? (typeof connections === 'string' ? connections : JSON.stringify(connections)) : null;
+            const codeModeJson = code_mode ? (typeof code_mode === 'string' ? code_mode : JSON.stringify(code_mode)) : null;
 
-            const updateQuery = `
-                UPDATE simulators 
-                SET title = ?, description = ?, ${blocks ? 'blocks = ?,' : ''} ${connections ? 'connections = ?,' : ''} tags = ?, preview_image = ?, is_public = ?
-                WHERE id = ?
-            `;
-
+            let setClauses = 'title = ?, description = ?';
             const params = [title, description];
-            if (blocks) params.push(blocksJson);
-            if (connections) params.push(connectionsJson);
-            params.push(tags, preview_image, is_public ? 1 : 0, simulatorId);
+
+            if (blocks) { setClauses += ', blocks = ?'; params.push(blocksJson); }
+            if (connections) { setClauses += ', connections = ?'; params.push(connectionsJson); }
+
+            setClauses += ', tags = ?, preview_image = ?, is_public = ?';
+            params.push(tags, preview_image, is_public ? 1 : 0);
+
+            if (code_mode !== undefined) { setClauses += ', code_mode = ?'; params.push(codeModeJson); }
+            if (sim_type !== undefined) { setClauses += ', sim_type = ?'; params.push(sim_type); }
+
+            params.push(simulatorId);
+
+            const updateQuery = `UPDATE simulators SET ${setClauses} WHERE id = ?`;
 
             db.query(updateQuery, params, (err) => {
                 if (err) {
@@ -2211,6 +2236,70 @@ app.delete('/api/simulators/:id', authenticateToken, (req, res) => {
             }
             apiResponse(res, 200, 'Simulator deleted successfully');
         });
+    });
+});
+
+// Fork simulator
+app.post('/api/simulators/:id/fork', authenticateToken, (req, res) => {
+    const simulatorId = req.params.id;
+    const userId = req.user.id;
+
+    db.query('SELECT * FROM simulators WHERE id = ?', [simulatorId], (err, results) => {
+        if (err) {
+            console.error('Error fetching simulator for fork:', err);
+            return apiResponse(res, 500, 'Server error');
+        }
+        if (results.length === 0) {
+            return apiResponse(res, 404, 'Simulator not found');
+        }
+
+        const source = results[0];
+
+        const insertQuery = `
+            INSERT INTO simulators (creator_id, title, description, blocks, connections, tags, preview_image, is_public, forked_from, code_mode, sim_type, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, NOW(), NOW())
+        `;
+
+        db.query(
+            insertQuery,
+            [userId, `Fork of ${source.title}`, source.description || '', source.blocks, source.connections, source.tags || '', source.preview_image || '', simulatorId, source.code_mode || null, source.sim_type || 'block'],
+            (insertErr, insertResult) => {
+                if (insertErr) {
+                    console.error('Error forking simulator:', insertErr);
+                    return apiResponse(res, 500, 'Error forking simulator');
+                }
+
+                // Increment fork_count on original
+                db.query('UPDATE simulators SET fork_count = fork_count + 1 WHERE id = ?', [simulatorId], (updateErr) => {
+                    if (updateErr) console.error('Error updating fork_count:', updateErr);
+                });
+
+                apiResponse(res, 201, 'Simulator forked successfully', { simulatorId: insertResult.insertId });
+            }
+        );
+    });
+});
+
+// Get forks of a simulator
+app.get('/api/simulators/:id/forks', (req, res) => {
+    const simulatorId = req.params.id;
+
+    const query = `
+        SELECT 
+            s.id, s.title, s.description, s.creator_id, u.email as creator_email,
+            s.downloads, s.rating, s.sim_type, s.created_at
+        FROM simulators s
+        LEFT JOIN users u ON s.creator_id = u.id
+        WHERE s.forked_from = ?
+        ORDER BY s.created_at DESC
+    `;
+
+    db.query(query, [simulatorId], (err, results) => {
+        if (err) {
+            console.error('Error fetching forks:', err);
+            return apiResponse(res, 500, 'Error fetching forks');
+        }
+        apiResponse(res, 200, 'Forks fetched successfully', results);
     });
 });
 
