@@ -2507,23 +2507,26 @@ function showAuthSection(type = "login") {
     editor.style.display = "none";
     viewer.style.display = "none";
 
-    document.getElementById("simulator-link").style.display = "none";
-    document.getElementById("marketplace-link").style.display = "none";
-    document.getElementById("creator-link").style.display = "none";
-    document.getElementById("dashboard-link").style.display = "none";
-    document.getElementById("logout-button").style.display = "none";
+    const hide = id => { const el = document.getElementById(id); if (el) el.style.display = "none"; };
+    const show = (id, d = "inline") => { const el = document.getElementById(id); if (el) el.style.display = d; };
 
-    document.getElementById("login-link").style.display = "inline";
-    document.getElementById("register-link").style.display = "inline";
+    hide("simulator-link");
+    hide("marketplace-link");
+    hide("creator-link");
+    hide("dashboard-link");
+    hide("logout-button");
+
+    show("login-link");
+    show("register-link");
 
     if (type === "register") {
-        document.getElementById("login-form").style.display = "none";
-        document.getElementById("register-form").style.display = "block";
-        document.getElementById("forgot-password-form").style.display = "none";
+        hide("login-form");
+        show("register-form", "block");
+        hide("forgot-password-form");
     } else {
-        document.getElementById("login-form").style.display = "block";
-        document.getElementById("register-form").style.display = "none";
-        document.getElementById("forgot-password-form").style.display = "none";
+        show("login-form", "block");
+        hide("register-form");
+        hide("forgot-password-form");
     }
 }
 
@@ -2550,17 +2553,20 @@ function showDashboard() {
     editor.style.display = "none";
     viewer.style.display = "none";
 
-    document.getElementById("simulator-link").style.display = "inline";
-    document.getElementById("marketplace-link").style.display = "inline";
-    document.getElementById("creator-link").style.display = "inline";
-    document.getElementById("dashboard-link").style.display = "inline";
-    document.getElementById("logout-button").style.display = "inline";
+    const showEl = (id, d = "inline") => { const el = document.getElementById(id); if (el) el.style.display = d; };
+    const hideEl = id => { const el = document.getElementById(id); if (el) el.style.display = "none"; };
 
-    document.getElementById("login-link").style.display = "none";
-    document.getElementById("register-link").style.display = "none";
+    showEl("simulator-link");
+    showEl("marketplace-link");
+    showEl("creator-link");
+    showEl("dashboard-link");
+    showEl("logout-button");
 
-    document.getElementById("user-email").textContent =
-        currentUser?.email || "User";
+    hideEl("login-link");
+    hideEl("register-link");
+
+    const userEmail = document.getElementById("user-email");
+    if (userEmail) userEmail.textContent = currentUser?.email || "User";
 
     // INSTANT: Show dashboard content immediately
     if (currentUser?.role === "superadmin") {
