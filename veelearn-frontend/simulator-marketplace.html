@@ -1108,7 +1108,7 @@
         }
 
         function startCreatingSimulator() {
-            window.location.href = 'block-simulator.html';
+            window.location.href = 'simulator-studio.html';
         }
 
         async function loadMySimulators() {
@@ -1128,7 +1128,7 @@
                 if (data.success && data.data) {
                     const container = document.getElementById('my-simulators-container');
                     if (data.data.length === 0) {
-                        container.innerHTML = '<p style="color: white; text-align: center; grid-column: 1/-1; padding: 2em;">No simulators created yet. <a href="block-simulator.html" style="color: #667eea;">Create one now</a></p>';
+                        container.innerHTML = '<p style="color: white; text-align: center; grid-column: 1/-1; padding: 2em;">No simulators created yet. <a href="simulator-studio.html" style="color: #667eea;">Create one now</a></p>';
                     } else {
                         container.innerHTML = data.data.map(sim => `
                             <div class="simulator-card" onclick="viewSimulatorDetail(${sim.id})">

@@ -723,6 +723,7 @@ function toggleCodeMode(){
 
 function generateCode(){
   const g=(n,d)=>{const b=blocks.find(x=>x.type===n);return b?b.inputs:d};
+  const has3D=blocks.some(b=>['draw-cube','draw-sphere','draw-cylinder','draw-3d-plane','draw-3d-torus','draw-3d-cone','set-camera','set-3d-light','rotate-3d','set-3d-material'].includes(b.type));
   let code='// Auto-generated Simulator Code\n// Uses VeeSimLib: sim.ctx, sim.mouse, sim.keys, sim.frame, sim.dt\n\n';
   code+='function setup(sim) {\n  sim.state = {};\n';
   blocks.filter(b=>b.type==='slider').forEach(b=>{
@@ -747,7 +748,37 @@ function generateCode(){
     else if(b.type==='list-ops')code+=`  sim.state.b${id}={list:[]};\n`;
   });
   if(blocks.some(b=>b.type==='broadcast'||b.type==='on-receive'))code+=`  sim.state._msgs={};\n`;
-  code+='}\n\nfunction draw(sim) {\n  const ctx=sim.ctx, W=sim.width, H=sim.height, f=sim.frame, st=sim.state;\n  ctx.fillStyle="#fff"; ctx.fillRect(0,0,W,H);\n\n';
+  if(has3D){
+    code+=`  // Three.js 3D Scene Setup\n`;
+    code+=`  const scene=new THREE.Scene(); scene.background=new THREE.Color(0x1a1a2e);\n`;
+    code+=`  const camera=new THREE.PerspectiveCamera(60,sim.width/sim.height,0.1,1000);\n`;
+    code+=`  camera.position.set(0,2,5); camera.lookAt(0,0,0);\n`;
+    code+=`  const renderer=new THREE.WebGLRenderer({canvas:sim.canvas,antialias:true});\n`;
+    code+=`  renderer.setSize(sim.width,sim.height); renderer.shadowMap.enabled=true;\n`;
+    code+=`  scene.add(new THREE.AmbientLight(0x404040,0.6));\n`;
+    code+=`  const _dl=new THREE.DirectionalLight(0xffffff,0.8); _dl.position.set(5,10,7); _dl.castShadow=true; scene.add(_dl);\n`;
+    code+=`  scene.add(new THREE.GridHelper(10,10,0x444444,0x222222));\n`;
+    code+=`  sim.three={scene,camera,renderer,meshes:{}};\n`;
+    blocks.forEach(b=>{
+      const id=b.id,I=b.inputs;
+      const v=nm=>I[nm]!==undefined?JSON.stringify(I[nm]):'0';
+      const nm=nm=>parseFloat(I[nm])||0;
+      switch(b.type){
+      case'draw-cube':code+=`  sim.three.meshes.m${id}=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshPhongMaterial({color:${v('color')}})); sim.three.meshes.m${id}.castShadow=true; sim.three.meshes.m${id}.scale.setScalar(${nm('size')||1}); scene.add(sim.three.meshes.m${id});\n`;break;
+      case'draw-sphere':code+=`  sim.three.meshes.m${id}=new THREE.Mesh(new THREE.SphereGeometry(1,32,32),new THREE.MeshPhongMaterial({color:${v('color')}})); sim.three.meshes.m${id}.castShadow=true; sim.three.meshes.m${id}.scale.setScalar(${nm('r')||.5}); scene.add(sim.three.meshes.m${id});\n`;break;
+      case'draw-cylinder':code+=`  sim.three.meshes.m${id}=new THREE.Mesh(new THREE.CylinderGeometry(${nm('rTop')||.5},${nm('rBot')||.5},${nm('h')||1},32),new THREE.MeshPhongMaterial({color:${v('color')}})); sim.three.meshes.m${id}.castShadow=true; scene.add(sim.three.meshes.m${id});\n`;break;
+      case'draw-3d-plane':code+=`  sim.three.meshes.m${id}=new THREE.Mesh(new THREE.PlaneGeometry(${nm('w')||5},${nm('h')||5}),new THREE.MeshPhongMaterial({color:${v('color')},side:THREE.DoubleSide})); sim.three.meshes.m${id}.rotation.x=-Math.PI/2; sim.three.meshes.m${id}.receiveShadow=true; scene.add(sim.three.meshes.m${id});\n`;break;
+      case'draw-3d-torus':code+=`  sim.three.meshes.m${id}=new THREE.Mesh(new THREE.TorusGeometry(${nm('r')||1},${nm('tube')||.3},16,48),new THREE.MeshPhongMaterial({color:${v('color')}})); sim.three.meshes.m${id}.castShadow=true; scene.add(sim.three.meshes.m${id});\n`;break;
+      case'draw-3d-cone':code+=`  sim.three.meshes.m${id}=new THREE.Mesh(new THREE.ConeGeometry(${nm('r')||.5},${nm('h')||1},32),new THREE.MeshPhongMaterial({color:${v('color')}})); sim.three.meshes.m${id}.castShadow=true; scene.add(sim.three.meshes.m${id});\n`;break;
+      case'set-3d-light':code+=`  {let _l; if(${v('type')}==='spot')_l=new THREE.SpotLight(${v('color')},${nm('intensity')||1}); else if(${v('type')}==='dir')_l=new THREE.DirectionalLight(${v('color')},${nm('intensity')||1}); else _l=new THREE.PointLight(${v('color')},${nm('intensity')||1},50); _l.position.set(${nm('x')},${nm('y')},${nm('z')}); _l.castShadow=true; scene.add(_l); sim.three.meshes.m${id}=_l;}\n`;break;
+      }
+    });
+  }
+  if(has3D){
+    code+='}\n\nfunction draw(sim) {\n  const f=sim.frame, st=sim.state, W=sim.width, H=sim.height;\n  const {scene,camera,renderer,meshes}=sim.three;\n\n';
+  }else{
+    code+='}\n\nfunction draw(sim) {\n  const ctx=sim.ctx, W=sim.width, H=sim.height, f=sim.frame, st=sim.state;\n  ctx.fillStyle="#fff"; ctx.fillRect(0,0,W,H);\n\n';
+  }
   blocks.forEach(b=>{
     const t=allTemplates[b.type],id=b.id,I=b.inputs;if(!t)return;
     const v=n=>I[n]!==undefined?JSON.stringify(I[n]):'0';
@@ -804,7 +835,16 @@ function generateCode(){
     case'set-scale':code+=`  const scale_x_${id}=${n('sx')}, scale_y_${id}=${n('sy')};\n`;break;
     case'draw-image':code+=`  {const o=st.b${id}; if(!o.img||o.src!==${v('url')}){o.img=new Image();o.img.crossOrigin="anonymous";o.img.src=${v('url')};o.src=${v('url')}} if(o.img.complete&&o.img.naturalWidth)ctx.drawImage(o.img,${n('x')},${n('y')},${n('w')},${n('h')});}\n`;break;
     case'trace-path':code+=`  ctx.fillStyle=${v('color')}; ctx.beginPath(); ctx.arc(${n('x')},${n('y')},${n('size')||2},0,Math.PI*2); ctx.fill();\n`;break;
-    case'draw-cube':case'draw-sphere':case'draw-cylinder':case'draw-3d-plane':case'draw-3d-torus':case'draw-3d-cone':case'set-camera':case'rotate-3d':case'set-3d-material':case'set-3d-light':code+=`  // ${t.title}: requires Three.js (block mode only)\n`;break;
+    case'draw-cube':code+=`  meshes.m${id}.position.set(${n('x')},${n('y')},${n('z')}); meshes.m${id}.rotation.x=${n('rotX')}*Math.PI/180; meshes.m${id}.rotation.y=${n('rotY')}*Math.PI/180;\n`;break;
+    case'draw-sphere':code+=`  meshes.m${id}.position.set(${n('x')},${n('y')},${n('z')});\n`;break;
+    case'draw-cylinder':code+=`  meshes.m${id}.position.set(${n('x')},${n('y')},${n('z')});\n`;break;
+    case'draw-3d-plane':code+=`  meshes.m${id}.position.set(${n('x')},${n('y')},${n('z')});\n`;break;
+    case'draw-3d-torus':code+=`  meshes.m${id}.position.set(${n('x')},${n('y')},${n('z')}); meshes.m${id}.rotation.x=${n('rotX')}*Math.PI/180; meshes.m${id}.rotation.y=${n('rotY')}*Math.PI/180;\n`;break;
+    case'draw-3d-cone':code+=`  meshes.m${id}.position.set(${n('x')},${n('y')},${n('z')});\n`;break;
+    case'set-camera':code+=`  camera.position.set(${n('x')},${n('y')||2},${n('z')||5}); camera.lookAt(${n('lookX')},${n('lookY')},${n('lookZ')}); camera.fov=${n('fov')||60}; camera.updateProjectionMatrix();\n`;break;
+    case'rotate-3d':code+=`  if(meshes[${v('mesh')}]){meshes[${v('mesh')}].rotation.x+=${n('rx')}*Math.PI/180; meshes[${v('mesh')}].rotation.y+=${n('ry')}*Math.PI/180; meshes[${v('mesh')}].rotation.z+=${n('rz')}*Math.PI/180;}\n`;break;
+    case'set-3d-material':code+=`  if(meshes[${v('mesh')}]&&meshes[${v('mesh')}].material){try{meshes[${v('mesh')}].material.color.set(${v('color')})}catch(e){} meshes[${v('mesh')}].material.wireframe=!!${n('wireframe')}; meshes[${v('mesh')}].material.opacity=${n('opacity')||1}; meshes[${v('mesh')}].material.transparent=${n('opacity')||1}<1;}\n`;break;
+    case'set-3d-light':code+=`  meshes.m${id}.position.set(${n('x')},${n('y')},${n('z')}); meshes.m${id}.intensity=${n('intensity')||1};\n`;break;
     case'gravity':code+=`  const gForce_${id}=${n('mass')||1}*${n('g')||9.8}, gAccel_${id}=${n('g')||9.8};\n`;break;
     case'velocity':code+=`  const vel_x_${id}=${n('vx')}, vel_y_${id}=${n('vy')}, vel_dist_${id}=Math.sqrt(${n('vx')}**2+${n('vy')}**2)*${n('duration')||1};\n`;break;
     case'collision-detection':code+=`  {const cd_dx=${n('x2')}-${n('x1')},cd_dy=${n('y2')}-${n('y1')};var cd_dist_${id}=Math.sqrt(cd_dx*cd_dx+cd_dy*cd_dy),cd_hit_${id}=cd_dist_${id}<(${n('r1')||20}+${n('r2')||20})?1:0;}\n`;break;
@@ -849,6 +889,7 @@ function generateCode(){
     }
     code+='\n';
   });
+  if(has3D)code+=`  renderer.render(scene,camera);\n`;
   code+='}\n';
   return code;
 }
@@ -859,7 +900,9 @@ function runCodeMode(){
   isRunning=true;frameCount=0;lastTime=performance.now();
   log('Running code mode...');
   const sim={ctx:simCtx,canvas,width:canvas.width,height:canvas.height,mouse:mouseState,keys:keysDown,dt:0,frame:0,
-    addSlider:(name,min,max,def)=>{sliderValues[name]=def},
+    sliders:sliderValues,
+    addSlider:(name,min,max,def)=>{sliderValues[name]=def;buildSliders()},
+    getSlider:(name)=>sliderValues[name]!==undefined?sliderValues[name]:0,
     drawCircle:(x,y,r,c)=>{simCtx.fillStyle=c||'#3b82f6';simCtx.beginPath();simCtx.arc(x,y,r,0,Math.PI*2);simCtx.fill()},
     drawRect:(x,y,w,h,c)=>{simCtx.fillStyle=c||'#10b981';simCtx.fillRect(x,y,w,h)},
     physics:{applyGravity:(o,g)=>{o.vy=(o.vy||0)+(g||.5);o.y+=o.vy},checkCollision:(a,b)=>{let d=Math.sqrt((a.x-b.x)**2+(a.y-b.y)**2);return d<(a.r||20)+(b.r||20)}},
@@ -871,7 +914,7 @@ function runCodeMode(){
     function frame(ts){
       if(!isRunning)return;
       sim.dt=(ts-lastTime)/1000;lastTime=ts;sim.frame=++frameCount;
-      sim.mouse=mouseState;sim.keys=keysDown;
+      sim.mouse=mouseState;sim.keys=keysDown;sim.sliders=sliderValues;
       try{drawFn(sim)}catch(e){log('Runtime: '+e.message,'error');isRunning=false;return}
       document.getElementById('fpsDisplay').textContent=Math.round(1/sim.dt)+' FPS';
       animFrame=requestAnimationFrame(frame);
