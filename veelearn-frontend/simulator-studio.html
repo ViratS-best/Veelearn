@@ -141,7 +141,7 @@ body.view-only .studio-toolbar{justify-content:center}
   <div class="right-panel" id="rightPanel">
     <div class="preview-section">
       <div class="preview-header"><h3>Preview</h3><span id="fpsDisplay" style="color:#64748b;font-size:.75em">0 FPS</span></div>
-      <div class="canvas-wrap"><canvas id="simCanvas" width="400" height="400"></canvas></div>
+      <div class="canvas-wrap"><canvas id="simCanvas" width="400" height="400"></canvas><canvas id="simCanvas3d" width="400" height="400" style="display:none;position:absolute;top:0;left:0"></canvas></div>
     </div>
     <div class="controls-section" id="controlsSection"><h4>🎛️ Controls</h4><div id="slidersBox"><p style="color:#64748b;font-size:.8em;font-style:italic">No interactive controls yet</p></div></div>
     <div class="console-section">
@@ -172,7 +172,7 @@ function initThreeJS(){
   threeScene.background=new THREE.Color(0x1a1a2e);
   threeCamera=new THREE.PerspectiveCamera(60,1,0.1,1000);
   threeCamera.position.set(0,2,5);threeCamera.lookAt(0,0,0);
-  threeRenderer=new THREE.WebGLRenderer({canvas:document.getElementById('simCanvas'),antialias:true});
+  threeRenderer=new THREE.WebGLRenderer({canvas:document.getElementById('simCanvas3d'),antialias:true});
   threeRenderer.setSize(400,400);threeRenderer.shadowMap.enabled=true;
   const a=new THREE.AmbientLight(0x404040,0.6);threeScene.add(a);
   const d=new THREE.DirectionalLight(0xffffff,0.8);d.position.set(5,10,7);d.castShadow=true;threeScene.add(d);
@@ -184,6 +184,8 @@ function cleanupThreeJS(){
   if(threeScene){while(threeScene.children.length>0){const c=threeScene.children[0];if(c.geometry)c.geometry.dispose();if(c.material){if(c.material.map)c.material.map.dispose();c.material.dispose()}threeScene.remove(c)}}
   threeMeshes={};threeScene=null;threeCamera=null;threeActive=false;
   if(threeRenderer){threeRenderer.dispose();threeRenderer=null}
+  document.getElementById('simCanvas').style.display='block';
+  document.getElementById('simCanvas3d').style.display='none';
 }
 
 const canvas=document.getElementById('simCanvas');
@@ -610,6 +612,8 @@ function runSim(){
   log('Simulation started');
   const has3D=blocks.some(b=>['draw-cube','draw-sphere','draw-cylinder','draw-3d-plane','draw-3d-torus','draw-3d-cone','set-camera','set-3d-light','rotate-3d','set-3d-material'].includes(b.type));
   if(has3D)initThreeJS();
+  document.getElementById('simCanvas').style.display=has3D?'none':'block';
+  document.getElementById('simCanvas3d').style.display=has3D?'block':'none';
   const state={ctx:has3D?null:simCtx,canvas,frameCount:0,_mouseX:0,_mouseY:0,_mouseDown:false,_keys:keysDown,_messages:{},_imgCache:{},_bs:blockStates,_bid:0};
   buildSliders();
 
@@ -983,8 +987,10 @@ async function loadFromUrl(){
       const resp=await fetch(`${API_BASE_URL}/api/simulators/${simId}`,{credentials:'include'});
       const r=await resp.json();
       if(r.success&&r.data){
-        blocks=Array.isArray(r.data.blocks)?r.data.blocks:[];
-        connections=Array.isArray(r.data.connections)?r.data.connections:[];
+        let rawB=r.data.blocks;if(typeof rawB==='string')try{rawB=JSON.parse(rawB)}catch(e){}
+        blocks=Array.isArray(rawB)?rawB:[];
+        let rawC=r.data.connections;if(typeof rawC==='string')try{rawC=JSON.parse(rawC)}catch(e){}
+        connections=Array.isArray(rawC)?rawC:[];
         if(r.data.code_mode){
           document.getElementById('codeEditor').value=typeof r.data.code_mode==='string'?r.data.code_mode:JSON.stringify(r.data.code_mode);
         }
@@ -1004,8 +1010,10 @@ async function loadFromUrl(){
 // Load from parent postMessage
 window.addEventListener('message',e=>{
   if(e.data.type==='load-simulator'){
-    blocks=e.data.data?.blocks||e.data.blocks||[];
-    connections=e.data.data?.connections||e.data.connections||[];
+    let lb=e.data.data?.blocks||e.data.blocks||[];if(typeof lb==='string')try{lb=JSON.parse(lb)}catch(x){}
+    blocks=Array.isArray(lb)?lb:[];
+    let lc=e.data.data?.connections||e.data.connections||[];if(typeof lc==='string')try{lc=JSON.parse(lc)}catch(x){}
+    connections=Array.isArray(lc)?lc:[];
     renderAll();
     log(`Loaded ${blocks.length} blocks from parent`);
     if(isViewOnly)setTimeout(()=>runSim(),200);

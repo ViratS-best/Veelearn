@@ -4248,6 +4248,50 @@ function hydrateQuizPlaceholders() {
     console.log(`Hydrated ${questionCounter} quiz questions successfully`);
 }
 
+function hydrateSimulatorPlaceholders() {
+    const viewerContent = document.getElementById('course-viewer-content');
+    if (!viewerContent) return;
+
+    const simulatorDivs = viewerContent.querySelectorAll('.simulator-block');
+    if (simulatorDivs.length === 0) return;
+
+    console.log(`Hydrating ${simulatorDivs.length} simulator placeholders, courseBlocks: ${courseBlocks.length}`);
+
+    simulatorDivs.forEach(div => {
+        const blockId = parseInt(div.dataset.blockId);
+        const title = div.querySelector('strong')?.textContent || 'Interactive Simulator';
+
+        div.style.cssText = 'margin: 16px 0; border-radius: 8px; overflow: hidden;';
+        div.contentEditable = 'false';
+        div.innerHTML = `
+            <div style="display:flex; align-items:center; gap:14px; background:rgba(102,126,234,0.12); padding:18px 20px; border:2px solid #667eea; border-radius:8px;">
+                <div style="font-size:2.2em; line-height:1;">🎮</div>
+                <div style="flex:1;">
+                    <div style="font-weight:700; font-size:1.05em; color:#e2e8f0;">${escapeHtml(title)}</div>
+                    <div style="font-size:0.85em; color:#94a3b8; margin-top:4px;">Interactive simulator — click Run to launch</div>
+                </div>
+                <button class="sim-run-btn" data-sim-block-id="${blockId}" data-sim-title="${escapeHtml(title).replace(/"/g, '&quot;')}" style="padding:10px 24px; background:linear-gradient(135deg,#4caf50,#2e7d32); color:white; border:none; border-radius:6px; cursor:pointer; font-weight:700; font-size:1em; box-shadow:0 2px 8px rgba(76,175,80,0.3); transition:transform .15s;">▶ Run</button>
+            </div>
+        `;
+
+        const btn = div.querySelector('.sim-run-btn');
+        if (btn) {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const bid = parseInt(btn.dataset.simBlockId);
+                const t = btn.dataset.simTitle;
+                runEmbeddedBlockSimulator(bid, t);
+            });
+            btn.addEventListener('mouseenter', () => { btn.style.transform = 'scale(1.05)'; });
+            btn.addEventListener('mouseleave', () => { btn.style.transform = 'scale(1)'; });
+        }
+    });
+
+    console.log(`Hydrated ${simulatorDivs.length} simulator blocks`);
+}
+window.hydrateSimulatorPlaceholders = hydrateSimulatorPlaceholders;
+
 // Kept for backward compatibility if needed, but modified to use hydration
 async function renderQuizQuestionsInViewer(courseId) {
     await loadCourseQuestions(courseId);

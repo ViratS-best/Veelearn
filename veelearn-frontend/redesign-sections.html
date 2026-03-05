@@ -59,10 +59,11 @@
         <button id="btn-simulator-new" title="Embed Simulator">🎮 Embed Simulator</button>
         <button id="btn-video-new" title="Upload Video">📹 Video</button>
         <button id="btn-document-new" title="Upload Document">📄 Document</button>
-        <span style="margin-left: auto; font-size: 12px; color: var(--text-muted);">Last saved 2 mins ago</span>
+        <span style="margin-left: auto; font-size: 12px; color: var(--text-muted);">Auto-saved</span>
       </div>
 
-      <div id="course-content-editor-new" contenteditable="true" class="editor-content" placeholder="Start typing your course content..."></div>
+      <div id="course-content-editor-new" contenteditable="true" class="editor-content"
+        placeholder="Start typing your course content..."></div>
     </div>
 
     <!-- RIGHT SIDEBAR -->
@@ -73,9 +74,12 @@
           <strong style="font-size: 13px;">LaTeX Equation Block</strong>
           <small>Alignment</small>
           <div style="display: flex; gap: 5px; margin-top: 8px;">
-            <button style="width: 100%; padding: 6px; background: transparent; border: 1px solid var(--border); border-radius: 4px; color: var(--text-light); cursor: pointer; font-size: 12px;">Left</button>
-            <button style="width: 100%; padding: 6px; background: var(--primary); border: 1px solid var(--primary); border-radius: 4px; color: white; cursor: pointer; font-size: 12px;">Center</button>
-            <button style="width: 100%; padding: 6px; background: transparent; border: 1px solid var(--border); border-radius: 4px; color: var(--text-light); cursor: pointer; font-size: 12px;">Right</button>
+            <button
+              style="width: 100%; padding: 6px; background: transparent; border: 1px solid var(--border); border-radius: 4px; color: var(--text-light); cursor: pointer; font-size: 12px;">Left</button>
+            <button
+              style="width: 100%; padding: 6px; background: var(--primary); border: 1px solid var(--primary); border-radius: 4px; color: white; cursor: pointer; font-size: 12px;">Center</button>
+            <button
+              style="width: 100%; padding: 6px; background: transparent; border: 1px solid var(--border); border-radius: 4px; color: var(--text-light); cursor: pointer; font-size: 12px;">Right</button>
           </div>
           <small style="margin-top: 10px; display: block;">Auto-numbering</small>
           <div style="display: flex; gap: 8px; align-items: center; margin-top: 8px;">
@@ -153,7 +157,7 @@
       <div class="course-card">
         <div class="course-card-image">🎨</div>
         <div class="course-card-content">
-          <div class="course-card-title">UI/UX Masterclass 2024</div>
+          <div class="course-card-title">UI/UX Masterclass</div>
           <div class="course-card-status">IN PROGRESS</div>
           <div class="course-progress">
             <div class="progress-bar">
@@ -173,27 +177,25 @@
         <div class="activity-item">
           <div class="activity-icon">💬</div>
           <div class="activity-content">
-            <p>Sarah replied to your comment in UI UX Design</p>
-            <small>2 hours ago</small>
+            <small>Just now</small>
           </div>
         </div>
         <div class="activity-item">
           <div class="activity-icon">✅</div>
           <div class="activity-content">
-            <p>You completed Lesson 4: Flexbox Basics</p>
-            <small>Yesterday</small>
+            <small>Recently</small>
           </div>
         </div>
         <div class="activity-item">
           <div class="activity-icon">📋</div>
           <div class="activity-content">
-            <p>New assignment posted: Wireframe Practice</p>
-            <small>3 days ago</small>
+            <small>New</small>
           </div>
         </div>
       </div>
 
-      <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-top: 20px;">
+      <div
+        style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-top: 20px;">
         <h3 style="margin-top: 0;">Classroom Insights</h3>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
           <div>
@@ -220,7 +222,9 @@
       <div class="viewer-header">
         <div class="grade-badge">Graduate Level</div>
         <h1>Lesson 12: The Time-Dependent Schrödinger Equation</h1>
-        <p class="description">To understand the evolution of a quantum system over time, we must look beyond the stationary states. The Time-Dependent Schrödinger Equation (TDSE) provides the fundamental framework for determining how the wave function changes.</p>
+        <p class="description">To understand the evolution of a quantum system over time, we must look beyond the
+          stationary states. The Time-Dependent Schrödinger Equation (TDSE) provides the fundamental framework for
+          determining how the wave function changes.</p>
       </div>
 
       <div class="viewer-meta">
@@ -239,23 +243,29 @@
 
       <div class="content-body" id="viewer-content-body">
         <h2>Understanding the Foundation</h2>
-        <p>The Time-Dependent Schrödinger Equation is fundamental to quantum mechanics. The wave function $\Psi(\mathbf{r}, t)$ describes the probability amplitude for finding a particle at position $\mathbf{r}$ at time $t$.</p>
+        <p>The Time-Dependent Schrödinger Equation is fundamental to quantum mechanics. The wave function
+          $\Psi(\mathbf{r}, t)$ describes the probability amplitude for finding a particle at position $\mathbf{r}$ at
+          time $t$.</p>
 
         <div class="equation-block">
-          $$i\hbar \frac{\partial}{\partial t} \Psi(\mathbf{r}, t) = \left[ -\frac{\hbar^2}{2m} \nabla^2 + V(\mathbf{r}, t) \right] \Psi(\mathbf{r}, t)$$
+          $$i\hbar \frac{\partial}{\partial t} \Psi(\mathbf{r}, t) = \left[ -\frac{\hbar^2}{2m} \nabla^2 + V(\mathbf{r},
+          t) \right] \Psi(\mathbf{r}, t)$$
         </div>
 
-        <p>Where $i$ is the imaginary unit, $\hbar$ is the reduced Planck constant, and the term in brackets represents the Hamiltonian operator $\hat{H}(t)$.</p>
+        <p>Where $i$ is the imaginary unit, $\hbar$ is the reduced Planck constant, and the term in brackets represents
+          the Hamiltonian operator $\hat{H}(t)$.</p>
 
         <h2>Physical Interpretation</h2>
-        <p>Unlike classical mechanics, where particles follow definite trajectories determined by Newton's laws, quantum mechanics describes the probability density:</p>
+        <p>Unlike classical mechanics, where particles follow definite trajectories determined by Newton's laws, quantum
+          mechanics describes the probability density:</p>
 
         <div class="equation-block">
           $$P(\mathbf{r}, t) = |\Psi(\mathbf{r}, t)|^2$$
         </div>
 
         <div class="note-block">
-          <strong>Note for Students:</strong> The Hamiltonian operator above represents the total energy of the system, including kinetic and potential energies.
+          <strong>Note for Students:</strong> The Hamiltonian operator above represents the total energy of the system,
+          including kinetic and potential energies.
         </div>
       </div>
 
@@ -274,7 +284,7 @@
     <!-- SIDEBAR -->
     <div class="related-courses">
       <h3>✨ Related Courses</h3>
-      
+
       <div class="related-item">
         <h4 style="color: var(--primary);">PHYSICS</h4>
         <h4>Statistical Mechanics and Entropy</h4>
@@ -293,10 +303,14 @@
         <p>15h 10m • 22 Lessons</p>
       </div>
 
-      <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-top: 20px;">
+      <div
+        style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-top: 20px;">
         <h4 style="margin-top: 0;">Need Help?</h4>
-        <p style="color: var(--text-muted); font-size: 13px; margin: 0 0 12px 0;">Join our dedicated Discord community for this course and get help from tutors 24/7.</p>
-        <button style="width: 100%; padding: 10px; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">💬 Join Community</button>
+        <p style="color: var(--text-muted); font-size: 13px; margin: 0 0 12px 0;">Join our dedicated Discord community
+          for this course and get help from tutors 24/7.</p>
+        <button
+          style="width: 100%; padding: 10px; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">💬
+          Join Community</button>
       </div>
     </div>
   </div>
@@ -310,7 +324,8 @@
         <h2>∑ Equation Editor</h2>
         <small style="color: var(--text-muted);">Create and preview mathematical expressions using LaTeX syntax.</small>
       </div>
-      <button class="close" onclick="document.getElementById('equation-modal-new').classList.remove('active');">✕</button>
+      <button class="close"
+        onclick="document.getElementById('equation-modal-new').classList.remove('active');">✕</button>
     </div>
 
     <div class="equation-tabs">
@@ -351,7 +366,8 @@
     </div>
 
     <div class="equation-modal-actions">
-      <button class="cancel" onclick="document.getElementById('equation-modal-new').classList.remove('active');">Cancel</button>
+      <button class="cancel"
+        onclick="document.getElementById('equation-modal-new').classList.remove('active');">Cancel</button>
       <button class="insert">↗️ Insert Equation</button>
     </div>
   </div>

@@ -2,7 +2,7 @@
  * UNIFIED BLOCK TEMPLATES - Master definition file
  * Contains ALL 40+ block types for Veelearn simulator
  * Merges physics, animation, rendering, logic, and math blocks
- * Updated: November 9, 2025
+ * Optimized for Performance
  */
 
 // Global block templates object - used by block-simulator.html
