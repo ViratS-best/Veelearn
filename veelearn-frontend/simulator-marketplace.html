@@ -748,7 +748,7 @@
                         <div class="card-title">${escapeHtml(sim.title)}</div>
                         <div class="card-description">${escapeHtml(sim.description || 'No description')}</div>
                         <div class="card-meta">
-                            <span class="card-rating">⭐ ${(sim.rating || 0).toFixed(1)}</span>
+                            <span class="card-rating">⭐ ${parseFloat(sim.rating || 0).toFixed(1)}</span>
                             <span class="card-downloads">📥 ${sim.downloads || 0}</span>
                         </div>
                         <div class="card-creator">By ${escapeHtml(sim.creator_email || 'Unknown')}</div>
@@ -778,7 +778,7 @@
                         <div class="card-title">${escapeHtml(sim.title)}</div>
                         <div class="card-description">${escapeHtml(sim.description || 'No description')}</div>
                         <div class="card-meta">
-                            <span class="card-rating">⭐ ${(sim.rating || 0).toFixed(1)}</span>
+                            <span class="card-rating">⭐ ${parseFloat(sim.rating || 0).toFixed(1)}</span>
                             <span class="card-downloads">📥 ${sim.downloads || 0}</span>
                         </div>
                         <div class="card-creator">By ${escapeHtml(sim.creator_email || 'Unknown')}</div>
@@ -847,7 +847,7 @@
                         <div class="detail-meta">
                             <div class="meta-item">
                                 <div class="meta-label">Rating</div>
-                                <div class="meta-value">⭐ ${(simulator.rating || 0).toFixed(1)}</div>
+                                <div class="meta-value">⭐ ${parseFloat(simulator.rating || 0).toFixed(1)}</div>
                             </div>
                             <div class="meta-item">
                                 <div class="meta-label">Downloads</div>

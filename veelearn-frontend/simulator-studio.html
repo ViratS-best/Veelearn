@@ -672,6 +672,7 @@ function executeBlocks(state){
         }
         if(typeof inputs[name]==='string'&&!isNaN(inputs[name])&&inputs[name]!=='')inputs[name]=parseFloat(inputs[name]);
       });
+      if(!ready)continue;
       try{
         state._bid=b.id;
         const execFn=tmpl.exec||tmpl.execute;
