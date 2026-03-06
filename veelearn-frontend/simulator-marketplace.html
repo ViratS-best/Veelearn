@@ -1180,8 +1180,8 @@
         }
 
         function runSimulator(simulatorId) {
-            // Open simulator execution page
-            window.location.href = `simulator-view.html?id=${simulatorId}`;
+            // Open simulator in studio with full slider/interaction support
+            window.open(`simulator-studio.html?viewOnly=true&simId=${simulatorId}`, '_blank', 'width=1400,height=900');
         }
     </script>
 </body>

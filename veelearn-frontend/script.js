@@ -5284,7 +5284,8 @@ let courseTimer = {
     repeatedKeyCount: 0,
     lastKey: null,
     isIdle: false,
-    intervalId: null
+    intervalId: null,
+    macroResetId: null
 };
 
 function startCourseTimer(initialSeconds = 0) {
@@ -5294,9 +5295,12 @@ function startCourseTimer(initialSeconds = 0) {
     // Reset checking vars
     courseTimer.lastKeyboardActivity = Date.now();
     courseTimer.keyPressesInWindow = 0;
+    courseTimer.repeatedKeyCount = 0;
+    courseTimer.lastKey = null;
 
-    // Clear existing interval if any
+    // Clear existing intervals
     if (courseTimer.intervalId) clearInterval(courseTimer.intervalId);
+    if (courseTimer.macroResetId) clearInterval(courseTimer.macroResetId);
 
     updateTimerDisplay();
 
@@ -5316,15 +5320,24 @@ function startCourseTimer(initialSeconds = 0) {
         }
     }, 1000);
 
-    // Anti-macro window reset
-    setInterval(() => {
+    // Anti-macro window reset — also auto-resume if abuse condition cleared
+    courseTimer.macroResetId = setInterval(() => {
         courseTimer.keyPressesInWindow = 0;
+        courseTimer.repeatedKeyCount = 0;
+        // Auto-resume if timer was stopped by anti-abuse
+        if (!courseTimer.isRunning && !courseTimer.isIdle) {
+            courseTimer.isRunning = true;
+            updateTimerDisplay();
+        }
     }, 5000);
 }
 
 function stopCourseTimer() {
     courseTimer.isRunning = false;
     if (courseTimer.intervalId) clearInterval(courseTimer.intervalId);
+    if (courseTimer.macroResetId) clearInterval(courseTimer.macroResetId);
+    courseTimer.intervalId = null;
+    courseTimer.macroResetId = null;
     updateTimerDisplay();
 }
 
@@ -5365,16 +5378,15 @@ document.addEventListener('keydown', (e) => {
     courseTimer.lastKeyboardActivity = now;
     courseTimer.isIdle = false; // Wake up
 
-    // Anti-Macro: Check frequency
+    // Anti-Macro: Check frequency (300 keys in 5s = 60/sec, far beyond human typing)
     courseTimer.keyPressesInWindow++;
-    if (courseTimer.keyPressesInWindow > 100) {
-        // Macro detected!
+    if (courseTimer.keyPressesInWindow > 300) {
         courseTimer.isRunning = false;
         console.warn('Anti-Macro triggered: Too many keypresses');
         return;
     }
 
-    // Anti-Keyboard Weight: Check repeats
+    // Anti-Keyboard Weight: Check repeats (200 = ~7 seconds of holding a key)
     if (e.key === courseTimer.lastKey) {
         courseTimer.repeatedKeyCount++;
     } else {
@@ -5382,15 +5394,14 @@ document.addEventListener('keydown', (e) => {
         courseTimer.lastKey = e.key;
     }
 
-    if (courseTimer.repeatedKeyCount > 50) {
-        // Weight detected!
+    if (courseTimer.repeatedKeyCount > 200) {
         courseTimer.isRunning = false;
-        console.warn('Anti-Weight triggered: Key held down/repeated too long');
+        console.warn('Anti-Weight triggered: Key held down too long');
         return;
     }
 
-    // Resume if previously stopped/idle but now passing checks
-    if (!courseTimer.isRunning && !courseTimer.isIdle && courseTimer.repeatedKeyCount < 50 && courseTimer.keyPressesInWindow < 100) {
+    // Resume if previously stopped by anti-abuse but now passing checks
+    if (!courseTimer.isRunning && !courseTimer.isIdle) {
         courseTimer.isRunning = true;
         updateTimerDisplay();
     }
