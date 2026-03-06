@@ -36,14 +36,7 @@ let currentEditingQuestionId = null;
 let lastDeletedQuestion = null; // Store last deleted question for undo
 let savedSelection = null; // Save cursor position when editor loses focus
 
-let courseTimerInterval = null;
-let courseActiveSeconds = 0;
-let lastActivityTime = Date.now();
-let isTimerActive = false;
-let keyPressLog = [];
-let lastKeyPressed = null;
-let sameKeyCount = 0;
-let macroDetected = false;
+// (Old timer variables removed — courseTimer object at bottom of file handles everything)
 
 // Animation preference
 let animationMode = localStorage.getItem('animationMode') || 'short';
@@ -1529,128 +1522,9 @@ function setupLandingPageListeners() {
     }
 }
 
-// ===== COURSE CREATION TIMER (ANTI-CHEAT) =====
-
-function formatTimerDisplay(totalSeconds) {
-    const h = Math.floor(totalSeconds / 3600);
-    const m = Math.floor((totalSeconds % 3600) / 60);
-    const s = totalSeconds % 60;
-    return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
-}
-
-function updateTimerUI() {
-    const valueEl = document.getElementById('course-timer-value');
-    const statusEl = document.getElementById('course-timer-status');
-    if (valueEl) valueEl.textContent = formatTimerDisplay(courseActiveSeconds);
-    if (statusEl) {
-        if (macroDetected) {
-            statusEl.textContent = '(paused - suspicious input)';
-            statusEl.style.color = '#ef4444';
-        } else if (Date.now() - lastActivityTime >= 60000) {
-            statusEl.textContent = '(idle - paused)';
-            statusEl.style.color = '#f59e0b';
-        } else {
-            statusEl.textContent = '(tracking...)';
-            statusEl.style.color = '#999';
-        }
-    }
-}
-
-function startCourseTimer() {
-    if (courseTimerInterval) clearInterval(courseTimerInterval);
-    isTimerActive = true;
-    lastActivityTime = Date.now();
-    macroDetected = false;
-    keyPressLog = [];
-    lastKeyPressed = null;
-    sameKeyCount = 0;
-    updateTimerUI();
-
-    courseTimerInterval = setInterval(() => {
-        const idleMs = Date.now() - lastActivityTime;
-        if (idleMs < 60000 && !macroDetected) {
-            courseActiveSeconds++;
-        }
-        updateTimerUI();
-    }, 1000);
-}
-
-function stopCourseTimer() {
-    if (courseTimerInterval) {
-        clearInterval(courseTimerInterval);
-        courseTimerInterval = null;
-    }
-    isTimerActive = false;
-    return courseActiveSeconds;
-}
-
-function resetCourseTimer() {
-    stopCourseTimer();
-    courseActiveSeconds = 0;
-    lastActivityTime = Date.now();
-    macroDetected = false;
-    keyPressLog = [];
-    lastKeyPressed = null;
-    sameKeyCount = 0;
-    updateTimerUI();
-}
-
-function handleTimerActivity(event) {
-    lastActivityTime = Date.now();
-
-    if (event.type === 'keydown') {
-        const now = Date.now();
-        keyPressLog.push(now);
-        if (keyPressLog.length > 200) keyPressLog.shift();
-
-        if (event.key === lastKeyPressed) {
-            sameKeyCount++;
-            if (sameKeyCount >= 50) {
-                macroDetected = true;
-                return;
-            }
-        } else {
-            lastKeyPressed = event.key;
-            sameKeyCount = 1;
-        }
-
-        const fiveSecondsAgo = now - 5000;
-        const recentKeys = keyPressLog.filter(t => t >= fiveSecondsAgo);
-        if (recentKeys.length > 100) {
-            macroDetected = true;
-            return;
-        }
-
-        if (macroDetected && recentKeys.length <= 100 && sameKeyCount < 50) {
-            macroDetected = false;
-        }
-    } else {
-        if (macroDetected && sameKeyCount < 50) {
-            const now = Date.now();
-            const fiveSecondsAgo = now - 5000;
-            const recentKeys = keyPressLog.filter(t => t >= fiveSecondsAgo);
-            if (recentKeys.length <= 100) {
-                macroDetected = false;
-            }
-        }
-    }
-}
-
-function attachTimerActivityListeners() {
-    const editor = document.getElementById('course-content-editor');
-    const titleInput = document.getElementById('course-title');
-    const descInput = document.getElementById('course-description');
-    const editorSection = document.getElementById('course-editor-section');
-
-    const targets = [editor, titleInput, descInput, editorSection].filter(Boolean);
-    const events = ['mousemove', 'keydown', 'click', 'scroll'];
-
-    targets.forEach(target => {
-        events.forEach(evt => {
-            target.addEventListener(evt, handleTimerActivity, { passive: true });
-        });
-    });
-}
+// ===== COURSE CREATION TIMER =====
+// Simple timer: counts seconds while user is actively typing in the editor.
+// Goes idle (pauses) after 60s of no typing in the content editor / title / description.
 
 function formatCreationTime(seconds) {
     if (!seconds || seconds <= 0) return '';
@@ -1723,8 +1597,6 @@ function setupCourseEditorListeners() {
 
     // Rich text editor toolbar
     setupRichTextEditor();
-
-    attachTimerActivityListeners();
 }
 
 function setupRichTextEditor() {
@@ -5275,137 +5147,92 @@ let currentViewerPageIndex = 0;
 let viewerPages = [];
 
 // ===== COURSE TIMER & ANTI-ABUSE =====
+// ===== COURSE CREATION TIMER (SIMPLE & RELIABLE) =====
+// Counts seconds of active editing. Goes idle after 60s of no typing in editor fields.
+// No anti-macro pausing — just idle detection.
+
 let courseTimer = {
     totalSeconds: 0,
-    isRunning: false,
-    lastKeyboardActivity: Date.now(),
-    keyPressesInWindow: 0,
-    lastKeyPressTime: 0,
-    repeatedKeyCount: 0,
-    lastKey: null,
+    lastTypingTime: Date.now(),
     isIdle: false,
-    intervalId: null,
-    macroResetId: null
+    intervalId: null
 };
 
 function startCourseTimer(initialSeconds = 0) {
     courseTimer.totalSeconds = initialSeconds;
-    courseTimer.isRunning = true;
+    courseTimer.lastTypingTime = Date.now();
     courseTimer.isIdle = false;
-    // Reset checking vars
-    courseTimer.lastKeyboardActivity = Date.now();
-    courseTimer.keyPressesInWindow = 0;
-    courseTimer.repeatedKeyCount = 0;
-    courseTimer.lastKey = null;
 
-    // Clear existing intervals
+    // Clear any existing interval
     if (courseTimer.intervalId) clearInterval(courseTimer.intervalId);
-    if (courseTimer.macroResetId) clearInterval(courseTimer.macroResetId);
 
     updateTimerDisplay();
 
     courseTimer.intervalId = setInterval(() => {
-        const now = Date.now();
+        // Idle if no typing in editor for 60 seconds
+        courseTimer.isIdle = (Date.now() - courseTimer.lastTypingTime > 60000);
 
-        // Anti-idle check (60s timeout - Keyboard only as requested)
-        if (now - courseTimer.lastKeyboardActivity > 60000) {
-            courseTimer.isIdle = true;
-        } else {
-            courseTimer.isIdle = false;
-        }
-
-        if (courseTimer.isRunning && !courseTimer.isIdle) {
+        if (!courseTimer.isIdle) {
             courseTimer.totalSeconds++;
-            updateTimerDisplay();
         }
+        updateTimerDisplay();
     }, 1000);
 
-    // Anti-macro window reset — also auto-resume if abuse condition cleared
-    courseTimer.macroResetId = setInterval(() => {
-        courseTimer.keyPressesInWindow = 0;
-        courseTimer.repeatedKeyCount = 0;
-        // Auto-resume if timer was stopped by anti-abuse
-        if (!courseTimer.isRunning && !courseTimer.isIdle) {
-            courseTimer.isRunning = true;
-            updateTimerDisplay();
-        }
-    }, 5000);
+    // Attach typing listeners to editor fields
+    attachEditorTypingListeners();
 }
 
 function stopCourseTimer() {
-    courseTimer.isRunning = false;
     if (courseTimer.intervalId) clearInterval(courseTimer.intervalId);
-    if (courseTimer.macroResetId) clearInterval(courseTimer.macroResetId);
     courseTimer.intervalId = null;
-    courseTimer.macroResetId = null;
     updateTimerDisplay();
 }
 
 function updateTimerDisplay() {
-    const timerEl = document.getElementById('course-timer-display');
     const valueEl = document.getElementById('course-timer-value');
     const statusEl = document.getElementById('course-timer-status');
+    if (!valueEl) return;
 
-    if (!timerEl || !valueEl) return;
+    const h = Math.floor(courseTimer.totalSeconds / 3600);
+    const m = Math.floor((courseTimer.totalSeconds % 3600) / 60);
+    const s = courseTimer.totalSeconds % 60;
+    valueEl.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 
-    const hours = Math.floor(courseTimer.totalSeconds / 3600);
-    const minutes = Math.floor((courseTimer.totalSeconds % 3600) / 60);
-    const seconds = courseTimer.totalSeconds % 60;
-
-    const timeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-
-    valueEl.textContent = timeStr;
-
-    // Visual feedback
-    if (courseTimer.isIdle) {
-        statusEl.textContent = '(Idle - Press any key to resume)';
-        valueEl.style.color = '#f59e0b'; // Amber
-    } else if (!courseTimer.isRunning) {
-        statusEl.textContent = '(Paused - Anti-abuse triggered)';
-        valueEl.style.color = '#ef4444'; // Red
-    } else {
-        statusEl.textContent = '(Tracking active time)';
-        valueEl.style.color = '#4ade80'; // Green
+    if (statusEl) {
+        if (courseTimer.isIdle) {
+            statusEl.textContent = '(Idle - type in editor to resume)';
+            valueEl.style.color = '#f59e0b';
+        } else {
+            statusEl.textContent = '(Tracking active time)';
+            valueEl.style.color = '#4ade80';
+        }
     }
 }
 
-// Global listener for Timer Anti-Abuse
-document.addEventListener('keydown', (e) => {
-    // Only track if editing a course
-    if (!currentEditingCourseId || document.getElementById('course-editor-section').style.display === 'none') return;
+// Track typing in the actual editor fields only
+let _timerListenersAttached = false;
+function attachEditorTypingListeners() {
+    if (_timerListenersAttached) return;
+    _timerListenersAttached = true;
 
-    const now = Date.now();
-    courseTimer.lastKeyboardActivity = now;
-    courseTimer.isIdle = false; // Wake up
-
-    // Anti-Macro: Check frequency (300 keys in 5s = 60/sec, far beyond human typing)
-    courseTimer.keyPressesInWindow++;
-    if (courseTimer.keyPressesInWindow > 300) {
-        courseTimer.isRunning = false;
-        console.warn('Anti-Macro triggered: Too many keypresses');
-        return;
+    function onEditorActivity() {
+        courseTimer.lastTypingTime = Date.now();
+        if (courseTimer.isIdle) {
+            courseTimer.isIdle = false;
+            updateTimerDisplay();
+        }
     }
 
-    // Anti-Keyboard Weight: Check repeats (200 = ~7 seconds of holding a key)
-    if (e.key === courseTimer.lastKey) {
-        courseTimer.repeatedKeyCount++;
-    } else {
-        courseTimer.repeatedKeyCount = 0;
-        courseTimer.lastKey = e.key;
-    }
+    // Listen on the content editor, title, and description — input/keydown events only
+    const editorEl = document.getElementById('course-content-editor');
+    const titleEl = document.getElementById('course-title');
+    const descEl = document.getElementById('course-description');
 
-    if (courseTimer.repeatedKeyCount > 200) {
-        courseTimer.isRunning = false;
-        console.warn('Anti-Weight triggered: Key held down too long');
-        return;
-    }
-
-    // Resume if previously stopped by anti-abuse but now passing checks
-    if (!courseTimer.isRunning && !courseTimer.isIdle) {
-        courseTimer.isRunning = true;
-        updateTimerDisplay();
-    }
-});
+    [editorEl, titleEl, descEl].filter(Boolean).forEach(el => {
+        el.addEventListener('input', onEditorActivity, { passive: true });
+        el.addEventListener('keydown', onEditorActivity, { passive: true });
+    });
+}
 
 // ===== COURSE MANAGEMENT VARIABLES =====
 
