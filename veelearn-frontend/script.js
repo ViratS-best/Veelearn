@@ -3369,6 +3369,9 @@ async function viewCourse(courseId, assignmentId = null) {
         // Hydrate quiz placeholders first
         hydrateQuizPlaceholders();
 
+        // Hydrate simulator placeholders (converts editor buttons to Run buttons)
+        hydrateSimulatorPlaceholders();
+
         // Re-attach listeners for quizzes
         document.querySelectorAll(".quiz-submit-btn").forEach((btn) => {
             btn.addEventListener("click", (e) => {
@@ -3376,9 +3379,6 @@ async function viewCourse(courseId, assignmentId = null) {
                 submitQuizAnswer(questionId, courseId);
             });
         });
-
-        // Re-attach listeners for simulators if needed
-        // (Simulators usually have inline onclicks, so might be fine)
     }
 
     // Setup viewer pagination controls
