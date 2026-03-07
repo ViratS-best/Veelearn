@@ -6286,7 +6286,26 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // Simulator sort buttons in search modal
+    document.querySelectorAll('.sim-sort-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.sim-sort-btn').forEach(b => {
+                b.classList.remove('active');
+                b.style.background = 'transparent';
+                b.style.borderColor = '#555';
+                b.style.color = '#ccc';
+            });
+            btn.classList.add('active');
+            btn.style.background = '#667eea';
+            btn.style.borderColor = '#667eea';
+            btn.style.color = 'white';
+            sortSearchSimulators(btn.dataset.sort);
+        });
+    });
 });
+
+let _cachedSearchSimulators = []; // cached for re-sorting without re-fetch
 
 async function performGlobalSearch() {
     const searchInput = document.getElementById('global-search-input');
@@ -6298,33 +6317,74 @@ async function performGlobalSearch() {
     executeBtn.textContent = 'Searching...';
     executeBtn.disabled = true;
 
+    let courses = [];
+    let simulators = [];
+
     try {
+        // Try the /api/search endpoint first
         const response = await fetch(`${API_BASE_URL}/api/search?q=${encodeURIComponent(query)}`, {
             headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {},
-            credentials: 'omit' // public search mostly
+            credentials: 'omit'
         });
         const result = await response.json();
-
         if (result.success) {
-            renderSearchResults(result.data.courses, result.data.simulators);
-        } else {
-            console.error('Search failed:', result.message);
-            alert('Search failed. Please try again later.');
+            courses = result.data.courses || [];
+            simulators = result.data.simulators || [];
         }
     } catch (err) {
-        console.error('Error performing search:', err);
-        alert('Error performing search. Check connection.');
-    } finally {
-        executeBtn.textContent = originalText;
-        executeBtn.disabled = false;
+        console.warn('Search API failed, falling back to direct fetch:', err);
     }
+
+    // Also fetch simulators directly if search returned none
+    if (simulators.length === 0) {
+        try {
+            const simRes = await fetch(`${API_BASE_URL}/api/simulators?limit=50`, {
+                credentials: 'omit'
+            });
+            const simData = await simRes.json();
+            if (simData.success) {
+                const allSims = simData.data || [];
+                const q = query.toLowerCase();
+                simulators = allSims.filter(s =>
+                    (s.title || '').toLowerCase().includes(q) ||
+                    (s.description || '').toLowerCase().includes(q)
+                );
+            }
+        } catch (err2) {
+            console.warn('Simulator fetch failed:', err2);
+        }
+    }
+
+    _cachedSearchSimulators = simulators;
+    renderSearchResults(courses, simulators);
+
+    executeBtn.textContent = originalText;
+    executeBtn.disabled = false;
+}
+
+function sortSearchSimulators(sortBy) {
+    const sorted = [..._cachedSearchSimulators];
+    switch (sortBy) {
+        case 'most_liked':
+            sorted.sort((a, b) => (b.like_count || b.likes || 0) - (a.like_count || a.likes || 0));
+            break;
+        case 'most_viewed':
+            sorted.sort((a, b) => (b.download_count || b.views || 0) - (a.download_count || a.views || 0));
+            break;
+        case 'newest':
+            sorted.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+            break;
+        case 'relevance':
+        default:
+            break; // keep original order
+    }
+    renderSimulatorSearchList(sorted);
 }
 
 function renderSearchResults(courses, simulators) {
     const coursesHeader = document.getElementById('search-courses-header');
     const coursesList = document.getElementById('search-courses-list');
-    const simulatorsHeader = document.getElementById('search-simulators-header');
-    const simulatorsList = document.getElementById('search-simulators-list');
+    const simulatorsSection = document.getElementById('search-simulators-section');
 
     // Render Courses
     if (courses && courses.length > 0) {
@@ -6334,7 +6394,7 @@ function renderSearchResults(courses, simulators) {
                  onclick="viewCourseFromSearch(${c.id})">
                 <strong style="color: #fff; font-size: 16px;">${escapeHtml(c.title)}</strong>
                 <p style="color: #ccc; font-size: 14px; margin: 5px 0 0 0;">${escapeHtml(c.description || 'No description available.')}</p>
-                <small style="color: #999;">By ${escapeHtml(c.creator_email)}</small>
+                <small style="color: #999;">By ${escapeHtml(c.creator_email || '')}</small>
             </div>
         `).join('');
     } else {
@@ -6344,19 +6404,45 @@ function renderSearchResults(courses, simulators) {
 
     // Render Simulators
     if (simulators && simulators.length > 0) {
-        simulatorsHeader.style.display = 'block';
-        simulatorsList.innerHTML = simulators.map(s => `
+        simulatorsSection.style.display = 'block';
+        renderSimulatorSearchList(simulators);
+        // Reset sort buttons to relevance
+        document.querySelectorAll('.sim-sort-btn').forEach(btn => {
+            const isActive = btn.dataset.sort === 'relevance';
+            btn.classList.toggle('active', isActive);
+            btn.style.background = isActive ? '#667eea' : 'transparent';
+            btn.style.borderColor = isActive ? '#667eea' : '#555';
+            btn.style.color = isActive ? 'white' : '#ccc';
+        });
+    } else {
+        simulatorsSection.style.display = 'block';
+        document.getElementById('search-simulators-list').innerHTML = '<p style="color: #999; font-style: italic;">No simulators found for this query.</p>';
+    }
+}
+
+function renderSimulatorSearchList(simulators) {
+    const simulatorsList = document.getElementById('search-simulators-list');
+    if (!simulators || simulators.length === 0) {
+        simulatorsList.innerHTML = '<p style="color: #999; font-style: italic;">No simulators found.</p>';
+        return;
+    }
+    simulatorsList.innerHTML = simulators.map(s => {
+        const likes = s.like_count || s.likes || 0;
+        const views = s.download_count || s.views || 0;
+        const viewUrl = s.url || `simulator-view.html?id=${s.id}`;
+        return `
             <div style="background: #333; padding: 10px; border-radius: 4px; border-left: 4px solid #4ade80; cursor: pointer;"
-                 onclick="window.open('${s.url}', '_blank')">
+                 onclick="window.open('${escapeHtml(viewUrl)}', '_blank')">
                 <strong style="color: #fff; font-size: 16px;">${escapeHtml(s.title)}</strong>
                 <p style="color: #ccc; font-size: 14px; margin: 5px 0 0 0;">${escapeHtml(s.description || 'No description available.')}</p>
-                <small style="color: #999;">By ${escapeHtml(s.creator_email)}</small>
+                <div style="display: flex; gap: 12px; margin-top: 6px;">
+                    <small style="color: #f87171;">❤️ ${likes}</small>
+                    <small style="color: #60a5fa;">👁️ ${views}</small>
+                    <small style="color: #999;">By ${escapeHtml(s.creator_email || s.creator || 'Unknown')}</small>
+                </div>
             </div>
-        `).join('');
-    } else {
-        simulatorsHeader.style.display = 'block';
-        simulatorsList.innerHTML = '<p style="color: #999; font-style: italic;">No simulators found for this query.</p>';
-    }
+        `;
+    }).join('');
 }
 
 function viewCourseFromSearch(courseId) {
@@ -6446,31 +6532,29 @@ async function toggleCourseLike(courseId, buttonElement) {
 /**
  * Load courses with sorting applied
  */
-async function loadCoursesWithSort(sortBy = 'newest') {
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/courses?sort=${sortBy}`);
-
-        const result = await response.json();
-        if (!response.ok) {
-            console.error('Error loading courses:', result.message);
-            return;
-        }
-
-        // Update available courses
-        availableCourses = result.data.filter(c => c.status === 'approved');
-
-        // Update my courses (with like count)
-        myCourses = result.data.filter(c => c.creator_id === currentUser.id);
-
-        // Re-render with sorted courses
-        renderUserCourses('');
-        renderAvailableCourses('');
-
-        console.log(`✓ Courses loaded with sort: ${sortBy}`);
-    } catch (error) {
-        console.error('Error loading courses with sort:', error);
-        alert('Failed to load courses. Please try again.');
+function loadCoursesWithSort(sortBy = 'newest') {
+    // Sort available courses locally (no API call needed — avoids 401 errors)
+    const sorted = [...availableCourses];
+    switch (sortBy) {
+        case 'most_liked':
+            sorted.sort((a, b) => (b.like_count || 0) - (a.like_count || 0));
+            break;
+        case 'trending':
+            sorted.sort((a, b) => ((b.like_count || 0) + (b.view_count || 0)) - ((a.like_count || 0) + (a.view_count || 0)));
+            break;
+        case 'popular':
+            sorted.sort((a, b) => (b.view_count || 0) - (a.view_count || 0));
+            break;
+        case 'newest':
+        default:
+            sorted.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+            break;
     }
+    availableCourses = sorted;
+
+    const searchBox = document.getElementById('availableCoursesSearch');
+    renderAvailableCourses(searchBox ? searchBox.value : '');
+    console.log(`✓ Courses sorted locally by: ${sortBy}`);
 }
 
 /**

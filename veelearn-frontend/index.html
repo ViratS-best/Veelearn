@@ -89,9 +89,20 @@
             Courses</h3>
           <div id="search-courses-list" style="display: grid; gap: 10px; margin-bottom: 20px;"></div>
 
-          <h3 id="search-simulators-header" style="display: none; border-bottom: 1px solid #444; padding-bottom: 5px;">
-            Simulators</h3>
-          <div id="search-simulators-list" style="display: grid; gap: 10px;"></div>
+          <div id="search-simulators-section" style="display: none;">
+            <h3 style="border-bottom: 1px solid #444; padding-bottom: 5px;">Simulators</h3>
+            <div id="simulator-sort-btns" style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+              <button class="sim-sort-btn active" data-sort="relevance"
+                style="padding: 6px 14px; border-radius: 20px; border: 1px solid #667eea; background: #667eea; color: white; cursor: pointer; font-size: 13px;">🔍 Relevance</button>
+              <button class="sim-sort-btn" data-sort="most_liked"
+                style="padding: 6px 14px; border-radius: 20px; border: 1px solid #555; background: transparent; color: #ccc; cursor: pointer; font-size: 13px;">❤️ Most Liked</button>
+              <button class="sim-sort-btn" data-sort="most_viewed"
+                style="padding: 6px 14px; border-radius: 20px; border: 1px solid #555; background: transparent; color: #ccc; cursor: pointer; font-size: 13px;">👁️ Most Viewed</button>
+              <button class="sim-sort-btn" data-sort="newest"
+                style="padding: 6px 14px; border-radius: 20px; border: 1px solid #555; background: transparent; color: #ccc; cursor: pointer; font-size: 13px;">📅 Newest</button>
+            </div>
+            <div id="search-simulators-list" style="display: grid; gap: 10px;"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -107,6 +118,11 @@
         <div class="hero-actions">
           <button id="get-started-btn" class="primary-btn">Get Started for Free</button>
           <button id="view-courses-btn" class="secondary-btn">Browse Courses</button>
+          <a href="https://hcb.hackclub.com/donations/start/veelearn" target="_blank" rel="noopener noreferrer"
+            class="primary-btn"
+            style="background: linear-gradient(135deg, #f59e0b, #ef4444); text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+            💛 Donate
+          </a>
         </div>
       </div>
 
