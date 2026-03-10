@@ -994,6 +994,18 @@ async function loadFromUrl(){
         connections=Array.isArray(rawC)?rawC:[];
         if(r.data.code_mode){
           document.getElementById('codeEditor').value=typeof r.data.code_mode==='string'?r.data.code_mode:JSON.stringify(r.data.code_mode);
+          inCodeMode=true;
+          const codePanel=document.getElementById('codePanel');
+          if(codePanel)codePanel.style.display='block';
+          const wsEl=document.getElementById('workspace');
+          if(wsEl)wsEl.style.display='none';
+        }
+        if(!inCodeMode&&r.data.sim_type==='code'){
+          inCodeMode=true;
+          const codePanel=document.getElementById('codePanel');
+          if(codePanel)codePanel.style.display='block';
+          const wsEl=document.getElementById('workspace');
+          if(wsEl)wsEl.style.display='none';
         }
         renderAll();
         log(`Loaded "${r.data.title}" with ${blocks.length} blocks`);

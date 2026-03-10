@@ -841,6 +841,7 @@
                 <div class="detail-container">
                     <div class="detail-header">
                         <h2>${escapeHtml(simulator.title)}</h2>
+                        ${simulator.is_blocked ? `<div style="background: rgba(239,68,68,0.15); border: 1px solid #ef4444; padding: 12px; border-radius: 8px; margin: 10px 0;"><strong style="color:#ef4444;">🚫 BLOCKED</strong><p style="color:#fca5a5; margin: 5px 0 0 0;">Reason: ${escapeHtml(simulator.blocked_reason || 'No reason provided')}</p></div>` : ''}
                         <p>${escapeHtml(simulator.description || '')}</p>
                     </div>
                     <div class="detail-body">
@@ -869,6 +870,7 @@
                                 <button class="btn-use" onclick="runSimulator(${simulator.id})" style="background: #10b981;">▶ Run Simulator</button>
                                 <button class="btn-use" onclick="addToCoursechoiceSimulator(${simulator.id})">Add to My Course</button>
                                 <button class="btn-fork" onclick="forkSimulator(${simulator.id})">Fork & Remix</button>
+                                <button class="btn-use" onclick="deleteSimulator(${simulator.id}, '${escapeHtml(simulator.title).replace(/'/g, "\\'")}', true)" style="background:#ef4444;">🚫 Block Simulator</button>
                             </div>
                         </div>
 
@@ -1143,6 +1145,7 @@
                                     <div class="card-buttons">
                                         <button class="card-button" onclick="event.stopPropagation(); runSimulator(${sim.id})">▶ Run</button>
                                         <button class="card-button" onclick="event.stopPropagation(); forkSimulator(${sim.id})">⑂ Fork</button>
+                                        <button class="card-button" onclick="event.stopPropagation(); deleteSimulator(${sim.id}, '${escapeHtml(sim.title).replace(/'/g, "\\'")}');" style="background:#ef4444;">🗑 Delete</button>
                                     </div>
                                 </div>
                             </div>
@@ -1182,6 +1185,40 @@
         function runSimulator(simulatorId) {
             // Open simulator in studio with full slider/interaction support
             window.open(`simulator-studio.html?viewOnly=true&simId=${simulatorId}`, '_blank', 'width=1400,height=900');
+        }
+
+        async function deleteSimulator(simId, simTitle, isBlock = false) {
+            const token = localStorage.getItem('token');
+            if (!token) { showMessage('Please login first', 'warning'); return; }
+
+            let reason = null;
+            if (isBlock) {
+                reason = prompt('Enter reason for blocking this simulator (will be shown to the creator):');
+                if (!reason) return;
+            } else {
+                if (!confirm(`Are you sure you want to delete "${simTitle}"? This cannot be undone.`)) return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/simulators/${simId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ reason })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showMessage(isBlock ? 'Simulator blocked successfully' : 'Simulator deleted successfully', 'success');
+                    if (currentView === 'my') loadMySimulators();
+                    else { switchView('browse'); loadSimulators(1); }
+                } else {
+                    showMessage(data.message || 'Failed to delete simulator', 'error');
+                }
+            } catch (err) {
+                showMessage('Error: ' + err.message, 'error');
+            }
         }
     </script>
 </body>

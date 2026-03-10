@@ -407,6 +407,8 @@ const initializeDatabase = async () => {
         await addColumn('simulators', 'fork_count', 'INT DEFAULT 0');
         await addColumn('simulators', 'code_mode', 'LONGTEXT');
         await addColumn('simulators', 'sim_type', "VARCHAR(50) DEFAULT 'block'");
+        await addColumn('simulators', 'blocked_reason', 'TEXT');
+        await addColumn('simulators', 'is_blocked', 'BOOLEAN DEFAULT FALSE');
         console.log('✓ Simulator fork/code columns verified/added');
 
         // Dependents on Users & Courses
@@ -1987,7 +1989,7 @@ app.get('/api/simulators', (req, res) => {
     const tags = req.query.tags || '';
     const sort = req.query.sort || 'newest'; // newest, popular, rating
 
-    let whereClause = "WHERE 1=1";
+    let whereClause = "WHERE (s.is_blocked IS NULL OR s.is_blocked = FALSE)";
     const params = [];
     let orderClause = "ORDER BY s.created_at DESC";
 
@@ -2057,7 +2059,8 @@ app.get('/api/simulators/:id', (req, res) => {
             s.id, s.title, s.description, s.creator_id, u.email as creator_email,
             s.blocks, s.connections, s.tags, s.downloads, s.rating, s.version,
             s.preview_image, s.is_public, s.forked_from, s.fork_count,
-            s.code_mode, s.sim_type, s.created_at, s.updated_at
+            s.code_mode, s.sim_type, s.is_blocked, s.blocked_reason,
+            s.created_at, s.updated_at
         FROM simulators s
         LEFT JOIN users u ON s.creator_id = u.id
         WHERE s.id = ?
@@ -2211,31 +2214,48 @@ app.put('/api/simulators/:id', authenticateToken, (req, res) => {
     });
 });
 
-// Delete simulator
+// Delete simulator (owner: hard delete, superadmin on others: soft block)
 app.delete('/api/simulators/:id', authenticateToken, (req, res) => {
     const simulatorId = req.params.id;
     const userId = req.user.id;
+    const userRole = req.user.role;
 
     db.query('SELECT creator_id FROM simulators WHERE id = ?', [simulatorId], (err, results) => {
-        if (err) {
-            console.error('Error fetching simulator:', err);
-            return apiResponse(res, 500, 'Server error');
-        }
-        if (results.length === 0) {
-            return apiResponse(res, 404, 'Simulator not found');
-        }
+        if (err) return apiResponse(res, 500, 'Server error');
+        if (results.length === 0) return apiResponse(res, 404, 'Simulator not found');
 
-        if (results[0].creator_id !== userId && req.user.role !== 'superadmin') {
+        const isOwner = results[0].creator_id === userId;
+        const isSuperadmin = userRole === 'superadmin';
+
+        if (!isOwner && !isSuperadmin) {
             return apiResponse(res, 403, 'You can only delete your own simulators');
         }
 
-        db.query('DELETE FROM simulators WHERE id = ?', [simulatorId], (err) => {
-            if (err) {
-                console.error('Error deleting simulator:', err);
-                return apiResponse(res, 500, 'Error deleting simulator');
+        if (isOwner) {
+            // Owner deletes their own sim - hard delete
+            db.query('DELETE FROM simulators WHERE id = ?', [simulatorId], (err) => {
+                if (err) return apiResponse(res, 500, 'Error deleting simulator');
+                apiResponse(res, 200, 'Simulator deleted successfully');
+            });
+        } else {
+            // Superadmin blocking someone else's sim - soft delete with reason
+            const reason = req.body && req.body.reason;
+            if (!reason) {
+                return apiResponse(res, 400, 'Reason is required when blocking a simulator');
             }
-            apiResponse(res, 200, 'Simulator deleted successfully');
-        });
+            db.query('UPDATE simulators SET is_blocked = TRUE, blocked_reason = ? WHERE id = ?', [reason, simulatorId], (err) => {
+                if (err) return apiResponse(res, 500, 'Error blocking simulator');
+                apiResponse(res, 200, 'Simulator blocked successfully');
+            });
+        }
+    });
+});
+
+// Get user's blocked simulators
+app.get('/api/my-blocked-simulators', authenticateToken, (req, res) => {
+    db.query('SELECT id, title, blocked_reason, updated_at FROM simulators WHERE creator_id = ? AND is_blocked = TRUE', [req.user.id], (err, results) => {
+        if (err) return apiResponse(res, 500, 'Server error');
+        apiResponse(res, 200, 'Blocked simulators', results);
     });
 });
 
