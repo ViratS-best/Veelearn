@@ -1200,7 +1200,7 @@
             }
 
             try {
-                const response = await fetch(`${API_BASE_URL}/api/simulators/${simId}`, {
+                const response = await fetch(`${API_BASE_URL}/simulators/${simId}`, {
                     method: 'DELETE',
                     headers: {
                         'Authorization': `Bearer ${token}`,
