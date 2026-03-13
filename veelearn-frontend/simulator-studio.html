@@ -92,6 +92,16 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0f172a;color:#f1f5f
 /* View only */
 body.view-only .studio-sidebar,body.view-only .tb-edit-only,body.view-only .pb-delete{display:none!important}
 body.view-only .studio-toolbar{justify-content:center}
+/* Fullscreen mode */
+.fullscreen-overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;background:#000;z-index:9999;display:flex;align-items:center;justify-content:center;cursor:none}
+.fullscreen-overlay:hover{cursor:default}
+.fullscreen-overlay canvas{width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;object-fit:contain}
+.fullscreen-hud{position:fixed;top:12px;right:16px;z-index:10000;display:flex;gap:8px;align-items:center;opacity:0;transition:opacity .3s}
+.fullscreen-overlay:hover .fullscreen-hud,.fullscreen-hud:focus-within{opacity:1}
+.fullscreen-hud span{color:#94a3b8;font-size:.8em;font-family:'Segoe UI',sans-serif}
+.fullscreen-hud button{padding:5px 12px;border:none;border-radius:5px;background:rgba(51,65,85,.85);color:#e2e8f0;cursor:pointer;font-size:.8em;font-weight:600;transition:background .2s}
+.fullscreen-hud button:hover{background:rgba(59,130,246,.8)}
+.paused-indicator{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:rgba(255,255,255,.6);font-size:3em;pointer-events:none;z-index:10001;display:none}
 </style>
 </head>
 <body>
@@ -100,6 +110,8 @@ body.view-only .studio-toolbar{justify-content:center}
   <span class="brand">🧪 Simulator Studio</span>
   <button class="tb-primary" onclick="runSim()">▶ Run</button>
   <button class="tb-secondary" onclick="stopSim()">⏹ Stop</button>
+  <button class="tb-secondary" onclick="togglePause()" id="pauseBtn" style="display:none">⏸ Pause</button>
+  <button class="tb-secondary" onclick="toggleFullscreen()">⛶ Fullscreen</button>
   <button class="tb-secondary tb-edit-only" onclick="clearAll()">🗑 Clear</button>
   <button class="tb-secondary tb-edit-only" onclick="saveSim()">💾 Save</button>
   <button class="tb-success tb-edit-only" onclick="publishSim()">📤 Publish</button>
@@ -395,8 +407,12 @@ document.addEventListener('keydown',e=>{
   if(e.ctrlKey&&e.key==='s'){e.preventDefault();saveSim()}
   if(e.ctrlKey&&e.key==='r'){e.preventDefault();runSim()}
   if(e.key==='Delete')deleteSelected();
+  if(e.key==='f'&&!e.ctrlKey&&!e.altKey&&!e.target.matches('input,textarea,select')){e.preventDefault();toggleFullscreen()}
+  if(e.key==='Escape'&&isFullscreen){e.preventDefault();exitFullscreen()}
+  if(e.key===' '&&isRunning&&!e.target.matches('input,textarea,select')){e.preventDefault();togglePause()}
 });
 document.addEventListener('keyup',e=>{keysDown[e.key]=false});
+document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&isFullscreen)exitFullscreen()});
 
 function applyTransform(){ws.style.transform=`translate(${wsOffsetX}px,${wsOffsetY}px) scale(${wsScale})`; ws.style.transformOrigin='0 0';updateMinimap()}
 
@@ -610,6 +626,7 @@ function runSim(){
   if(!blocks.length){log('No blocks to execute','warn');return}
   isRunning=true;frameCount=0;lastTime=performance.now();blockStates={};cleanupThreeJS();
   log('Simulation started');
+  document.getElementById('pauseBtn').style.display='';
   const has3D=blocks.some(b=>['draw-cube','draw-sphere','draw-cylinder','draw-3d-plane','draw-3d-torus','draw-3d-cone','set-camera','set-3d-light','rotate-3d','set-3d-material'].includes(b.type));
   if(has3D)initThreeJS();
   document.getElementById('simCanvas').style.display=has3D?'none':'block';
@@ -618,7 +635,7 @@ function runSim(){
   buildSliders();
 
   function frame(ts){
-    if(!isRunning)return;
+    if(!isRunning||isPaused)return;
     const dt=(ts-lastTime)/1000;lastTime=ts;frameCount++;
     state.frameCount=frameCount;state._mouseX=mouseState.x;state._mouseY=mouseState.y;state._mouseDown=mouseState.down;state._keys=keysDown;
     // Apply slider values
@@ -631,15 +648,18 @@ function runSim(){
     if(threeActive)renderThreeScene();
     // FPS
     document.getElementById('fpsDisplay').textContent=Math.round(1/dt)+' FPS';
+    renderFullscreenMirror(dt);
     animFrame=requestAnimationFrame(frame);
   }
   animFrame=requestAnimationFrame(frame);
 }
 
 function stopSim(){
-  isRunning=false;
+  isRunning=false;isPaused=false;
   if(animFrame)cancelAnimationFrame(animFrame);
   cleanupThreeJS();
+  if(isFullscreen)exitFullscreen();
+  document.getElementById('pauseBtn').style.display='none';
   log('Simulation stopped');
 }
 
@@ -917,11 +937,12 @@ function runCodeMode(){
     const drawFn=fn(sim);
     if(typeof drawFn!=='function'){log('Code must define a draw(sim) function','error');isRunning=false;return}
     function frame(ts){
-      if(!isRunning)return;
+      if(!isRunning||isPaused)return;
       sim.dt=(ts-lastTime)/1000;lastTime=ts;sim.frame=++frameCount;
       sim.mouse=mouseState;sim.keys=keysDown;sim.sliders=sliderValues;
       try{drawFn(sim)}catch(e){log('Runtime: '+e.message,'error');isRunning=false;return}
       document.getElementById('fpsDisplay').textContent=Math.round(1/sim.dt)+' FPS';
+      renderFullscreenMirror(sim.dt);
       animFrame=requestAnimationFrame(frame);
     }
     animFrame=requestAnimationFrame(frame);
@@ -1040,11 +1061,143 @@ setInterval(()=>{
   }
 },30000);
 
+// ===== FULLSCREEN MODE =====
+let isFullscreen=false,isPaused=false,fullscreenOverlay=null;
+
+function toggleFullscreen(){
+  if(isFullscreen)return exitFullscreen();
+  if(!isRunning){log('Start the simulation first','warn');return}
+  isFullscreen=true;
+  // Create overlay
+  fullscreenOverlay=document.createElement('div');
+  fullscreenOverlay.className='fullscreen-overlay';
+  fullscreenOverlay.id='fullscreenOverlay';
+  // Clone canvas into overlay at full resolution
+  const fsCanvas=document.createElement('canvas');
+  fsCanvas.id='fsCanvas';
+  fullscreenOverlay.appendChild(fsCanvas);
+  // HUD
+  const hud=document.createElement('div');
+  hud.className='fullscreen-hud';
+  hud.innerHTML='<span id="fsFps">0 FPS</span><button onclick="togglePause()">⏸ Pause</button><button onclick="exitFullscreen()">✕ Exit</button>';
+  fullscreenOverlay.appendChild(hud);
+  // Paused indicator
+  const pauseInd=document.createElement('div');
+  pauseInd.className='paused-indicator';pauseInd.id='fsPausedInd';pauseInd.textContent='⏸ PAUSED';
+  fullscreenOverlay.appendChild(pauseInd);
+  document.body.appendChild(fullscreenOverlay);
+  // Resize canvas to screen
+  resizeFullscreenCanvas();
+  window.addEventListener('resize',resizeFullscreenCanvas);
+  // Redirect mouse events to sim
+  fullscreenOverlay.addEventListener('mousemove',e=>{const r=fsCanvas.getBoundingClientRect();mouseState.x=(e.clientX-r.left)*(fsCanvas.width/r.width);mouseState.y=(e.clientY-r.top)*(fsCanvas.height/r.height)});
+  fullscreenOverlay.addEventListener('mousedown',e=>{e.preventDefault();mouseState.down=true});
+  fullscreenOverlay.addEventListener('mouseup',()=>{mouseState.down=false});
+  fullscreenOverlay.addEventListener('contextmenu',e=>e.preventDefault());
+  // Request browser fullscreen
+  try{fullscreenOverlay.requestFullscreen?.()}catch(e){}
+  log('Entered fullscreen (F to toggle, Space to pause)');
+}
+
+function exitFullscreen(){
+  isFullscreen=false;
+  window.removeEventListener('resize',resizeFullscreenCanvas);
+  if(fullscreenOverlay){fullscreenOverlay.remove();fullscreenOverlay=null}
+  if(document.fullscreenElement)try{document.exitFullscreen?.()}catch(e){}
+  log('Exited fullscreen');
+}
+
+function resizeFullscreenCanvas(){
+  const fsC=document.getElementById('fsCanvas');
+  if(!fsC)return;
+  // Use screen dimensions but keep aspect ratio
+  const W=window.innerWidth,H=window.innerHeight;
+  fsC.width=W;fsC.height=H;
+}
+
+function togglePause(){
+  if(!isRunning&&!isPaused)return;
+  isPaused=!isPaused;
+  const btn=document.getElementById('pauseBtn');
+  if(isPaused){
+    if(animFrame)cancelAnimationFrame(animFrame);
+    if(btn)btn.textContent='▶ Resume';
+    const ind=document.getElementById('fsPausedInd');if(ind)ind.style.display='block';
+    log('Paused');
+  }else{
+    if(btn)btn.textContent='⏸ Pause';
+    const ind=document.getElementById('fsPausedInd');if(ind)ind.style.display='none';
+    lastTime=performance.now();
+    // Resume the correct mode
+    if(inCodeMode)resumeCodeMode();else resumeBlockMode();
+    log('Resumed');
+  }
+}
+
+function resumeBlockMode(){
+  const has3D=blocks.some(b=>['draw-cube','draw-sphere','draw-cylinder','draw-3d-plane','draw-3d-torus','draw-3d-cone','set-camera','set-3d-light','rotate-3d','set-3d-material'].includes(b.type));
+  const state={ctx:has3D?null:simCtx,canvas,frameCount,_mouseX:0,_mouseY:0,_mouseDown:false,_keys:keysDown,_messages:{},_imgCache:{},_bs:blockStates,_bid:0};
+  function frame(ts){
+    if(!isRunning||isPaused)return;
+    const dt=(ts-lastTime)/1000;lastTime=ts;frameCount++;
+    state.frameCount=frameCount;state._mouseX=mouseState.x;state._mouseY=mouseState.y;state._mouseDown=mouseState.down;state._keys=keysDown;
+    Object.entries(sliderValues).forEach(([v,val])=>{blocks.filter(b=>b.type==='variable'&&b.inputs.name===v).forEach(vb=>{vb.inputs.value=val});blocks.filter(b=>b.type==='slider'&&b.inputs.variable===v).forEach(sb=>{sb.inputs.default=val})});
+    if(!threeActive){simCtx.fillStyle='#fff';simCtx.fillRect(0,0,canvas.width,canvas.height)}
+    executeBlocks(state);
+    if(threeActive)renderThreeScene();
+    renderFullscreenMirror(dt);
+    animFrame=requestAnimationFrame(frame);
+  }
+  animFrame=requestAnimationFrame(frame);
+}
+
+function resumeCodeMode(){
+  // Re-kick the code mode loop
+  const sim={ctx:simCtx,canvas,width:canvas.width,height:canvas.height,mouse:mouseState,keys:keysDown,dt:0,frame:frameCount,sliders:sliderValues,
+    addSlider:(name,min,max,def)=>{sliderValues[name]=def;buildSliders()},getSlider:(name)=>sliderValues[name]!==undefined?sliderValues[name]:0,
+    drawCircle:(x,y,r,c)=>{simCtx.fillStyle=c||'#3b82f6';simCtx.beginPath();simCtx.arc(x,y,r,0,Math.PI*2);simCtx.fill()},
+    drawRect:(x,y,w,h,c)=>{simCtx.fillStyle=c||'#10b981';simCtx.fillRect(x,y,w,h)},
+    physics:{applyGravity:(o,g)=>{o.vy=(o.vy||0)+(g||.5);o.y+=o.vy},checkCollision:(a,b)=>{let d=Math.sqrt((a.x-b.x)**2+(a.y-b.y)**2);return d<(a.r||20)+(b.r||20)}}
+  };
+  const code=document.getElementById('codeEditor').value;
+  try{
+    const fn=new Function('sim','setup','draw',code+'\nreturn draw;');
+    const drawFn=fn(sim);
+    if(typeof drawFn!=='function')return;
+    function frame(ts){
+      if(!isRunning||isPaused)return;
+      sim.dt=(ts-lastTime)/1000;lastTime=ts;sim.frame=++frameCount;
+      sim.mouse=mouseState;sim.keys=keysDown;sim.sliders=sliderValues;
+      try{drawFn(sim)}catch(e){log('Runtime: '+e.message,'error');isRunning=false;return}
+      renderFullscreenMirror(sim.dt);
+      animFrame=requestAnimationFrame(frame);
+    }
+    animFrame=requestAnimationFrame(frame);
+  }catch(e){log('Resume error: '+e.message,'error')}
+}
+
+function renderFullscreenMirror(dt){
+  if(!isFullscreen)return;
+  const fsC=document.getElementById('fsCanvas');
+  if(!fsC)return;
+  const fsCtx=fsC.getContext('2d');
+  // Draw the sim canvas scaled to fullscreen
+  fsCtx.fillStyle='#000';fsCtx.fillRect(0,0,fsC.width,fsC.height);
+  // Maintain aspect ratio
+  const srcW=canvas.width,srcH=canvas.height;
+  const scale=Math.min(fsC.width/srcW,fsC.height/srcH);
+  const dx=(fsC.width-srcW*scale)/2,dy=(fsC.height-srcH*scale)/2;
+  fsCtx.drawImage(canvas,dx,dy,srcW*scale,srcH*scale);
+  // Update fullscreen FPS
+  const fsFps=document.getElementById('fsFps');
+  if(fsFps)fsFps.textContent=Math.round(1/(dt||.016))+' FPS';
+}
+
 // ===== INIT =====
 buildPalette();
 loadFromUrl();
 log('Simulator Studio ready! Drag blocks from the palette to get started.');
-log('Shortcuts: Ctrl+S save, Ctrl+Z undo, Ctrl+R run, Del delete, Alt+drag pan, scroll zoom');
+log('Shortcuts: Ctrl+S save, Ctrl+Z undo, Ctrl+R run, Del delete, F fullscreen, Space pause');
 updateMinimap();
 </script>
 </body>

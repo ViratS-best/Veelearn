@@ -673,6 +673,8 @@
         let currentView = 'browse';
         let totalPages = 1;
 
+        function showMySimulators() { switchView('my-simulators'); }
+
         function escapeHtml(unsafe) {
             if (typeof unsafe !== 'string') return unsafe;
             return unsafe
@@ -753,6 +755,7 @@
                         </div>
                         <div class="card-creator">By ${escapeHtml(sim.creator_email || 'Unknown')}</div>
                         <div class="card-buttons">
+                            <button class="card-button" onclick="event.stopPropagation(); runSimulator(${sim.id})" style="background:#10b981;color:#fff;">▶ Run</button>
                             <button class="card-button card-button-primary" onclick="event.stopPropagation(); addToCoursechoiceSimulator(${sim.id})">Use in Course</button>
                             <button class="card-button card-button-secondary" onclick="event.stopPropagation(); forkSimulator(${sim.id})">Fork</button>
                         </div>
@@ -783,6 +786,7 @@
                         </div>
                         <div class="card-creator">By ${escapeHtml(sim.creator_email || 'Unknown')}</div>
                         <div class="card-buttons">
+                            <button class="card-button" onclick="event.stopPropagation(); runSimulator(${sim.id})" style="background:#10b981;color:#fff;">▶ Run</button>
                             <button class="card-button card-button-primary" onclick="event.stopPropagation(); addToCoursechoiceSimulator(${sim.id})">Use in Course</button>
                             <button class="card-button card-button-secondary" onclick="event.stopPropagation(); forkSimulator(${sim.id})">Fork</button>
                         </div>
@@ -1220,6 +1224,13 @@
                 showMessage('Error: ' + err.message, 'error');
             }
         }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && currentView === 'detail') {
+                goBackToBrowse();
+            }
+        });
     </script>
 </body>
 

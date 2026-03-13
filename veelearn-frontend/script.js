@@ -3309,12 +3309,23 @@ function convertSimulatorButtonsForViewer(courseId, course) {
         buttons.forEach((btn) => {
             if (btn.textContent.includes('Edit')) {
                 btn.textContent = '▶ Run Simulator';
-                btn.style.background = '#4caf50';
+                btn.style.cssText = 'background:#10b981;color:#fff;padding:10px 20px;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:1em;transition:transform .2s;';
+                btn.onmouseenter = () => { btn.style.transform = 'scale(1.05)'; };
+                btn.onmouseleave = () => { btn.style.transform = 'scale(1)'; };
                 btn.onclick = () => runEmbeddedBlockSimulator(blockId, div.querySelector('strong')?.textContent || 'Simulator');
             } else if (btn.textContent.includes('Remove')) {
                 btn.style.display = 'none';
             }
         });
+
+        // Add fullscreen hint below buttons
+        if (!div.querySelector('.sim-fs-hint')) {
+            const hint = document.createElement('p');
+            hint.className = 'sim-fs-hint';
+            hint.style.cssText = 'color:#94a3b8;font-size:.8em;margin-top:6px;font-style:italic;';
+            hint.textContent = '💡 Press F inside the simulator for fullscreen';
+            div.appendChild(hint);
+        }
     });
 }
 
