@@ -4837,6 +4837,13 @@ async function viewCourseWithNavigation(courseId) {
             headers: { 'Authorization': `Bearer ${authToken}` },
             credentials: 'include'
         });
+        
+        // If endpoint doesn't exist (404), fallback to regular view
+        if (!typeResponse.ok) {
+            console.log("Course type endpoint not available, using regular view");
+            return viewCourse(courseId);
+        }
+        
         const typeResult = await typeResponse.json();
         const courseType = typeResult.data?.course_type || 'single';
         
@@ -4897,7 +4904,9 @@ async function loadMasterCourseView(courseId) {
         }
         
         // Show the viewer section
-        showSection("course-viewer-section");
+        document.getElementById("dashboard-section").style.display = "none";
+        document.getElementById("course-editor-section").style.display = "none";
+        document.getElementById("course-viewer-section").style.display = "block";
         
     } catch (err) {
         console.error("Error loading master course:", err);
