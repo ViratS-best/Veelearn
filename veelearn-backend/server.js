@@ -1861,15 +1861,18 @@ app.post('/api/courses/:id/enroll-master', authenticateToken, (req, res) => {
     });
 });
 
-// Get enrollment progress for master course
+// Get enrollment progress for master course (also accessible by creator for preview)
 app.get('/api/users/enrollments/:courseId/progress', authenticateToken, (req, res) => {
     const courseId = req.params.courseId;
     const userId = req.user.id;
 
-    db.query('SELECT id FROM enrollments WHERE user_id = ? AND course_id = ?', 
-        [userId, courseId], (err, results) => {
+    // Allow creator access for preview, OR enrolled user access
+    db.query(
+        'SELECT id FROM enrollments WHERE user_id = ? AND course_id = ? UNION SELECT id FROM courses WHERE creator_id = ? AND id = ?',
+        [userId, courseId, userId, courseId],
+        (err, results) => {
         if (err || results.length === 0) {
-            return apiResponse(res, 404, 'Not enrolled in this course');
+            return apiResponse(res, 404, 'Not enrolled in this course and not the creator');
         }
 
         const query = `
@@ -4977,6 +4980,7 @@ app.post('/api/student/submit-assignment', authenticateToken, (req, res) => {
 });
 
 // Get student's enrolled courses with progress tracking
+// Uses the main 'enrollments' table (course-level enrollment), not 'student_enrollments' (classroom enrollment).
 app.get('/api/student/enrolled-courses', authenticateToken, (req, res) => {
     const studentId = req.user.id;
 
@@ -4984,17 +4988,20 @@ app.get('/api/student/enrolled-courses', authenticateToken, (req, res) => {
         SELECT 
             c.id as course_id, 
             c.title, 
-            c.description, 
-            u.email as teacher_email,
+            c.description,
+            c.course_type,
+            c.status,
+            u.email as creator_email,
+            e.enrolled_at,
             COUNT(DISTINCT ca.id) as total_assignments,
             COUNT(DISTINCT CASE WHEN asub.is_submitted = 1 THEN ca.id END) as completed_assignments,
             GROUP_CONCAT(DISTINCT JSON_OBJECT(
                 'assignment_id', ca.id,
                 'title', ca.title,
                 'due_date', ca.due_date,
-                'correct_answers', asub.correct_answers,
-                'total_questions', asub.total_questions,
-                'is_submitted', asub.is_submitted
+                'correct_answers', IFNULL(asub.correct_answers, 0),
+                'total_questions', IFNULL(asub.total_questions, 0),
+                'is_submitted', IFNULL(asub.is_submitted, 0)
             ) SEPARATOR '|||') as submissions_json,
             GROUP_CONCAT(DISTINCT JSON_OBJECT(
                 'id', ca.id,
@@ -5002,12 +5009,11 @@ app.get('/api/student/enrolled-courses', authenticateToken, (req, res) => {
                 'due_date', ca.due_date
             ) SEPARATOR '|||') as assignments_json
         FROM courses c
-        JOIN student_enrollments se ON se.course_id = c.id
+        JOIN enrollments e ON e.course_id = c.id AND e.user_id = ?
         LEFT JOIN users u ON u.id = c.creator_id
         LEFT JOIN classroom_assignments ca ON ca.course_id = c.id
-        LEFT JOIN assignment_submissions asub ON ca.id = asub.assignment_id AND asub.student_id = se.student_id
-        WHERE se.student_id = ?
-        GROUP BY c.id, c.title, c.description, u.email
+        LEFT JOIN assignment_submissions asub ON ca.id = asub.assignment_id AND asub.student_id = e.user_id
+        GROUP BY c.id, c.title, c.description, c.course_type, c.status, u.email, e.enrolled_at
         ORDER BY c.title ASC
     `, [studentId], (err, results) => {
         if (err) {
@@ -5020,7 +5026,10 @@ app.get('/api/student/enrolled-courses', authenticateToken, (req, res) => {
             course_id: row.course_id,
             title: row.title,
             description: row.description,
-            teacher_email: row.teacher_email,
+            course_type: row.course_type || 'single',
+            status: row.status,
+            creator_email: row.creator_email,
+            enrolled_at: row.enrolled_at,
             total_assignments: row.total_assignments || 0,
             completed_assignments: row.completed_assignments || 0,
             assignments: row.assignments_json
