@@ -4259,9 +4259,33 @@ async function convertCourseType(courseId, newType) {
 
 // Show unit management panel
 async function showUnitManagementPanel() {
+    // First check if course is saved
+    if (!currentEditingCourseId) {
+        alert("Please save the course first before managing units.");
+        return;
+    }
+    
     const editorSection = document.getElementById("course-editor-section");
     const unitSection = document.getElementById("unit-management-section");
     const titleEl = document.getElementById("unit-management-title");
+    
+    // Check if course is a master course
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/courses/${currentEditingCourseId}/type`, {
+            headers: { 'Authorization': `Bearer ${authToken}` },
+            credentials: 'include'
+        });
+        const result = await response.json();
+        
+        if (!result.success || result.data?.course_type !== 'master') {
+            alert("This course is not a Master Course. Please save it as a Master Course first.");
+            return;
+        }
+    } catch (err) {
+        console.error("Error checking course type:", err);
+        alert("Error checking course type. Please save the course first.");
+        return;
+    }
     
     if (editorSection) editorSection.style.display = "none";
     if (unitSection) {

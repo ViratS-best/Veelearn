@@ -1231,7 +1231,7 @@ app.put('/api/superadmin/users/:id/role', authenticateToken, authorize('superadm
 
 // ===== COURSE ROUTES =====
 app.post('/api/courses', authenticateToken, (req, res) => {
-    const { title, description, content, blocks, status, creation_time, grade_level, video_url } = req.body;
+    const { title, description, content, blocks, status, creation_time, grade_level, video_url, course_type } = req.body;
     const creator_id = req.user.id;
 
     console.log('📝 CREATE COURSE DEBUG:');
@@ -1242,6 +1242,7 @@ app.post('/api/courses', authenticateToken, (req, res) => {
     console.log('  Blocks count:', Array.isArray(blocks) ? blocks.length : 'NOT PROVIDED');
     console.log('  Status:', status || 'draft');
     console.log('  Grade Level:', grade_level || 'NOT PROVIDED');
+    console.log('  Course Type:', course_type || 'single');
 
     if (!title) {
         return apiResponse(res, 400, 'Course title is required');
@@ -1268,8 +1269,8 @@ app.post('/api/courses', authenticateToken, (req, res) => {
     console.log('  Database:', dbConfig.database);
     console.log('  Host:', dbConfig.host);
 
-    const insertCourseQuery = 'INSERT INTO courses (title, description, content, blocks, creator_id, status, creation_time, grade_level, video_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)';
-    db.query(insertCourseQuery, [title, description || '', content || '', blocksJson, creator_id, courseStatus, creationTime, gradeLevelValue, video_url || null], (err, result) => {
+    const insertCourseQuery = 'INSERT INTO courses (title, description, content, blocks, creator_id, status, creation_time, grade_level, video_url, course_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+    db.query(insertCourseQuery, [title, description || '', content || '', blocksJson, creator_id, courseStatus, creationTime, gradeLevelValue, video_url || null, course_type || 'single'], (err, result) => {
         if (err) {
             console.error('❌ Error creating course:', err);
             return apiResponse(res, 500, 'Server error creating course', { details: err.message });
@@ -2001,7 +2002,7 @@ app.get('/api/courses/:id', authenticateToken, (req, res) => {
     console.log('  Database:', dbConfig.database);
 
     const query = `
-        SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time, grade_level, video_url
+        SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time, grade_level, video_url, course_type
         FROM courses
         WHERE id = ?
     `;
@@ -2033,7 +2034,7 @@ app.get('/api/courses/:id', authenticateToken, (req, res) => {
 app.put('/api/courses/:id', authenticateToken, (req, res) => {
     const courseId = req.params.id;
     const userId = req.user.id;
-    const { title, description, content, blocks, status, creation_time, grade_level, video_url } = req.body;
+    const { title, description, content, blocks, status, creation_time, grade_level, video_url, course_type } = req.body;
 
     console.log('📝 UPDATE COURSE DEBUG:');
     console.log('  Course ID:', courseId);
@@ -2043,6 +2044,7 @@ app.put('/api/courses/:id', authenticateToken, (req, res) => {
     console.log('  Blocks count:', Array.isArray(blocks) ? blocks.length : 'NOT PROVIDED');
     console.log('  Status:', status || 'unchanged');
     console.log('  Grade Level:', grade_level || 'unchanged');
+    console.log('  Course Type:', course_type || 'unchanged');
     console.log('  Database:', dbConfig.database);
     console.log('  Host:', dbConfig.host);
 
@@ -2112,6 +2114,11 @@ app.put('/api/courses/:id', authenticateToken, (req, res) => {
         if (video_url !== undefined) {
             updateQuery += ', video_url = ?';
             params.push(video_url);
+        }
+
+        if (course_type !== undefined) {
+            updateQuery += ', course_type = ?';
+            params.push(course_type);
         }
 
         updateQuery += ' WHERE id = ?';
