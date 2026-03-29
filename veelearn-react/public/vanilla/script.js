@@ -5099,16 +5099,41 @@ async function loadUnitContent(unit) {
         if (result.success) {
             const unitCourse = result.data;
             
+            // CRITICAL: Load quiz questions for this unit's course BEFORE hydrating
+            await loadCourseQuestions(unit.child_course_id);
+            
             // Display content
             const contentEl = document.getElementById("course-viewer-content");
             if (contentEl) {
                 contentEl.innerHTML = unitCourse.content || '<p>No content available.</p>';
                 
-                // Hydrate quizzes
+                // Hydrate quiz placeholders (now courseQuestions is populated)
                 await hydrateQuizPlaceholders();
                 
-                // Setup interactive elements
-                setupViewerInteractions();
+                // Hydrate simulator placeholders
+                if (typeof hydrateSimulatorPlaceholders === 'function') {
+                    hydrateSimulatorPlaceholders();
+                }
+                
+                // Re-attach quiz submit listeners (setupViewerInteractions is local to viewCourse,
+                // so we inline the equivalent here)
+                document.querySelectorAll('.quiz-submit-btn').forEach((btn) => {
+                    btn.addEventListener('click', (e) => {
+                        const questionId = e.target.dataset.questionId;
+                        submitQuizAnswer(questionId, unit.child_course_id);
+                    });
+                });
+                
+                // MathJax render
+                setTimeout(async () => {
+                    if (window.MathJax && window.MathJax.typesetPromise) {
+                        try {
+                            await window.MathJax.typesetPromise([contentEl]);
+                        } catch (err) {
+                            console.error('MathJax error in unit:', err);
+                        }
+                    }
+                }, 100);
             }
             
             // Update navigation buttons
