@@ -48,8 +48,15 @@ export default function CoursePlayerPage() {
   const [progress, setProgress] = useState<Progress>({ completed_units: 0, total_units: 0 })
   const [showSidebar, setShowSidebar] = useState(true)
   const [isLoading, setIsLoading] = useState(true)
+  const [isBattlePlaying, setIsBattlePlaying] = useState(false)
 
   useEffect(() => {
+    // Load anime-battle-system.js
+    const script = document.createElement('script')
+    script.src = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/vanilla/anime-battle-system.js`
+    script.async = true
+    document.body.appendChild(script)
+
     if (id && token) {
       loadCourse()
     }
@@ -110,9 +117,24 @@ export default function CoursePlayerPage() {
       }))
 
       if (currentUnitIndex < units.length - 1) {
-        setCurrentUnitIndex(prev => prev + 1)
+        // Trigger Anime Battle before moving!
+        setIsBattlePlaying(true)
+        if ((window as any).createAnimeStyleBattle) {
+          (window as any).createAnimeStyleBattle(() => {
+            setIsBattlePlaying(false)
+            setCurrentUnitIndex(prev => prev + 1)
+          })
+        } else {
+          setCurrentUnitIndex(prev => prev + 1)
+        }
       } else {
         toast.success('Congratulations! You completed the course!')
+        setIsBattlePlaying(true)
+        if ((window as any).createAnimeStyleBattle) {
+          (window as any).createAnimeStyleBattle(() => {
+            setIsBattlePlaying(false)
+          })
+        }
       }
     } catch (error) {
       console.error('Failed to mark unit complete:', error)
@@ -148,6 +170,11 @@ export default function CoursePlayerPage() {
 
   return (
     <div className="min-h-screen bg-background flex">
+      {/* Anime Battle Overlay */}
+      {isBattlePlaying && (
+         <div id="battle-container" className="fixed inset-0 z-[9999] bg-black"></div>
+      )}
+
       {/* Sidebar */}
       <aside 
         className={`${showSidebar ? 'w-72' : 'w-0'} fixed inset-y-0 left-0 z-40 bg-surface border-r border-border transition-all duration-300 overflow-hidden`}

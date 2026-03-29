@@ -50,11 +50,8 @@ export default function SimulatorViewPage() {
   }
 
   const getSimulatorUrl = () => {
-    const path = window.location.pathname
-    if (path.includes('github.io')) {
-      return 'https://virat-sisodiya.github.io/Veelearn/veelearn-frontend/simulator-view.html'
-    }
-    return '/simulator-view.html'
+    const basePath = import.meta.env.BASE_URL.replace(/\/$/, '')
+    return `${basePath}/vanilla/simulator-view.html?id=${id}`
   }
 
   const handleRun = () => {

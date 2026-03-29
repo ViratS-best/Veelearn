@@ -28,8 +28,13 @@ import {
   HelpCircle,
   Check,
   X,
-  PlusCircle
+  PlusCircle,
+  FlaskConical,
+  Bold,
+  Italic,
+  Underline
 } from 'lucide-react'
+import LatexEditorModal from '@/components/LatexEditorModal'
 
 interface Course {
   id: number
@@ -87,6 +92,7 @@ export default function CourseEditorPage() {
   const [correctAnswer, setCorrectAnswer] = useState('')
   const [explanation, setExplanation] = useState('')
   const [points, setPoints] = useState(10)
+  const [showLatexModal, setShowLatexModal] = useState(false)
 
   const editorRef = useRef<HTMLDivElement>(null)
 
@@ -255,7 +261,18 @@ export default function CourseEditorPage() {
     const text = prompt('Enter link text:')
     if (url && text) insertAtCursor(`<a href="${url}">${text}</a>`)
   }
-  const addLatex = () => insertAtCursor('<span class="latex-equation">$E = mc^2$</span>')
+  const addLatex = () => setShowLatexModal(true)
+  
+  const addPhetSimulator = () => {
+    const url = prompt('Enter PhET Simulator Embed URL:')
+    if (url) {
+      insertAtCursor(`
+        <div class="phet-simulator-wrapper" style="margin: 1em 0; border: 2px solid var(--border); border-radius: 8px; overflow: hidden; height: 500px;">
+          <iframe src="${url}" width="100%" height="100%" allowfullscreen></iframe>
+        </div>
+      `)
+    }
+  }
   
   const addQuizPlaceholder = () => {
     if (!id) {
@@ -618,6 +635,9 @@ export default function CourseEditorPage() {
                   <Button variant="ghost" size="sm" onClick={() => addSimulator('visual')}>
                     <Code className="h-4 w-4 mr-1" /> Visual Sim
                   </Button>
+                  <Button variant="ghost" size="sm" onClick={addPhetSimulator}>
+                    <FlaskConical className="h-4 w-4 mr-1" /> PhET Sim
+                  </Button>
                 </div>
 
                 {/* Editor Area */}
@@ -707,6 +727,12 @@ export default function CourseEditorPage() {
         </div>
       </div>
 
+      <LatexEditorModal 
+        isOpen={showLatexModal} 
+        onClose={() => setShowLatexModal(false)}
+        onInsert={(html) => insertAtCursor(html)}
+      />
+
       {/* Quiz Modal */}
       <Dialog open={showQuizModal} onOpenChange={setShowQuizModal}>
         <DialogContent className="max-w-2xl">
@@ -719,11 +745,33 @@ export default function CourseEditorPage() {
           
           <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
             <div className="space-y-2">
-              <Label>Question Text *</Label>
+              <div className="flex justify-between items-center">
+                <Label>Question Text *</Label>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={(e) => {
+                    e.preventDefault();
+                    setQuestionText(prev => prev + '<strong>bold</strong>');
+                  }}>
+                    <Bold className="h-3 w-3" />
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={(e) => {
+                    e.preventDefault();
+                    setQuestionText(prev => prev + '<em>italic</em>');
+                  }}>
+                    <Italic className="h-3 w-3" />
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={(e) => {
+                    e.preventDefault();
+                    setQuestionText(prev => prev + '<u>underline</u>');
+                  }}>
+                    <Underline className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
               <Textarea
                 value={questionText}
                 onChange={(e) => setQuestionText(e.target.value)}
-                placeholder="Enter your question here..."
+                placeholder="Enter your question here... (HTML formatting supported)"
                 rows={3}
               />
             </div>

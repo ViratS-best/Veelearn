@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="Veelearn - 100% Free, Interactive Learning Platform | Get Volunteer hours to make courses" />
+  <link rel="icon" type="image/png" href="/VEELEARN.png">
+  <link rel="shortcut icon" href="/VEELEARN.png">
+  <title>Veelearn - 100% Free, Interactive Learning Platform | Get Volunteer hours to make courses</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles-redesign.css" />
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "NonprofitOrganization",
+  "name": "VeeLearn",
+  "url": "https://veelearn.org",
+  "logo": "https://veelearn.org/VEELEARN.png",
+  "parentOrganization": {
+    "@type": "NonprofitOrganization",
+    "name": "The Hack Foundation",
+    "taxID": "81-2908499"
+  }
+}
+</script>
+</head>
+
+<body>
+  <header>
+    <h1>Veelearn</h1>
+    <nav>
+      <a href="index.html" id="home-link">Home</a>
+      <a href="#" id="dashboard-link" style="display: none">Dashboard</a>
+      <button id="logout-button" style="display: none">Logout</button>
+      <a href="simulator-studio.html" id="simulator-link">Simulator Studio</a>
+      <a href="simulator-marketplace.html" id="marketplace-link">Marketplace</a>
+      <a href="#" id="login-link">Login</a>
+      <a href="#" id="register-link">Register</a>
+      <button id="global-search-btn" title="Search Veelearn"
+        style="background: transparent; border: 1px solid #667eea; padding: 5px 10px; color: white; border-radius: 4px; cursor: pointer;">🔍
+        Search</button>
+      <button id="animation-pref-btn" title="Toggle animation mode (Short/Long with epic battle scenes!)">⚙️
+        Animations</button>
+    </nav>
+
+    <!-- ANIMATION PREFERENCE MODAL -->
+    <div id="animation-pref-modal" class="modal" style="display: none;">
+      <div class="modal-content" style="max-width: 500px;">
+        <span class="close-modal" onclick="closeAnimationPrefModal()">&times;</span>
+        <h2>Animation Preference</h2>
+        <div
+          style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(6, 182, 212, 0.15)); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 12px 16px; margin: 15px 0;">
+          <p style="margin: 0; font-size: 0.9em; color: #cbd5e1;">
+            <strong>⚠️ WARNING - Long Animations:</strong> Contains flashing lights, can get annoying, bright colors,
+            and rapid visual
+            effects. May trigger photosensitive epilepsy or cause discomfort. If you have concerns, use Short
+            Animations.
+          </p>
+        </div>
+        <div style="margin: 20px 0; display: flex; gap: 10px;">
+          <button onclick="setAnimationMode('short')" class="animation-mode-btn" id="short-anim-btn"
+            style="flex: 1; padding: 12px; border: 2px solid transparent; border-radius: 6px; background: #1e293b; color: #cbd5e1; cursor: pointer; font-weight: 600;">
+            ⚡ Short Animations
+          </button>
+          <button onclick="setAnimationMode('long')" class="animation-mode-btn" id="long-anim-btn"
+            style="flex: 1; padding: 12px; border: 2px solid transparent; border-radius: 6px; background: #1e293b; color: #cbd5e1; cursor: pointer; font-weight: 600;">
+            🎬 Long Animations (Epic!)
+          </button>
+        </div>
+        <p style="text-align: center; color: #cbd5e1; font-size: 0.85em; margin-top: 15px;">
+          Every page transition will feature a unique story. Some animations are common, some are extremely rare!
+        </p>
+      </div>
+    </div>
+
+    <!-- GLOBAL SEARCH MODAL -->
+    <div id="search-modal" class="modal" style="display: none;">
+      <div class="modal-content" style="max-width: 600px; max-height: 80vh; display: flex; flex-direction: column;">
+        <span class="close-modal" id="close-search-modal" style="cursor:pointer;">&times;</span>
+        <h2>Search Veelearn</h2>
+        <input type="text" id="global-search-input" placeholder="Search courses and simulators..."
+          style="margin-bottom: 15px; padding: 12px; font-size: 16px; width: 100%; border: 1px solid #667eea; border-radius: 4px; background: #222; color: white;" />
+        <button id="execute-search-btn" class="primary-btn" style="width: 100%; margin-bottom: 20px;">Search</button>
+
+        <div id="search-results-container" style="flex: 1; overflow-y: auto;">
+          <h3 id="search-courses-header" style="display: none; border-bottom: 1px solid #444; padding-bottom: 5px;">
+            Courses</h3>
+          <div id="search-courses-list" style="display: grid; gap: 10px; margin-bottom: 20px;"></div>
+
+          <div id="search-simulators-section" style="display: none;">
+            <h3 style="border-bottom: 1px solid #444; padding-bottom: 5px;">Simulators</h3>
+            <div id="simulator-sort-btns" style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+              <button class="sim-sort-btn active" data-sort="relevance"
+                style="padding: 6px 14px; border-radius: 20px; border: 1px solid #667eea; background: #667eea; color: white; cursor: pointer; font-size: 13px;">🔍
+                Relevance</button>
+              <button class="sim-sort-btn" data-sort="most_liked"
+                style="padding: 6px 14px; border-radius: 20px; border: 1px solid #555; background: transparent; color: #ccc; cursor: pointer; font-size: 13px;">❤️
+                Most Liked</button>
+              <button class="sim-sort-btn" data-sort="most_viewed"
+                style="padding: 6px 14px; border-radius: 20px; border: 1px solid #555; background: transparent; color: #ccc; cursor: pointer; font-size: 13px;">👁️
+                Most Viewed</button>
+              <button class="sim-sort-btn" data-sort="newest"
+                style="padding: 6px 14px; border-radius: 20px; border: 1px solid #555; background: transparent; color: #ccc; cursor: pointer; font-size: 13px;">📅
+                Newest</button>
+            </div>
+            <div id="search-simulators-list" style="display: grid; gap: 10px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- LANDING PAGE SECTION -->
+    <section id="landing-page">
+      <div class="hero">
+        <h1>Master STEM with Interactive Simulations</h1>
+        <p>VeeLearn by Virat, brings science and math to life through world-class simulations, in-depth courses, and a
+          community-driven marketplace. Earn Volunteer hours by making courses!</p>
+        <div class="hero-actions">
+          <button id="get-started-btn" class="primary-btn">Get Started for Free</button>
+          <button id="view-courses-btn" class="secondary-btn">Browse Courses</button>
+          <a href="https://hcb.hackclub.com/donations/start/veelearn" target="_blank" rel="noopener noreferrer"
+            class="primary-btn"
+            style="background: linear-gradient(135deg, #f59e0b, #ef4444); text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+            💛 Donate
+          </a>
+        </div>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">⚛️</div>
+          <h3>Interactive PhET Sims</h3>
+          <p>Over 120+ high-quality HTML5 simulations from PhET, fully integrated into our courses.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">∑</div>
+          <h3>LaTeX Math Support</h3>
+          <p>Professional mathematical notation support for complex equations in every lesson.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🏗️</div>
+          <h3>Visual Block Coding</h3>
+          <p>Build your own physics simulations using our custom drag-and-drop block editor.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🌍</div>
+          <h3>Marketplace</h3>
+          <p>Discover, fork, and remix simulations created by the global educator community.</p>
+        </div>
+      </div>
+
+      <div class="how-it-works">
+        <h2>How It Works</h2>
+        <div class="steps-grid">
+          <div class="step">
+            <span class="step-num">1</span>
+            <h4>Create an Account</h4>
+            <p>Sign up in seconds and choose your role as a student or educator.</p>
+          </div>
+          <div class="step">
+            <span class="step-num">2</span>
+            <h4>Find Your Course</h4>
+            <p>Explore our library of in-depth STEM courses with embedded simulations.</p>
+          </div>
+          <div class="step">
+            <span class="step-num">3</span>
+            <h4>Master Concepts</h4>
+            <p>Learn through hands-on interaction and test your knowledge with quizes.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- AUTH SECTION -->
+    <section id="auth-section" style="display: none">
+      <h2>Welcome to Veelearn</h2>
+      <div
+        style="background: linear-gradient(135deg, rgba(255, 193, 7, 0.15), rgba(255, 152, 0, 0.15)); border: 1px solid rgba(255, 193, 7, 0.5); border-radius: 8px; padding: 14px 20px; margin: 15px auto; max-width: 500px; text-align: center;">
+        <span style="color: #ffc107; font-weight: bold; font-size: 1.05em;">⚠️ WARNING</span>
+        <p style="color: #ccc; margin: 6px 0 0 0; font-size: 0.9em; line-height: 1.4;">Running on free servers that auto
+          shut every 15 minutes... Login might take 1-2 minutes if server has shut down due to inactivity recently.</p>
+      </div>
+      <div id="login-form" class="auth-form">
+        <h3>Login</h3>
+        <div id="login-error-message" style="color: red; margin-bottom: 10px;"></div>
+        <form autocomplete="on">
+          <input type="email" id="login-email" placeholder="Email" autocomplete="email" required />
+          <input type="password" id="login-password" placeholder="Password" autocomplete="current-password" required />
+          <button type="submit">Login</button>
+        </form>
+        <p>
+          <a href="#" id="show-forgot-password" style="color: var(--accent); font-size: 0.9em;">Forgot Password?</a>
+        </p>
+        <p>
+          Don't have an account?
+          <a href="#" id="show-register">Register here</a>
+        </p>
+      </div>
+
+      <!-- FORGOT PASSWORD FORM -->
+      <div id="forgot-password-form" class="auth-form" style="display: none">
+        <h3>Reset Password</h3>
+        <div id="forgot-error-message" style="color: red; margin-bottom: 10px;"></div>
+        <div id="forgot-success-message" style="color: #4caf50; margin-bottom: 10px;"></div>
+
+        <!-- Step 1: Enter email -->
+        <div id="forgot-step-1">
+          <p style="color: #ccc; font-size: 0.9em; margin-bottom: 1em;">Enter your email address and we'll send you a
+            6-digit code to reset your password.</p>
+          <form id="forgot-email-form" autocomplete="on">
+            <input type="email" id="forgot-email" placeholder="Email" autocomplete="email" required />
+            <button type="submit">Send Reset Code</button>
+          </form>
+        </div>
+
+        <!-- Step 2: Enter code + new password -->
+        <div id="forgot-step-2" style="display: none">
+          <p style="color: #ccc; font-size: 0.9em; margin-bottom: 1em;">Enter the 6-digit code sent to your email and
+            choose a new password.</p>
+          <form id="forgot-reset-form" autocomplete="on">
+            <input type="text" id="reset-code" placeholder="6-digit code" maxlength="6" pattern="[0-9]{6}" required
+              style="text-align: center; font-size: 1.3em; letter-spacing: 6px; font-weight: bold;" />
+            <input type="password" id="reset-new-password"
+              placeholder="New password (min 8 chars, uppercase, lowercase, number)" autocomplete="new-password"
+              minlength="8" required />
+            <button type="submit">Reset Password</button>
+          </form>
+        </div>
+
+        <p>
+          <a href="#" id="show-login-from-forgot">Back to Login</a>
+        </p>
+      </div>
+
+      <div id="register-form" class="auth-form" style="display: none">
+        <h3>Register</h3>
+        <div id="register-error-message" style="color: red; margin-bottom: 10px;"></div>
+        <form autocomplete="on">
+          <input type="email" id="register-email" placeholder="Email" autocomplete="email" required />
+          <input type="password" id="register-password"
+            placeholder="Password (min 8 chars, uppercase, lowercase, number)" autocomplete="new-password" minlength="8"
+            required />
+          <button type="submit">Register</button>
+        </form>
+        <p>
+          Already have an account? <a href="#" id="show-login">Login here</a>
+        </p>
+      </div>
+    </section>
+
+    <!-- DASHBOARD SECTION -->
+    <section id="dashboard-section" style="display: none; padding: 40px;">
+      <div class="dashboard-header">
+        <div>
+          <h1>Your Dashboard</h1>
+          <p class="subtext" style="font-size: 16px;">Welcome to Veelearn, <span id="user-email"
+              style="font-weight: 600; color: var(--primary);"></span>! 👋</p>
+        </div>
+      </div>
+      <!-- SUPERADMIN DASHBOARD -->
+      <div id="superadmin-dashboard" style="display: none">
+        <h3>Superadmin Panel</h3>
+
+        <h4>Manage Users</h4>
+        <ul id="user-list"></ul>
+
+        <h4>Pending Courses for Approval</h4>
+        <ul id="superadmin-pending-courses-list"></ul>
+
+        <h4>My Courses</h4>
+        <button id="create-course-button-superadmin" class="create-course-btn">
+          Create New Course
+        </button>
+        <ul id="my-courses-list-superadmin"></ul>
+
+        <h4>Available Courses</h4>
+        <ul id="available-courses-list-superadmin"></ul>
+      </div>
+
+      <!-- ADMIN DASHBOARD -->
+      <div id="admin-dashboard" style="display: none">
+        <h3>Admin Panel</h3>
+
+        <h4>Manage Users</h4>
+        <ul id="user-list-admin"></ul>
+
+        <h4>Pending Courses for Approval</h4>
+        <ul id="admin-pending-courses-list"></ul>
+
+        <h4>My Courses</h4>
+        <button id="create-course-button-admin" onclick="document.getElementById('create-course-button').click()">
+          Create New Course
+        </button>
+        <ul id="my-courses-list-admin"></ul>
+
+        <h4>Available Courses</h4>
+        <ul id="available-courses-list-admin"></ul>
+      </div>
+
+      <!-- USER DASHBOARD -->
+      <div id="user-dashboard" style="display: none">
+        <h3>User Panel</h3>
+
+        <div id="role-management-section"
+          style="background: rgba(102, 126, 234, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+          <h4>Role Management</h4>
+          <button id="become-teacher-btn" class="create-course-btn"
+            style="background: var(--warning); margin-bottom: 10px;">
+            👨‍🏫 Become a Teacher
+          </button>
+          <p id="teacher-status" style="color: #ccc; font-size: 0.9em;"></p>
+        </div>
+
+        <div id="student-enrollment"
+          style="background: rgba(102, 126, 234, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+          <h4>Join a Class</h4>
+          <input type="text" id="class-code-input" placeholder="Enter class code from your teacher" maxlength="20"
+            style="padding: 10px; border: 1px solid #555; border-radius: 4px; width: 100%; margin-bottom: 10px; background: #222; color: #fff;" />
+          <button id="enroll-class-btn" class="primary-btn" style="width: 100%;">📚 Join Class</button>
+          <div id="enrolled-classes" style="margin-top: 15px;"></div>
+        </div>
+
+        <div id="teacher-panel"
+          style="display: none; background: rgba(76, 175, 80, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+          <h4>Teacher Dashboard</h4>
+          <div id="class-code-display"
+            style="background: #222; padding: 10px; border-radius: 4px; margin-bottom: 10px; font-family: monospace; color: #4ade80; font-weight: bold;">
+            Class Code: <span id="my-class-code">Loading...</span>
+          </div>
+          <div id="teacher-approval-status"
+            style="padding: 10px; margin-bottom: 15px; border-radius: 4px; background: rgba(0,0,0,0.3); text-align: center;">
+          </div>
+          <h5>My Classes</h5>
+          <div id="my-classes-list"></div>
+          <h5>Create Assignment</h5>
+          <input type="text" id="assignmentCourseSearch" placeholder="🔍 Search courses..."
+            style="width: 100%; padding: 10px; margin-bottom: 10px; background: #222; color: #fff; border: 1px solid #667eea; border-radius: 4px;" />
+          <select id="assignment-course-select"
+            style="width: 100%; padding: 10px; margin-bottom: 10px; background: #222; color: #fff; border: 1px solid #555; border-radius: 4px;">
+            <option value="">Select a course...</option>
+          </select>
+          <input type="date" id="assignment-due-date"
+            style="width: 100%; padding: 10px; margin-bottom: 10px; background: #222; color: #fff; border: 1px solid #555; border-radius: 4px;" />
+          <button id="create-assignment-btn" class="success-btn" style="width: 100%;">📋 Assign Course</button>
+        </div>
+
+        <button id="create-course-button-user" class="create-course-btn">
+          Create New Course
+        </button>
+
+        <h4>My Courses</h4>
+        <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
+          <input type="text" id="myCoursesSearch" placeholder="Search your courses..."
+            style="flex: 1; padding: 10px; border: 1px solid #555; border-radius: 4px; background: #222; color: #fff;" />
+          <button type="button" id="clearMyCoursesSearch" class="secondary-btn" style="padding: 8px 12px;">✕</button>
+        </div>
+        <ul id="my-courses-list-user"></ul>
+
+        <div id="student-assignments" style="display: none;">
+          <h4>📚 Assignments for Me</h4>
+          <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
+            <input type="text" id="enrolledCoursesSearch" placeholder="Search enrolled courses..."
+              style="flex: 1; padding: 10px; border: 1px solid #555; border-radius: 4px; background: #222; color: #fff;" />
+            <button type="button" id="clearEnrolledCoursesSearch" class="secondary-btn"
+              style="padding: 8px 12px;">✕</button>
+          </div>
+          <div id="assignments-list"></div>
+        </div>
+
+        <div id="enrolled-courses-section" style="display: none;">
+          <h4>📈 Enrolled Courses (with Progress)</h4>
+          <div id="enrolled-courses-list"></div>
+        </div>
+
+        <h4>Available Courses</h4>
+        <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
+          <input type="text" id="availableCoursesSearch" placeholder="Search available courses..."
+            style="flex: 1; padding: 10px; border: 1px solid #555; border-radius: 4px; background: #222; color: #fff;" />
+          <select id="courseSortDropdown"
+            style="padding: 10px; border: 1px solid #555; border-radius: 4px; background: #222; color: #fff;">
+            <option value="newest">📅 Newest</option>
+            <option value="most_liked">❤️ Most Liked</option>
+            <option value="trending">🔥 Trending</option>
+            <option value="popular">⭐ Popular</option>
+          </select>
+          <button type="button" id="clearAvailableCoursesSearch" class="secondary-btn"
+            style="padding: 8px 12px;">✕</button>
+        </div>
+        <ul id="available-courses-list-user"></ul>
+      </div>
+
+      <div id="simulator-marketplace-section" style="margin-top: 30px;"></div>
+
+      <!-- TEACHER CLASS MANAGEMENT -->
+      <section id="class-management-section" style="display: none">
+        <h2>Class Management</h2>
+        <div id="class-submissions"></div>
+      </section>
+    </section>
+
+    <!-- COURSE EDITOR -->
+    <section id="course-editor-section" style="display: none; padding: 0;">
+      <form id="course-form" class="course-editor-layout">
+
+        <!-- LEFT SIDEBAR -->
+        <div class="editor-sidebar">
+          <h3>Course Details</h3>
+          <input type="text" id="course-title" placeholder="Course Title" maxlength="255" required />
+          <textarea id="course-description" placeholder="Course Description (optional)" rows="3"></textarea>
+
+          <h3>Target Audience</h3>
+          <select id="course-grade-level">
+            <option value="">Select Grade Level</option>
+            <option value="1">1st Grade</option>
+            <option value="2">2nd Grade</option>
+            <option value="3">3rd Grade</option>
+            <option value="4">4th Grade</option>
+            <option value="5">5th Grade</option>
+            <option value="6">6th Grade</option>
+            <option value="7">7th Grade</option>
+            <option value="8">8th Grade</option>
+            <option value="9">9th Grade</option>
+            <option value="10">10th Grade</option>
+            <option value="11">11th Grade</option>
+            <option value="12">12th Grade</option>
+            <option value="13">College</option>
+          </select>
+
+          <h3>Course Video (Optional)</h3>
+          <p class="info-text" style="font-size: 11px; margin-bottom: 8px;">Add a YouTube link for your course
+            intro/walkthrough.</p>
+          <input type="url" id="course-video-url" placeholder="e.g. https://www.youtube.com/watch?v=..." />
+
+          <h3 style="margin-top: 20px;">Course Structure</h3>
+          <div class="course-type-toggle" style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+              <input type="radio" name="course_type" value="single" checked />
+              <span>Single Module</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+              <input type="radio" name="course_type" value="master" />
+              <span>Master Course</span>
+            </label>
+          </div>
+          <p class="info-text" style="font-size: 11px; color: var(--text-muted);">
+            Master Courses can contain multiple units.
+          </p>
+          <button type="button" id="manage-units-btn" class="secondary-btn" 
+            style="display: none; width: 100%; margin-top: 10px; padding: 10px;">
+            📚 Manage Units
+          </button>
+
+          <div id="course-timer-display"
+            style="display: flex; align-items: center; gap: 10px; padding: 12px; background: rgba(102, 126, 234, 0.15); border-radius: 8px; margin-top: 20px; font-family: monospace;">
+            <span style="color: var(--text-muted); font-weight: bold; font-size: 11px; text-transform: uppercase;">⏱️
+              Active Time</span>
+            <span id="course-timer-value"
+              style="color: #4ade80; font-size: 1.1em; font-weight: bold; margin-left: auto;">00:00:00</span>
+            <span id="course-timer-status" style="display: none;"></span>
+          </div>
+        </div>
+
+        <!-- CENTER EDITOR -->
+        <div class="editor-main">
+          <div class="editor-header">
+            <div>
+              <h1 style="margin: 0; font-size: 24px;">Content Editor</h1>
+              <p class="info-text" style="color: var(--text-muted); font-size: 13px; margin: 5px 0 0 0;">Auto-saved
+                every 30s. Auto-tracking time.</p>
+            </div>
+            <div class="editor-actions form-actions" style="margin: 0;">
+              <button type="submit" id="save-draft-btn" class="btn-save" data-action="draft">💾 Draft</button>
+              <button type="submit" id="submit-approval-btn" class="btn-publish" data-action="pending">✅ Submit</button>
+              <button type="button" id="cancel-course-edit" class="secondary-btn"
+                style="padding: 8px 16px; border-radius: 8px;">Cancel</button>
+            </div>
+          </div>
+
+          <div class="editor-toolbar">
+            <button type="button" data-command="bold" title="Bold"><b>B</b></button>
+            <button type="button" data-command="italic" title="Italic"><i>I</i></button>
+            <button type="button" data-command="underline" title="Underline"><u>U</u></button>
+            <button type="button" data-command="insertUnorderedList" title="Bullet List">• List</button>
+            <button type="button" data-command="insertOrderedList" title="Numbered List">1. List</button>
+            <button type="button" id="insert-phet-simulator" title="Add PhET Simulator">⚛️ Simulator</button>
+            <button type="button" id="insert-block-simulator" title="Add Interactive Simulator">🎮 Interactive
+              Simulator</button>
+            <button type="button" id="insert-quiz-question" title="Add Quiz Question">❓ Question</button>
+            <button type="button" id="insert-latex" title="Insert LaTeX Equation">∑ LaTeX</button>
+          </div>
+
+          <div class="pagination-controls"
+            style="display: flex; gap: 10px; align-items: center; margin-bottom: 20px; padding: 10px; background: rgba(102, 126, 234, 0.05); border: 1px solid var(--border); border-radius: 8px;">
+            <button type="button" id="prev-page-btn" style="padding: 6px 12px; border-radius: 6px;"
+              disabled>Previous</button>
+            <span id="page-indicator" style="color: var(--text-light); font-weight: 600; font-size: 14px;">Page 1 /
+              1</span>
+            <button type="button" id="next-page-btn" style="padding: 6px 12px; border-radius: 6px;"
+              disabled>Next</button>
+            <button type="button" id="add-page-btn"
+              style="margin-left: auto; background: var(--success); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">+
+              Add Page</button>
+            <button type="button" id="delete-page-btn"
+              style="background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">Delete</button>
+          </div>
+
+          <div id="course-content-editor" contenteditable="true"
+            placeholder="Start typing your course content here... Use the toolbar above to format text and add simulators."
+            class="editor-content" spellcheck="true"></div>
+        </div>
+
+        <!-- RIGHT SIDEBAR (Inspector Prototype) -->
+        <div class="editor-inspector">
+          <h4>Editor Hints</h4>
+          <div class="inspector-item">
+            <strong style="font-size: 13px;">Text Formatting</strong>
+            <small>Highlight text and use the toolbar to make it bold, italic, or a list.</small>
+          </div>
+          <div class="inspector-item">
+            <strong style="font-size: 13px;">Simulators</strong>
+            <small>Interactive content is isolated in blocks. Delete by selecting and backspacing.</small>
+          </div>
+          <div class="inspector-item">
+            <strong style="font-size: 13px;">LaTeX Support</strong>
+            <small>Click ∑ to see equations cheat sheet. MathJax processes them instantly.</small>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <!-- UNIT MANAGEMENT PANEL -->
+    <section id="unit-management-section" style="display: none; padding: 40px 20px;">
+      <div style="max-width: 900px; margin: 0 auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+          <div>
+            <button type="button" id="back-to-course-editor" class="secondary-btn" style="margin-bottom: 15px;">
+              ← Back to Course Editor
+            </button>
+            <h2 id="unit-management-title" style="margin: 0;">Manage Units</h2>
+            <p style="color: var(--text-muted); margin: 5px 0 0 0;">Add and organize units in your Master Course</p>
+          </div>
+          <button type="button" id="add-unit-btn" class="btn-publish" style="padding: 12px 24px;">
+            + Add Unit
+          </button>
+        </div>
+
+        <div id="units-list" style="display: flex; flex-direction: column; gap: 15px;">
+          <!-- Units will be rendered here -->
+        </div>
+
+        <div id="no-units-message" style="text-align: center; padding: 60px 20px; color: var(--text-muted); display: none;">
+          <p style="font-size: 18px;">No units added yet</p>
+          <p>Click "Add Unit" to start building your Master Course</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- COURSE VIEWER -->
+    <section id="course-viewer-section" style="display: none; padding: 40px 0;">
+      <div class="viewer-layout">
+        <!-- MAIN CONTENT -->
+        <div class="viewer-content">
+          <div class="viewer-header">
+            <h2 id="course-viewer-title" style="margin: 0 0 16px 0; font-size: 32px; font-weight: 700;"></h2>
+            <p id="course-viewer-description" class="course-description description"
+              style="color: var(--text-muted); font-size: 16px; line-height: 1.6;"></p>
+          </div>
+          <div class="content-body" id="course-viewer-content"></div>
+
+          <div id="viewer-pagination-controls" class="viewer-footer" style="margin-top: 40px;">
+            <div class="pagination-buttons">
+              <button type="button" id="viewer-prev-btn" disabled>← Previous Page</button>
+              <button type="button" id="viewer-next-btn">Next Page →</button>
+            </div>
+            <span id="viewer-page-indicator" style="color: var(--light); font-weight: bold;">Page 1 of 1</span>
+          </div>
+
+          <!-- Simulators Section -->
+          <div id="course-simulators-section" style="display: none; margin-top: 3em;">
+            <h3 style="margin-bottom: 20px;">📊 Course Simulators</h3>
+            <div id="course-simulators-list"
+              style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1em;"></div>
+          </div>
+
+          <div class="form-actions" style="margin-top: 30px;">
+            <button type="button" id="back-to-dashboard" class="secondary-btn">Back to Dashboard</button>
+          </div>
+        </div>
+
+        <!-- UNIT NAVIGATION SIDEBAR (for Master Courses) -->
+        <div id="unit-navigation-sidebar" class="related-courses" style="display: none;">
+          <h3>📚 Units</h3>
+          <div id="unit-progress-overview" style="margin-bottom: 20px; padding: 15px; background: var(--bg-card); border-radius: 10px; border: 1px solid var(--border);">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+              <span style="color: var(--text-muted);">Progress</span>
+              <span id="unit-progress-percent" style="font-weight: bold; color: var(--primary);">0%</span>
+            </div>
+            <div style="background: var(--bg-dark); border-radius: 5px; height: 8px; overflow: hidden;">
+              <div id="unit-progress-bar" style="background: var(--primary); height: 100%; width: 0%; transition: width 0.3s;"></div>
+            </div>
+            <p id="unit-progress-text" style="margin: 8px 0 0 0; font-size: 12px; color: var(--text-muted);">0 of 0 completed</p>
+          </div>
+          <div id="unit-list-container" style="display: flex; flex-direction: column; gap: 8px;">
+            <!-- Unit items will be rendered here -->
+          </div>
+        </div>
+
+        <!-- REGULAR SIDEBAR -->
+        <div id="viewer-regular-sidebar" class="related-courses">
+          <h3>✨ Course Video</h3>
+          <div id="viewer-video-container" style="display: none; margin-bottom: 20px;">
+            <div
+              style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px; background: var(--bg-card); border: 1px solid var(--border);">
+              <iframe id="viewer-video-iframe" src=""
+                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen></iframe>
+            </div>
+            <a id="viewer-video-link" href="#" target="_blank"
+              style="display: block; margin-top: 10px; color: var(--primary); font-size: 14px; text-decoration: none; font-weight: 600;">📺
+              View on YouTube</a>
+          </div>
+          <div id="viewer-no-video"
+            style="padding: 20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; text-align: center; color: var(--text-muted);">
+            <p style="margin: 0; font-size: 14px;">No walkthrough video available for this course.</p>
+          </div>
+
+          <h3 style="margin-top: 30px;">✨ Platform Info</h3>
+          <div class="related-item">
+            <h4 style="color: var(--primary);">VEELEARN</h4>
+            <h4>Hyper-Personalized Learning</h4>
+            <p>Veelearn leverages AI to tailor your educational journey.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; Veelearn is a fiscally sponsored project of The Hack Foundation, a 501(c)(3) nonprofit. EIN: 81-2908499.
+      All donations are tax-deductible to the full extent of the law.</p>
+  </footer>
+
+  <!-- QUIZ QUESTION MODAL -->
+  <div id="quiz-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <span class="close-modal" id="close-quiz-modal">&times;</span>
+      <h2 id="quiz-modal-title">Add Quiz Question</h2>
+
+      <form id="quiz-question-form">
+        <label for="quiz-question-text">Question Text *</label>
+        <textarea id="quiz-question-text" placeholder="Enter your question here..." rows="3" required></textarea>
+
+        <label for="quiz-question-type">Question Type *</label>
+        <select id="quiz-question-type" required>
+          <option value="multiple_choice">Multiple Choice</option>
+          <option value="true_false">True/False</option>
+          <option value="short_answer">Short Answer</option>
+        </select>
+
+        <div id="quiz-options-container">
+          <label>Answer Options (for Multiple Choice)</label>
+          <div id="quiz-options-list">
+            <input type="text" class="quiz-option-input" placeholder="Option 1" />
+            <input type="text" class="quiz-option-input" placeholder="Option 2" />
+            <input type="text" class="quiz-option-input" placeholder="Option 3" />
+            <input type="text" class="quiz-option-input" placeholder="Option 4" />
+          </div>
+          <button type="button" id="add-quiz-option" class="secondary-btn">+ Add Option</button>
+        </div>
+
+        <label for="quiz-correct-answer">Correct Answer *</label>
+        <input type="text" id="quiz-correct-answer" placeholder="Enter the correct answer exactly as it should be"
+          required />
+
+        <textarea id="quiz-explanation" placeholder="Explain why the answer is correct (shown after submission)"
+          rows="2"></textarea>
+
+        <label for="quiz-points">Points *</label>
+        <input type="number" id="quiz-points" value="10" required />
+
+        <div class="modal-actions">
+          <button type="submit">Save Question</button>
+          <button type="button" id="delete-quiz-question"
+            style="display: none; background-color: #e53e3e;">Delete</button>
+          <button type="button" id="cancel-quiz-modal">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- LATEX HELP MODAL -->
+  <div id="latex-help-modal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 600px;">
+      <span class="close-modal" id="close-latex-help" style="cursor: pointer;">&times;</span>
+      <h2>LaTeX Equation Help</h2>
+      <p>Use LaTeX to write mathematical equations in your courses.</p>
+
+      <h3>Inline Equations (in text)</h3>
+      <p>Surround with single dollar signs: <code>$E = mc^2$</code></p>
+      <p>Result: $E = mc^2$</p>
+
+      <h3>Display Equations (on separate line)</h3>
+      <p>Surround with double dollar signs: <code>$$E = mc^2$$</code></p>
+      <p>Result: $$E = mc^2$$</p>
+
+      <h3>Common Examples</h3>
+      <ul>
+        <li><code>$E = hf$</code> → Einstein's photoelectric equation</li>
+        <li><code>$\lambda = \frac{h}{p}$</code> → de Broglie wavelength</li>
+        <li><code>$\Delta x \cdot \Delta p \geq \frac{h}{4\pi}$</code> → Uncertainty principle</li>
+        <li><code>$$\int_0^\infty e^{-x} dx = 1$$</code> → Integral example</li>
+        <li><code>$x = \frac{-b \pm \sqrt{b^2-4ac}}{2a}$</code> → Quadratic formula</li>
+      </ul>
+
+      <h3>Useful Symbols</h3>
+      <ul>
+        <li><code>\alpha, \beta, \gamma</code> → Greek letters</li>
+        <li><code>\frac{a}{b}</code> → Fractions</li>
+        <li><code>^{2}</code> → Superscript (exponents)</li>
+        <li><code>_{i}</code> → Subscript</li>
+        <li><code>\sqrt{x}</code> → Square root</li>
+        <li><code>\sum, \int, \prod</code> → Math symbols</li>
+      </ul>
+
+      <p><strong>Tip:</strong> Test your LaTeX at <a href="https://www.latex4technics.com/"
+          target="_blank">latex4technics.com</a></p>
+
+      <button type="button" id="close-latex-help-btn"
+        style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">Close</button>
+    </div>
+  </div>
+
+  <!-- PHET SIMULATOR MODAL -->
+  <div id="phet-modal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 800px; max-height: 80vh; display: flex; flex-direction: column;">
+      <span class="close-modal" id="close-phet-modal">&times;</span>
+      <h2>Select PhET Simulator</h2>
+      <p>Choose a simulation to embed in your course.</p>
+
+      <input type="text" id="phet-search" placeholder="Search simulations..."
+        style="margin-bottom: 15px; padding: 8px; width: 100%; border: 1px solid #ddd; border-radius: 4px;">
+
+      <div id="phet-list"
+        style="flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
+        <!-- PhET sims will be populated here -->
+      </div>
+
+      <div class="modal-actions" style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
+        <button type="button" id="cancel-phet-modal">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Unit Selection Modal -->
+  <div id="unit-selection-modal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 700px; max-height: 80vh; display: flex; flex-direction: column;">
+      <span class="close-modal" id="close-unit-selection-modal" style="cursor: pointer;">&times;</span>
+      <h2>Add Unit to Master Course</h2>
+      <p style="color: var(--text-muted); margin-bottom: 20px;">Select a course to add as a unit</p>
+      
+      <div style="margin-bottom: 15px;">
+        <input type="text" id="unit-search-input" placeholder="Search courses..." 
+          style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px;" />
+      </div>
+
+      <div id="unit-selection-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; max-height: 400px;">
+        <!-- Course options will be rendered here -->
+      </div>
+
+      <div class="modal-actions" style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
+        <button type="button" id="cancel-unit-selection">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation Modal for Type Conversion -->
+  <div id="course-type-confirm-modal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 450px;">
+      <span class="close-modal" id="close-course-type-modal" style="cursor: pointer;">&times;</span>
+      <h2 style="color: var(--warning);">⚠️ Warning</h2>
+      <p id="course-type-warning-text">Converting to Single Module will detach all existing units.</p>
+      <p style="color: var(--text-muted); font-size: 14px;">Your units will become standalone courses again, but student progress will be preserved.</p>
+      <div class="modal-actions" style="margin-top: 20px; gap: 10px;">
+        <button type="button" id="confirm-course-type-convert" class="btn-publish">Yes, Convert</button>
+        <button type="button" id="cancel-course-type-convert" class="secondary-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MathJax Configuration - MUST come FIRST before anything else -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true
+      },
+      svg: {
+        fontCache: 'global',
+        displayAlign: 'center',
+        displayIndent: '0em'
+      },
+      chtml: {
+        displayAlign: 'center',
+        displayIndent: '0em'
+      },
+      startup: {
+        pageReady: () => {
+          console.log("✅ MathJax: Ready and configured");
+          return window.MathJax.typesetPromise();
+        }
+      }
+    };
+  </script>
+  <script id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <!-- REDESIGN SECTIONS - Lumina Academy, EduFlow, EduMaster Styles -->
+  <div id="redesign-container"></div>
+
+  <script src="block-templates-unified.js"></script>
+  <script src="anime-battle-system.js"></script>
+  <script src="script.js?v=6"></script>
+  <script>
+    // Load redesign sections
+    fetch('redesign-sections.html')
+      .then(r => r.text())
+      .then(html => {
+        document.getElementById('redesign-container').innerHTML = html;
+      });
+  </script>
+</body>
+
+</html>
