@@ -3188,7 +3188,7 @@ function saveCourse(action = "draft") {
 // Global variables for tracking context
 let currentAssignmentId = null;
 
-async function viewCourse(courseId, assignmentId = null) {
+async function viewCourse(courseId, assignmentId = null, forceRegular = false) {
     currentAssignmentId = assignmentId;
     const course = myCourses.find((c) => c.id === courseId) ||
         availableCourses.find((c) => c.id === courseId) ||
@@ -3199,11 +3199,18 @@ async function viewCourse(courseId, assignmentId = null) {
         return;
     }
 
-    // Check if user is enrolled in this course
-    const isEnrolled = myCourses.some(c => c.id === courseId);
+    // Creator of a master course: use creator preview (loads units without enrollment)
+    const isCreator = course.creator_id === currentUser?.id;
+    const isMaster = course.course_type === 'master';
+    if (isCreator && isMaster && !forceRegular) {
+        return viewCreatorMasterCoursePreview(courseId);
+    }
+
+    // Check if user is enrolled in this course (but NOT the creator - creators aren't "enrolled")
+    const isEnrolledStudent = !isCreator && myCourses.some(c => c.id === courseId);
     
-    if (isEnrolled) {
-        // Use enhanced navigation for enrolled courses (supports master courses)
+    if (isEnrolledStudent && !forceRegular) {
+        // Use enhanced navigation for enrolled students (supports master courses)
         return viewCourseWithNavigation(courseId);
     }
 
@@ -4838,10 +4845,10 @@ async function viewCourseWithNavigation(courseId) {
             credentials: 'include'
         });
         
-        // If endpoint doesn't exist (404), fallback to regular view
+        // If endpoint doesn't exist (404), fallback to regular view (forceRegular=true to avoid recursion)
         if (!typeResponse.ok) {
             console.log("Course type endpoint not available, using regular view");
-            return viewCourse(courseId);
+            return viewCourse(courseId, null, true);
         }
         
         const typeResult = await typeResponse.json();
@@ -4851,12 +4858,103 @@ async function viewCourseWithNavigation(courseId) {
             // Load master course with unit navigation
             await loadMasterCourseView(courseId);
         } else {
-            // Regular single course - use existing viewCourse
-            viewCourse(courseId);
+            // Regular single course - use regular view (forceRegular=true to avoid recursion)
+            viewCourse(courseId, null, true);
         }
     } catch (err) {
         console.error("Error checking course type for view:", err);
-        viewCourse(courseId); // Fallback to regular view
+        viewCourse(courseId, null, true); // Fallback: forceRegular=true prevents infinite loop
+    }
+}
+
+// Creator preview of a master course — loads units without requiring enrollment
+async function viewCreatorMasterCoursePreview(courseId) {
+    try {
+        // Load course data
+        const courseResponse = await fetch(`${API_BASE_URL}/api/courses/${courseId}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` },
+            credentials: 'include'
+        });
+        const courseResult = await courseResponse.json();
+        
+        if (!courseResult.success) {
+            alert('Course not found');
+            return;
+        }
+        
+        const course = courseResult.data;
+        currentMasterCourse = course;
+        
+        // Load units directly (creator doesn't need enrollment)
+        const unitsResponse = await fetch(`${API_BASE_URL}/api/courses/${courseId}/units`, {
+            headers: { 'Authorization': `Bearer ${authToken}` },
+            credentials: 'include'
+        });
+        const unitsResult = await unitsResponse.json();
+        
+        const units = (unitsResult.success ? unitsResult.data : []).filter(u => !u.is_draft);
+        
+        // Map units to compatible format for showUnitNavigationSidebar
+        courseUnits = units.map(u => ({
+            unit_id: u.id,
+            child_course_id: u.child_course_id,
+            unit_title: u.title,
+            order_index: u.order_index,
+            completed: false,
+            progress_percentage: 0,
+            is_unlocked: true, // Creator can view all units
+            prerequisite_unit_id: u.prerequisite_unit_id
+        }));
+        
+        currentUnitIndex = 0;
+        
+        // Show viewer section
+        document.getElementById('dashboard-section').style.display = 'none';
+        document.getElementById('course-editor-section').style.display = 'none';
+        document.getElementById('course-viewer-section').style.display = 'block';
+        
+        if (courseUnits.length === 0) {
+            // No units added yet — show a helpful message
+            const unitSidebar = document.getElementById('unit-navigation-sidebar');
+            const regularSidebar = document.getElementById('viewer-regular-sidebar');
+            if (unitSidebar) unitSidebar.style.display = 'none';
+            if (regularSidebar) regularSidebar.style.display = 'block';
+            
+            document.getElementById('course-viewer-content').innerHTML = `
+                <div style="text-align:center; padding:60px 20px; color:var(--text-muted);">
+                    <p style="font-size:48px; margin-bottom:16px;">📚</p>
+                    <h2 style="margin-bottom:12px;">No Units Added Yet</h2>
+                    <p>Go back to the editor, switch to <strong>Master Course</strong> mode, then click <strong>📚 Manage Units</strong> to add units.</p>
+                    <button onclick="showDashboard()" style="margin-top:20px; padding:10px 20px; background:var(--primary); color:white; border:none; border-radius:8px; cursor:pointer;">← Back to Dashboard</button>
+                </div>
+            `;
+            const titleEl = document.getElementById('course-viewer-title');
+            if (titleEl) titleEl.textContent = course.title;
+        } else {
+            // Show unit sidebar and first unit
+            showUnitNavigationSidebar(course, {
+                overall_progress: 0,
+                completed_units: 0,
+                total_units: courseUnits.length
+            });
+            await loadUnitContent(courseUnits[0]);
+            updateViewerNavigation();
+        }
+        
+        // Show a "Preview Mode" notice
+        const existingBanner = document.getElementById('creator-preview-banner');
+        if (!existingBanner) {
+            const banner = document.createElement('div');
+            banner.id = 'creator-preview-banner';
+            banner.style.cssText = 'background: rgba(255,152,0,0.15); border: 1px solid rgba(255,152,0,0.4); border-radius:8px; padding:10px 16px; margin-bottom:16px; text-align:center; color:#ff9800; font-size:13px; font-weight:600;';
+            banner.innerHTML = '👁️ Creator Preview Mode — Students see this with progress tracking enabled';
+            const content = document.querySelector('.viewer-content');
+            if (content) content.insertBefore(banner, content.firstChild);
+        }
+        
+    } catch (err) {
+        console.error('Error in creator master course preview:', err);
+        viewCourse(courseId, null, true); // Final fallback — regular view
     }
 }
 
