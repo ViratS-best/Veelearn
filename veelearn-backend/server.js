@@ -1391,6 +1391,605 @@ LIMIT ? OFFSET ?
     });
 });
 
+// ===== COURSE NESTING SPECIFIC ROUTES (must be before /:id routes) =====
+
+// Get course type
+app.get('/api/courses/:id/type', authenticateToken, (req, res) => {
+    const courseId = req.params.id;
+
+    db.query('SELECT course_type FROM courses WHERE id = ?', [courseId], (err, results) => {
+        if (err || results.length === 0) {
+            return apiResponse(res, 404, 'Course not found');
+        }
+        apiResponse(res, 200, 'Course type fetched', { course_type: results[0].course_type || 'single' });
+    });
+});
+
+// Toggle course type (single ↔ master)
+app.put('/api/courses/:id/type', authenticateToken, (req, res) => {
+    const courseId = req.params.id;
+    const { course_type } = req.body;
+    const userId = req.user.id;
+
+    if (!['single', 'master'].includes(course_type)) {
+        return apiResponse(res, 400, 'Invalid course type');
+    }
+
+    db.query('SELECT creator_id, course_type FROM courses WHERE id = ?', [courseId], (err, results) => {
+        if (err || results.length === 0) {
+            return apiResponse(res, 404, 'Course not found');
+        }
+
+        const course = results[0];
+        if (course.creator_id !== userId) {
+            return apiResponse(res, 403, 'Not authorized to modify this course');
+        }
+
+        db.query('UPDATE courses SET course_type = ? WHERE id = ?', [course_type, courseId], (err) => {
+            if (err) {
+                return apiResponse(res, 500, 'Server error updating course type');
+            }
+            apiResponse(res, 200, 'Course type updated successfully', { course_type });
+        });
+    });
+});
+
+// Get units of a master course
+app.get('/api/courses/:id/units', authenticateToken, (req, res) => {
+    const courseId = req.params.id;
+
+    const query = `
+        SELECT cu.id, cu.order_index, cu.is_draft, cu.prerequisite_unit_id,
+               c.id as child_course_id, c.title, c.description, c.status, c.course_type,
+               c2.title as prerequisite_title
+        FROM course_units cu
+        JOIN courses c ON cu.child_course_id = c.id
+        LEFT JOIN course_units cu2 ON cu.prerequisite_unit_id = cu2.id
+        LEFT JOIN courses c2 ON cu2.child_course_id = c2.id
+        WHERE cu.parent_course_id = ?
+        ORDER BY cu.order_index ASC
+    `;
+
+    db.query(query, [courseId], (err, results) => {
+        if (err) {
+            console.error('Error fetching course units:', err);
+            return apiResponse(res, 500, 'Server error');
+        }
+        apiResponse(res, 200, 'Units fetched successfully', results);
+    });
+});
+
+// Add unit to master course
+app.post('/api/courses/:id/units', authenticateToken, (req, res) => {
+    const parentCourseId = req.params.id;
+    const { child_course_id, order_index, is_draft, prerequisite_unit_id } = req.body;
+    const userId = req.user.id;
+
+    db.query('SELECT creator_id, course_type FROM courses WHERE id = ?', [parentCourseId], (err, results) => {
+        if (err || results.length === 0) {
+            return apiResponse(res, 404, 'Parent course not found');
+        }
+
+        const parentCourse = results[0];
+        if (parentCourse.creator_id !== userId) {
+            return apiResponse(res, 403, 'Not authorized');
+        }
+
+        if (parentCourse.course_type !== 'master') {
+            return apiResponse(res, 400, 'This course is not a Master Course. Convert it to Master first.');
+        }
+
+        if (!child_course_id) {
+            return apiResponse(res, 400, 'Child course ID is required');
+        }
+
+        db.query('SELECT id, title FROM courses WHERE id = ?', [child_course_id], (childErr, childResults) => {
+            if (childErr || childResults.length === 0) {
+                return apiResponse(res, 404, 'Child course not found');
+            }
+
+            db.query('SELECT id FROM course_units WHERE parent_course_id = ? AND child_course_id = ?', 
+                [parentCourseId, child_course_id], (existsErr, existsResults) => {
+                if (existsErr) {
+                    return apiResponse(res, 500, 'Server error');
+                }
+
+                if (existsResults.length > 0) {
+                    return apiResponse(res, 400, 'This course is already a unit in this Master Course');
+                }
+
+                const getOrderIndex = (cb) => {
+                    if (order_index !== undefined) {
+                        return cb(order_index);
+                    }
+                    db.query('SELECT MAX(order_index) as max_order FROM course_units WHERE parent_course_id = ?', 
+                        [parentCourseId], (maxErr, maxResults) => {
+                        cb((maxResults[0].max_order || -1) + 1);
+                    });
+                };
+
+                getOrderIndex((finalOrderIndex) => {
+                    db.query(`
+                        SELECT user_id, completed FROM enrollments WHERE course_id = ?
+                    `, [child_course_id], (enrollErr, enrollments) => {
+                        
+                        db.query(`
+                            INSERT INTO course_units (parent_course_id, child_course_id, order_index, is_draft, prerequisite_unit_id, linked_course_id)
+                            VALUES (?, ?, ?, ?, ?, ?)
+                        `, [parentCourseId, child_course_id, finalOrderIndex, is_draft || false, prerequisite_unit_id || null, child_course_id], 
+                        (insertErr, insertResult) => {
+                            if (insertErr) {
+                                console.error('Error adding unit:', insertErr);
+                                return apiResponse(res, 500, 'Server error adding unit');
+                            }
+
+                            const unitId = insertResult.insertId;
+
+                            if (enrollments && enrollments.length > 0) {
+                                const progressValues = enrollments.map(e => 
+                                    `(${e.user_id}, ${parentCourseId}, ${unitId}, ${e.completed ? 'TRUE' : 'FALSE'}, ${e.completed ? 'CURRENT_TIMESTAMP' : 'NULL'})`
+                                ).join(', ');
+
+                                if (progressValues) {
+                                    db.query(`
+                                        INSERT INTO course_enrollment_progress (user_id, course_id, unit_id, completed, completed_at)
+                                        VALUES ${progressValues}
+                                        ON DUPLICATE KEY UPDATE completed = VALUES(completed), completed_at = VALUES(completed_at)
+                                    `, [], (progressErr) => {
+                                        if (progressErr) {
+                                            console.error('Error carrying over progress:', progressErr);
+                                        }
+                                    });
+                                }
+                            }
+
+                            apiResponse(res, 201, 'Unit added successfully', { 
+                                unit_id: unitId,
+                                child_course: childResults[0]
+                            });
+                        });
+                    });
+                });
+            });
+        });
+    });
+});
+
+// Reorder units
+app.put('/api/courses/:id/units/reorder', authenticateToken, (req, res) => {
+    const courseId = req.params.id;
+    const { unit_orders } = req.body;
+    const userId = req.user.id;
+
+    db.query('SELECT creator_id FROM courses WHERE id = ?', [courseId], (err, results) => {
+        if (err || results.length === 0) {
+            return apiResponse(res, 404, 'Course not found');
+        }
+
+        if (results[0].creator_id !== userId) {
+            return apiResponse(res, 403, 'Not authorized');
+        }
+
+        if (!Array.isArray(unit_orders) || unit_orders.length === 0) {
+            return apiResponse(res, 400, 'No units to reorder');
+        }
+
+        const updates = unit_orders.map((u) => {
+            return new Promise((resolve) => {
+                db.query('UPDATE course_units SET order_index = ? WHERE id = ? AND parent_course_id = ?', 
+                    [u.order_index, u.unitId, courseId], (err) => {
+                    resolve(err ? null : true);
+                });
+            });
+        });
+
+        Promise.all(updates).then(() => {
+            apiResponse(res, 200, 'Units reordered successfully');
+        }).catch(() => {
+            apiResponse(res, 500, 'Error reordering units');
+        });
+    });
+});
+
+// Update unit
+app.put('/api/courses/units/:unitId', authenticateToken, (req, res) => {
+    const unitId = req.params.unitId;
+    const { order_index, is_draft, prerequisite_unit_id } = req.body;
+    const userId = req.user.id;
+
+    db.query(`
+        SELECT cu.*, c.creator_id 
+        FROM course_units cu 
+        JOIN courses c ON cu.parent_course_id = c.id 
+        WHERE cu.id = ?
+    `, [unitId], (err, results) => {
+        if (err || results.length === 0) {
+            return apiResponse(res, 404, 'Unit not found');
+        }
+
+        const unit = results[0];
+        if (unit.creator_id !== userId) {
+            return apiResponse(res, 403, 'Not authorized');
+        }
+
+        const updates = [];
+        const params = [];
+
+        if (order_index !== undefined) {
+            updates.push('order_index = ?');
+            params.push(order_index);
+        }
+
+        if (is_draft !== undefined) {
+            updates.push('is_draft = ?');
+            params.push(is_draft);
+        }
+
+        if (prerequisite_unit_id !== undefined) {
+            updates.push('prerequisite_unit_id = ?');
+            params.push(prerequisite_unit_id === 'null' ? null : prerequisite_unit_id);
+        }
+
+        if (updates.length === 0) {
+            return apiResponse(res, 400, 'No valid fields to update');
+        }
+
+        params.push(unitId);
+
+        db.query(`UPDATE course_units SET ${updates.join(', ')} WHERE id = ?`, params, (err) => {
+            if (err) {
+                return apiResponse(res, 500, 'Server error updating unit');
+            }
+            apiResponse(res, 200, 'Unit updated successfully');
+        });
+    });
+});
+
+// Delete unit
+app.delete('/api/courses/units/:unitId', authenticateToken, (req, res) => {
+    const unitId = req.params.unitId;
+    const userId = req.user.id;
+
+    db.query(`
+        SELECT cu.*, c.creator_id 
+        FROM course_units cu 
+        JOIN courses c ON cu.parent_course_id = c.id 
+        WHERE cu.id = ?
+    `, [unitId], (err, results) => {
+        if (err || results.length === 0) {
+            return apiResponse(res, 404, 'Unit not found');
+        }
+
+        const unit = results[0];
+        if (unit.creator_id !== userId) {
+            return apiResponse(res, 403, 'Not authorized');
+        }
+
+        db.query('DELETE FROM course_units WHERE id = ?', [unitId], (err) => {
+            if (err) {
+                return apiResponse(res, 500, 'Server error removing unit');
+            }
+            apiResponse(res, 200, 'Unit removed successfully');
+        });
+    });
+});
+
+// Update unit progress
+app.put('/api/courses/units/:unitId/progress', authenticateToken, (req, res) => {
+    const unitId = req.params.unitId;
+    const { progress_percentage } = req.body;
+    const userId = req.user.id;
+
+    db.query('SELECT parent_course_id, child_course_id FROM course_units WHERE id = ?', [unitId], (err, results) => {
+        if (err || results.length === 0) {
+            return apiResponse(res, 404, 'Unit not found');
+        }
+
+        const unit = results[0];
+
+        db.query('SELECT id FROM enrollments WHERE user_id = ? AND course_id = ?', 
+            [userId, unit.parent_course_id], (enrollErr, enrollResults) => {
+            if (enrollErr || enrollResults.length === 0) {
+                return apiResponse(res, 403, 'Not enrolled in this Master Course');
+            }
+
+            db.query(`
+                INSERT INTO course_enrollment_progress (user_id, course_id, unit_id, progress_percentage)
+                VALUES (?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE progress_percentage = ?
+            `, [userId, unit.parent_course_id, unitId, progress_percentage, progress_percentage], 
+            (err) => {
+                if (err) {
+                    return apiResponse(res, 500, 'Server error updating progress');
+                }
+                apiResponse(res, 200, 'Progress updated successfully');
+            });
+        });
+    });
+});
+
+// Mark unit as complete
+app.post('/api/courses/units/:unitId/complete', authenticateToken, (req, res) => {
+    const unitId = req.params.unitId;
+    const userId = req.user.id;
+
+    db.query('SELECT parent_course_id, prerequisite_unit_id, child_course_id FROM course_units WHERE id = ?', [unitId], (err, results) => {
+        if (err || results.length === 0) {
+            return apiResponse(res, 404, 'Unit not found');
+        }
+
+        const unit = results[0];
+
+        if (unit.prerequisite_unit_id) {
+            db.query(`
+                SELECT completed FROM course_enrollment_progress 
+                WHERE unit_id = ? AND user_id = ?
+            `, [unit.prerequisite_unit_id, userId], (prereqErr, prereqResults) => {
+                if (prereqErr || prereqResults.length === 0 || !prereqResults[0].completed) {
+                    return apiResponse(res, 400, 'Complete the prerequisite unit first');
+                }
+                completeUnit();
+            });
+        } else {
+            completeUnit();
+        }
+
+        function completeUnit() {
+            db.query(`
+                INSERT INTO course_enrollment_progress (user_id, course_id, unit_id, completed, completed_at)
+                VALUES (?, ?, ?, TRUE, CURRENT_TIMESTAMP)
+                ON DUPLICATE KEY UPDATE completed = TRUE, completed_at = CURRENT_TIMESTAMP
+            `, [userId, unit.parent_course_id, unitId], (err) => {
+                if (err) {
+                    return apiResponse(res, 500, 'Server error completing unit');
+                }
+
+                db.query(`
+                    INSERT INTO course_views (user_id, course_id, completed)
+                    VALUES (?, ?, TRUE)
+                    ON DUPLICATE KEY UPDATE completed = TRUE, last_viewed = CURRENT_TIMESTAMP
+                `, [userId, unit.child_course_id], () => {});
+
+                checkMasterComplete();
+            });
+        }
+
+        function checkMasterComplete() {
+            db.query(`
+                SELECT COUNT(*) as total, 
+                       SUM(CASE WHEN completed = TRUE THEN 1 ELSE 0 END) as completed
+                FROM course_enrollment_progress
+                WHERE user_id = ? AND course_id = ?
+            `, [userId, unit.parent_course_id], (err, countResults) => {
+                if (err) return;
+
+                const { total, completed } = countResults[0];
+                if (total > 0 && completed >= total) {
+                    db.query(`
+                        INSERT INTO course_views (user_id, course_id, completed)
+                        VALUES (?, ?, TRUE)
+                        ON DUPLICATE KEY UPDATE completed = TRUE, last_viewed = CURRENT_TIMESTAMP
+                    `, [userId, unit.parent_course_id], () => {});
+                }
+
+                apiResponse(res, 200, 'Unit completed successfully', {
+                    unit_complete: true,
+                    all_units_complete: total > 0 && completed >= total
+                });
+            });
+        }
+    });
+});
+
+// Enroll in master course
+app.post('/api/courses/:id/enroll-master', authenticateToken, (req, res) => {
+    const courseId = req.params.id;
+    const userId = req.user.id;
+
+    db.query('SELECT id, title, course_type, is_paid, shells_cost FROM courses WHERE id = ? AND status = ?', 
+        [courseId, 'approved'], (err, results) => {
+        if (err || results.length === 0) {
+            return apiResponse(res, 404, 'Course not found or not approved');
+        }
+
+        const course = results[0];
+
+        if (course.course_type !== 'master') {
+            return apiResponse(res, 400, 'This is not a Master Course. Use regular enrollment.');
+        }
+
+        db.query('SELECT id FROM enrollments WHERE user_id = ? AND course_id = ? AND is_master_enrollment = TRUE', 
+            [userId, courseId], (err, enrolledResults) => {
+            if (err || enrolledResults.length > 0) {
+                return apiResponse(res, 400, 'Already enrolled in this Master Course');
+            }
+
+            db.query(`
+                SELECT cu.id, cu.child_course_id, c.title
+                FROM course_units cu
+                JOIN courses c ON cu.child_course_id = c.id
+                WHERE cu.parent_course_id = ? AND cu.is_draft = FALSE
+                ORDER BY cu.order_index ASC
+            `, [courseId], (err, units) => {
+                if (err) {
+                    return apiResponse(res, 500, 'Server error fetching units');
+                }
+
+                db.query('INSERT INTO enrollments (user_id, course_id, is_master_enrollment) VALUES (?, ?, TRUE)', 
+                    [userId, courseId], (err) => {
+                    if (err) {
+                        return apiResponse(res, 500, 'Server error creating enrollment');
+                    }
+
+                    if (units && units.length > 0) {
+                        const unitEnrollments = units.map(u => 
+                            `(${userId}, ${u.child_course_id})`
+                        ).join(', ');
+
+                        db.query(`
+                            INSERT IGNORE INTO enrollments (user_id, course_id) VALUES ${unitEnrollments}
+                        `, [], (err) => {
+                            if (err) {
+                                console.error('Error creating unit enrollments:', err);
+                            }
+
+                            const progressValues = units.map(u => 
+                                `(${userId}, ${courseId}, ${u.id}, 0)`
+                            ).join(', ');
+
+                            if (progressValues) {
+                                db.query(`
+                                    INSERT INTO course_enrollment_progress (user_id, course_id, unit_id, progress_percentage)
+                                    VALUES ${progressValues}
+                                `, [], (err) => {
+                                    if (err) {
+                                        console.error('Error initializing progress:', err);
+                                    }
+                                });
+                            }
+                        });
+                    }
+
+                    apiResponse(res, 201, 'Successfully enrolled in Master Course and all units', {
+                        master_enrollment: true,
+                        units_enrolled: units ? units.length : 0
+                    });
+                });
+            });
+        });
+    });
+});
+
+// Get enrollment progress for master course
+app.get('/api/users/enrollments/:courseId/progress', authenticateToken, (req, res) => {
+    const courseId = req.params.courseId;
+    const userId = req.user.id;
+
+    db.query('SELECT id FROM enrollments WHERE user_id = ? AND course_id = ?', 
+        [userId, courseId], (err, results) => {
+        if (err || results.length === 0) {
+            return apiResponse(res, 404, 'Not enrolled in this course');
+        }
+
+        const query = `
+            SELECT cu.id as unit_id, cu.order_index, cu.child_course_id,
+                   c.title as unit_title,
+                   cep.completed, cep.completed_at, cep.progress_percentage,
+                   cu.prerequisite_unit_id,
+                   CASE WHEN cep.completed = TRUE THEN TRUE 
+                        WHEN cu.prerequisite_unit_id IS NULL THEN TRUE
+                        ELSE EXISTS (
+                            SELECT 1 FROM course_enrollment_progress cep2
+                            WHERE cep2.unit_id = cu.prerequisite_unit_id
+                            AND cep2.user_id = ?
+                            AND cep2.completed = TRUE
+                        )
+                   END as is_unlocked
+            FROM course_units cu
+            JOIN courses c ON cu.child_course_id = c.id
+            LEFT JOIN course_enrollment_progress cep ON cep.unit_id = cu.id AND cep.user_id = ?
+            WHERE cu.parent_course_id = ? AND cu.is_draft = FALSE
+            ORDER BY cu.order_index ASC
+        `;
+
+        db.query(query, [userId, userId, courseId], (err, units) => {
+            if (err) {
+                console.error('Error fetching unit progress:', err);
+                return apiResponse(res, 500, 'Server error');
+            }
+
+            const completedCount = units.filter(u => u.completed).length;
+            const totalUnits = units.length;
+            const overallProgress = totalUnits > 0 ? Math.round((completedCount / totalUnits) * 100) : 0;
+            const isComplete = totalUnits > 0 && completedCount === totalUnits;
+
+            apiResponse(res, 200, 'Progress fetched successfully', {
+                course_id: courseId,
+                total_units: totalUnits,
+                completed_units: completedCount,
+                overall_progress: overallProgress,
+                is_complete: isComplete,
+                units: units
+            });
+        });
+    });
+});
+
+// Get courses available for adding as units
+app.get('/api/courses/available-for-units', authenticateToken, (req, res) => {
+    const parentCourseId = req.query.exclude_parent;
+    const userId = req.user.id;
+
+    let query = `
+        SELECT c.id, c.title, c.description, c.status, c.course_type, c.creator_id,
+               u.email as creator_email
+        FROM courses c
+        JOIN users u ON c.creator_id = u.id
+        WHERE c.status = 'approved' AND c.id != ?
+    `;
+    const params = [parentCourseId];
+
+    query += ` OR c.creator_id = ?`;
+    params.push(userId);
+
+    query += ` ORDER BY c.created_at DESC LIMIT 100`;
+
+    db.query(query, params, (err, results) => {
+        if (err) {
+            console.error('Error fetching available courses:', err);
+            return apiResponse(res, 500, 'Server error');
+        }
+        apiResponse(res, 200, 'Available courses fetched', results);
+    });
+});
+
+// Enhanced enrollments endpoint
+app.get('/api/users/enrollments/enhanced', authenticateToken, (req, res) => {
+    const userId = req.user.id;
+
+    const query = `
+        SELECT c.id, c.title, c.description, c.creator_id, c.course_type,
+               e.enrolled_at, e.is_master_enrollment,
+               cv.completed, cv.view_duration_hours,
+               CASE 
+                   WHEN cv.completed = TRUE THEN 'completed'
+                   WHEN cv.view_duration_hours > 0 THEN 'in_progress'
+                   ELSE 'enrolled'
+               END as enrollment_status,
+               CASE 
+                   WHEN c.course_type = 'master' THEN (
+                       SELECT COUNT(*) FROM course_units cu 
+                       JOIN course_enrollment_progress cep ON cep.unit_id = cu.id 
+                       WHERE cu.parent_course_id = c.id AND cep.user_id = e.user_id
+                   )
+                   ELSE NULL
+               END as total_units,
+               CASE 
+                   WHEN c.course_type = 'master' THEN (
+                       SELECT COUNT(*) FROM course_units cu 
+                       JOIN course_enrollment_progress cep ON cep.unit_id = cu.id 
+                       WHERE cu.parent_course_id = c.id AND cep.user_id = e.user_id AND cep.completed = TRUE
+                   )
+                   ELSE NULL
+               END as completed_units
+        FROM enrollments e
+        JOIN courses c ON e.course_id = c.id
+        LEFT JOIN course_views cv ON cv.user_id = e.user_id AND cv.course_id = c.id
+        WHERE e.user_id = ?
+        ORDER BY e.enrolled_at DESC
+    `;
+
+    db.query(query, [userId], (err, results) => {
+        if (err) {
+            console.error('Error fetching enhanced enrollments:', err);
+            return apiResponse(res, 500, 'Server error');
+        }
+        apiResponse(res, 200, 'Enrollments fetched successfully', results);
+    });
+});
+
+// ===== END COURSE NESTING SPECIFIC ROUTES =====
+
 app.get('/api/courses/:id', authenticateToken, (req, res) => {
     const courseId = req.params.id;
     const userId = req.user.id;
@@ -2040,9 +2639,7 @@ app.post('/api/courses/:id/complete', authenticateToken, (req, res) => {
     });
 });
 
-// ===== COURSE NESTING SYSTEM ENDPOINTS =====
-
-// Toggle course type (single ↔ master)
+// ===== SIMULATOR MARKETPLACE ROUTES =====
 app.put('/api/courses/:id/type', authenticateToken, (req, res) => {
     const courseId = req.params.id;
     const { course_type } = req.body;
@@ -4399,7 +4996,7 @@ app.get('/api/student/enrolled-courses', authenticateToken, (req, res) => {
             ) SEPARATOR '|||') as assignments_json
         FROM courses c
         JOIN student_enrollments se ON se.course_id = c.id
-        LEFT JOIN users u ON u.id = c.created_by
+        LEFT JOIN users u ON u.id = c.creator_id
         LEFT JOIN classroom_assignments ca ON ca.course_id = c.id
         LEFT JOIN assignment_submissions asub ON ca.id = asub.assignment_id AND asub.student_id = se.student_id
         WHERE se.student_id = ?
