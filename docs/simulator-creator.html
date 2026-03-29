@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creator Dashboard - Veelearn</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .dashboard-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dashboard-header h1 {
+            margin: 0;
+        }
+
+        .create-btn {
+            background: white;
+            color: #667eea;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .create-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .dashboard-nav {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 0;
+        }
+
+        .nav-tab {
+            padding: 15px 20px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            font-weight: bold;
+            color: #666;
+            transition: all 0.3s;
+        }
+
+        .nav-tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .dashboard-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .simulators-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .simulator-item {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s;
+        }
+
+        .simulator-item:hover {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+            transform: translateY(-4px);
+        }
+
+        .simulator-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 2em;
+        }
+
+        .simulator-content {
+            padding: 15px;
+        }
+
+        .simulator-title {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+
+        .simulator-meta {
+            font-size: 0.9em;
+            color: #666;
+            margin: 5px 0;
+        }
+
+        .simulator-status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        .status-draft {
+            background: #fee;
+            color: #c33;
+        }
+
+        .status-published {
+            background: #efe;
+            color: #3c3;
+        }
+
+        .simulator-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        .action-link {
+            flex: 1;
+            padding: 8px;
+            text-align: center;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+
+        .action-link.edit {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .action-link.edit:hover {
+            background: #bbdefb;
+        }
+
+        .action-link.delete {
+            background: #ffebee;
+            color: #d32f2f;
+        }
+
+        .action-link.delete:hover {
+            background: #ffcdd2;
+        }
+
+        .action-link.publish {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .action-link.publish:hover {
+            background: #c8e6c9;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 3em;
+            margin-bottom: 20px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-footer button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-header {
+                flex-direction: column;
+                text-align: center;
+                gap: 20px;
+            }
+
+            .dashboard-nav {
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+
+            .simulators-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .dashboard-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav style="background: #333; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;">
+        <a href="simulator-marketplace.html" style="color: white; text-decoration: none;">Marketplace</a>
+        <div>
+            <span id="userName" style="margin-right: 15px;"></span>
+            <a href="#" onclick="logout()" style="color: white; text-decoration: none;">Logout</a>
+        </div>
+    </nav>
+
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <div>
+                <h1>Creator Dashboard</h1>
+                <p style="margin: 5px 0 0 0; opacity: 0.9;">Manage your simulators</p>
+            </div>
+            <button class="create-btn" onclick="openCreateModal()">+ Create New</button>
+        </div>
+
+        <!-- Stats -->
+        <div class="dashboard-stats">
+            <div class="stat-box">
+                <div class="stat-number" id="totalSimulators">0</div>
+                <div class="stat-label">Total Simulators</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" id="publishedCount">0</div>
+                <div class="stat-label">Published</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" id="totalDownloads">0</div>
+                <div class="stat-label">Total Downloads</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" id="avgRating">0</div>
+                <div class="stat-label">Avg Rating</div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="dashboard-nav">
+            <div class="nav-tab active" onclick="switchTab('all')">All Simulators</div>
+            <div class="nav-tab" onclick="switchTab('published')">Published</div>
+            <div class="nav-tab" onclick="switchTab('drafts')">Drafts</div>
+        </div>
+
+        <!-- Simulators Grid -->
+        <div id="simulatorsContainer" class="simulators-grid"></div>
+
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <div class="empty-state-icon">📊</div>
+            <h2>No simulators yet</h2>
+            <p>Create your first simulator to get started</p>
+            <button class="create-btn" onclick="openCreateModal()" style="margin-top: 20px;">Create Simulator</button>
+        </div>
+    </div>
+
+    <!-- Create/Edit Modal -->
+    <div class="modal" id="createModal">
+        <div class="modal-content">
+            <div class="modal-header">Create New Simulator</div>
+            <div class="form-group">
+                <label>Title</label>
+                <input type="text" id="simTitle" placeholder="Simulator title">
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="simDescription" placeholder="What does your simulator do?"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Tags (comma-separated)</label>
+                <input type="text" id="simTags" placeholder="physics, education, simulation">
+            </div>
+            <div class="form-group">
+                <label>Difficulty</label>
+                <select id="simDifficulty" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                    <option>Beginner</option>
+                    <option>Intermediate</option>
+                    <option>Advanced</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" onclick="createSimulator()">Create & Edit</button>
+                <button class="btn-secondary" onclick="closeCreateModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="marketplace-api.js"></script>
+    <script src="marketplace-app.js"></script>
+    <script>
+        const api = new MarketplaceAPI();
+        const marketplace = new MarketplaceApp(api);
+        let mySimulators = [];
+        let currentTab = 'all';
+
+        // Initialize
+        if (!api.isAuthenticated()) {
+            window.location.href = 'index.html#login';
+        } else {
+            loadDashboard();
+        }
+
+        async function loadDashboard() {
+            try {
+                mySimulators = await marketplace.getMySimulators();
+                updateStats();
+                displaySimulators();
+            } catch (error) {
+                console.error('Failed to load dashboard:', error);
+                document.getElementById('emptyState').style.display = 'block';
+            }
+        }
+
+        function updateStats() {
+            const total = mySimulators.length;
+            const published = mySimulators.filter(s => s.is_public).length;
+            const totalDL = mySimulators.reduce((sum, s) => sum + (s.downloads || 0), 0);
+            const avgRating = mySimulators.length > 0
+                ? (mySimulators.reduce((sum, s) => sum + (s.average_rating || 0), 0) / mySimulators.length).toFixed(1)
+                : 0;
+
+            document.getElementById('totalSimulators').textContent = total;
+            document.getElementById('publishedCount').textContent = published;
+            document.getElementById('totalDownloads').textContent = totalDL;
+            document.getElementById('avgRating').textContent = avgRating;
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            displaySimulators();
+        }
+
+        function displaySimulators() {
+            let filtered = mySimulators;
+            if (currentTab === 'published') {
+                filtered = mySimulators.filter(s => s.is_public);
+            } else if (currentTab === 'drafts') {
+                filtered = mySimulators.filter(s => !s.is_public);
+            }
+
+            const container = document.getElementById('simulatorsContainer');
+            if (filtered.length === 0) {
+                container.innerHTML = '';
+                document.getElementById('emptyState').style.display = 'block';
+                return;
+            }
+
+            document.getElementById('emptyState').style.display = 'none';
+            container.innerHTML = filtered.map(sim => `
+                <div class="simulator-item">
+                    <div class="simulator-header">⚙️</div>
+                    <div class="simulator-content">
+                        <div class="simulator-title">${sim.title}</div>
+                        <div class="simulator-meta">Downloads: ${sim.downloads || 0}</div>
+                        <div class="simulator-meta">Rating: ${(sim.average_rating || 0).toFixed(1)}/5</div>
+                        <span class="simulator-status ${sim.is_public ? 'status-published' : 'status-draft'}">
+                            ${sim.is_public ? 'Published' : 'Draft'}
+                        </span>
+                        <div class="simulator-actions">
+                            <a class="action-link edit" href="simulator-editor.html?id=${sim.id}">Edit</a>
+                            <a class="action-link publish" onclick="togglePublish(${sim.id}, ${sim.is_public})" style="cursor: pointer;">
+                                ${sim.is_public ? 'Unpublish' : 'Publish'}
+                            </a>
+                            <a class="action-link delete" onclick="deleteSimulator(${sim.id})" style="cursor: pointer;">Delete</a>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openCreateModal() {
+            document.getElementById('createModal').classList.add('active');
+        }
+
+        function closeCreateModal() {
+            document.getElementById('createModal').classList.remove('active');
+            document.getElementById('simTitle').value = '';
+            document.getElementById('simDescription').value = '';
+            document.getElementById('simTags').value = '';
+            document.getElementById('simDifficulty').value = 'Beginner';
+        }
+
+        async function createSimulator() {
+            const title = document.getElementById('simTitle').value;
+            const description = document.getElementById('simDescription').value;
+            const tags = document.getElementById('simTags').value.split(',').map(t => t.trim());
+            const difficulty = document.getElementById('simDifficulty').value;
+
+            if (!title) {
+                alert('Please enter a title');
+                return;
+            }
+
+            try {
+                const sim = await marketplace.createSimulator({
+                    title,
+                    description,
+                    tags,
+                    difficulty,
+                    blocks: [],
+                    connections: [],
+                    is_public: false
+                });
+
+                alert('Simulator created! Redirecting to editor...');
+                closeCreateModal();
+                window.location.href = `simulator-editor.html?id=${sim.id}`;
+            } catch (error) {
+                alert('Failed to create simulator: ' + error.message);
+            }
+        }
+
+        async function deleteSimulator(id) {
+            if (!confirm('Are you sure you want to delete this simulator?')) return;
+
+            try {
+                await marketplace.deleteSimulator(id);
+                alert('Simulator deleted');
+                loadDashboard();
+            } catch (error) {
+                alert('Failed to delete: ' + error.message);
+            }
+        }
+
+        async function togglePublish(id, isPublic) {
+            try {
+                if (isPublic) {
+                    await marketplace.unpublishSimulator(id);
+                } else {
+                    await marketplace.publishSimulator(id);
+                }
+                loadDashboard();
+            } catch (error) {
+                alert('Failed to update: ' + error.message);
+            }
+        }
+
+        function logout() {
+            api.logout();
+            window.location.href = 'index.html';
+        }
+
+        // Display user name
+        const token = localStorage.getItem('auth_token');
+        if (token) {
+            try {
+                const decoded = JSON.parse(atob(token.split('.')[1]));
+                document.getElementById('userName').textContent = decoded.email || 'User';
+            } catch (e) {
+                // Ignore parse errors
+            }
+        }
+    </script>
+</body>
+</html>
