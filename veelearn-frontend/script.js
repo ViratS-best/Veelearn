@@ -999,11 +999,29 @@ function initializeApp() {
     setupCourseSearchListeners();
     setupCourseSortListener();
     setupAnimationPreference();
+    setupCourseNestingListeners();
 
     if (document.cookie.includes('token=') || authToken) {
         fetchUserProfile();
     } else {
         showLandingPage();
+    }
+}
+
+// Setup course nesting system event listeners
+function setupCourseNestingListeners() {
+    // Course type toggle
+    setupCourseTypeToggle();
+    
+    // Unit management panel
+    const backToEditorBtn = document.getElementById("back-to-course-editor");
+    if (backToEditorBtn) {
+        backToEditorBtn.addEventListener("click", backToCourseEditor);
+    }
+    
+    const addUnitBtn = document.getElementById("add-unit-btn");
+    if (addUnitBtn) {
+        addUnitBtn.addEventListener("click", showUnitSelectionModal);
     }
 }
 
@@ -2698,37 +2716,55 @@ function rejectCourse(courseId) {
 
 function loadUserCourses() {
     console.log("=== LOADING USER COURSES ===");
-    fetch(`${API_BASE_URL}/api/courses`, {
-        headers: { Authorization: `Bearer ${authToken}` },
-        credentials: "include"
-    })
-        .then((res) => res.json())
-        .then((data) => {
-            if (data.success) {
-                const allCoursesFromServer = data.data || [];
-                console.log("Total courses from API:", allCoursesFromServer.length);
-                console.log("Current user ID:", currentUser.id);
+    
+    // First load created courses, then enrich with enrollment data
+    Promise.all([
+        fetch(`${API_BASE_URL}/api/courses`, {
+            headers: { Authorization: `Bearer ${authToken}` },
+            credentials: "include"
+        }).then(res => res.json()),
+        loadEnhancedEnrollments()
+    ])
+    .then(([coursesData, enrollmentData]) => {
+        if (coursesData.success) {
+            const allCoursesFromServer = coursesData.data || [];
+            console.log("Total courses from API:", allCoursesFromServer.length);
+            console.log("Current user ID:", currentUser.id);
 
-                myCourses = allCoursesFromServer.filter(
-                    (c) => c.creator_id === currentUser.id
-                );
-                console.log("Filtered user courses:", myCourses.length);
-                // Clear search box
-                const myCoursesSearch = document.getElementById('myCoursesSearch');
-                if (myCoursesSearch) myCoursesSearch.value = '';
-                renderUserCourses();
+            myCourses = allCoursesFromServer.filter(
+                (c) => c.creator_id === currentUser.id
+            );
+            
+            // Merge enrollment status into courses (for courses user is enrolled in)
+            const enrolledCourseIds = new Set(enrollmentData?.map(e => e.id) || []);
+            myCourses = myCourses.map(course => {
+                const enrollment = enrollmentData?.find(e => e.id === course.id);
+                return {
+                    ...course,
+                    enrollment_status: enrollment?.enrollment_status || null,
+                    course_type: enrollment?.course_type || course.course_type,
+                    total_units: enrollment?.total_units,
+                    completed_units: enrollment?.completed_units
+                };
+            });
+            
+            console.log("Filtered user courses:", myCourses.length);
+            // Clear search box
+            const myCoursesSearch = document.getElementById('myCoursesSearch');
+            if (myCoursesSearch) myCoursesSearch.value = '';
+            renderUserCourses();
 
-                // If teacher, populate assignment dropdown (only if empty or fallback needed)
-                if (currentUser.role === 'teacher' && myCourses.length > 0) {
-                    const dropdown = document.getElementById('assignment-course-select');
-                    if (dropdown && dropdown.options.length <= 1) { // Only if not already populated by all courses
-                        dropdown.innerHTML = '<option value="">Select a course...</option>' +
-                            myCourses.map(c => `<option value="${c.id}">${escapeHtml(c.title)}</option>`).join('');
-                    }
+            // If teacher, populate assignment dropdown (only if empty or fallback needed)
+            if (currentUser.role === 'teacher' && myCourses.length > 0) {
+                const dropdown = document.getElementById('assignment-course-select');
+                if (dropdown && dropdown.options.length <= 1) { // Only if not already populated by all courses
+                    dropdown.innerHTML = '<option value="">Select a course...</option>' +
+                        myCourses.map(c => `<option value="${c.id}">${escapeHtml(c.title)}</option>`).join('');
                 }
             }
-        })
-        .catch((err) => console.error("Error loading user courses:", err));
+        }
+    })
+    .catch((err) => console.error("Error loading user courses:", err));
 }
 
 function loadAvailableCourses() {
@@ -2827,7 +2863,19 @@ function renderUserCourses(searchText) {
           <div class="course-progress">
              <div class="progress-text" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 8px;">${escapeHtml(course.description || "No description")}</div>
              <div class="progress-text" style="margin-top: 8px; color: var(--text-muted);">❤️ ${likeCount} ${likeCount === 1 ? 'like' : 'likes'}</div>
-             ${timeStr ? `<div class="progress-text" style="margin-top: 4px; font-size: 0.8em; color: var(--text-muted);">⌛ Created: ${escapeHtml(timeStr)}</div>` : ''}
+              ${timeStr ? `<div class="progress-text" style="margin-top: 4px; font-size: 0.8em; color: var(--text-muted);">⌛ Created: ${escapeHtml(timeStr)}</div>` : ''}
+              ${course.enrollment_status ? `
+                <div class="progress-text" style="margin-top: 8px;">
+                  <span style="
+                    padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;
+                    background: ${course.enrollment_status === 'completed' ? 'rgba(74,222,128,0.2)' : course.enrollment_status === 'in_progress' ? 'rgba(255,152,0,0.2)' : 'rgba(102,126,234,0.2)'};
+                    color: ${course.enrollment_status === 'completed' ? 'var(--success)' : course.enrollment_status === 'in_progress' ? '#ff9800' : 'var(--primary)'};
+                  ">
+                    ${course.enrollment_status === 'completed' ? '✅ Completed' : course.enrollment_status === 'in_progress' ? '📚 In Progress' : '📝 Enrolled'}
+                  </span>
+                  ${course.course_type === 'master' && course.total_units ? `<span style="margin-left: 8px; font-size: 11px; color: var(--text-muted);">${course.completed_units || 0}/${course.total_units} units</span>` : ''}
+                </div>
+              ` : ''}
           </div>
           <div style="display: flex; gap: 8px; margin-top: 15px;">
               <button onclick="editCourse(${course.id})" style="flex: 1; background: var(--primary); color: white; border-radius: 6px; padding: 8px; border: none; cursor: pointer;">Edit</button>
@@ -2882,19 +2930,24 @@ function renderAvailableCourses(searchText) {
             li.innerHTML = `
          <div class="course-card-image" style="font-size: 40px; height: 120px;">🎓</div>
          <div class="course-card-content">
-           <div class="course-card-title">${escapeHtml(course.title)}</div>
-           <div class="course-card-status" style="background: rgba(102,126,234,0.1); color: var(--primary);">📚 ${gradeLevelText}</div>
-           <div class="course-progress">
-             <div class="progress-text" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 8px;">${escapeHtml(course.description || "No description")}</div>
-           </div>
-           <div style="display: flex; gap: 8px; margin-top: 15px;">
-             <button onclick="viewCourse(${course.id})" style="flex: 1; background: #475569; color: white; border-radius: 6px; padding: 8px; border: none; cursor: pointer;">View</button>
-             <button onclick="enrollInCourse(${course.id})" style="flex: 1; background: var(--primary); color: white; border-radius: 6px; padding: 8px; border: none; cursor: pointer;">Enroll</button>
-             <button onclick="toggleCourseLike(${course.id}, this)" class="like-btn" data-course-id="${course.id}" data-liked="${isLiked}" style="flex: 1; border-radius: 6px; padding: 8px; border: none; cursor: pointer; background: ${isLiked ? 'var(--secondary)' : '#475569'}; color: white;">
-               ${likeButtonText}
-             </button>
-           </div>
-         </div>
+            <div class="course-card-title">${escapeHtml(course.title)}</div>
+            <div class="course-card-status" style="background: rgba(102,126,234,0.1); color: var(--primary);">
+              📚 ${gradeLevelText} ${course.course_type === 'master' ? '| 🎓 Master' : ''}
+            </div>
+            <div class="course-progress">
+              <div class="progress-text" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 8px;">${escapeHtml(course.description || "No description")}</div>
+            </div>
+            <div style="display: flex; gap: 8px; margin-top: 15px;">
+              <button onclick="viewCourse(${course.id})" style="flex: 1; background: #475569; color: white; border-radius: 6px; padding: 8px; border: none; cursor: pointer;">View</button>
+              ${course.course_type === 'master' 
+                ? `<button onclick="enrollInMasterCourse(${course.id})" data-enroll-course="${course.id}" style="flex: 1; background: var(--primary); color: white; border-radius: 6px; padding: 8px; border: none; cursor: pointer;">Enroll (${course.units_count || 'Multi'})</button>`
+                : `<button onclick="enrollInCourse(${course.id})" data-enroll-course="${course.id}" style="flex: 1; background: var(--primary); color: white; border-radius: 6px; padding: 8px; border: none; cursor: pointer;">Enroll</button>`
+              }
+              <button onclick="toggleCourseLike(${course.id}, this)" class="like-btn" data-course-id="${course.id}" data-liked="${isLiked}" style="flex: 1; border-radius: 6px; padding: 8px; border: none; cursor: pointer; background: ${isLiked ? 'var(--secondary)' : '#475569'}; color: white;">
+                ${likeButtonText}
+              </button>
+            </div>
+          </div>
         `;
             list.appendChild(li);
         });
@@ -2929,6 +2982,9 @@ function editCourse(courseId) {
             course.description || "";
         document.getElementById("course-video-url").value =
             course.video_url || "";
+
+        // Load course type (Master vs Single)
+        loadCourseTypeForEdit(courseId);
 
         // Split content into pages
         const rawContent = course.content || "";
@@ -3026,6 +3082,16 @@ function saveCourse(action = "draft") {
     const description = document.getElementById("course-description").value;
     const gradeLevel = document.getElementById("course-grade-level").value;
     const videoUrl = document.getElementById("course-video-url").value;
+    
+    // Get course type from radio buttons
+    const courseTypeRadios = document.getElementsByName("course_type");
+    let courseType = "single";
+    for (const radio of courseTypeRadios) {
+        if (radio.checked) {
+            courseType = radio.value;
+            break;
+        }
+    }
 
     // Save current page content before gathering all content
     saveCurrentPageContent();
@@ -3048,6 +3114,7 @@ function saveCourse(action = "draft") {
     console.log(`\n=== SAVE COURSE DEBUG ===`);
     console.log(`Action: ${action}`);
     console.log(`Status to save: ${status}`);
+    console.log(`Course Type: ${courseType}`);
     console.log(`Title: "${title}"`);
     console.log(`Description: "${description}"`);
     console.log(`Content HTML length: ${content.length}`);
@@ -3068,7 +3135,8 @@ function saveCourse(action = "draft") {
         blocks: JSON.stringify(courseBlocks), // Save the blocks array
         status: status,
         creation_time: courseTimer.totalSeconds,
-        video_url: videoUrl || null
+        video_url: videoUrl || null,
+        course_type: courseType
     };
 
     console.log(`Sending ${method} request to ${url}`);
@@ -3131,8 +3199,23 @@ async function viewCourse(courseId, assignmentId = null) {
         return;
     }
 
+    // Check if user is enrolled in this course
+    const isEnrolled = myCourses.some(c => c.id === courseId);
+    
+    if (isEnrolled) {
+        // Use enhanced navigation for enrolled courses (supports master courses)
+        return viewCourseWithNavigation(courseId);
+    }
+
+    // For non-enrolled users, use regular view
     // Load questions first so hydration works
     await loadCourseQuestions(courseId);
+
+    // Hide unit navigation sidebar, show regular sidebar
+    const unitSidebar = document.getElementById("unit-navigation-sidebar");
+    const regularSidebar = document.getElementById("viewer-regular-sidebar");
+    if (unitSidebar) unitSidebar.style.display = "none";
+    if (regularSidebar) regularSidebar.style.display = "block";
 
     document.getElementById("dashboard-section").style.display = "none";
     document.getElementById("course-editor-section").style.display = "none";
@@ -4041,9 +4124,957 @@ async function deleteQuizQuestion(questionId, btnElement = null) {
             lastDeletedQuestion = null; // Clear if delete failed
         }
     } catch (error) {
-        console.error('âŒ Error deleting question:', error);
+        console.error('❌ Error deleting question:', error);
         alert('Error deleting question: ' + error.message);
         lastDeletedQuestion = null; // Clear if error
+    }
+}
+
+// ===== COURSE NESTING SYSTEM FUNCTIONS =====
+
+// Setup course type toggle listeners
+function setupCourseTypeToggle() {
+    const courseTypeRadios = document.getElementsByName("course_type");
+    const manageUnitsBtn = document.getElementById("manage-units-btn");
+    
+    for (const radio of courseTypeRadios) {
+        radio.addEventListener("change", async (e) => {
+            const newType = e.target.value;
+            
+            if (!currentEditingCourseId) {
+                // New course - just show/hide manage units button
+                if (manageUnitsBtn) {
+                    manageUnitsBtn.style.display = newType === "master" ? "block" : "none";
+                }
+                return;
+            }
+            
+            // For existing courses, check current type
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/courses/${currentEditingCourseId}/type`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` },
+                    credentials: 'include'
+                });
+                const result = await response.json();
+                const currentType = result.data?.course_type || "single";
+                
+                if (currentType === newType) {
+                    if (manageUnitsBtn) {
+                        manageUnitsBtn.style.display = newType === "master" ? "block" : "none";
+                    }
+                    return;
+                }
+                
+                // Show confirmation modal if converting from master to single
+                if (currentType === "master" && newType === "single") {
+                    showCourseTypeConfirmModal(newType);
+                    // Reset radio to current type
+                    for (const r of courseTypeRadios) {
+                        r.checked = r.value === currentType;
+                    }
+                } else {
+                    // Convert directly
+                    await convertCourseType(currentEditingCourseId, newType);
+                    if (manageUnitsBtn) {
+                        manageUnitsBtn.style.display = newType === "master" ? "block" : "none";
+                    }
+                }
+            } catch (err) {
+                console.error("Error checking course type:", err);
+            }
+        });
+    }
+    
+    // Manage units button click
+    if (manageUnitsBtn) {
+        manageUnitsBtn.addEventListener("click", () => {
+            showUnitManagementPanel();
+        });
+    }
+}
+
+// Show confirmation modal for course type conversion
+function showCourseTypeConfirmModal(newType) {
+    const modal = document.getElementById("course-type-confirm-modal");
+    if (!modal) return;
+    
+    const warningText = document.getElementById("course-type-warning-text");
+    if (warningText) {
+        warningText.textContent = "Converting to Single Module will detach all existing units. Your units will become standalone courses again.";
+    }
+    
+    modal.style.display = "flex";
+    
+    // Setup modal buttons
+    const confirmBtn = document.getElementById("confirm-course-type-convert");
+    const cancelBtn = document.getElementById("cancel-course-type-convert");
+    const closeModal = document.getElementById("close-course-type-modal");
+    
+    const cleanup = () => {
+        modal.style.display = "none";
+    };
+    
+    if (confirmBtn) {
+        confirmBtn.onclick = async () => {
+            cleanup();
+            await convertCourseType(currentEditingCourseId, newType);
+            const manageUnitsBtn = document.getElementById("manage-units-btn");
+            if (manageUnitsBtn) manageUnitsBtn.style.display = "none";
+        };
+    }
+    
+    if (cancelBtn) cancelBtn.onclick = cleanup;
+    if (closeModal) closeModal.onclick = cleanup;
+    
+    // Close on outside click
+    modal.onclick = (e) => {
+        if (e.target === modal) cleanup();
+    };
+}
+
+// Convert course type
+async function convertCourseType(courseId, newType) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/courses/${courseId}/type`, {
+            method: "PUT",
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            credentials: 'include',
+            body: JSON.stringify({ course_type: newType })
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+            alert(`Course converted to ${newType === 'master' ? 'Master Course' : 'Single Module'}`);
+        } else {
+            alert("Error: " + result.message);
+        }
+    } catch (err) {
+        console.error("Error converting course type:", err);
+        alert("Error converting course type");
+    }
+}
+
+// Show unit management panel
+async function showUnitManagementPanel() {
+    const editorSection = document.getElementById("course-editor-section");
+    const unitSection = document.getElementById("unit-management-section");
+    const titleEl = document.getElementById("unit-management-title");
+    
+    if (editorSection) editorSection.style.display = "none";
+    if (unitSection) {
+        unitSection.style.display = "block";
+        if (titleEl && currentEditingCourseId) {
+            titleEl.textContent = `Manage Units - ${document.getElementById("course-title").value}`;
+        }
+    }
+    
+    // Load existing units
+    await loadCourseUnits();
+}
+
+// Load course units
+async function loadCourseUnits() {
+    if (!currentEditingCourseId) return;
+    
+    const unitsList = document.getElementById("units-list");
+    const noUnitsMsg = document.getElementById("no-units-message");
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/courses/${currentEditingCourseId}/units`, {
+            headers: { 'Authorization': `Bearer ${authToken}` },
+            credentials: 'include'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success && result.data && result.data.length > 0) {
+            renderUnitsList(result.data);
+            if (unitsList) unitsList.style.display = "flex";
+            if (noUnitsMsg) noUnitsMsg.style.display = "none";
+        } else {
+            if (unitsList) unitsList.style.display = "none";
+            if (noUnitsMsg) noUnitsMsg.style.display = "block";
+        }
+    } catch (err) {
+        console.error("Error loading units:", err);
+    }
+}
+
+// Render units list
+function renderUnitsList(units) {
+    const container = document.getElementById("units-list");
+    if (!container) return;
+    
+    container.innerHTML = units.map((unit, index) => `
+        <div class="unit-item" data-unit-id="${unit.id}" draggable="true" style="
+            display: flex; align-items: center; gap: 15px; padding: 15px; 
+            background: var(--bg-card); border: 1px solid var(--border); 
+            border-radius: 10px; cursor: grab;
+        ">
+            <span class="drag-handle" style="color: var(--text-muted); cursor: grab;">☰</span>
+            <span style="font-weight: bold; min-width: 30px;">${index + 1}</span>
+            <div style="flex: 1;">
+                <strong>${escapeHtml(unit.title || 'Untitled Unit')}</strong>
+                <p style="margin: 5px 0 0 0; font-size: 12px; color: var(--text-muted);">
+                    ${unit.is_draft ? '📝 Draft' : '✅ Published'}
+                    ${unit.prerequisite_title ? ` | Prerequisites: ${unit.prerequisite_title}` : ''}
+                </p>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button type="button" onclick="toggleUnitDraft(${unit.id}, ${!unit.is_draft})" 
+                    style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); background: transparent; cursor: pointer;">
+                    ${unit.is_draft ? '📤 Publish' : '📝 Draft'}
+                </button>
+                <button type="button" onclick="setUnitPrerequisite(${unit.id})" 
+                    style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); background: transparent; cursor: pointer;">
+                    🔗 Prereq
+                </button>
+                <button type="button" onclick="removeUnit(${unit.id})" 
+                    style="padding: 6px 12px; border-radius: 6px; border: none; background: var(--danger); color: white; cursor: pointer;">
+                    Remove
+                </button>
+            </div>
+        </div>
+    `).join('');
+    
+    // Add drag and drop
+    setupUnitDragDrop();
+}
+
+// Setup drag and drop for units
+function setupUnitDragDrop() {
+    const container = document.getElementById("units-list");
+    if (!container) return;
+    
+    let draggedItem = null;
+    
+    container.querySelectorAll(".unit-item").forEach(item => {
+        item.addEventListener("dragstart", (e) => {
+            draggedItem = item;
+            e.dataTransfer.effectAllowed = "move";
+        });
+        
+        item.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+        });
+        
+        item.addEventListener("drop", async (e) => {
+            e.preventDefault();
+            if (draggedItem && draggedItem !== item) {
+                await reorderUnits(draggedItem, item);
+            }
+        });
+        
+        item.addEventListener("dragend", () => {
+            draggedItem = null;
+        });
+    });
+}
+
+// Reorder units
+async function reorderUnits(draggedItem, targetItem) {
+    const units = [...document.querySelectorAll(".unit-item")];
+    const fromIndex = units.indexOf(draggedItem);
+    const toIndex = units.indexOf(targetItem);
+    
+    if (fromIndex === -1 || toIndex === -1) return;
+    
+    // Reorder in DOM
+    if (fromIndex < toIndex) {
+        targetItem.parentNode.insertBefore(draggedItem, targetItem.nextSibling);
+    } else {
+        targetItem.parentNode.insertBefore(draggedItem, targetItem);
+    }
+    
+    // Update order indices
+    const unitOrders = units.map((item, index) => ({
+        unitId: parseInt(item.dataset.unitId),
+        order_index: index
+    }));
+    
+    try {
+        await fetch(`${API_BASE_URL}/api/courses/${currentEditingCourseId}/units/reorder`, {
+            method: "PUT",
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            credentials: 'include',
+            body: JSON.stringify({ unit_orders: unitOrders })
+        });
+        
+        // Re-render with new indices
+        await loadCourseUnits();
+    } catch (err) {
+        console.error("Error reordering units:", err);
+    }
+}
+
+// Toggle unit draft status
+async function toggleUnitDraft(unitId, isDraft) {
+    try {
+        await fetch(`${API_BASE_URL}/api/courses/units/${unitId}`, {
+            method: "PUT",
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            credentials: 'include',
+            body: JSON.stringify({ is_draft: isDraft })
+        });
+        
+        await loadCourseUnits();
+    } catch (err) {
+        console.error("Error toggling unit draft:", err);
+    }
+}
+
+// Set unit prerequisite
+async function setUnitPrerequisite(unitId) {
+    const units = document.querySelectorAll(".unit-item");
+    const unitArray = [...units].map(item => ({
+        id: parseInt(item.dataset.unitId),
+        index: [...units].indexOf(item)
+    }));
+    
+    const currentIndex = unitArray.find(u => u.id === unitId)?.index;
+    if (currentIndex === 0) {
+        alert("The first unit cannot have a prerequisite.");
+        return;
+    }
+    
+    const availableUnits = unitArray.filter(u => u.index < currentIndex);
+    
+    if (availableUnits.length === 0) {
+        alert("No units available to set as prerequisite (must be before this unit).");
+        return;
+    }
+    
+    const prereqId = prompt(`Available prerequisites:\n${availableUnits.map((u, i) => `${i + 1}. Unit ${u.index + 1}`).join('\n')}\n\nEnter the number (or 0 to remove prerequisite):`);
+    
+    if (prereqId === null) return;
+    
+    const prereqIndex = parseInt(prereqId) - 1;
+    let prereqUnitId = null;
+    
+    if (prereqIndex >= 0 && prereqIndex < availableUnits.length) {
+        prereqUnitId = availableUnits[prereqIndex].id;
+    } else if (prereqIndex === -1) {
+        prereqUnitId = "null";
+    } else {
+        alert("Invalid selection");
+        return;
+    }
+    
+    try {
+        await fetch(`${API_BASE_URL}/api/courses/units/${unitId}`, {
+            method: "PUT",
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            credentials: 'include',
+            body: JSON.stringify({ prerequisite_unit_id: prereqUnitId })
+        });
+        
+        await loadCourseUnits();
+    } catch (err) {
+        console.error("Error setting prerequisite:", err);
+    }
+}
+
+// Remove unit from master course
+async function removeUnit(unitId) {
+    if (!confirm("Are you sure you want to remove this unit from the Master Course?")) return;
+    
+    try {
+        await fetch(`${API_BASE_URL}/api/courses/units/${unitId}`, {
+            method: "DELETE",
+            headers: { 'Authorization': `Bearer ${authToken}` },
+            credentials: 'include'
+        });
+        
+        await loadCourseUnits();
+    } catch (err) {
+        console.error("Error removing unit:", err);
+    }
+}
+
+// Show unit selection modal
+async function showUnitSelectionModal() {
+    const modal = document.getElementById("unit-selection-modal");
+    if (!modal) return;
+    
+    modal.style.display = "flex";
+    
+    // Load available courses
+    await loadAvailableCoursesForUnits();
+    
+    // Setup close handlers
+    const closeBtn = document.getElementById("close-unit-selection-modal");
+    const cancelBtn = document.getElementById("cancel-unit-selection");
+    
+    const cleanup = () => { modal.style.display = "none"; };
+    
+    if (closeBtn) closeBtn.onclick = cleanup;
+    if (cancelBtn) cancelBtn.onclick = cleanup;
+    
+    modal.onclick = (e) => {
+        if (e.target === modal) cleanup();
+    };
+    
+    // Setup search
+    const searchInput = document.getElementById("unit-search-input");
+    if (searchInput) {
+        searchInput.oninput = () => filterAvailableUnits(searchInput.value);
+    }
+}
+
+// Load available courses for adding as units
+async function loadAvailableCoursesForUnits() {
+    const container = document.getElementById("unit-selection-list");
+    if (!container) return;
+    
+    container.innerHTML = '<p style="text-align: center; color: var(--text-muted);">Loading courses...</p>';
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/courses/available-for-units?exclude_parent=${currentEditingCourseId || 0}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` },
+            credentials: 'include'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+            window._availableCoursesForUnits = result.data;
+            renderAvailableUnits(result.data);
+        } else {
+            container.innerHTML = '<p style="text-align: center; color: var(--text-muted);">No courses available</p>';
+        }
+    } catch (err) {
+        console.error("Error loading available courses:", err);
+        container.innerHTML = '<p style="text-align: center; color: var(--danger);">Error loading courses</p>';
+    }
+}
+
+// Render available units
+function renderAvailableUnits(courses) {
+    const container = document.getElementById("unit-selection-list");
+    if (!container) return;
+    
+    if (!courses || courses.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: var(--text-muted);">No courses found</p>';
+        return;
+    }
+    
+    container.innerHTML = courses.map(course => `
+        <div class="unit-option" data-course-id="${course.id}" style="
+            padding: 15px; border: 1px solid var(--border); border-radius: 8px; 
+            cursor: pointer; transition: all 0.2s;
+        " onmouseover="this.style.borderColor='var(--primary)'; this.style.background='rgba(102,126,234,0.05)';" 
+           onmouseout="this.style.borderColor='var(--border)'; this.style.background='transparent';">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <strong>${escapeHtml(course.title)}</strong>
+                <span style="font-size: 12px; color: ${course.status === 'approved' ? 'var(--success)' : 'var(--warning)'};">
+                    ${course.status === 'approved' ? '✅ Published' : '📝 Draft'}
+                </span>
+            </div>
+            <p style="margin: 5px 0 0 0; font-size: 12px; color: var(--text-muted);">
+                ${escapeHtml(course.description || 'No description')} | By ${escapeHtml(course.creator_email)}
+            </p>
+        </div>
+    `).join('');
+    
+    // Add click handlers
+    container.querySelectorAll(".unit-option").forEach(option => {
+        option.onclick = () => {
+            const courseId = parseInt(option.dataset.courseId);
+            addUnitToCourse(courseId);
+        };
+    });
+}
+
+// Filter available units
+function filterAvailableUnits(query) {
+    const filtered = window._availableCoursesForUnits?.filter(c => 
+        c.title.toLowerCase().includes(query.toLowerCase()) ||
+        c.description?.toLowerCase().includes(query.toLowerCase())
+    ) || [];
+    renderAvailableUnits(filtered);
+}
+
+// Add unit to course
+async function addUnitToCourse(childCourseId) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/courses/${currentEditingCourseId}/units`, {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            credentials: 'include',
+            body: JSON.stringify({ child_course_id: childCourseId })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Close modal
+            const modal = document.getElementById("unit-selection-modal");
+            if (modal) modal.style.display = "none";
+            
+            // Reload units
+            await loadCourseUnits();
+        } else {
+            alert("Error: " + result.message);
+        }
+    } catch (err) {
+        console.error("Error adding unit:", err);
+        alert("Error adding unit");
+    }
+}
+
+// Back to course editor from unit management
+function backToCourseEditor() {
+    const editorSection = document.getElementById("course-editor-section");
+    const unitSection = document.getElementById("unit-management-section");
+    
+    if (unitSection) unitSection.style.display = "none";
+    if (editorSection) editorSection.style.display = "flex";
+}
+
+// Load course type for editing
+async function loadCourseTypeForEdit(courseId) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/courses/${courseId}/type`, {
+            headers: { 'Authorization': `Bearer ${authToken}` },
+            credentials: 'include'
+        });
+        
+        const result = await response.json();
+        const courseType = result.data?.course_type || "single";
+        
+        // Update radio buttons
+        const courseTypeRadios = document.getElementsByName("course_type");
+        for (const radio of courseTypeRadios) {
+            radio.checked = radio.value === courseType;
+        }
+        
+        // Show/hide manage units button
+        const manageUnitsBtn = document.getElementById("manage-units-btn");
+        if (manageUnitsBtn) {
+            manageUnitsBtn.style.display = courseType === "master" ? "block" : "none";
+        }
+    } catch (err) {
+        console.error("Error loading course type:", err);
+    }
+}
+
+// ===== ENROLLMENT STATUS & DASHBOARD FUNCTIONS =====
+
+// Enhanced enrollment with immediate dashboard update
+async function enrollInCourse(courseId) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/courses/${courseId}/enroll`, {
+            method: "POST",
+            headers: { 'Authorization': `Bearer ${authToken}` },
+            credentials: 'include'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // IMMEDIATE STATE UPDATE - add to myCourses immediately
+            const course = availableCourses.find(c => c.id === courseId);
+            if (course) {
+                const enrollmentRecord = {
+                    id: course.id,
+                    title: course.title,
+                    description: course.description,
+                    creator_id: course.creator_id,
+                    enrolled_at: new Date().toISOString(),
+                    enrollment_status: 'enrolled',
+                    course_type: course.course_type
+                };
+                
+                // Add to myCourses array
+                myCourses.push(enrollmentRecord);
+                
+                // Re-render dashboard immediately
+                renderUserCourses();
+                
+                // Show success and update button
+                alert("✅ Successfully enrolled! Course added to your dashboard.");
+                
+                // Update button to show enrolled
+                updateEnrollButton(courseId, 'enrolled');
+            }
+        } else {
+            alert("Error: " + result.message);
+        }
+    } catch (err) {
+        console.error("Error enrolling:", err);
+        alert("Error enrolling in course");
+    }
+}
+
+// Enroll in master course
+async function enrollInMasterCourse(courseId) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/courses/${courseId}/enroll-master`, {
+            method: "POST",
+            headers: { 'Authorization': `Bearer ${authToken}` },
+            credentials: 'include'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // IMMEDIATE STATE UPDATE
+            const course = availableCourses.find(c => c.id === courseId);
+            if (course) {
+                const enrollmentRecord = {
+                    id: course.id,
+                    title: course.title,
+                    description: course.description,
+                    creator_id: course.creator_id,
+                    enrolled_at: new Date().toISOString(),
+                    enrollment_status: 'enrolled',
+                    course_type: 'master',
+                    total_units: result.data?.units_enrolled || 0,
+                    completed_units: 0
+                };
+                
+                myCourses.push(enrollmentRecord);
+                renderUserCourses();
+                
+                alert(`✅ Enrolled in Master Course! You now have access to ${result.data?.units_enrolled || 0} units.`);
+                updateEnrollButton(courseId, 'enrolled');
+                
+                // Navigate to course
+                viewCourse(courseId);
+            }
+        } else {
+            alert("Error: " + result.message);
+        }
+    } catch (err) {
+        console.error("Error enrolling in master course:", err);
+        alert("Error enrolling in course");
+    }
+}
+
+// Update enroll button state
+function updateEnrollButton(courseId, status) {
+    const btn = document.querySelector(`[data-enroll-course="${courseId}"]`);
+    if (btn) {
+        if (status === 'enrolled') {
+            btn.textContent = "✅ Enrolled";
+            btn.disabled = true;
+            btn.style.background = "var(--success)";
+        }
+    }
+}
+
+// Load enhanced enrollments with status
+async function loadEnhancedEnrollments() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/users/enrollments/enhanced`, {
+            headers: { 'Authorization': `Bearer ${authToken}` },
+            credentials: 'include'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            return result.data;
+        }
+    } catch (err) {
+        console.error("Error loading enhanced enrollments:", err);
+    }
+    return [];
+}
+
+// ===== COURSE PLAYER NAVIGATION =====
+
+// Current unit navigation state
+let currentMasterCourse = null;
+let courseUnits = [];
+let currentUnitIndex = 0;
+
+// View course with unit navigation
+async function viewCourseWithNavigation(courseId) {
+    try {
+        // Get course type
+        const typeResponse = await fetch(`${API_BASE_URL}/api/courses/${courseId}/type`, {
+            headers: { 'Authorization': `Bearer ${authToken}` },
+            credentials: 'include'
+        });
+        const typeResult = await typeResponse.json();
+        const courseType = typeResult.data?.course_type || 'single';
+        
+        if (courseType === 'master') {
+            // Load master course with unit navigation
+            await loadMasterCourseView(courseId);
+        } else {
+            // Regular single course - use existing viewCourse
+            viewCourse(courseId);
+        }
+    } catch (err) {
+        console.error("Error checking course type for view:", err);
+        viewCourse(courseId); // Fallback to regular view
+    }
+}
+
+// Load master course with unit navigation
+async function loadMasterCourseView(courseId) {
+    try {
+        // Load course data
+        const courseResponse = await fetch(`${API_BASE_URL}/api/courses/${courseId}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` },
+            credentials: 'include'
+        });
+        const courseResult = await courseResponse.json();
+        
+        if (!courseResult.success) {
+            alert("Course not found");
+            return;
+        }
+        
+        const course = courseResult.data;
+        currentMasterCourse = course;
+        
+        // Load units and progress
+        const progressResponse = await fetch(`${API_BASE_URL}/api/users/enrollments/${courseId}/progress`, {
+            headers: { 'Authorization': `Bearer ${authToken}` },
+            credentials: 'include'
+        });
+        const progressResult = await progressResponse.json();
+        
+        if (progressResult.success) {
+            courseUnits = progressResult.data?.units || [];
+            
+            // Show unit navigation sidebar
+            showUnitNavigationSidebar(course, progressResult.data);
+            
+            // Find first accessible unit
+            currentUnitIndex = courseUnits.findIndex(u => u.is_unlocked) || 0;
+            
+            if (currentUnitIndex >= 0 && courseUnits[currentUnitIndex]) {
+                await loadUnitContent(courseUnits[currentUnitIndex]);
+            } else {
+                // No units available
+                document.getElementById("course-viewer-content").innerHTML = 
+                    '<p style="text-align: center; padding: 40px;">No units available yet.</p>';
+            }
+        }
+        
+        // Show the viewer section
+        showSection("course-viewer-section");
+        
+    } catch (err) {
+        console.error("Error loading master course:", err);
+        viewCourse(courseId); // Fallback
+    }
+}
+
+// Show unit navigation sidebar
+function showUnitNavigationSidebar(course, progressData) {
+    const unitSidebar = document.getElementById("unit-navigation-sidebar");
+    const regularSidebar = document.getElementById("viewer-regular-sidebar");
+    
+    if (unitSidebar) unitSidebar.style.display = "block";
+    if (regularSidebar) regularSidebar.style.display = "none";
+    
+    // Update progress
+    const progressPercent = document.getElementById("unit-progress-percent");
+    const progressBar = document.getElementById("unit-progress-bar");
+    const progressText = document.getElementById("unit-progress-text");
+    
+    if (progressPercent) progressPercent.textContent = `${progressData?.overall_progress || 0}%`;
+    if (progressBar) progressBar.style.width = `${progressData?.overall_progress || 0}%`;
+    if (progressText) progressText.textContent = `${progressData?.completed_units || 0} of ${progressData?.total_units || 0} completed`;
+    
+    // Update course title
+    const titleEl = document.getElementById("course-viewer-title");
+    if (titleEl) {
+        titleEl.textContent = course.title;
+    }
+    
+    const descEl = document.getElementById("course-viewer-description");
+    if (descEl) {
+        descEl.textContent = course.description || '';
+    }
+    
+    // Render unit list
+    const unitList = document.getElementById("unit-list-container");
+    if (unitList && courseUnits.length > 0) {
+        unitList.innerHTML = courseUnits.map((unit, index) => `
+            <div class="unit-nav-item ${index === currentUnitIndex ? 'active' : ''} ${!unit.is_unlocked ? 'locked' : ''}" 
+                onclick="${unit.is_unlocked ? `loadUnitByIndex(${index})` : ''}"
+                style="
+                    padding: 12px; border-radius: 8px; cursor: ${unit.is_unlocked ? 'pointer' : 'not-allowed'};
+                    background: ${index === currentUnitIndex ? 'rgba(102,126,234,0.15)' : 'var(--bg-card)'};
+                    border: 1px solid ${index === currentUnitIndex ? 'var(--primary)' : 'var(--border)'};
+                    opacity: ${unit.is_unlocked ? 1 : 0.5};
+                    display: flex; align-items: center; gap: 10px;
+                ">
+                <span style="
+                    width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+                    background: ${unit.completed ? 'var(--success)' : unit.is_unlocked ? 'var(--primary)' : 'var(--text-muted)'};
+                    color: white; font-size: 12px; font-weight: bold;
+                ">
+                    ${unit.completed ? '✓' : (!unit.is_unlocked ? '🔒' : index + 1)}
+                </span>
+                <div style="flex: 1;">
+                    <strong style="font-size: 13px;">${escapeHtml(unit.unit_title || 'Unit ' + (index + 1))}</strong>
+                    ${unit.progress_percentage > 0 ? `<p style="margin: 3px 0 0 0; font-size: 11px; color: var(--text-muted);">${Math.round(unit.progress_percentage)}% complete</p>` : ''}
+                </div>
+            </div>
+        `).join('');
+    }
+}
+
+// Load unit by index
+async function loadUnitByIndex(index) {
+    if (index < 0 || index >= courseUnits.length) return;
+    
+    currentUnitIndex = index;
+    await loadUnitContent(courseUnits[index]);
+    
+    // Update sidebar highlighting
+    showUnitNavigationSidebar(currentMasterCourse, { 
+        overall_progress: Math.round((courseUnits.filter(u => u.completed).length / courseUnits.length) * 100),
+        completed_units: courseUnits.filter(u => u.completed).length,
+        total_units: courseUnits.length
+    });
+}
+
+// Load specific unit content
+async function loadUnitContent(unit) {
+    if (!unit || !unit.child_course_id) return;
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/courses/${unit.child_course_id}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` },
+            credentials: 'include'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            const unitCourse = result.data;
+            
+            // Display content
+            const contentEl = document.getElementById("course-viewer-content");
+            if (contentEl) {
+                contentEl.innerHTML = unitCourse.content || '<p>No content available.</p>';
+                
+                // Hydrate quizzes
+                await hydrateQuizPlaceholders();
+                
+                // Setup interactive elements
+                setupViewerInteractions();
+            }
+            
+            // Update navigation buttons
+            updateViewerNavigation();
+        }
+    } catch (err) {
+        console.error("Error loading unit content:", err);
+    }
+}
+
+// Update viewer navigation buttons
+function updateViewerNavigation() {
+    const prevBtn = document.getElementById("viewer-prev-btn");
+    const nextBtn = document.getElementById("viewer-next-btn");
+    
+    if (prevBtn) {
+        prevBtn.disabled = currentUnitIndex <= 0;
+        prevBtn.onclick = () => loadUnitByIndex(currentUnitIndex - 1);
+    }
+    
+    if (nextBtn) {
+        const hasNext = currentUnitIndex < courseUnits.length - 1;
+        if (hasNext) {
+            nextBtn.textContent = "Next Unit →";
+            nextBtn.disabled = !courseUnits[currentUnitIndex]?.is_unlocked || !courseUnits[currentUnitIndex]?.completed;
+            nextBtn.onclick = () => loadUnitByIndex(currentUnitIndex + 1);
+        } else {
+            nextBtn.textContent = "Complete Course";
+            nextBtn.disabled = false;
+            nextBtn.onclick = () => completeCurrentUnit();
+        }
+    }
+}
+
+// Complete current unit
+async function completeCurrentUnit() {
+    if (!courseUnits[currentUnitIndex]) return;
+    
+    const unit = courseUnits[currentUnitIndex];
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/courses/units/${unit.unit_id}/complete`, {
+            method: "POST",
+            headers: { 'Authorization': `Bearer ${authToken}` },
+            credentials: 'include'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Update local state
+            courseUnits[currentUnitIndex].completed = true;
+            
+            if (result.data?.all_units_complete) {
+                alert("🎉 Congratulations! You've completed the Master Course!");
+            } else {
+                // Load next unit
+                const nextIndex = currentUnitIndex + 1;
+                if (nextIndex < courseUnits.length) {
+                    loadUnitByIndex(nextIndex);
+                }
+            }
+            
+            // Refresh progress
+            const courseId = currentMasterCourse?.id;
+            if (courseId) {
+                const progressResponse = await fetch(`${API_BASE_URL}/api/users/enrollments/${courseId}/progress`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` },
+                    credentials: 'include'
+                });
+                const progressResult = await progressResponse.json();
+                
+                if (progressResult.success) {
+                    courseUnits = progressResult.data?.units || [];
+                    showUnitNavigationSidebar(currentMasterCourse, progressResult.data);
+                }
+            }
+        }
+    } catch (err) {
+        console.error("Error completing unit:", err);
+    }
+}
+
+// Update unit progress (for partial progress tracking)
+async function updateUnitProgress(unitId, percentage) {
+    try {
+        await fetch(`${API_BASE_URL}/api/courses/units/${unitId}/progress`, {
+            method: "PUT",
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            credentials: 'include',
+            body: JSON.stringify({ progress_percentage: percentage })
+        });
+    } catch (err) {
+        console.error("Error updating unit progress:", err);
     }
 }
 

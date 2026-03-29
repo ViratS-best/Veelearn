@@ -435,6 +435,25 @@
             intro/walkthrough.</p>
           <input type="url" id="course-video-url" placeholder="e.g. https://www.youtube.com/watch?v=..." />
 
+          <h3 style="margin-top: 20px;">Course Structure</h3>
+          <div class="course-type-toggle" style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+              <input type="radio" name="course_type" value="single" checked />
+              <span>Single Module</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+              <input type="radio" name="course_type" value="master" />
+              <span>Master Course</span>
+            </label>
+          </div>
+          <p class="info-text" style="font-size: 11px; color: var(--text-muted);">
+            Master Courses can contain multiple units.
+          </p>
+          <button type="button" id="manage-units-btn" class="secondary-btn" 
+            style="display: none; width: 100%; margin-top: 10px; padding: 10px;">
+            📚 Manage Units
+          </button>
+
           <div id="course-timer-display"
             style="display: flex; align-items: center; gap: 10px; padding: 12px; background: rgba(102, 126, 234, 0.15); border-radius: 8px; margin-top: 20px; font-family: monospace;">
             <span style="color: var(--text-muted); font-weight: bold; font-size: 11px; text-transform: uppercase;">⏱️
@@ -513,6 +532,33 @@
       </form>
     </section>
 
+    <!-- UNIT MANAGEMENT PANEL -->
+    <section id="unit-management-section" style="display: none; padding: 40px 20px;">
+      <div style="max-width: 900px; margin: 0 auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+          <div>
+            <button type="button" id="back-to-course-editor" class="secondary-btn" style="margin-bottom: 15px;">
+              ← Back to Course Editor
+            </button>
+            <h2 id="unit-management-title" style="margin: 0;">Manage Units</h2>
+            <p style="color: var(--text-muted); margin: 5px 0 0 0;">Add and organize units in your Master Course</p>
+          </div>
+          <button type="button" id="add-unit-btn" class="btn-publish" style="padding: 12px 24px;">
+            + Add Unit
+          </button>
+        </div>
+
+        <div id="units-list" style="display: flex; flex-direction: column; gap: 15px;">
+          <!-- Units will be rendered here -->
+        </div>
+
+        <div id="no-units-message" style="text-align: center; padding: 60px 20px; color: var(--text-muted); display: none;">
+          <p style="font-size: 18px;">No units added yet</p>
+          <p>Click "Add Unit" to start building your Master Course</p>
+        </div>
+      </div>
+    </section>
+
     <!-- COURSE VIEWER -->
     <section id="course-viewer-section" style="display: none; padding: 40px 0;">
       <div class="viewer-layout">
@@ -545,8 +591,26 @@
           </div>
         </div>
 
-        <!-- SIDEBAR -->
-        <div class="related-courses">
+        <!-- UNIT NAVIGATION SIDEBAR (for Master Courses) -->
+        <div id="unit-navigation-sidebar" class="related-courses" style="display: none;">
+          <h3>📚 Units</h3>
+          <div id="unit-progress-overview" style="margin-bottom: 20px; padding: 15px; background: var(--bg-card); border-radius: 10px; border: 1px solid var(--border);">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+              <span style="color: var(--text-muted);">Progress</span>
+              <span id="unit-progress-percent" style="font-weight: bold; color: var(--primary);">0%</span>
+            </div>
+            <div style="background: var(--bg-dark); border-radius: 5px; height: 8px; overflow: hidden;">
+              <div id="unit-progress-bar" style="background: var(--primary); height: 100%; width: 0%; transition: width 0.3s;"></div>
+            </div>
+            <p id="unit-progress-text" style="margin: 8px 0 0 0; font-size: 12px; color: var(--text-muted);">0 of 0 completed</p>
+          </div>
+          <div id="unit-list-container" style="display: flex; flex-direction: column; gap: 8px;">
+            <!-- Unit items will be rendered here -->
+          </div>
+        </div>
+
+        <!-- REGULAR SIDEBAR -->
+        <div id="viewer-regular-sidebar" class="related-courses">
           <h3>✨ Course Video</h3>
           <div id="viewer-video-container" style="display: none; margin-bottom: 20px;">
             <div
@@ -688,6 +752,42 @@
 
       <div class="modal-actions" style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
         <button type="button" id="cancel-phet-modal">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Unit Selection Modal -->
+  <div id="unit-selection-modal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 700px; max-height: 80vh; display: flex; flex-direction: column;">
+      <span class="close-modal" id="close-unit-selection-modal" style="cursor: pointer;">&times;</span>
+      <h2>Add Unit to Master Course</h2>
+      <p style="color: var(--text-muted); margin-bottom: 20px;">Select a course to add as a unit</p>
+      
+      <div style="margin-bottom: 15px;">
+        <input type="text" id="unit-search-input" placeholder="Search courses..." 
+          style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px;" />
+      </div>
+
+      <div id="unit-selection-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; max-height: 400px;">
+        <!-- Course options will be rendered here -->
+      </div>
+
+      <div class="modal-actions" style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
+        <button type="button" id="cancel-unit-selection">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation Modal for Type Conversion -->
+  <div id="course-type-confirm-modal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 450px;">
+      <span class="close-modal" id="close-course-type-modal" style="cursor: pointer;">&times;</span>
+      <h2 style="color: var(--warning);">⚠️ Warning</h2>
+      <p id="course-type-warning-text">Converting to Single Module will detach all existing units.</p>
+      <p style="color: var(--text-muted); font-size: 14px;">Your units will become standalone courses again, but student progress will be preserved.</p>
+      <div class="modal-actions" style="margin-top: 20px; gap: 10px;">
+        <button type="button" id="confirm-course-type-convert" class="btn-publish">Yes, Convert</button>
+        <button type="button" id="cancel-course-type-convert" class="secondary-btn">Cancel</button>
       </div>
     </div>
   </div>
