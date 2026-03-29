@@ -55,8 +55,9 @@ Pop-Location
 Write-Host "Preparing build output..." -ForegroundColor Cyan
 if (Test-Path $outputDir) {
     Remove-Item -Path "$outputDir/*" -Recurse -Force
+} else {
+    New-Item -ItemType Directory -Path $outputDir | Out-Null
 }
-New-Item -ItemType Directory -Path $outputDir | Out-Null
 
 # Copy the built React files
 Write-Host "Copying React build..." -ForegroundColor Cyan
