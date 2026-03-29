@@ -51,50 +51,39 @@ if ($LASTEXITCODE -ne 0) {
 }
 Pop-Location
 
-# Step 3: Ensure output directory exists and copy built files
+# Step 3: Clean and prepare output directory
 Write-Host "Preparing build output..." -ForegroundColor Cyan
 if (Test-Path $outputDir) {
     Remove-Item -Path "$outputDir/*" -Recurse -Force
-} else {
-    New-Item -ItemType Directory -Path $outputDir | Out-Null
 }
+New-Item -ItemType Directory -Path $outputDir | Out-Null
 
-# Copy the built files from React dist to docs
+# Copy the built React files
+Write-Host "Copying React build..." -ForegroundColor Cyan
 Copy-Item -Path "$reactDir/dist/*" -Destination $outputDir -Recurse
 
-# Also copy the simulator files from the old frontend
+# Only copy the simulator JS files (not HTML - React handles those now)
+Write-Host "Copying simulator libraries..." -ForegroundColor Cyan
+$simulatorJsFiles = @(
+    "block-templates-unified.js",
+    "block-physics-engine.js",
+    "block-renderer-system.js",
+    "block-animation.js",
+    "block-execution-engine.js"
+)
+
 $oldFrontend = "veelearn-frontend"
-if (Test-Path $oldFrontend) {
-    Write-Host "Copying simulator files..." -ForegroundColor Cyan
-    
-    # Copy HTML files that need to be available
-    $simulatorFiles = @(
-        "block-simulator.html",
-        "visual-simulator.html",
-        "simulator-marketplace.html",
-        "simulator-view.html",
-        "simulator-execute.html"
-    )
-    
-    foreach ($file in $simulatorFiles) {
-        $src = Join-Path $oldFrontend $file
-        if (Test-Path $src) {
-            Copy-Item -Path $src -Destination $outputDir -Force
-            Write-Host "  Copied $file" -ForegroundColor Green
-        }
+foreach ($file in $simulatorJsFiles) {
+    $src = Join-Path $oldFrontend $file
+    if (Test-Path $src) {
+        Copy-Item -Path $src -Destination $outputDir -Force
+        Write-Host "  Copied $file" -ForegroundColor Green
     }
-    
-    # Copy JS files needed for simulators
-    $jsFiles = Get-ChildItem -Path $oldFrontend -Filter "*.js"
-    foreach ($file in $jsFiles) {
-        Copy-Item -Path $file.FullName -Destination $outputDir -Force
-    }
-    
-    # Copy CSS
-    $cssFiles = Get-ChildItem -Path $oldFrontend -Filter "*.css"
-    foreach ($file in $cssFiles) {
-        Copy-Item -Path $file.FullName -Destination $outputDir -Force
-    }
+}
+
+# Copy simulators folder from React build
+if (Test-Path "$reactDir/dist/simulators") {
+    Copy-Item -Path "$reactDir/dist/simulators" -Destination $outputDir -Recurse -Force
 }
 
 # Write the Custom Domain CNAME file
@@ -105,10 +94,7 @@ Write-Host "Set up CNAME 'veelearn.org'..." -ForegroundColor Green
 # Step 4: Commit and push
 Write-Host "Deploying to GitHub Pages..." -ForegroundColor Cyan
 try {
-    # Add all changes
     git add $outputDir
-    
-    # Check if there are changes to commit
     $gitStatus = git status --porcelain $outputDir
     if ($gitStatus) {
         Write-Host "Committing changes..." -ForegroundColor Yellow
@@ -117,7 +103,6 @@ try {
         Write-Host "No changes to deploy." -ForegroundColor Yellow
     }
     
-    # Push to gh-pages
     $tree_hash = git rev-parse "HEAD:$outputDir"
     $commit_hash = git commit-tree $tree_hash -m "Auto-deploy Veelearn to GitHub pages"
     
@@ -130,7 +115,7 @@ try {
         Write-Host "  Success! Frontend has been published." -ForegroundColor Green
         Write-Host "=========================================" -ForegroundColor Green
         Write-Host ""
-        Write-Host "GitHub Pages will deploy https://veelearn.org/ in ~1-2 minutes." -ForegroundColor Yellow
+        Write-Host "GitHub Pages will deploy in ~1-2 minutes." -ForegroundColor Yellow
     }
     else {
         Write-Error "Failed to push to GitHub Pages."

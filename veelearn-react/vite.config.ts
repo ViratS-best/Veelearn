@@ -13,9 +13,12 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src'),
     },
   },
-  base: '/Veelearn/',
+  // Use relative paths for assets - works both locally and on GitHub Pages
+  base: './',
   build: {
     outDir: 'dist',
     sourcemap: false,
+    assetsDir: 'assets',
   },
+  publicDir: 'public',
 })
