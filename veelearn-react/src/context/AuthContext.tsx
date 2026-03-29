@@ -1,12 +1,18 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 
-// API Base URL - supports both local and GitHub Pages
+// API Base URL - supports both local, GitHub Pages, and Custom Domain
 const getApiBaseUrl = () => {
-  const path = window.location.pathname
-  if (path.includes('github.io')) {
-    return 'https://veelearn-backend.onrender.com'
+  const hostname = window.location.hostname;
+  if (hostname.includes('veelearn.org')) {
+    return 'https://api.veelearn.org';
   }
-  return window.location.origin
+  if (hostname.includes('github.io') || hostname.includes('onrender.com')) {
+    return 'https://veelearn-backend.onrender.com';
+  }
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:3000';
+  }
+  return window.location.origin;
 }
 
 export const API_BASE_URL = getApiBaseUrl()
