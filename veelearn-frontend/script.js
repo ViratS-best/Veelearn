@@ -35,6 +35,11 @@ let pendingCourses = [];
 let currentEditingQuestionId = null;
 let lastDeletedQuestion = null; // Store last deleted question for undo
 let savedSelection = null; // Save cursor position when editor loses focus
+const COURSE_LIST_PAGE_SIZE = 12;
+let myCoursesCurrentPage = 1;
+let availableCoursesCurrentPage = 1;
+let myCoursesCurrentSearch = "";
+let availableCoursesCurrentSearch = "";
 
 // (Old timer variables removed — courseTimer object at bottom of file handles everything)
 
@@ -2734,6 +2739,7 @@ function loadUserCourses() {
             myCourses = allCoursesFromServer.filter(
                 (c) => c.creator_id === currentUser.id
             );
+            myCourses = sortCoursesForDisplay(myCourses);
             
             // Merge enrollment status into courses (for courses user is enrolled in)
             const enrolledCourseIds = new Set(enrollmentData?.map(e => e.id) || []);
@@ -2752,7 +2758,9 @@ function loadUserCourses() {
             // Clear search box
             const myCoursesSearch = document.getElementById('myCoursesSearch');
             if (myCoursesSearch) myCoursesSearch.value = '';
-            renderUserCourses();
+            myCoursesCurrentSearch = '';
+            myCoursesCurrentPage = 1;
+            renderUserCourses('');
 
             // If teacher, populate assignment dropdown (only if empty or fallback needed)
             if (currentUser.role === 'teacher' && myCourses.length > 0) {
@@ -2792,17 +2800,87 @@ function loadAvailableCourses() {
                 availableCourses = allCoursesFromServer.filter(
                     (c) => c.status === "approved" && c.creator_id !== currentUser.id
                 );
+                availableCourses = sortCoursesForDisplay(availableCourses);
                 console.log("Filtered available courses:", availableCourses.length);
                 // Clear search box
                 const availableCoursesSearch = document.getElementById('availableCoursesSearch');
                 if (availableCoursesSearch) availableCoursesSearch.value = '';
-                renderAvailableCourses();
+                availableCoursesCurrentSearch = '';
+                availableCoursesCurrentPage = 1;
+                renderAvailableCourses('');
             }
         })
         .catch((err) => console.error("Error loading available courses:", err));
 }
 
 
+
+function sortCoursesForDisplay(courses) {
+    return [...courses].sort((a, b) => (Number(b?.id) || 0) - (Number(a?.id) || 0));
+}
+
+function paginateItems(items, page, pageSize) {
+    const safeSize = Math.max(1, Number(pageSize) || 12);
+    const totalPages = Math.max(1, Math.ceil(items.length / safeSize));
+    const currentPage = Math.min(Math.max(1, Number(page) || 1), totalPages);
+    const start = (currentPage - 1) * safeSize;
+
+    return {
+        pageItems: items.slice(start, start + safeSize),
+        totalPages,
+        currentPage
+    };
+}
+
+function getOrCreatePaginationContainer(listElement) {
+    const containerId = `${listElement.id}-pagination`;
+    let container = document.getElementById(containerId);
+    if (!container) {
+        container = document.createElement('div');
+        container.id = containerId;
+        container.className = 'course-pagination';
+        listElement.insertAdjacentElement('afterend', container);
+    }
+    return container;
+}
+
+function renderCoursePagination(listElement, listType, totalItems, currentPage, pageSize) {
+    const container = getOrCreatePaginationContainer(listElement);
+    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+    if (totalItems <= pageSize) {
+        container.innerHTML = '';
+        container.style.display = 'none';
+        return;
+    }
+
+    const prevDisabled = currentPage <= 1 ? 'disabled' : '';
+    const nextDisabled = currentPage >= totalPages ? 'disabled' : '';
+
+    container.style.display = 'flex';
+    container.innerHTML = `
+      <div class="course-pagination-info">
+        Showing page ${currentPage} of ${totalPages} (${totalItems} courses)
+      </div>
+      <div class="course-pagination-buttons">
+        <button type="button" ${prevDisabled} onclick="changeCoursePage('${listType}', ${currentPage - 1})">← Prev</button>
+        <button type="button" ${nextDisabled} onclick="changeCoursePage('${listType}', ${currentPage + 1})">Next →</button>
+      </div>
+    `;
+}
+
+function changeCoursePage(listType, page) {
+    if (listType === 'my') {
+        myCoursesCurrentPage = page;
+        renderUserCourses(myCoursesCurrentSearch);
+        return;
+    }
+    if (listType === 'available') {
+        availableCoursesCurrentPage = page;
+        renderAvailableCourses(availableCoursesCurrentSearch);
+    }
+}
+window.changeCoursePage = changeCoursePage;
 
 function filterCourseList(courseArray, searchText) {
     if (!searchText || searchText.trim() === "") {
@@ -2826,27 +2904,34 @@ function renderUserCourses(searchText) {
         document.getElementById("my-courses-list-superadmin"),
     ];
 
-    // Filter courses based on search text
-    const filteredCourses = filterCourseList(myCourses, searchText);
+    const resolvedSearch = typeof searchText === "string" ? searchText : myCoursesCurrentSearch;
+    const normalizedSearch = resolvedSearch.trim();
+    if (normalizedSearch !== myCoursesCurrentSearch) {
+        myCoursesCurrentPage = 1;
+    }
+    myCoursesCurrentSearch = normalizedSearch;
+
+    const filteredCourses = filterCourseList(myCourses, normalizedSearch);
+    const pageData = paginateItems(filteredCourses, myCoursesCurrentPage, COURSE_LIST_PAGE_SIZE);
+    myCoursesCurrentPage = pageData.currentPage;
 
     lists.forEach((list) => {
         if (!list) return;
-
-        // INSTANT: Clear existing list to prevent duplicates
         list.innerHTML = "";
 
         if (myCourses.length === 0) {
             list.innerHTML = "<li><em>No courses yet</em></li>";
+            renderCoursePagination(list, "my", 0, 1, COURSE_LIST_PAGE_SIZE);
             return;
         }
 
         if (filteredCourses.length === 0) {
-            list.innerHTML = `<li><em>No courses found matching "${escapeHtml(searchText)}"</em></li>`;
+            list.innerHTML = `<li><em>No courses found matching "${escapeHtml(normalizedSearch)}"</em></li>`;
+            renderCoursePagination(list, "my", 0, 1, COURSE_LIST_PAGE_SIZE);
             return;
         }
 
-        // INSTANT: Build and append items one by one instead of replacing all
-        filteredCourses.forEach((course) => {
+        pageData.pageItems.forEach((course) => {
             const li = document.createElement("li");
             const timeStr = formatCreationTime(course.creation_time);
             const likeCount = course.like_count || 0;
@@ -2877,15 +2962,23 @@ function renderUserCourses(searchText) {
                 </div>
               ` : ''}
           </div>
-          <div style="display: flex; gap: 8px; margin-top: 15px;">
-              <button onclick="editCourse(${course.id})" style="flex: 1; background: var(--primary); color: white; border-radius: 6px; padding: 8px; border: none; cursor: pointer;">Edit</button>
-              <button onclick="viewCourse(${course.id})" style="flex: 1; background: #475569; color: white; border-radius: 6px; padding: 8px; border: none; cursor: pointer;">View</button>
-              <button onclick="deleteCourse(${course.id})" style="flex: 1; background: var(--danger); color: white; border-radius: 6px; padding: 8px; border: none; cursor: pointer;">Delete</button>
+          <div class="course-card-actions">
+              <button onclick="editCourse(${course.id})" class="course-action-btn course-action-primary">Edit</button>
+              <button onclick="viewCourse(${course.id})" class="course-action-btn course-action-secondary">View</button>
+              <button onclick="deleteCourse(${course.id})" class="course-action-btn course-action-danger">Delete</button>
           </div>
         </div>
       `;
             list.appendChild(li);
         });
+
+        renderCoursePagination(
+            list,
+            "my",
+            filteredCourses.length,
+            myCoursesCurrentPage,
+            COURSE_LIST_PAGE_SIZE
+        );
     });
 }
 
@@ -2896,8 +2989,16 @@ function renderAvailableCourses(searchText) {
         document.getElementById("available-courses-list-superadmin"),
     ];
 
-    // Filter courses based on search text
-    const filteredCourses = filterCourseList(availableCourses, searchText);
+    const resolvedSearch = typeof searchText === "string" ? searchText : availableCoursesCurrentSearch;
+    const normalizedSearch = resolvedSearch.trim();
+    if (normalizedSearch !== availableCoursesCurrentSearch) {
+        availableCoursesCurrentPage = 1;
+    }
+    availableCoursesCurrentSearch = normalizedSearch;
+
+    const filteredCourses = filterCourseList(availableCourses, normalizedSearch);
+    const pageData = paginateItems(filteredCourses, availableCoursesCurrentPage, COURSE_LIST_PAGE_SIZE);
+    availableCoursesCurrentPage = pageData.currentPage;
 
     lists.forEach((list) => {
         if (!list) return;
@@ -2907,16 +3008,18 @@ function renderAvailableCourses(searchText) {
 
         if (availableCourses.length === 0) {
             list.innerHTML = "<li><em>No available courses</em></li>";
+            renderCoursePagination(list, "available", 0, 1, COURSE_LIST_PAGE_SIZE);
             return;
         }
 
         if (filteredCourses.length === 0) {
-            list.innerHTML = `<li><em>No courses found matching "${escapeHtml(searchText)}"</em></li>`;
+            list.innerHTML = `<li><em>No courses found matching "${escapeHtml(normalizedSearch)}"</em></li>`;
+            renderCoursePagination(list, "available", 0, 1, COURSE_LIST_PAGE_SIZE);
             return;
         }
 
         // INSTANT: Build and append items one by one instead of replacing all
-        filteredCourses.forEach((course) => {
+        pageData.pageItems.forEach((course) => {
             const li = document.createElement("li");
             const isLiked = course.is_liked ? true : false;
             const likeCount = course.like_count || 0;
@@ -2937,13 +3040,13 @@ function renderAvailableCourses(searchText) {
             <div class="course-progress">
               <div class="progress-text" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 8px;">${escapeHtml(course.description || "No description")}</div>
             </div>
-            <div style="display: flex; gap: 8px; margin-top: 15px;">
-              <button onclick="viewCourse(${course.id})" style="flex: 1; background: #475569; color: white; border-radius: 6px; padding: 8px; border: none; cursor: pointer;">View</button>
+            <div class="course-card-actions">
+              <button onclick="viewCourse(${course.id})" class="course-action-btn course-action-secondary">View</button>
               ${course.course_type === 'master' 
-                ? `<button onclick="enrollInMasterCourse(${course.id})" data-enroll-course="${course.id}" style="flex: 1; background: var(--primary); color: white; border-radius: 6px; padding: 8px; border: none; cursor: pointer;">Enroll (${course.units_count || 'Multi'})</button>`
-                : `<button onclick="enrollInCourse(${course.id})" data-enroll-course="${course.id}" style="flex: 1; background: var(--primary); color: white; border-radius: 6px; padding: 8px; border: none; cursor: pointer;">Enroll</button>`
+                ? `<button onclick="enrollInMasterCourse(${course.id})" data-enroll-course="${course.id}" class="course-action-btn course-action-primary">Enroll (${course.units_count || 'Multi'})</button>`
+                : `<button onclick="enrollInCourse(${course.id})" data-enroll-course="${course.id}" class="course-action-btn course-action-primary">Enroll</button>`
               }
-              <button onclick="toggleCourseLike(${course.id}, this)" class="like-btn" data-course-id="${course.id}" data-liked="${isLiked}" style="flex: 1; border-radius: 6px; padding: 8px; border: none; cursor: pointer; background: ${isLiked ? 'var(--secondary)' : '#475569'}; color: white;">
+              <button onclick="toggleCourseLike(${course.id}, this)" class="course-action-btn like-btn ${isLiked ? 'course-action-like-active' : 'course-action-like'}" data-course-id="${course.id}" data-liked="${isLiked}">
                 ${likeButtonText}
               </button>
             </div>
@@ -2951,6 +3054,14 @@ function renderAvailableCourses(searchText) {
         `;
             list.appendChild(li);
         });
+
+        renderCoursePagination(
+            list,
+            "available",
+            filteredCourses.length,
+            availableCoursesCurrentPage,
+            COURSE_LIST_PAGE_SIZE
+        );
     });
 }
 
