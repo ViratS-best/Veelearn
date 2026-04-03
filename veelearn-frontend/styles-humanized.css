@@ -1,0 +1,297 @@
+/* VEELEARN Humanized Visual Layer */
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Nunito+Sans:wght@400;600;700&display=swap');
+
+:root {
+  --human-bg: #f4f7fb;
+  --human-surface: #ffffff;
+  --human-ink: #152234;
+  --human-muted: #56708f;
+  --human-primary: #1f7ae0;
+  --human-accent: #0ea56b;
+  --human-border: rgba(31, 68, 115, 0.14);
+  --human-shadow: 0 16px 34px rgba(19, 47, 83, 0.12);
+}
+
+body {
+  font-family: 'Nunito Sans', 'Segoe UI', Tahoma, sans-serif !important;
+  color: var(--human-ink);
+}
+
+h1, h2, h3, h4, h5, h6, .brand, header h1 {
+  font-family: 'Sora', 'Nunito Sans', sans-serif !important;
+  letter-spacing: -0.02em;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  width: 360px;
+  height: 360px;
+  right: -48px;
+  bottom: -48px;
+  background: url('assets/brand/veelearn-logo.png') center/cover no-repeat;
+  opacity: 0.06;
+  pointer-events: none;
+  z-index: 0;
+}
+
+main,
+.dashboard-container,
+.detail-container,
+.execute-container,
+main.container,
+.studio-main,
+.container,
+.sidebar,
+.main-content,
+.main-area,
+.workspace,
+.canvas-area,
+.info-panel,
+.controls-panel,
+.right-panel {
+  position: relative;
+  z-index: 1;
+}
+
+header,
+.studio-toolbar,
+.header,
+.header-bar,
+.dashboard-header,
+.detail-header,
+.toolbar {
+  box-shadow: 0 8px 24px rgba(6, 24, 44, 0.18);
+}
+
+section,
+.feature-card,
+.step,
+.action-card,
+.stat-box,
+.stat-card,
+.simulator-item,
+.course-card,
+.assignment-item,
+.class-card,
+.inspector-item,
+.preview-card,
+.panel,
+.info-panel,
+.controls-panel,
+.canvas-container {
+  border-radius: 16px !important;
+  border: 1px solid var(--human-border) !important;
+  box-shadow: var(--human-shadow) !important;
+  backdrop-filter: blur(2px);
+}
+
+button,
+.btn,
+.primary-btn,
+.secondary-btn,
+.action-btn,
+.create-btn,
+.control-button,
+.back-button,
+header nav a,
+header nav button {
+  border-radius: 12px !important;
+  font-weight: 700 !important;
+  transition: transform 0.16s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+button:hover,
+.btn:hover,
+.primary-btn:hover,
+.secondary-btn:hover,
+.action-btn:hover,
+.create-btn:hover,
+.control-button:hover,
+.back-button:hover,
+header nav a:hover,
+header nav button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 18px rgba(21, 53, 89, 0.18);
+}
+
+input,
+textarea,
+select {
+  border-radius: 10px !important;
+}
+
+/* Landing page image-led redesign */
+#landing-page {
+  background:
+    radial-gradient(1200px 600px at 18% 8%, rgba(43, 168, 108, 0.22), transparent 60%),
+    radial-gradient(900px 520px at 82% 92%, rgba(30, 122, 224, 0.24), transparent 58%),
+    linear-gradient(135deg, #0d1b2f 0%, #122640 46%, #0d1e34 100%) !important;
+  overflow: hidden;
+}
+
+#landing-page .hero {
+  position: relative;
+  width: min(1100px, 96%);
+  border-radius: 24px;
+  padding: clamp(22px, 4vw, 44px);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 24px 46px rgba(3, 10, 22, 0.44);
+}
+
+#landing-page .hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, rgba(11, 26, 47, 0.9) 5%, rgba(11, 26, 47, 0.62) 56%, rgba(11, 26, 47, 0.35) 100%),
+    url('assets/brand/stem-students-lab.jpg') center/cover no-repeat;
+  z-index: -2;
+}
+
+#landing-page .hero::after {
+  content: "";
+  position: absolute;
+  width: 210px;
+  height: 210px;
+  right: 14px;
+  bottom: 14px;
+  background: url('assets/brand/stem-wordmark.png') center/contain no-repeat;
+  opacity: 0.9;
+  filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.35));
+  z-index: -1;
+}
+
+#landing-page .hero h1 {
+  max-width: 18ch;
+  line-height: 1.15;
+  font-size: clamp(2rem, 4.8vw, 3.6rem) !important;
+  text-wrap: balance;
+}
+
+#landing-page .hero p {
+  max-width: 64ch;
+  color: #d9e7f7 !important;
+}
+
+#landing-page .features-grid,
+#landing-page .steps-grid {
+  width: min(1150px, 96%);
+}
+
+#landing-page .feature-card,
+#landing-page .step {
+  background: linear-gradient(160deg, rgba(252, 255, 255, 0.12), rgba(217, 231, 250, 0.06)) !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+}
+
+#landing-page .feature-card {
+  position: relative;
+  overflow: hidden;
+}
+
+#landing-page .feature-card:nth-child(1)::after {
+  content: "";
+  position: absolute;
+  width: 120px;
+  height: 60px;
+  right: 10px;
+  bottom: 10px;
+  background: url('assets/brand/stem-logo.png') center/contain no-repeat;
+  opacity: 0.24;
+  pointer-events: none;
+}
+
+#landing-page .how-it-works {
+  border-radius: 24px;
+  padding: clamp(18px, 3vw, 34px);
+  background:
+    linear-gradient(130deg, rgba(9, 23, 41, 0.88), rgba(10, 28, 49, 0.82)),
+    url('assets/brand/stem-workshop.png') center/cover no-repeat !important;
+  border: 1px solid rgba(225, 239, 255, 0.2);
+}
+
+/* Marketplace and simulator surfaces */
+body:has(.header-nav),
+body:has(.studio-toolbar),
+body:has(.header-bar),
+body:has(.header h1) {
+  background:
+    linear-gradient(165deg, #0f1f38 0%, #122644 44%, #1a3860 100%) !important;
+}
+
+.header,
+.header-bar,
+.dashboard-header,
+.detail-header,
+.studio-toolbar {
+  border: 1px solid rgba(185, 220, 255, 0.24);
+  background:
+    linear-gradient(132deg, rgba(26, 62, 111, 0.94), rgba(32, 123, 157, 0.88)),
+    url('assets/brand/stem-workshop.png') center/cover no-repeat !important;
+  color: #eef8ff !important;
+}
+
+.sidebar,
+.controls-panel,
+.info-panel,
+.right-panel,
+.editor-sidebar,
+.editor-main,
+.editor-inspector,
+.simulator-card,
+.simulator-item,
+.canvas-container {
+  background: linear-gradient(170deg, rgba(19, 40, 70, 0.96), rgba(14, 31, 56, 0.93)) !important;
+  color: #e6f1ff !important;
+}
+
+.canvas-area,
+.canvas-wrap,
+.workspace-container,
+.workspace {
+  background:
+    radial-gradient(circle at 20% 16%, rgba(24, 181, 145, 0.1), transparent 42%),
+    radial-gradient(circle at 84% 70%, rgba(73, 126, 255, 0.14), transparent 46%),
+    #101f38 !important;
+}
+
+.hero-actions .primary-btn,
+.editor-actions .btn-publish,
+.create-btn,
+.tb-success,
+.control-button.play {
+  background: linear-gradient(135deg, #22c17d, #0ea56b) !important;
+  border: none !important;
+  color: #f5fffb !important;
+}
+
+.hero-actions .secondary-btn,
+.tb-secondary,
+.control-button.reset,
+.nav-tab.active {
+  background: linear-gradient(135deg, #2d84ea, #1768cc) !important;
+  border: none !important;
+  color: #ecf6ff !important;
+}
+
+/* Keep math rendering untouched and stable */
+.MathJax,
+.latex-equation,
+#latex-preview,
+.math-display,
+.math-inline {
+  font-family: inherit;
+}
+
+@media (max-width: 980px) {
+  body::before {
+    width: 240px;
+    height: 240px;
+  }
+
+  #landing-page .hero::after {
+    width: 144px;
+    height: 144px;
+  }
+}
