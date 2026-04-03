@@ -1,45 +1,65 @@
-/* VEELEARN Humanized Visual Layer */
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Nunito+Sans:wght@400;600;700&display=swap');
+/* VEELEARN Humanized Visual Layer - Light K-12 STEM Theme */
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap');
 
 :root {
-  --human-bg: #f4f7fb;
-  --human-surface: #ffffff;
-  --human-ink: #152234;
-  --human-muted: #56708f;
-  --human-primary: #1f7ae0;
-  --human-accent: #0ea56b;
-  --human-border: rgba(31, 68, 115, 0.14);
-  --human-shadow: 0 16px 34px rgba(19, 47, 83, 0.12);
+  --k12-bg: #edf6ff;
+  --k12-bg-alt: #f8fbff;
+  --k12-surface: #ffffff;
+  --k12-ink: #1a2a3b;
+  --k12-ink-soft: #39546e;
+  --k12-primary: #1e63d0;
+  --k12-secondary: #f59e0b;
+  --k12-accent: #14b87a;
+  --k12-danger: #d93f58;
+  --k12-border: #c9def4;
+  --k12-shadow: 0 10px 26px rgba(22, 56, 97, 0.12);
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
-  font-family: 'Nunito Sans', 'Segoe UI', Tahoma, sans-serif !important;
-  color: var(--human-ink);
-}
-
-h1, h2, h3, h4, h5, h6, .brand, header h1 {
-  font-family: 'Sora', 'Nunito Sans', sans-serif !important;
-  letter-spacing: -0.02em;
+  font-family: 'Nunito', 'Segoe UI', Tahoma, sans-serif !important;
+  color: var(--k12-ink) !important;
+  background:
+    radial-gradient(1000px 560px at 8% 8%, rgba(52, 152, 219, 0.18), transparent 56%),
+    radial-gradient(920px 520px at 94% 92%, rgba(46, 204, 113, 0.18), transparent 54%),
+    linear-gradient(180deg, var(--k12-bg) 0%, var(--k12-bg-alt) 100%) !important;
 }
 
 body::before {
   content: "";
   position: fixed;
-  width: 360px;
-  height: 360px;
-  right: -48px;
-  bottom: -48px;
-  background: url('assets/brand/veelearn-logo.png') center/cover no-repeat;
-  opacity: 0.06;
+  right: -40px;
+  bottom: -40px;
+  width: 280px;
+  height: 280px;
+  background: url('assets/brand/veelearn-logo.png') center/contain no-repeat;
+  opacity: 0.08;
   pointer-events: none;
   z-index: 0;
 }
 
+h1, h2, h3, h4, h5, h6, .brand, header h1 {
+  font-family: 'Baloo 2', 'Nunito', sans-serif !important;
+  color: var(--k12-ink) !important;
+  letter-spacing: 0.01em;
+}
+
+p, span, small, li, td, th, label, .subtext {
+  color: var(--k12-ink-soft) !important;
+}
+
+a {
+  color: var(--k12-primary);
+}
+
 main,
+section,
 .dashboard-container,
 .detail-container,
 .execute-container,
-main.container,
 .studio-main,
 .container,
 .sidebar,
@@ -61,7 +81,32 @@ header,
 .dashboard-header,
 .detail-header,
 .toolbar {
-  box-shadow: 0 8px 24px rgba(6, 24, 44, 0.18);
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, 0.96), rgba(235, 245, 255, 0.96)),
+    url('assets/brand/stem-workshop.png') center/cover no-repeat !important;
+  border: 1px solid var(--k12-border) !important;
+  box-shadow: var(--k12-shadow) !important;
+}
+
+header h1,
+.studio-toolbar .brand,
+.header h1,
+.header-bar h1,
+.dashboard-header h1,
+.detail-header h1 {
+  color: #12365f !important;
+}
+
+header nav a,
+header nav button {
+  color: #1f4673 !important;
+  border-color: rgba(32, 88, 155, 0.2) !important;
+}
+
+header nav a:hover,
+header nav button:hover {
+  background: rgba(30, 99, 208, 0.1) !important;
+  color: #134380 !important;
 }
 
 section,
@@ -79,13 +124,17 @@ section,
 .panel,
 .info-panel,
 .controls-panel,
-.canvas-container {
+.canvas-container,
+.editor-sidebar,
+.editor-main,
+.editor-inspector {
+  background: var(--k12-surface) !important;
+  border: 1px solid var(--k12-border) !important;
   border-radius: 16px !important;
-  border: 1px solid var(--human-border) !important;
-  box-shadow: var(--human-shadow) !important;
-  backdrop-filter: blur(2px);
+  box-shadow: var(--k12-shadow) !important;
 }
 
+/* Buttons with high contrast */
 button,
 .btn,
 .primary-btn,
@@ -94,11 +143,14 @@ button,
 .create-btn,
 .control-button,
 .back-button,
-header nav a,
-header nav button {
+.tb-primary,
+.tb-success,
+.tb-danger,
+.tb-secondary,
+.tb-warning {
   border-radius: 12px !important;
-  font-weight: 700 !important;
-  transition: transform 0.16s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  font-weight: 800 !important;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
 }
 
 button:hover,
@@ -107,44 +159,83 @@ button:hover,
 .secondary-btn:hover,
 .action-btn:hover,
 .create-btn:hover,
-.control-button:hover,
-.back-button:hover,
-header nav a:hover,
-header nav button:hover {
+.control-button:hover {
   transform: translateY(-1px);
-  box-shadow: 0 10px 18px rgba(21, 53, 89, 0.18);
+  box-shadow: 0 8px 18px rgba(28, 70, 120, 0.2);
+}
+
+.primary-btn,
+.btn-primary,
+.tb-primary,
+.editor-actions .btn-publish,
+.control-button.play {
+  background: linear-gradient(135deg, #2b7ce7, #165ec4) !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+.secondary-btn,
+.tb-secondary,
+.control-button.reset {
+  background: linear-gradient(135deg, #ffd37a, #f3b638) !important;
+  color: #2f2b16 !important;
+  border: none !important;
+}
+
+.tb-success,
+.create-btn {
+  background: linear-gradient(135deg, #25cb87, #0fa56a) !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+.tb-danger,
+.control-button.stop,
+.back-button {
+  background: linear-gradient(135deg, #ef5a74, #d93f58) !important;
+  color: #ffffff !important;
+  border: none !important;
 }
 
 input,
 textarea,
-select {
+select,
+.pb-input,
+.sidebar-search input {
+  background: #ffffff !important;
+  color: #163458 !important;
+  border: 1px solid #b9d2ec !important;
   border-radius: 10px !important;
 }
 
-/* Landing page image-led redesign */
+input::placeholder,
+textarea::placeholder {
+  color: #5f7c98 !important;
+}
+
+/* Landing page: bright, playful STEM feel */
 #landing-page {
   background:
-    radial-gradient(1200px 600px at 18% 8%, rgba(43, 168, 108, 0.22), transparent 60%),
-    radial-gradient(900px 520px at 82% 92%, rgba(30, 122, 224, 0.24), transparent 58%),
-    linear-gradient(135deg, #0d1b2f 0%, #122640 46%, #0d1e34 100%) !important;
-  overflow: hidden;
+    radial-gradient(940px 460px at 12% 14%, rgba(47, 170, 237, 0.22), transparent 58%),
+    radial-gradient(860px 460px at 88% 88%, rgba(80, 205, 146, 0.24), transparent 56%),
+    linear-gradient(160deg, #e9f6ff 0%, #f6fbff 100%) !important;
 }
 
 #landing-page .hero {
   position: relative;
-  width: min(1100px, 96%);
+  width: min(1120px, 96%);
   border-radius: 24px;
-  padding: clamp(22px, 4vw, 44px);
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  box-shadow: 0 24px 46px rgba(3, 10, 22, 0.44);
+  border: 1px solid #cce2f5;
+  box-shadow: 0 20px 44px rgba(31, 84, 146, 0.16);
 }
 
 #landing-page .hero::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(110deg, rgba(11, 26, 47, 0.9) 5%, rgba(11, 26, 47, 0.62) 56%, rgba(11, 26, 47, 0.35) 100%),
+  background:
+    linear-gradient(110deg, rgba(255, 255, 255, 0.95) 4%, rgba(255, 255, 255, 0.72) 58%, rgba(255, 255, 255, 0.5) 100%),
     url('assets/brand/stem-students-lab.jpg') center/cover no-repeat;
   z-index: -2;
 }
@@ -152,86 +243,69 @@ select {
 #landing-page .hero::after {
   content: "";
   position: absolute;
-  width: 210px;
-  height: 210px;
-  right: 14px;
-  bottom: 14px;
+  width: 220px;
+  height: 220px;
+  right: 18px;
+  bottom: 12px;
   background: url('assets/brand/stem-wordmark.png') center/contain no-repeat;
   opacity: 0.9;
-  filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.35));
   z-index: -1;
 }
 
 #landing-page .hero h1 {
+  color: #173c64 !important;
+  font-size: clamp(2rem, 4.8vw, 3.5rem) !important;
+  line-height: 1.12;
   max-width: 18ch;
-  line-height: 1.15;
-  font-size: clamp(2rem, 4.8vw, 3.6rem) !important;
-  text-wrap: balance;
 }
 
 #landing-page .hero p {
+  color: #284f79 !important;
   max-width: 64ch;
-  color: #d9e7f7 !important;
-}
-
-#landing-page .features-grid,
-#landing-page .steps-grid {
-  width: min(1150px, 96%);
-}
-
-#landing-page .feature-card,
-#landing-page .step {
-  background: linear-gradient(160deg, rgba(252, 255, 255, 0.12), rgba(217, 231, 250, 0.06)) !important;
-  border-color: rgba(255, 255, 255, 0.16) !important;
 }
 
 #landing-page .feature-card {
   position: relative;
   overflow: hidden;
+  background: linear-gradient(160deg, #ffffff, #eef7ff) !important;
+}
+
+#landing-page .feature-card h3 {
+  color: #1d4f81 !important;
+}
+
+#landing-page .feature-card p {
+  color: #41658a !important;
 }
 
 #landing-page .feature-card:nth-child(1)::after {
   content: "";
   position: absolute;
-  width: 120px;
-  height: 60px;
-  right: 10px;
-  bottom: 10px;
+  width: 132px;
+  height: 70px;
+  right: 8px;
+  bottom: 8px;
   background: url('assets/brand/stem-logo.png') center/contain no-repeat;
-  opacity: 0.24;
-  pointer-events: none;
+  opacity: 0.25;
 }
 
 #landing-page .how-it-works {
-  border-radius: 24px;
-  padding: clamp(18px, 3vw, 34px);
   background:
-    linear-gradient(130deg, rgba(9, 23, 41, 0.88), rgba(10, 28, 49, 0.82)),
+    linear-gradient(130deg, rgba(255, 255, 255, 0.93), rgba(243, 250, 255, 0.9)),
     url('assets/brand/stem-workshop.png') center/cover no-repeat !important;
-  border: 1px solid rgba(225, 239, 255, 0.2);
+  border: 1px solid #cde3f6;
 }
 
-/* Marketplace and simulator surfaces */
-body:has(.header-nav),
-body:has(.studio-toolbar),
-body:has(.header-bar),
-body:has(.header h1) {
-  background:
-    linear-gradient(165deg, #0f1f38 0%, #122644 44%, #1a3860 100%) !important;
+#landing-page .how-it-works h2,
+#landing-page .how-it-works h4 {
+  color: #1a4777 !important;
 }
 
-.header,
-.header-bar,
-.dashboard-header,
-.detail-header,
-.studio-toolbar {
-  border: 1px solid rgba(185, 220, 255, 0.24);
-  background:
-    linear-gradient(132deg, rgba(26, 62, 111, 0.94), rgba(32, 123, 157, 0.88)),
-    url('assets/brand/stem-workshop.png') center/cover no-repeat !important;
-  color: #eef8ff !important;
+#landing-page .how-it-works p {
+  color: #3e6489 !important;
 }
 
+/* Simulator and dashboard pages forced to light surfaces */
 .sidebar,
 .controls-panel,
 .info-panel,
@@ -241,38 +315,77 @@ body:has(.header h1) {
 .editor-inspector,
 .simulator-card,
 .simulator-item,
-.canvas-container {
-  background: linear-gradient(170deg, rgba(19, 40, 70, 0.96), rgba(14, 31, 56, 0.93)) !important;
-  color: #e6f1ff !important;
-}
-
-.canvas-area,
-.canvas-wrap,
+.canvas-container,
 .workspace-container,
-.workspace {
+.palette-category-header,
+.preview-header,
+.console-header {
+  color: #173a60 !important;
+  background: linear-gradient(160deg, #ffffff, #eef6ff) !important;
+}
+
+.sidebar h2,
+.sidebar h3,
+.controls-panel h2,
+.controls-panel h3,
+.info-panel h2,
+.info-panel h3,
+.preview-header h3,
+.console-header h4 {
+  color: #1c4f82 !important;
+}
+
+.stat-number,
+.icon,
+.step-num,
+.feature-icon {
+  color: #1e63d0 !important;
+}
+
+.workspace,
+.canvas-area,
+.canvas-wrap {
   background:
-    radial-gradient(circle at 20% 16%, rgba(24, 181, 145, 0.1), transparent 42%),
-    radial-gradient(circle at 84% 70%, rgba(73, 126, 255, 0.14), transparent 46%),
-    #101f38 !important;
+    radial-gradient(circle at 20% 20%, rgba(39, 151, 225, 0.12), transparent 38%),
+    radial-gradient(circle at 84% 72%, rgba(32, 193, 124, 0.1), transparent 42%),
+    #eef6ff !important;
 }
 
-.hero-actions .primary-btn,
-.editor-actions .btn-publish,
-.create-btn,
-.tb-success,
-.control-button.play {
-  background: linear-gradient(135deg, #22c17d, #0ea56b) !important;
-  border: none !important;
-  color: #f5fffb !important;
+.console-output,
+.code-editor-panel textarea {
+  background: #f4f9ff !important;
+  color: #1e4a77 !important;
+  border: 1px solid #c9e0f5;
 }
 
-.hero-actions .secondary-btn,
-.tb-secondary,
-.control-button.reset,
+.placed-block {
+  background: #ffffff !important;
+  border: 1px solid #b9d2eb !important;
+  color: #1f4265 !important;
+}
+
+.pb-header {
+  background: linear-gradient(135deg, #7eb7ff, #4c94ef) !important;
+}
+
+.pb-title {
+  color: #ffffff !important;
+}
+
+.pb-input-label {
+  color: #335f8d !important;
+}
+
+.header-nav a,
+.header-nav button,
+.nav-tab {
+  color: #1d4d7f !important;
+}
+
 .nav-tab.active {
-  background: linear-gradient(135deg, #2d84ea, #1768cc) !important;
-  border: none !important;
-  color: #ecf6ff !important;
+  background: rgba(30, 99, 208, 0.12) !important;
+  border-bottom-color: #1e63d0 !important;
+  color: #14497f !important;
 }
 
 /* Keep math rendering untouched and stable */
@@ -282,16 +395,17 @@ body:has(.header h1) {
 .math-display,
 .math-inline {
   font-family: inherit;
+  color: inherit !important;
 }
 
 @media (max-width: 980px) {
   body::before {
-    width: 240px;
-    height: 240px;
+    width: 200px;
+    height: 200px;
   }
 
   #landing-page .hero::after {
-    width: 144px;
-    height: 144px;
+    width: 140px;
+    height: 140px;
   }
 }
