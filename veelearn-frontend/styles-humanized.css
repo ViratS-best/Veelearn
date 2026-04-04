@@ -7,9 +7,9 @@
   --k12-surface: #ffffff;
   --k12-ink: #1a2a3b;
   --k12-ink-soft: #39546e;
-  --k12-primary: #1e63d0;
+  --k12-primary: #1f7a5a;
   --k12-secondary: #f59e0b;
-  --k12-accent: #14b87a;
+  --k12-accent: #128c6a;
   --k12-danger: #d93f58;
   --k12-border: #c9def4;
   --k12-shadow: 0 10px 26px rgba(22, 56, 97, 0.12);
@@ -169,7 +169,7 @@ button:hover,
 .tb-primary,
 .editor-actions .btn-publish,
 .control-button.play {
-  background: linear-gradient(135deg, #2b7ce7, #165ec4) !important;
+  background: linear-gradient(135deg, #2ca36d, #1f7a5a) !important;
   color: #ffffff !important;
   border: none !important;
 }
@@ -407,7 +407,7 @@ textarea::placeholder {
 }
 
 .course-action-primary {
-  background: linear-gradient(135deg, #2b7ce7, #165ec4) !important;
+  background: linear-gradient(135deg, #2ca36d, #1f7a5a) !important;
 }
 
 .course-action-secondary {
@@ -424,6 +424,93 @@ textarea::placeholder {
 
 .course-action-like-active {
   background: linear-gradient(135deg, #25cb87, #0fa56a) !important;
+}
+
+/* Hard override for old inline dark/blue dashboard + creator styles */
+#dashboard-section [style*="background: #222"],
+#dashboard-section [style*="background:#222"],
+#dashboard-section [style*="background: #1e293b"],
+#dashboard-section [style*="background:#1e293b"],
+#dashboard-section [style*="background: rgba(102, 126, 234"],
+#dashboard-section [style*="background:rgba(102, 126, 234"],
+#dashboard-section [style*="background: rgba(0,0,0,0.3)"] {
+  background: #ffffff !important;
+  color: #1f4a76 !important;
+  border-color: #c9def4 !important;
+}
+
+#dashboard-section [style*="color: #fff"],
+#dashboard-section [style*="color:#fff"],
+#dashboard-section [style*="color: white"],
+#dashboard-section [style*="color:white"],
+#dashboard-section [style*="color: #ccc"],
+#dashboard-section [style*="color:#ccc"] {
+  color: #2b547b !important;
+}
+
+#dashboard-section [style*="#667eea"],
+#dashboard-section [style*="#555"] {
+  border-color: #c9def4 !important;
+}
+
+/* Course creator/editor should always be light and readable */
+#course-editor-section,
+#course-editor-section .editor-sidebar,
+#course-editor-section .editor-main,
+#course-editor-section .editor-inspector,
+#course-editor-section .editor-header,
+#course-editor-section .editor-toolbar,
+#course-content-editor,
+#unit-management-section,
+#unit-management-section > div {
+  background: #ffffff !important;
+  color: #1f4a76 !important;
+  border-color: #c9def4 !important;
+}
+
+#course-content-editor {
+  min-height: 460px;
+}
+
+#course-editor-section .editor-toolbar button,
+#course-editor-section .secondary-btn,
+#course-editor-section .btn-save,
+#course-editor-section .btn-publish {
+  color: #ffffff !important;
+}
+
+#course-editor-section h1,
+#course-editor-section h2,
+#course-editor-section h3,
+#course-editor-section h4,
+#course-editor-section label,
+#course-editor-section .info-text {
+  color: #1f4a76 !important;
+}
+
+#course-editor-section input,
+#course-editor-section textarea,
+#course-editor-section select {
+  background: #ffffff !important;
+  color: #1f4a76 !important;
+  border: 1px solid #c9def4 !important;
+}
+
+/* Modal cleanup: remove old dark inline styles */
+#search-modal .modal-content,
+#animation-pref-modal .modal-content,
+#search-modal input,
+#search-modal .sim-sort-btn,
+#animation-pref-modal .animation-mode-btn {
+  background: #ffffff !important;
+  color: #1f4a76 !important;
+  border-color: #c9def4 !important;
+}
+
+#global-search-btn {
+  color: #1f4a76 !important;
+  background: #ffffff !important;
+  border: 1px solid #c9def4 !important;
 }
 
 .course-pagination {

@@ -10,6 +10,7 @@ import io
 import json
 import os
 import random
+import re
 import sys
 from collections import defaultdict
 
@@ -37,15 +38,15 @@ def getenv_int(name, default):
 
 AIVEN_CONFIG = {
     "charset": "utf8mb4",
-    "connect_timeout": 20,
+    "connect_timeout": getenv_int("MYSQL_CONNECT_TIMEOUT", 60),
     "cursorclass": pymysql.cursors.DictCursor,
     "db": os.getenv("MYSQL_DATABASE") or os.getenv("AIVEN_DB", "defaultdb"),
     "host": os.getenv("MYSQLHOST") or os.getenv("AIVEN_HOST", "veelearndb-asterloop-483e.i.aivencloud.com"),
     "password": os.getenv("MYSQLPASSWORD") or os.getenv("AIVEN_PASSWORD", ""),
     "port": getenv_int("MYSQLPORT", getenv_int("AIVEN_PORT", 26399)),
     "user": os.getenv("MYSQLUSER") or os.getenv("AIVEN_USER", "avnadmin"),
-    "read_timeout": 30,
-    "write_timeout": 30,
+    "read_timeout": getenv_int("MYSQL_READ_TIMEOUT", 180),
+    "write_timeout": getenv_int("MYSQL_WRITE_TIMEOUT", 180),
 }
 
 ssl_ca = os.getenv("DB_SSL_CA")
@@ -169,7 +170,7 @@ def make_blueprints():
                 "grade": grade,
                 "strand": strand,
                 "title": f"Grade {grade} {TOPICS[strand][gi]}",
-                "description": f"Comprehensive Grade {grade} {strand} course with deep instruction, solved examples, PhET labs, and independent student problem sets.",
+                "description": f"Deep Grade {grade} {strand} course focused strictly on the title topic, with mass-detail explanations, drawings, solved walkthroughs, PhET labs, and tiered student problem sets.",
                 "focus_points": list(FOCUS[strand]),
                 "sims": pick_sims(strand, gi),
             })
@@ -260,6 +261,33 @@ def render_sim_html(sim_names):
     return "\n".join(html_parts)
 
 
+def course_topic(course):
+    parts = course["title"].split(" ", 2)
+    return parts[2] if len(parts) >= 3 else course["title"]
+
+
+def topic_keywords(topic):
+    stop = {"and", "the", "of", "with", "to", "for", "in", "on", "studio", "intro", "advanced", "basics"}
+    words = [w for w in re.findall(r"[A-Za-z]+", topic.lower()) if w not in stop]
+    return words[:5] if words else ["core", "concepts"]
+
+
+def unit_roadmap(course, alignment):
+    topic = course_topic(course)
+    kws = topic_keywords(topic)
+    k1 = kws[0].title()
+    k2 = kws[1].title() if len(kws) > 1 else "Reasoning"
+    k3 = kws[2].title() if len(kws) > 2 else "Applications"
+    sim_a, sim_b = course["sims"][0], course["sims"][1]
+    return [
+        (f"Unit 1: Foundations of {topic}", f"Build precise definitions, vocabulary, and baseline models for {k1}."),
+        (f"Unit 2: Representations and Explanations", f"Translate ideas among words, diagrams, tables, and equations using {k2}."),
+        (f"Unit 3: Guided Problem Solving", f"Work through multi-step solved examples, then explain each step in plain language."),
+        (f"Unit 4: Simulation Lab Cycle", f"Use {sim_a} and {sim_b} to test claims, collect evidence, and validate models."),
+        (f"Unit 5: Transfer and Capstone", f"Apply {k3} ideas in new contexts with assumptions, limitations, and reflection."),
+    ]
+
+
 def build_content(course):
     grade = course["grade"]
     strand = course["strand"]
@@ -307,6 +335,399 @@ def build_content(course):
         "<p>Create a real-world case study integrating at least two course ideas. Include model, data, complete solution path, and reflection on assumptions/limits.</p>"
     )
 
+# --- Deep course content overrides (kept below legacy builders so these definitions take precedence) ---
+
+TITLE_KEYWORD_GUIDE = {
+    "number sense": ["count and compare quantities accurately", "justify operations with concrete models"],
+    "place value": ["decompose/recompose numbers by place", "explain regrouping with base-ten structure"],
+    "fractions": ["treat fractions as numbers on a number line", "reason with part-whole and quotient views"],
+    "equivalent fractions": ["generate equivalent forms with visual and symbolic methods", "justify equivalence transformations"],
+    "decimals": ["connect decimal notation to place value", "convert among fraction-decimal-percent forms"],
+    "ratios": ["model multiplicative comparison", "use unit rates for decisions"],
+    "linear": ["interpret slope as rate of change", "interpret intercepts in context"],
+    "algebra": ["simplify expressions with structure", "solve equations with justification"],
+    "trigonometric": ["link triangle geometry to trig ratios", "apply periodic reasoning in models"],
+    "precalculus": ["analyze function families", "compare function behavior across representations"],
+    "calculus": ["connect derivatives to rate and optimization", "connect integrals to accumulation"],
+    "motion": ["separate force and motion ideas", "interpret acceleration from data"],
+    "friction": ["model contact forces and direction", "connect friction to energy dissipation"],
+    "energy": ["track transfer and transformation pathways", "use conservation logic"],
+    "gravity": ["relate mass-distance to force trends", "connect orbital behavior to force/velocity"],
+    "orbit": ["model circular/elliptic motion assumptions", "test orbital claims with evidence"],
+    "waves": ["relate frequency, wavelength, and speed", "predict interference outcomes"],
+    "sound": ["connect wave properties to perceived sound", "analyze medium effects on propagation"],
+    "light": ["model reflection/refraction with diagrams", "connect wavelength/frequency to observations"],
+    "pressure": ["compute force-area relationships", "interpret pressure in fluids/gases"],
+    "buoyancy": ["compare weight and displaced-fluid force", "predict float/sink with density"],
+    "collisions": ["apply momentum conservation", "separate elastic/inelastic outcomes"],
+    "electricity": ["differentiate voltage/current/resistance", "analyze circuits with Ohm and Kirchhoff ideas"],
+    "magnetism": ["connect field direction to force effects", "model induction conceptually and quantitatively"],
+    "quantum": ["interpret probability-based outcomes", "contrast classical and quantum predictions"],
+    "matter": ["connect macroscopic properties to particles", "classify physical vs chemical change"],
+    "solutions": ["reason with concentration and dilution", "explain dissolving at particle level"],
+    "atomic": ["connect subatomic structure to element identity", "reason with isotope and ion models"],
+    "molecules": ["link bonding/shape/polarity to properties", "represent molecules in multiple formats"],
+    "acids": ["classify acids/bases using pH and proton transfer", "justify neutralization outcomes"],
+    "bases": ["classify acids/bases using pH and proton transfer", "justify neutralization outcomes"],
+    "stoichiometry": ["connect balanced equations to mole ratios", "track limiting reagent and yield"],
+    "thermochemistry": ["reason with energy changes in reactions", "compare kinetic and equilibrium perspectives"],
+    "equilibrium": ["predict shift direction qualitatively/quantitatively", "analyze dynamic balance mechanisms"],
+    "spectroscopy": ["connect electron transitions to spectral lines", "interpret spectra as model evidence"],
+    "organic": ["reason with structure-reactivity relationships", "trace mechanism logic with electron flow"],
+    "living": ["connect structure to organism function", "map habitat-resource-survival links"],
+    "weather": ["differentiate weather and climate evidence", "connect atmosphere patterns to life impacts"],
+    "climate": ["differentiate weather and climate evidence", "connect atmosphere patterns to life impacts"],
+    "cells": ["map organelle functions to cell behavior", "connect transport/signaling to homeostasis"],
+    "ecosystems": ["analyze interactions across trophic levels", "predict feedback effects in populations"],
+    "adaptation": ["explain trait-environment fit", "separate adaptation from short-term acclimation"],
+    "genetics": ["connect genotype probabilities to phenotype patterns", "interpret inheritance data mechanistically"],
+    "physiology": ["connect organ systems with regulation loops", "interpret body-system data in context"],
+    "evolution": ["justify claims with multiple evidence sources", "model selection pressure outcomes"],
+    "genomics": ["connect sequence variation to phenotype trends", "evaluate data limits and uncertainty"],
+    "engineering": ["frame constraints and criteria explicitly", "iterate design-test-revise cycles"],
+    "coding": ["trace algorithm steps with test cases", "debug using evidence instead of guessing"],
+    "data": ["summarize patterns with fit-for-purpose visuals", "evaluate data quality and bias"],
+    "financial literacy": ["model tradeoffs in spending/saving", "reason with rate/percent effects over time"],
+    "statistical": ["interpret center/spread and sampling behavior", "separate descriptive from inferential claims"],
+    "optimization": ["define objective and constraints", "compare feasible strategies with sensitivity checks"],
+    "research": ["design valid methods and controls", "report limitations transparently"],
+    "capstone": ["integrate models, data, and communication", "defend decisions under critique"],
+}
+
+
+def depth_text(grade):
+    if grade <= 2:
+        return "small explicit steps, concrete visuals, and repeated language scaffolds"
+    if grade <= 5:
+        return "visual-to-symbolic transitions with full reasoning shown at each step"
+    if grade <= 8:
+        return "formal explanation, evidence checks, and misconception correction cycles"
+    if grade <= 10:
+        return "symbolic fluency, model comparison, and argument-backed conclusions"
+    return "rigorous abstraction, derivation-level reasoning, and capstone synthesis"
+
+
+def derive_alignment(course):
+    title = course["title"].lower()
+    strand = course["strand"]
+    grade = course["grade"]
+    found = []
+    for key, points in TITLE_KEYWORD_GUIDE.items():
+        if key in title:
+            found.extend(points)
+    defaults = {
+        "math": ["translate among visual, verbal, tabular, and symbolic representations", "verify reasonableness before finalizing answers"],
+        "physics": ["draw system diagrams before equations", "check units and sign conventions at every step"],
+        "chemistry": ["track conservation of atoms and charge", "show all unit conversions and assumptions"],
+        "bioearth": ["connect mechanism to evidence explicitly", "differentiate observation from inference"],
+        "applied": ["make constraints explicit before solving", "justify tradeoffs using data and assumptions"],
+    }
+    for item in defaults[strand]:
+        if item not in found:
+            found.append(item)
+    fallback = [
+        "explain each step in plain language",
+        "show work with a visual or table before symbolic compression",
+        "verify final answers with reasonableness checks",
+        "connect results back to real-world meaning",
+    ]
+    for item in fallback:
+        if len(found) >= 4:
+            break
+        if item not in found:
+            found.append(item)
+    scope = found[:4]
+
+    if grade <= 4:
+        not_yet = ["formal proof frameworks", "high-abstraction symbolic shortcuts without meaning", "multi-variable optimization"]
+    elif grade <= 8:
+        not_yet = ["graduate-level derivations", "research-only modeling assumptions", "advanced proof-only treatments"]
+    else:
+        not_yet = ["doctoral-level specialization", "frontier research methods", "unintroduced notation outside this title scope"]
+
+    return {"scope": scope, "not_yet": not_yet}
+
+
+def render_sim_html(sim_names, title):
+    parts = []
+    for sim_name in sim_names:
+        parts.append(
+            "<div style=\"margin:18px 0; background:#ffffff; border:1px solid #dbe5ef; border-radius:12px; padding:14px;\">"
+            f"<h4 style=\"margin:0 0 8px 0;\">PhET Lab: {sim_name}</h4>"
+            f"<iframe src=\"{SIMS[sim_name]}\" width=\"100%\" height=\"560\" frameborder=\"0\" "
+            "style=\"border:1px solid #d1d5db; border-radius:8px; background:#f8fafc;\"></iframe>"
+            f"<p><strong>Lab focus:</strong> Investigate <em>{title}</em> with 3+ trials. Record variables, produce one graph/table, and write a CER paragraph.</p>"
+            "<p><strong>Required writeup:</strong> hypothesis, method, data, interpretation, and one limitation.</p>"
+            "</div>"
+        )
+    return "\n".join(parts)
+
+
+def build_diagram_html(course):
+    strand = course["strand"]
+    if strand == "math":
+        return (
+            "<h3>Course Drawings</h3>"
+            "<svg viewBox=\"0 0 760 180\" width=\"100%\" height=\"180\" style=\"border:1px solid #dbe5ef; border-radius:10px; background:#fff;\">"
+            "<line x1=\"40\" y1=\"130\" x2=\"720\" y2=\"130\" stroke=\"#64748b\" stroke-width=\"2\"/>"
+            "<circle cx=\"120\" cy=\"130\" r=\"7\" fill=\"#2563eb\"/><circle cx=\"300\" cy=\"100\" r=\"7\" fill=\"#0ea5e9\"/>"
+            "<circle cx=\"470\" cy=\"75\" r=\"7\" fill=\"#16a34a\"/><circle cx=\"630\" cy=\"52\" r=\"7\" fill=\"#f59e0b\"/>"
+            "<polyline points=\"120,130 300,100 470,75 630,52\" fill=\"none\" stroke=\"#1d4ed8\" stroke-width=\"3\"/>"
+            "<text x=\"40\" y=\"28\" font-size=\"15\">Read this as representation -> pattern -> equation. Explain what each point means.</text>"
+            "</svg>"
+        )
+    if strand == "physics":
+        return (
+            "<h3>Course Drawings</h3>"
+            "<svg viewBox=\"0 0 760 220\" width=\"100%\" height=\"220\" style=\"border:1px solid #dbe5ef; border-radius:10px; background:#fff;\">"
+            "<rect x=\"280\" y=\"110\" width=\"120\" height=\"60\" fill=\"#e2e8f0\" stroke=\"#64748b\"/>"
+            "<line x1=\"170\" y1=\"140\" x2=\"280\" y2=\"140\" stroke=\"#ef4444\" stroke-width=\"4\"/>"
+            "<line x1=\"400\" y1=\"140\" x2=\"520\" y2=\"140\" stroke=\"#22c55e\" stroke-width=\"4\"/>"
+            "<line x1=\"340\" y1=\"110\" x2=\"340\" y2=\"42\" stroke=\"#0ea5e9\" stroke-width=\"4\"/>"
+            "<line x1=\"340\" y1=\"170\" x2=\"340\" y2=\"208\" stroke=\"#111827\" stroke-width=\"4\"/>"
+            "<text x=\"40\" y=\"28\" font-size=\"15\">Always sketch forces/system first. Then write equations using this picture.</text>"
+            "</svg>"
+        )
+    if strand == "chemistry":
+        return (
+            "<h3>Course Drawings</h3>"
+            "<svg viewBox=\"0 0 760 200\" width=\"100%\" height=\"200\" style=\"border:1px solid #dbe5ef; border-radius:10px; background:#fff;\">"
+            "<rect x=\"30\" y=\"35\" width=\"290\" height=\"140\" fill=\"#f8fafc\" stroke=\"#94a3b8\"/>"
+            "<rect x=\"440\" y=\"35\" width=\"290\" height=\"140\" fill=\"#f8fafc\" stroke=\"#94a3b8\"/>"
+            "<text x=\"118\" y=\"58\" font-size=\"14\">Reactants</text><text x=\"538\" y=\"58\" font-size=\"14\">Products</text>"
+            "<circle cx=\"100\" cy=\"100\" r=\"14\" fill=\"#38bdf8\"/><circle cx=\"136\" cy=\"100\" r=\"14\" fill=\"#34d399\"/>"
+            "<circle cx=\"520\" cy=\"105\" r=\"14\" fill=\"#38bdf8\"/><circle cx=\"556\" cy=\"105\" r=\"14\" fill=\"#34d399\"/><circle cx=\"592\" cy=\"105\" r=\"14\" fill=\"#f97316\"/>"
+            "<text x=\"40\" y=\"28\" font-size=\"15\">Count particles before/after. Conservation must hold every time.</text>"
+            "</svg>"
+        )
+    if strand == "bioearth":
+        return (
+            "<h3>Course Drawings</h3>"
+            "<svg viewBox=\"0 0 760 210\" width=\"100%\" height=\"210\" style=\"border:1px solid #dbe5ef; border-radius:10px; background:#fff;\">"
+            "<rect x=\"70\" y=\"62\" width=\"150\" height=\"55\" rx=\"8\" fill=\"#dcfce7\" stroke=\"#16a34a\"/>"
+            "<rect x=\"300\" y=\"42\" width=\"170\" height=\"55\" rx=\"8\" fill=\"#e0f2fe\" stroke=\"#0284c7\"/>"
+            "<rect x=\"300\" y=\"132\" width=\"170\" height=\"55\" rx=\"8\" fill=\"#fef3c7\" stroke=\"#f59e0b\"/>"
+            "<rect x=\"560\" y=\"87\" width=\"130\" height=\"55\" rx=\"8\" fill=\"#ede9fe\" stroke=\"#7c3aed\"/>"
+            "<text x=\"94\" y=\"95\" font-size=\"14\">Environment</text><text x=\"348\" y=\"75\" font-size=\"14\">Organism</text>"
+            "<text x=\"344\" y=\"165\" font-size=\"14\">Population</text><text x=\"594\" y=\"120\" font-size=\"14\">Outcome</text>"
+            "<text x=\"34\" y=\"28\" font-size=\"15\">Use arrows to explain mechanism, not just correlation.</text>"
+            "</svg>"
+        )
+    return (
+        "<h3>Course Drawings</h3>"
+        "<svg viewBox=\"0 0 760 180\" width=\"100%\" height=\"180\" style=\"border:1px solid #dbe5ef; border-radius:10px; background:#fff;\">"
+        "<rect x=\"40\" y=\"68\" width=\"120\" height=\"48\" rx=\"8\" fill=\"#e0f2fe\" stroke=\"#0284c7\"/>"
+        "<rect x=\"200\" y=\"68\" width=\"120\" height=\"48\" rx=\"8\" fill=\"#dcfce7\" stroke=\"#16a34a\"/>"
+        "<rect x=\"360\" y=\"68\" width=\"120\" height=\"48\" rx=\"8\" fill=\"#fef3c7\" stroke=\"#f59e0b\"/>"
+        "<rect x=\"520\" y=\"68\" width=\"120\" height=\"48\" rx=\"8\" fill=\"#ede9fe\" stroke=\"#7c3aed\"/>"
+        "<text x=\"72\" y=\"97\" font-size=\"14\">Problem</text><text x=\"242\" y=\"97\" font-size=\"14\">Data</text>"
+        "<text x=\"400\" y=\"97\" font-size=\"14\">Model</text><text x=\"554\" y=\"97\" font-size=\"14\">Decision</text>"
+        "<text x=\"40\" y=\"28\" font-size=\"15\">Keep every decision traceable to data and assumptions.</text>"
+        "</svg>"
+    )
+
+
+def solved_problem_bank(course):
+    grade = course["grade"]
+    strand = course["strand"]
+    if strand == "physics":
+        m = grade + 2
+        f = 14 + 3 * grade
+        v = grade + 4
+        return [
+            {"problem": f"Find acceleration for force {f} N on mass {m} kg.", "steps": ["Use F=ma.", "Rearrange a=F/m.", f"Substitute a={f}/{m}.", f"Compute a={f/m:.2f} m/s^2.", "Interpret as velocity change per second."], "answer": f"{f/m:.2f} m/s^2"},
+            {"problem": f"Find kinetic energy for mass {m} kg at speed {v} m/s.", "steps": ["Use KE=1/2mv^2.", f"Compute v^2={v*v}.", f"KE=0.5*{m}*{v*v}.", "Attach joule unit.", "Reasonableness check with estimate."], "answer": f"{0.5*m*v*v:.2f} J"},
+            {"problem": "Series circuit has V=12 V and R=4 ohms. Find current.", "steps": ["Use V=IR.", "I=V/R.", "I=12/4.", "I=3 A.", "Check by VI power relation."], "answer": "3 A"},
+            {"problem": "Wave with f=5 Hz and wavelength 0.8 m. Find speed.", "steps": ["v=f*lambda.", "v=5*0.8.", "v=4.", "Use m/s.", "Interpret propagation meaning."], "answer": "4 m/s"},
+            {"problem": "Pressure from F=90 N on A=0.30 m^2.", "steps": ["P=F/A.", "P=90/0.30.", "P=300.", "Use pascal unit.", "Explain how area affects pressure."], "answer": "300 Pa"},
+            {"problem": "Momentum p=30 kg*m/s, mass=5 kg. Find velocity.", "steps": ["p=mv.", "v=p/m.", "v=30/5.", "v=6.", "Check p with back-substitution."], "answer": "6 m/s"},
+        ]
+    return None
+
+
+def generic_solved_bank(course):
+    g = course["grade"]
+    strand = course["strand"]
+    if strand == "math":
+        return [
+            {"problem": "Compute 3/4 + 5/8.", "steps": ["Common denominator 8.", "3/4=6/8.", "6/8+5/8=11/8.", "Convert to mixed number.", "Check with decimal estimate."], "answer": "1 3/8"},
+            {"problem": "Solve 3x+7=31.", "steps": ["Subtract 7 from both sides.", "3x=24.", "Divide by 3.", "x=8.", "Substitute to verify."], "answer": "x=8"},
+            {"problem": "Find unit rate for 42 km in 3.5 h.", "steps": ["Unit rate=distance/time.", "42/3.5=12.", "Units km/h.", "Interpret meaning.", "Check by multiplying back."], "answer": "12 km/h"},
+            {"problem": "Solve x^2-7x+10=0.", "steps": ["Factor into (x-5)(x-2).", "Set each factor zero.", "x=5 or x=2.", "Substitute to verify.", "Report complete set."], "answer": "x=2,5"},
+            {"problem": "Differentiate f(x)=3x^3-5x^2+2x-9.", "steps": ["Power rule term-by-term.", "Derivative terms: 9x^2, -10x, +2, 0.", "Combine.", "State final form.", "Quick coefficient sanity check."], "answer": "9x^2-10x+2"},
+            {"problem": "Distance between (2,-1) and (8,7).", "steps": ["dx=6, dy=8.", "Use sqrt(dx^2+dy^2).", "sqrt(36+64)=sqrt(100).", "Distance=10.", "Interpret unit context."], "answer": "10"},
+        ]
+    if strand == "chemistry":
+        n = 0.7 + 0.1 * g
+        v = 1.1 + 0.2 * g
+        return [
+            {"problem": f"Molarity of {n:.2f} mol in {v:.2f} L.", "steps": ["M=n/V.", f"M={n:.2f}/{v:.2f}.", "Compute quotient.", "Attach mol/L.", "Check magnitude reasonableness."], "answer": f"{n/v:.3f} M"},
+            {"problem": "Balance __H2 + __O2 -> __H2O.", "steps": ["Count atoms both sides.", "Set 2 before H2O.", "Set 2 before H2.", "Recount atoms.", "State balanced equation."], "answer": "2H2 + O2 -> 2H2O"},
+            {"problem": "Classify pH=3.2 solution.", "steps": ["pH<7 means acidic.", "3.2 is below 7.", "Classify as acidic.", "Connect to proton concentration.", "State confidently."], "answer": "Acidic"},
+            {"problem": "Dilution: 2.0 M stock to make 0.50 L of 0.40 M. Find stock volume.", "steps": ["M1V1=M2V2.", "V1=(M2V2)/M1.", "V1=(0.40*0.50)/2.0.", "V1=0.10 L.", "Convert to 100 mL if needed."], "answer": "0.10 L"},
+            {"problem": "Boyle law: P1=1 atm, V1=2 L, V2=1 L. Find P2.", "steps": ["P1V1=P2V2.", "P2=(P1V1)/V2.", "P2=(1*2)/1.", "P2=2 atm.", "Explain inverse P-V relation."], "answer": "2 atm"},
+            {"problem": "Average atomic mass: 75% of 20 amu, 25% of 22 amu.", "steps": ["Weighted average sum.", "0.75*20=15.", "0.25*22=5.5.", "Total 20.5 amu.", "Check weights sum to 1."], "answer": "20.5 amu"},
+        ]
+    if strand == "bioearth":
+        start = 60 + 6 * g
+        return [
+            {"problem": f"Population {start} grows by 12% for one year. Next-year estimate?", "steps": ["Growth factor 1.12.", f"{start}*1.12.", "Compute and round by context.", "State assumption of constant rate.", "Interpret biological plausibility."], "answer": f"{int(round(start*1.12))} (approx)"},
+            {"problem": "Cross Bb x Bb. Probability of bb?", "steps": ["Punnett square outcomes.", "Count bb outcomes.", "1 out of 4.", "Convert to percent.", "State probability."], "answer": "25%"},
+            {"problem": "Concentration gradient from 18 to 6 units.", "steps": ["Subtract low from high.", "18-6=12.", "Direction high to low.", "Interpret diffusion tendency.", "Report with units."], "answer": "12 units"},
+            {"problem": "Energy transfer: 1000 producer units, 10% to herbivore. Herbivore energy?", "steps": ["Multiply by 0.10.", "1000*0.10=100.", "State trophic transfer meaning.", "Connect to ecological efficiency.", "Check unit consistency."], "answer": "100 units"},
+            {"problem": "CO2 rises 410 ppm to 451 ppm. Percent increase?", "steps": ["Change 41 ppm.", "41/410*100.", "Compute about 10%.", "State approximate nature.", "Interpret climate relevance."], "answer": "about 10%"},
+            {"problem": "Conduction speed 40 m/s across 2 m path. Signal travel time?", "steps": ["t=d/v.", "2/40=0.05 s.", "Convert to 50 ms.", "Interpret response timing.", "Check units."], "answer": "0.05 s"},
+        ]
+    # applied default
+    vals = [g + 3, g + 5, g + 8, g + 11, g + 13]
+    avg = sum(vals) / len(vals)
+    return [
+        {"problem": f"Mean of {vals}.", "steps": [f"Sum={sum(vals)}.", f"Count={len(vals)}.", f"Mean={avg:.2f}.", "Interpret center.", "Check with deviations."], "answer": f"{avg:.2f}"},
+        {"problem": "Budget $240, item costs $18. Max items?", "steps": ["Use integer division.", "240/18=13 remainder.", "Max whole=13.", "Check 13*18<=240.", "Report leftover."], "answer": "13"},
+        {"problem": "Slope through (1,4) and (5,20).", "steps": ["(20-4)/(5-1).", "16/4=4.", "State slope.", "Interpret unit change.", "Check with line equation."], "answer": "4"},
+        {"problem": "Weighted score: 0.4*7 + 0.6*9.", "steps": ["Multiply each weighted term.", "2.8 and 5.4.", "Add to 8.2.", "Interpret rank meaning.", "Compare to alternatives."], "answer": "8.2"},
+        {"problem": "48 successes out of 120 trials. Empirical probability?", "steps": ["success/trials.", "48/120=0.4.", "Convert to 40%.", "Discuss uncertainty.", "Suggest larger sample."], "answer": "0.4"},
+        {"problem": "Regression y=2.5x+6 at x=8.", "steps": ["Substitute x.", "2.5*8=20.", "20+6=26.", "Check domain validity.", "Interpret prediction."], "answer": "26"},
+    ]
+
+
+def practice_sets(course, alignment):
+    scope = alignment["scope"]
+    basic = [
+        f"Define '{scope[0]}' in plain words and add one drawing/model.",
+        f"Solve one on-topic problem using '{scope[1]}' with every step justified.",
+        f"Create a table or diagram for '{scope[2]}' and explain how to read it.",
+        f"Re-solve a worked example using a second strategy for '{scope[3]}'.",
+        "Write a misconception and then correct it using evidence from this course.",
+        "Build a short checklist to avoid the most common errors.",
+    ]
+    intermediate = [
+        f"Combine two ideas from {course['title']} into one multi-step problem and solve it fully.",
+        "Given a partly wrong solution, locate the first wrong step and repair the full path.",
+        "Use a small dataset (6+ values) to support a claim and include one graph sketch.",
+        "Translate verbal context -> model/equation -> solution -> interpretation.",
+        "Compare two valid strategies and explain when each is better.",
+        "Change one input and run a sensitivity explanation of output changes.",
+    ]
+    challenge = [
+        "Design a transfer problem that combines this course with one earlier course, then solve it.",
+        "Write a CER argument with one computed value and one visual model.",
+        "Create a peer-teaching explanation that skips no intermediate reasoning.",
+        "Invent a realistic bad-assumption scenario, then repair the assumption and solution.",
+        "Produce one exam-quality item with full rubric and ideal solution.",
+        "Write a capstone memo: assumptions, model, answer, limitation, and extension.",
+    ]
+    return {"basic": basic, "intermediate": intermediate, "challenge": challenge}
+
+
+def render_solved_html(problems):
+    out = []
+    for i, p in enumerate(problems, 1):
+        steps = "".join([f"<li>{s}</li>" for s in p["steps"]])
+        out.append(
+            "<div style=\"background:#ffffff; border:1px solid #dbe5ef; border-radius:12px; padding:16px; margin:14px 0;\">"
+            f"<h4 style=\"margin-top:0;\">Solved Walkthrough {i}</h4>"
+            f"<p><strong>Problem:</strong> {p['problem']}</p>"
+            "<p><strong>Reasoning steps:</strong></p>"
+            f"<ol>{steps}</ol>"
+            f"<p><strong>Final answer:</strong> {p['answer']}</p>"
+            "<p><strong>Check:</strong> verify units, logic, and context fit.</p>"
+            "</div>"
+        )
+    return "".join(out)
+
+
+def render_practice_html(sets):
+    b = "".join([f"<li>{x}</li>" for x in sets["basic"]])
+    m = "".join([f"<li>{x}</li>" for x in sets["intermediate"]])
+    c = "".join([f"<li>{x}</li>" for x in sets["challenge"]])
+    return (
+        "<h3>Tier A - Foundation Practice</h3><ol>" + b + "</ol>"
+        "<h3>Tier B - Intermediate Integration</h3><ol>" + m + "</ol>"
+        "<h3>Tier C - Challenge and Transfer</h3><ol>" + c + "</ol>"
+    )
+
+
+def build_content(course):
+    grade = course["grade"]
+    title = course["title"]
+    alignment = derive_alignment(course)
+    solved = solved_problem_bank(course) or generic_solved_bank(course)
+    practice = practice_sets(course, alignment)
+
+    scope_html = "".join([f"<li>{x}</li>" for x in alignment["scope"]])
+    out_scope_html = "".join([f"<li>{x}</li>" for x in alignment["not_yet"]])
+    focus_html = "".join([
+        f"<li><strong>{f.title()}:</strong> show reasoning and evidence, not final answer only.</li>"
+        for f in course["focus_points"]
+    ])
+
+    explanation_cards = []
+    for i, concept in enumerate(alignment["scope"], 1):
+        confusion = alignment["not_yet"][i % len(alignment["not_yet"])]
+        explanation_cards.append(
+            "<div style=\"background:#ffffff; border:1px solid #dbe5ef; border-radius:12px; padding:16px; margin:14px 0;\">"
+            f"<h4 style=\"margin-top:0;\">Concept {i}: {concept}</h4>"
+            "<p><strong>Plain explanation:</strong> We unpack this concept in small language first so learners understand the idea before formulas. "
+            "Students are expected to retell the meaning in their own words and map each step to a visual representation.</p>"
+            "<p><strong>Technical explanation:</strong> We then formalize the same idea with explicit symbols, assumptions, and constraints. "
+            "Every step is justified so students can see exactly why a method works.</p>"
+            "<p><strong>How to show work:</strong> givens -> model/equation -> step-by-step operations -> unit/context check -> conclusion sentence.</p>"
+            f"<p><strong>Misconception watch:</strong> Do not confuse this with <em>{confusion}</em>. "
+            "This course keeps the title focus narrow and explicit to avoid topic drift.</p>"
+            "</div>"
+        )
+
+    roadmap = unit_roadmap(course, alignment)
+    roadmap_html = "".join([
+        f"<li><strong>{title}:</strong> {desc}</li>"
+        for title, desc in roadmap
+    ])
+
+    return (
+        "<div style=\"background:#f8fafc; color:#0f172a; padding:8px;\">"
+        f"<h1 style=\"color:#0f172a;\">{title}</h1>"
+        f"<p><strong>Grade:</strong> {grade}</p>"
+        f"<p><strong>Course Promise:</strong> {course['description']}</p>"
+        f"<p><strong>Depth Standard:</strong> This course uses {depth_text(grade)}.</p>"
+        "<hr>"
+        "<h2>Module 1: Exact Title Scope (What We Teach)</h2>"
+        f"<p>This course stays tightly focused on <strong>{title}</strong> and does not wander into unrelated topics.</p>"
+        "<h3>In-Scope Targets</h3>"
+        f"<ul>{scope_html}</ul>"
+        "<h3>Out-of-Scope (Not Yet)</h3>"
+        f"<ul>{out_scope_html}</ul>"
+        "<h3>Reasoning Expectations</h3>"
+        f"<ul>{focus_html}</ul>"
+        "<h2>Module 1B: Course-Specific Unit Roadmap</h2>"
+        "<p>This roadmap is customized to this exact course title, not a generic strand template.</p>"
+        f"<ul>{roadmap_html}</ul>"
+        "<h2>Module 2: Mass-Detail Explanations</h2>"
+        f"{''.join(explanation_cards)}"
+        "<h2>Module 3: Drawings and Visual Models</h2>"
+        "<p>Students should refer to these visuals while solving problems.</p>"
+        f"{build_diagram_html(course)}"
+        "<h2>Module 4: Fully Solved Problems (No Step Skipped)</h2>"
+        "<p>These walkthroughs are intentionally long and explicit so beginners can follow every move.</p>"
+        f"{render_solved_html(solved)}"
+        "<h2>Module 5: Interactive PhET Lab Studio</h2>"
+        f"{render_sim_html(course['sims'], title)}"
+        "<h2>Module 6: Student Problem Sets</h2>"
+        "<p>Complete all tiers. Tier C is designed for transfer and deep mastery.</p>"
+        f"{render_practice_html(practice)}"
+        "<h2>Module 7: Error Analysis Clinic</h2>"
+        "<ol>"
+        "<li>Take one solved problem and intentionally insert a common error.</li>"
+        "<li>Label the first wrong step and explain why it is wrong.</li>"
+        "<li>Repair the full solution path with corrected reasoning.</li>"
+        "<li>Write a short note: how to prevent this error in future work.</li>"
+        "</ol>"
+        "<h2>Module 8: Mastery Exit Task</h2>"
+        "<p>Create one real-world, title-aligned case: assumptions, model, complete solution, visual drawing, and reflection on limitations.</p>"
+        "</div>"
+    )
+
+
 def make_question(text, correct, distractors, explanation, idx):
     opts = [correct] + distractors[:3]
     unique = []
@@ -329,59 +750,137 @@ def make_question(text, correct, distractors, explanation, idx):
 def build_questions(course):
     grade = course["grade"]
     strand = course["strand"]
+    title = course["title"]
+    topic = course_topic(course)
     focus = course["focus_points"]
-    out = [
-        make_question(
-            f"Which statement best describes '{focus[0]}' in this course?",
-            "It is a core concept used to model and explain outcomes with evidence.",
-            ["It is optional vocabulary only.", "It replaces reasoning steps.", "It applies only to memorization."],
-            "Core concepts drive reasoning and transfer.",
-            1,
-        )
-    ]
+    alignment = derive_alignment(course)
+    scope = alignment["scope"]
+    seed = sum(ord(ch) for ch in title) + grade * 97 + len(topic) * 13
+    rr = random.Random(seed)
+
+    out = []
+    def add(text, correct, wrongs, explanation):
+        out.append(make_question(text, correct, wrongs, explanation, len(out) + 1))
+
+    add(
+        f"In {title}, what is the highest-priority target?",
+        scope[0],
+        [scope[1], "Unrelated topic expansion", "Skipping foundations for random advanced content"],
+        "This course is intentionally title-aligned and starts with its core target."
+    )
+    add(
+        f"In {title}, which statement best reflects '{focus[0]}'?",
+        "Use evidence-backed reasoning, not answer-only responses.",
+        ["Memorize and copy final answers only.", "Skip model selection and jump to arithmetic.", "Avoid explaining assumptions."],
+        "Deep learning requires visible reasoning, evidence, and assumptions."
+    )
 
     if strand == "math":
-        a, b = grade + 6, grade + 4
-        out += [
-            make_question(f"Compute {a} + {b}.", str(a + b), [str(a + b + 1), str(a + b - 1), str(a + b + 2)], "Arithmetic fluency supports complex tasks.", 2),
-            make_question("In y = mx + b, m is:", "Slope", ["Y-intercept", "Domain", "Range"], "Slope is rate of change.", 3),
-            make_question("A strong multi-step math solution includes:", "Model, steps, and justification", ["Final answer only", "Guess only", "No units"], "Reasoning must be visible.", 4),
-        ]
-    elif strand == "physics":
-        m, f = grade + 2, 12 + 3 * grade
-        out += [
-            make_question(f"If F={f} N and m={m} kg, acceleration is:", f"{f/m:.2f} m/s^2", [f"{f/m+1:.2f} m/s^2", f"{f/m-1:.2f} m/s^2", f"{2*f/m:.2f} m/s^2"], "Use a=F/m.", 2),
-            make_question("In a closed system, which is conserved?", "Total energy", ["Velocity", "Temperature", "Pressure"], "Energy conservation is fundamental.", 3),
-            make_question("Slope of a velocity-time graph gives:", "Acceleration", ["Distance", "Mass", "Power"], "Slope of v-t graph is acceleration.", 4),
-        ]
-    elif strand == "chemistry":
-        n, v = 0.6 + grade * 0.1, 1.2 + grade * 0.2
-        out += [
-            make_question(f"Molarity of {n:.2f} mol in {v:.2f} L is:", f"{n/v:.2f} M", [f"{n/v+0.5:.2f} M", f"{n/v-0.2:.2f} M", f"{2*n/v:.2f} M"], "M=n/V.", 2),
-            make_question("Balanced equations are required because:", "Atoms and charge are conserved", ["Mass is created", "Reactants vanish", "Products decide coefficients"], "Conservation laws must hold.", 3),
-            make_question("A solution with pH 2.9 is:", "Acidic", ["Basic", "Neutral", "Unknown"], "pH below 7 is acidic.", 4),
-        ]
-    elif strand == "bioearth":
-        out += [
-            make_question("For Bb x Bb, probability of bb is:", "25%", ["0%", "50%", "75%"], "Punnett square gives 1/4 bb.", 2),
-            make_question("Natural selection works through:", "Differential survival and reproduction", ["Instant replacement", "No inherited variation", "Random grading"], "Selection acts on heritable variation.", 3),
-            make_question("Strong scientific claims require:", "Measured evidence and mechanism", ["Opinion only", "Anecdote only", "Single unlabeled image"], "Evidence + mechanism are required.", 4),
-        ]
-    else:
-        out += [
-            make_question("What makes a model useful for decisions?", "Testable assumptions and interpretable outputs", ["Never changing rules", "No data", "Random formulas"], "Useful models are validated and interpretable.", 2),
-            make_question("Why compare two strategies?", "To evaluate efficiency and assumptions", ["To avoid evidence", "To increase confusion", "Because both must disagree"], "Comparison improves decision quality.", 3),
-            make_question("Sampling bias causes:", "Misleading conclusions", ["Perfect certainty", "Guaranteed causality", "Lower uncertainty"], "Bias skews inference.", 4),
-        ]
+        if grade <= 4:
+            a = rr.randint(20 + grade, 40 + grade * 2)
+            b = rr.randint(10 + grade, 35 + grade * 2)
+            c = rr.randint(30 + grade, 70 + grade * 2)
+            d = rr.randint(8 + grade, 25 + grade)
+            add(f"{title}: Compute {a} + {b}.", str(a + b), [str(a + b + 1), str(a + b - 1), str(a + b + 2)], "Use place-value decomposition and verify with estimation.")
+            add(f"{title}: Solve subtraction {c} - {d}.", str(c - d), [str(c - d + 1), str(c - d - 2), str(c - d + 3)], "Regroup carefully and check by inverse addition.")
+            add(f"In {title}, which representation should come before symbolic shortcuts?", "A visual/table model of the situation", ["A random formula guess", "Only the final numeric answer", "No representation"], "Visual structure reduces errors and supports understanding.")
+        elif grade <= 8:
+            num = rr.randint(8, 21)
+            den = rr.randint(3, 9)
+            add(f"{title}: Convert {num}/{den} to decimal (rounded to 2 decimals).", f"{num/den:.2f}", [f"{num/den + 0.1:.2f}", f"{num/den - 0.1:.2f}", f"{num/den + 0.2:.2f}"], "Fraction-decimal conversion should preserve value.")
+            x = rr.randint(2, 7)
+            rhs = rr.randint(18, 42)
+            lhs_c = rr.randint(4, 12)
+            add(f"{title}: Solve {x}n + {lhs_c} = {rhs}.", f"n = {(rhs-lhs_c)/x:.2f}" if (rhs - lhs_c) % x else f"n = {(rhs-lhs_c)//x}", [f"n = {(rhs-lhs_c)/x + 1:.2f}", f"n = {(rhs-lhs_c)/x - 1:.2f}", "n = 0"], "Isolate the variable with inverse operations.")
+            add(f"For {title}, in proportional form y = kx, what does k represent?", "Constant of proportionality (unit rate)", ["Y-intercept", "Random offset", "Domain"], "k is the multiplicative scale factor.")
+        else:
+            m = rr.randint(2, 8)
+            b = rr.randint(-6, 8)
+            x = rr.randint(2, 6)
+            add(f"{title}: For y = {m}x + ({b}), find y when x={x}.", str(m * x + b), [str(m * x + b + 2), str(m * x + b - 3), str(m * x + b + 5)], "Substitute then simplify carefully.")
+            r1 = rr.randint(2, 8)
+            r2 = rr.randint(1, 6)
+            add(f"{title}: Roots are x={r1} and x={r2}. Which quadratic matches?", f"(x-{r1})(x-{r2}) = 0", [f"(x+{r1})(x-{r2}) = 0", f"(x-{r1})(x+{r2}) = 0", f"(x+{r1})(x+{r2}) = 0"], "Factor form encodes roots directly.")
+            add(f"Before finalizing an answer in {title}, what must be checked?", "Domain, units/context, and reasonableness", ["Only algebraic formatting", "Only calculator output", "Nothing if the number looks large"], "Verification protects against hidden model errors.")
 
-    out += [
-        make_question("Which simulations are embedded in this course?", f"{course['sims'][0]} and {course['sims'][1]}", [f"{course['sims'][0]} and Arithmetic", "No simulations are used", "Only static diagrams"], "Every course includes two PhET labs.", 5),
-        make_question("What is expected in student submissions?", "Steps, reasoning, and clear conclusions", ["Only final answer", "No explanation needed", "One-word response"], "Mastery requires transparent reasoning.", 6),
-        make_question("CER stands for:", "Claim, Evidence, Reasoning", ["Claim, Example, Revision", "Calculate, Estimate, Report", "Compare, Evaluate, Repeat"], "CER is a standard explanation framework.", 7),
-        make_question("Why run multiple simulation trials?", "To detect patterns and reduce one-off error", ["One trial is always wrong", "To avoid data recording", "To force one outcome"], "Replication improves reliability.", 8),
-        make_question("Transfer of learning means:", "Applying ideas in a new context", ["Memorizing only", "Copying exact examples only", "Ignoring constraints"], "Transfer shows deeper understanding.", 9),
-        make_question("Capstone should include:", "Model, data, full solution path, and reflection", ["Title only", "Single numeric answer", "Formula list without context"], "Capstones assess synthesis and communication.", 10),
-    ]
+    elif strand == "physics":
+        m = rr.randint(grade + 1, grade + 5)
+        force = rr.randint(18 + grade, 55 + grade * 2)
+        v = rr.randint(grade + 3, grade + 8)
+        h = rr.randint(grade + 2, grade + 9)
+        add(f"{title}: If F={force} N and m={m} kg, acceleration is:", f"{force/m:.2f} m/s^2", [f"{force/m + 0.8:.2f} m/s^2", f"{max(force/m - 0.8, 0):.2f} m/s^2", f"{(2*force)/m:.2f} m/s^2"], "Apply a=F/m with consistent units.")
+        add(f"{title}: Kinetic energy for m={m} kg, v={v} m/s is:", f"{0.5*m*v*v:.2f} J", [f"{0.5*m*v*v + 8:.2f} J", f"{max(0.5*m*v*v - 8, 0):.2f} J", f"{m*v:.2f} J"], "Use KE = 1/2mv^2, not momentum.")
+        add(f"{title}: Potential energy at height {h} m for mass {m} kg is:", f"{m*9.8*h:.2f} J", [f"{m*9.8*h + 10:.2f} J", f"{m*9.8*h/2:.2f} J", f"{m*9.8*(h+2):.2f} J"], "Use PE = mgh and keep unit J.")
+
+    elif strand == "chemistry":
+        moles = rr.uniform(0.8, 2.8)
+        vol = rr.uniform(0.6, 2.4)
+        ph = rr.uniform(2.2, 11.4)
+        add(f"{title}: Molarity of {moles:.2f} mol in {vol:.2f} L is:", f"{moles/vol:.2f} M", [f"{moles/vol + 0.30:.2f} M", f"{max(moles/vol - 0.25, 0):.2f} M", f"{(moles*vol):.2f} M"], "Use M=n/V and preserve units.")
+        acid_base = "Acidic" if ph < 7 else ("Basic" if ph > 7 else "Neutral")
+        add(f"{title}: A sample has pH {ph:.1f}. Classification?", acid_base, ["Acidic" if acid_base != "Acidic" else "Basic", "Neutral" if acid_base != "Neutral" else "Basic", "Cannot classify from pH"], "pH<7 acid, pH=7 neutral, pH>7 base.")
+        add(f"In {title}, why must equations be balanced before stoichiometric calculations?", "To conserve atoms (and charge when relevant)", ["To force products to appear", "To make numbers larger", "Because reactants disappear"], "Conservation is non-negotiable in chemical models.")
+
+    elif strand == "bioearth":
+        start = rr.randint(60 + grade * 3, 130 + grade * 5)
+        growth = rr.randint(6, 18)
+        next_pop = round(start * (1 + growth/100))
+        add(f"{title}: Population {start} grows by {growth}%. Next year estimate?", str(next_pop), [str(next_pop + 5), str(max(next_pop - 6, 0)), str(start + growth)], "Use multiplicative growth factor 1+r.")
+        add(f"In {title}, for genotype cross Bb x Bb, probability of bb is:", "25%", ["0%", "50%", "75%"], "Punnett square yields 1 of 4 bb outcomes.")
+        add(f"For {title}, a strong bio/earth claim should include:", "Mechanism + measured evidence + interpretation", ["Opinion only", "One unlabeled image", "Conclusion without data"], "Scientific arguments require mechanism and evidence.")
+
+    else:
+        vals = [rr.randint(8, 30) for _ in range(5)]
+        mean = sum(vals)/len(vals)
+        add(f"{title}: Mean of dataset {vals} is:", f"{mean:.2f}", [f"{mean+1:.2f}", f"{max(mean-1,0):.2f}", f"{sum(vals):.2f}"], "Mean = total/count, then interpret in context.")
+        cost = rr.randint(9, 24)
+        budget = rr.randint(140, 320)
+        add(f"{title}: Budget is ${budget}, each item costs ${cost}. Max whole items?", str(budget // cost), [str(budget // cost + 1), str(max(budget // cost - 1, 0)), str(round(budget / cost, 2))], "Use integer division when only whole items are feasible.")
+        add(f"In {title}, what makes an applied model trustworthy?", "Explicit assumptions, tested fit, and interpretable output", ["Hidden assumptions and no validation", "Random parameter tuning only", "Ignoring uncertainty"], "Trustworthy models are transparent and validated.")
+
+    solved = solved_problem_bank(course) or generic_solved_bank(course)
+    solved_ans_1 = str(solved[0]["answer"])
+    solved_ans_2 = str(solved[1]["answer"])
+    add(f"{title}: In Solved Walkthrough 1, the final result is:", solved_ans_1, [solved_ans_2, "Not enough information", "The result is intentionally omitted"], "This checks whether students can trace full solutions, not just skim.")
+    add(f"{title}: In Solved Walkthrough 2, the final result is:", solved_ans_2, [solved_ans_1, "No final result appears", "Answer cannot be determined"], "Reviewing complete solutions helps transfer to new problems.")
+
+    add(
+        f"In {title}, which simulations are embedded?",
+        f"{course['sims'][0]} and {course['sims'][1]}",
+        [f"{course['sims'][0]} and Arithmetic", "No simulations are used", "Only static diagrams"],
+        "Each course uses two PhET sims tied to its title scope."
+    )
+    add(
+        f"For {topic}, CER means:",
+        "Claim, Evidence, Reasoning",
+        ["Claim, Example, Revision", "Calculate, Estimate, Report", "Compare, Evaluate, Repeat"],
+        "CER is the standard for evidence-backed explanations in this course."
+    )
+    add(
+        f"When using {course['sims'][0]} in {title}, why run multiple trials?",
+        "To identify stable patterns and reduce one-off noise",
+        ["One trial is always enough", "To avoid recording data", "To force a preferred result"],
+        "Replication improves reliability and strengthens conclusions."
+    )
+    add(
+        f"In {title}, transfer of learning means:",
+        f"Applying '{scope[0]}' correctly in a new context",
+        ["Memorizing only one worked example", "Ignoring assumptions", "Skipping model setup"],
+        "Mastery appears when students can adapt ideas beyond the original example."
+    )
+    add(
+        f"For the {title} capstone, required evidence includes:",
+        "Model, data, full reasoning path, and limitation analysis",
+        ["Title and one final number", "Only equations without explanation", "One paragraph with no evidence"],
+        "Capstones evaluate complete thinking, not answer snapshots."
+    )
+    add(
+        f"Before submitting work in {title}, students should always:",
+        "Check assumptions, units, and reasonableness",
+        ["Skip checks to save time", "Only bold the final answer", "Delete intermediate work"],
+        "Quality control catches hidden errors."
+    )
+
     return out
 
 
@@ -543,7 +1042,10 @@ def main():
             print("Status: WARNING - verification mismatch detected.")
 
     except Exception as exc:
-        conn.rollback()
+        try:
+            conn.rollback()
+        except Exception:
+            pass
         print(f"ERROR during injection: {exc}")
         return 1
     finally:

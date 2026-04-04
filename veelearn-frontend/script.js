@@ -32,6 +32,8 @@ let availableCourses = [];
 let allUsers = [];
 let courseQuestions = [];
 let pendingCourses = [];
+/** When viewing a course, sent to study coach for context (child unit id in master courses). */
+let currentViewingCourseId = null;
 let currentEditingQuestionId = null;
 let lastDeletedQuestion = null; // Store last deleted question for undo
 let savedSelection = null; // Save cursor position when editor loses focus
@@ -1005,6 +1007,7 @@ function initializeApp() {
     setupCourseSortListener();
     setupAnimationPreference();
     setupCourseNestingListeners();
+    setupStudyCoachListeners();
 
     if (document.cookie.includes('token=') || authToken) {
         fetchUserProfile();
@@ -1027,6 +1030,173 @@ function setupCourseNestingListeners() {
     const addUnitBtn = document.getElementById("add-unit-btn");
     if (addUnitBtn) {
         addUnitBtn.addEventListener("click", showUnitSelectionModal);
+    }
+}
+
+function setStudyCoachVisible(visible) {
+    const root = document.getElementById("study-coach-root");
+    if (root) root.style.display = visible ? "block" : "none";
+}
+
+function setupStudyCoachListeners() {
+    const fab = document.getElementById("study-coach-fab");
+    const panel = document.getElementById("study-coach-panel");
+    const closeBtn = document.getElementById("study-coach-close");
+    const sendBtn = document.getElementById("study-coach-send");
+    const input = document.getElementById("study-coach-input");
+
+    if (!fab || !panel) return;
+
+    fab.addEventListener("click", () => {
+        const open = panel.style.display === "flex";
+        if (open) {
+            panel.style.display = "none";
+        } else {
+            panel.style.display = "flex";
+            panel.style.flexDirection = "column";
+            loadStudyCoachHistory();
+            if (input) input.focus();
+        }
+    });
+
+    if (closeBtn) {
+        closeBtn.addEventListener("click", () => {
+            panel.style.display = "none";
+        });
+    }
+
+    if (sendBtn) {
+        sendBtn.addEventListener("click", () => sendStudyCoachMessage());
+    }
+    if (input) {
+        input.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                sendStudyCoachMessage();
+            }
+        });
+    }
+}
+
+function appendStudyCoachBubble(role, text) {
+    const box = document.getElementById("study-coach-messages");
+    if (!box) return;
+    const wrap = document.createElement("div");
+    wrap.style.marginBottom = "10px";
+    wrap.style.padding = "8px 10px";
+    wrap.style.borderRadius = "8px";
+    wrap.style.whiteSpace = "pre-wrap";
+    if (role === "user") {
+        wrap.style.background = "rgba(102, 126, 234, 0.2)";
+        wrap.style.marginLeft = "12px";
+        wrap.innerHTML = `<strong>You</strong><div>${escapeHtml(text)}</div>`;
+    } else {
+        wrap.style.background = "rgba(255,255,255,0.06)";
+        wrap.style.marginRight = "12px";
+        wrap.innerHTML = `<strong>Coach</strong><div>${escapeHtml(text)}</div>`;
+    }
+    box.appendChild(wrap);
+    box.scrollTop = box.scrollHeight;
+}
+
+function renderStudyCoachRecommendations(recs) {
+    const el = document.getElementById("study-coach-recs");
+    if (!el) return;
+    el.innerHTML = "";
+    if (!recs || !recs.length) return;
+    const title = document.createElement("div");
+    title.textContent = "Suggested courses:";
+    title.style.fontWeight = "600";
+    title.style.marginBottom = "6px";
+    title.style.color = "var(--text, #ddd)";
+    el.appendChild(title);
+    recs.forEach((r) => {
+        const row = document.createElement("div");
+        row.style.marginBottom = "6px";
+        const link = document.createElement("button");
+        link.type = "button";
+        link.textContent = r.title || `Course ${r.courseId}`;
+        link.style.cssText =
+            "background:none;border:none;color:#8b9cff;cursor:pointer;text-align:left;padding:0;font-size:13px;text-decoration:underline;";
+        link.addEventListener("click", () => {
+            if (typeof viewCourse === "function") viewCourse(r.courseId);
+            document.getElementById("study-coach-panel").style.display = "none";
+        });
+        row.appendChild(link);
+        if (r.reason) {
+            const why = document.createElement("div");
+            why.textContent = r.reason;
+            why.style.fontSize = "12px";
+            why.style.opacity = "0.85";
+            why.style.marginTop = "2px";
+            row.appendChild(why);
+        }
+        el.appendChild(row);
+    });
+}
+
+async function loadStudyCoachHistory() {
+    const box = document.getElementById("study-coach-messages");
+    if (!box || !currentUser) return;
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/ai/tutor/history?limit=30`, {
+            credentials: "include",
+            headers: { Authorization: `Bearer ${authToken || ""}` }
+        });
+        const data = await res.json();
+        if (!data.success || !Array.isArray(data.data)) return;
+        box.innerHTML = "";
+        data.data.forEach((row) => {
+            if (row.role === "user" || row.role === "assistant") {
+                appendStudyCoachBubble(row.role, row.content || "");
+            }
+        });
+    } catch (e) {
+        console.warn("Study coach history:", e);
+    }
+}
+
+async function sendStudyCoachMessage() {
+    const input = document.getElementById("study-coach-input");
+    const sendBtn = document.getElementById("study-coach-send");
+    if (!input || !currentUser) return;
+    const text = input.value.trim();
+    if (!text) return;
+
+    input.value = "";
+    appendStudyCoachBubble("user", text);
+    const recsEl = document.getElementById("study-coach-recs");
+    if (recsEl) recsEl.innerHTML = "";
+
+    const payload = { message: text };
+    if (currentViewingCourseId != null) {
+        payload.courseId = currentViewingCourseId;
+    }
+
+    if (sendBtn) sendBtn.disabled = true;
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/ai/tutor/chat`, {
+            method: "POST",
+            credentials: "include",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${authToken || ""}`
+            },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!data.success) {
+            appendStudyCoachBubble("assistant", data.message || "Something went wrong. Try again later.");
+            return;
+        }
+        const reply = data.data?.reply || "";
+        appendStudyCoachBubble("assistant", reply);
+        renderStudyCoachRecommendations(data.data?.recommendations);
+    } catch (e) {
+        console.error(e);
+        appendStudyCoachBubble("assistant", "Could not reach the study coach. Check your connection and try again.");
+    } finally {
+        if (sendBtn) sendBtn.disabled = false;
     }
 }
 
@@ -2335,6 +2505,9 @@ function showLandingPage() {
     document.getElementById("dashboard-link").style.display = "none";
     document.getElementById("logout-button").style.display = "none";
 
+    setStudyCoachVisible(false);
+    currentViewingCourseId = null;
+
     // Initialize aurora ball on landing page
     initializeAuroraBall();
 }
@@ -2414,6 +2587,9 @@ function showAuthSection(type = "login") {
     show("login-link");
     show("register-link");
 
+    setStudyCoachVisible(false);
+    currentViewingCourseId = null;
+
     if (type === "register") {
         hide("login-form");
         show("register-form", "block");
@@ -2427,6 +2603,7 @@ function showAuthSection(type = "login") {
 
 function showDashboard() {
     stopCourseTimer();
+    currentViewingCourseId = null;
 
     const dashboard = document.getElementById("dashboard-section");
     const landing = document.getElementById("landing-page");
@@ -2459,6 +2636,8 @@ function showDashboard() {
 
     hideEl("login-link");
     hideEl("register-link");
+
+    setStudyCoachVisible(true);
 
     const userEmail = document.getElementById("user-email");
     if (userEmail) userEmail.textContent = currentUser?.email || "User";
@@ -3309,6 +3488,8 @@ async function viewCourse(courseId, assignmentId = null, forceRegular = false) {
         alert("Course not found");
         return;
     }
+
+    currentViewingCourseId = courseId;
 
     // Creator of a master course: use creator preview (loads units without enrollment)
     const isCreator = course.creator_id === currentUser?.id;
@@ -4949,6 +5130,7 @@ let currentUnitIndex = 0;
 
 // View course with unit navigation
 async function viewCourseWithNavigation(courseId) {
+    currentViewingCourseId = courseId;
     try {
         // Get course type
         const typeResponse = await fetch(`${API_BASE_URL}/api/courses/${courseId}/type`, {
@@ -4995,7 +5177,8 @@ async function viewCreatorMasterCoursePreview(courseId) {
         
         const course = courseResult.data;
         currentMasterCourse = course;
-        
+        currentViewingCourseId = courseId;
+
         // Load units directly (creator doesn't need enrollment)
         const unitsResponse = await fetch(`${API_BASE_URL}/api/courses/${courseId}/units`, {
             headers: { 'Authorization': `Bearer ${authToken}` },
@@ -5209,7 +5392,8 @@ async function loadUnitContent(unit) {
         
         if (result.success) {
             const unitCourse = result.data;
-            
+            currentViewingCourseId = unit.child_course_id;
+
             // CRITICAL: Load quiz questions for this unit's course BEFORE hydrating
             await loadCourseQuestions(unit.child_course_id);
             

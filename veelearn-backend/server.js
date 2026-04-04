@@ -15,6 +15,7 @@ const util = require('util');
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const axios = require('axios');
+const { openRouterChatCompletion, getOpenRouterKeys } = require('./openrouter');
 // path is already required above
 
 dotenv.config({ path: path.resolve(__dirname, '.env') });
@@ -503,6 +504,29 @@ const initializeDatabase = async () => {
             )
         `);
 
+        await query(`
+            CREATE TABLE IF NOT EXISTS ai_tutor_messages (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                role ENUM('user', 'assistant') NOT NULL,
+                content TEXT NOT NULL,
+                course_id INT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE SET NULL,
+                INDEX idx_user_created (user_id, created_at)
+            )
+        `);
+        await query(`
+            CREATE TABLE IF NOT EXISTS user_learning_profile (
+                user_id INT PRIMARY KEY,
+                summary_text TEXT,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        `);
+        console.log('✓ AI tutor tables ready');
+
         // Course likes table
         await query(`
             CREATE TABLE IF NOT EXISTS course_likes (
@@ -816,6 +840,15 @@ const authLimiter = rateLimit({
     max: 10, // limit each IP to 10 login/register requests per hour
     message: { success: false, message: 'Too many accounts created or login attempts from this IP, please try again after an hour.' }
 });
+
+const aiTutorLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 20,
+    message: { success: false, message: 'Too many study coach requests. Please wait a moment and try again.' }
+});
+
+const createAiTutorHandlers = require('./ai-tutor-handlers');
+const aiTutorHandlers = createAiTutorHandlers({ query, openRouterChatCompletion, apiResponse });
 
 // Apply generic rate limiter to all /api/ routes
 app.use('/api/', apiLimiter);
@@ -5283,6 +5316,21 @@ app.get('/api/search', async (req, res) => {
     }
 });
 
+// ===== AI STUDY COACH (OpenRouter, Socratic) =====
+app.post('/api/ai/tutor/chat', aiTutorLimiter, authenticateToken, (req, res) => {
+    aiTutorHandlers.chat(req, res).catch((e) => {
+        console.error('ai tutor chat:', e);
+        apiResponse(res, 500, 'Study coach error');
+    });
+});
+
+app.get('/api/ai/tutor/history', aiTutorLimiter, authenticateToken, (req, res) => {
+    aiTutorHandlers.history(req, res).catch((e) => {
+        console.error('ai tutor history:', e);
+        apiResponse(res, 500, 'Study coach error');
+    });
+});
+
 // ===== ERROR HANDLING =====
 app.use((err, req, res, next) => {
     console.error('Unhandled error:', err);
@@ -5294,4 +5342,9 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT} `);
     console.log(`Environment: ${process.env.NODE_ENV || 'development'} `);
+    if (getOpenRouterKeys().length) {
+        console.log('✓ OpenRouter API keys loaded for study coach');
+    } else {
+        console.warn('ℹ️ No OPENROUTER_API_KEYS — study coach disabled until keys are set (see .env.example)');
+    }
 });
