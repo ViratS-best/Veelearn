@@ -1078,20 +1078,45 @@ function setupStudyCoachListeners() {
     }
 }
 
+function removeStudyCoachTypingIndicator() {
+    document.getElementById("study-coach-typing")?.remove();
+}
+
+function showStudyCoachTypingIndicator() {
+    const box = document.getElementById("study-coach-messages");
+    if (!box) return;
+    removeStudyCoachTypingIndicator();
+    const wrap = document.createElement("div");
+    wrap.id = "study-coach-typing";
+    wrap.className = "study-coach-bubble";
+    wrap.setAttribute("aria-busy", "true");
+    wrap.setAttribute("aria-live", "polite");
+    wrap.style.marginBottom = "10px";
+    wrap.style.padding = "8px 10px";
+    wrap.style.borderRadius = "8px";
+    wrap.style.background = "rgba(255,255,255,0.1)";
+    wrap.style.marginRight = "12px";
+    wrap.innerHTML =
+        '<strong>Coach</strong><div class="study-coach-typing-dots" aria-hidden="true"><span>.</span><span>.</span><span>.</span></div>';
+    box.appendChild(wrap);
+    box.scrollTop = box.scrollHeight;
+}
+
 function appendStudyCoachBubble(role, text) {
     const box = document.getElementById("study-coach-messages");
     if (!box) return;
     const wrap = document.createElement("div");
+    wrap.className = "study-coach-bubble";
     wrap.style.marginBottom = "10px";
     wrap.style.padding = "8px 10px";
     wrap.style.borderRadius = "8px";
     wrap.style.whiteSpace = "pre-wrap";
     if (role === "user") {
-        wrap.style.background = "rgba(102, 126, 234, 0.2)";
+        wrap.style.background = "rgba(118, 139, 255, 0.35)";
         wrap.style.marginLeft = "12px";
         wrap.innerHTML = `<strong>You</strong><div>${escapeHtml(text)}</div>`;
     } else {
-        wrap.style.background = "rgba(255,255,255,0.06)";
+        wrap.style.background = "rgba(255,255,255,0.1)";
         wrap.style.marginRight = "12px";
         wrap.innerHTML = `<strong>Coach</strong><div>${escapeHtml(text)}</div>`;
     }
@@ -1108,7 +1133,6 @@ function renderStudyCoachRecommendations(recs) {
     title.textContent = "Suggested courses:";
     title.style.fontWeight = "600";
     title.style.marginBottom = "6px";
-    title.style.color = "var(--text, #ddd)";
     el.appendChild(title);
     recs.forEach((r) => {
         const row = document.createElement("div");
@@ -1117,7 +1141,7 @@ function renderStudyCoachRecommendations(recs) {
         link.type = "button";
         link.textContent = r.title || `Course ${r.courseId}`;
         link.style.cssText =
-            "background:none;border:none;color:#8b9cff;cursor:pointer;text-align:left;padding:0;font-size:13px;text-decoration:underline;";
+            "background:none;border:none;cursor:pointer;text-align:left;padding:0;font-size:13px;text-decoration:underline;";
         link.addEventListener("click", () => {
             if (typeof viewCourse === "function") viewCourse(r.courseId);
             document.getElementById("study-coach-panel").style.display = "none";
@@ -1127,8 +1151,8 @@ function renderStudyCoachRecommendations(recs) {
             const why = document.createElement("div");
             why.textContent = r.reason;
             why.style.fontSize = "12px";
-            why.style.opacity = "0.85";
             why.style.marginTop = "2px";
+            why.style.opacity = "0.92";
             row.appendChild(why);
         }
         el.appendChild(row);
@@ -1138,6 +1162,7 @@ function renderStudyCoachRecommendations(recs) {
 async function loadStudyCoachHistory() {
     const box = document.getElementById("study-coach-messages");
     if (!box || !currentUser) return;
+    removeStudyCoachTypingIndicator();
     try {
         const res = await fetch(`${API_BASE_URL}/api/ai/tutor/history?limit=30`, {
             credentials: "include",
@@ -1174,6 +1199,8 @@ async function sendStudyCoachMessage() {
     }
 
     if (sendBtn) sendBtn.disabled = true;
+    if (input) input.disabled = true;
+    showStudyCoachTypingIndicator();
     try {
         const res = await fetch(`${API_BASE_URL}/api/ai/tutor/chat`, {
             method: "POST",
@@ -1185,6 +1212,7 @@ async function sendStudyCoachMessage() {
             body: JSON.stringify(payload)
         });
         const data = await res.json();
+        removeStudyCoachTypingIndicator();
         if (!data.success) {
             appendStudyCoachBubble("assistant", data.message || "Something went wrong. Try again later.");
             return;
@@ -1194,9 +1222,11 @@ async function sendStudyCoachMessage() {
         renderStudyCoachRecommendations(data.data?.recommendations);
     } catch (e) {
         console.error(e);
+        removeStudyCoachTypingIndicator();
         appendStudyCoachBubble("assistant", "Could not reach the study coach. Check your connection and try again.");
     } finally {
         if (sendBtn) sendBtn.disabled = false;
+        if (input) input.disabled = false;
     }
 }
 
