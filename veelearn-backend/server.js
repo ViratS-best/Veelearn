@@ -881,7 +881,7 @@ const createAiTutorHandlers = require('./ai-tutor-handlers');
 const aiTutorHandlers = createAiTutorHandlers({ query, openRouterChatCompletion, apiResponse });
 
 // Apply generic rate limiter to all /api/ routes
-app.use('/api/', apiLimiter);
+app.use('/api/', generalLimiter);
 
 // ===== ROUTES =====
 
