@@ -5,24 +5,71 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description"
-    content="Veelearn - 100% Free, Interactive Learning Platform | Get Volunteer hours to make courses" />
+    content="Veelearn - Free interactive STEM learning platform for K-12 and college students. Master physics, chemistry, math, and biology with 120+ PhET simulations, block-based programming, and community courses. Earn volunteer hours by creating educational content." />
   <link rel="icon" type="image/png" href="/VEELEARN.png">
   <link rel="shortcut icon" href="/VEELEARN.png">
-  <title>Veelearn - 100% Free, Interactive Learning Platform | Get Volunteer hours to make courses</title>
+  <title>Veelearn - Free Interactive STEM Learning | Physics, Chemistry, Math Simulations | K-12 & College Education</title>
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="styles-redesign.css" />
   <link rel="stylesheet" href="styles-humanized.css" />
+  <link rel="stylesheet" href="loading-states.css" />
+  <link rel="stylesheet" href="error-handler.css" />
+  <link rel="stylesheet" href="validation.css" />
+  <link rel="stylesheet" href="keyboard-shortcuts.css" />
+  <link rel="stylesheet" href="theme-toggle.css" />
+  <link rel="stylesheet" href="auto-save.css" />
+  <link rel="stylesheet" href="search-enhancements.css" />
+  <link rel="stylesheet" href="mobile-responsive.css" />
+  <link rel="stylesheet" href="lazy-loading.css" />
+  <link rel="stylesheet" href="focus-indicators.css" />
+  <meta name="keywords" content="STEM learning, interactive physics simulations, chemistry education, math learning, biology simulations, free education, K-12 learning, college STEM, PhET simulations, block-based programming, educational games, science education, online learning, volunteer hours" />
+  <meta name="author" content="Veelearn by Virat" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://veelearn.org/" />
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://veelearn.org/" />
+  <meta property="og:title" content="Veelearn - Free Interactive STEM Learning | Physics, Chemistry, Math Simulations" />
+  <meta property="og:description" content="Free interactive STEM learning platform for K-12 and college students. Master physics, chemistry, math, and biology with 120+ PhET simulations, block-based programming, and community courses. Earn volunteer hours by creating educational content." />
+  <meta property="og:image" content="https://veelearn.org/VEELEARN.png" />
+  <meta property="og:site_name" content="Veelearn" />
+  <meta property="og:locale" content="en_US" />
+  
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:url" content="https://veelearn.org/" />
+  <meta name="twitter:title" content="Veelearn - Free Interactive STEM Learning | Physics, Chemistry, Math Simulations" />
+  <meta name="twitter:description" content="Free interactive STEM learning platform for K-12 and college students. Master physics, chemistry, math, and biology with 120+ PhET simulations, block-based programming, and community courses." />
+  <meta name="twitter:image" content="https://veelearn.org/VEELEARN.png" />
+  
   <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": "NonprofitOrganization",
-  "name": "VeeLearn",
+  "@type": "EducationalOrganization",
+  "name": "Veelearn",
   "url": "https://veelearn.org",
   "logo": "https://veelearn.org/VEELEARN.png",
+  "description": "Free interactive STEM learning platform for K-12 and college students with 120+ PhET simulations, block-based programming, and community courses.",
+  "sameAs": [
+    "https://www.hackclub.com"
+  ],
   "parentOrganization": {
     "@type": "NonprofitOrganization",
     "name": "The Hack Foundation",
     "taxID": "81-2908499"
+  },
+  "offers": {
+    "@type": "Offer",
+    "category": "Educational",
+    "price": "0",
+    "priceCurrency": "USD",
+    "description": "100% free STEM education platform"
+  },
+  "audience": {
+    "@type": "EducationalAudience",
+    "educationalRole": "Student",
+    "educationalLevel": ["K-12", "College"]
   }
 }
 </script>
@@ -33,6 +80,7 @@
     <h1>Veelearn</h1>
     <nav>
       <a href="index.html" id="home-link">Home</a>
+      <a href="blog.html" id="blog-link">Blog</a>
       <a href="#" id="dashboard-link" style="display: none">Dashboard</a>
       <button id="logout-button" style="display: none">Logout</button>
       <a href="simulator-studio.html" id="simulator-link">Simulator Studio</a>
@@ -117,9 +165,8 @@
     <!-- LANDING PAGE SECTION -->
     <section id="landing-page">
       <div class="hero">
-        <h1>Master STEM with Interactive Simulations</h1>
-        <p>VeeLearn by Virat, brings science and math to life through world-class simulations, in-depth courses, and a
-          community-driven marketplace. Earn Volunteer hours by making courses!</p>
+        <h1>Free Interactive STEM Learning Platform for K-12 & College Students</h1>
+        <p>Master physics, chemistry, math, and biology through 120+ interactive PhET simulations, block-based programming, and community-created courses. Veelearn brings science education to life with hands-on learning experiences. Join thousands of students worldwide and earn volunteer hours by creating educational content.</p>
         <div class="hero-actions">
           <button id="get-started-btn" class="primary-btn">Get Started for Free</button>
           <button id="view-courses-btn" class="secondary-btn">Browse Courses</button>
@@ -134,43 +181,43 @@
       <div class="features-grid">
         <div class="feature-card">
           <div class="feature-icon">⚛️</div>
-          <h3>Interactive PhET Sims</h3>
-          <p>Over 120+ high-quality HTML5 simulations from PhET, fully integrated into our courses.</p>
+          <h3>120+ Physics & Chemistry Simulations</h3>
+          <p>Access over 120+ high-quality PhET HTML5 simulations covering physics, chemistry, biology, and math. Fully integrated into courses for hands-on STEM learning.</p>
         </div>
         <div class="feature-card">
           <div class="feature-icon">∑</div>
-          <h3>LaTeX Math Support</h3>
-          <p>Professional mathematical notation support for complex equations in every lesson.</p>
+          <h3>Advanced LaTeX Math Support</h3>
+          <p>Professional mathematical notation for complex equations. Perfect for calculus, algebra, physics formulas, and advanced STEM coursework.</p>
         </div>
         <div class="feature-card">
           <div class="feature-icon">🏗️</div>
-          <h3>Visual Block Coding</h3>
-          <p>Build your own physics simulations using our custom drag-and-drop block editor.</p>
+          <h3>Block-Based Programming Engine</h3>
+          <p>Build custom physics simulations with our visual drag-and-drop editor. No coding required - perfect for students and educators to create interactive experiments.</p>
         </div>
         <div class="feature-card">
           <div class="feature-icon">🌍</div>
-          <h3>Marketplace</h3>
-          <p>Discover, fork, and remix simulations created by the global educator community.</p>
+          <h3>Community Simulator Marketplace</h3>
+          <p>Discover, fork, and remix thousands of simulations created by educators worldwide. Share your creations and earn volunteer hours for contributing to STEM education.</p>
         </div>
       </div>
 
       <div class="how-it-works">
-        <h2>How It Works</h2>
+        <h2>How Veelearn Transforms STEM Education</h2>
         <div class="steps-grid">
           <div class="step">
             <span class="step-num">1</span>
-            <h4>Create an Account</h4>
-            <p>Sign up in seconds and choose your role as a student or educator.</p>
+            <h4>Create Your Free Account</h4>
+            <p>Sign up in seconds as a student or educator. No credit card required. Join a global community of learners passionate about science, technology, engineering, and mathematics.</p>
           </div>
           <div class="step">
             <span class="step-num">2</span>
-            <h4>Find Your Course</h4>
-            <p>Explore our library of in-depth STEM courses with embedded simulations.</p>
+            <h4>Explore Interactive STEM Courses</h4>
+            <p>Browse our extensive library of K-12 and college-level courses in physics, chemistry, biology, and mathematics. Each course includes embedded PhET simulations and interactive exercises.</p>
           </div>
           <div class="step">
             <span class="step-num">3</span>
-            <h4>Master Concepts</h4>
-            <p>Learn through hands-on interaction and test your knowledge with quizes.</p>
+            <h4>Learn Through Hands-On Practice</h4>
+            <p>Master complex concepts by interacting with simulations, solving real-world problems, and testing your knowledge with quizzes. Track your progress and earn certificates.</p>
           </div>
         </div>
       </div>
@@ -958,6 +1005,20 @@
 
   <script src="block-templates-unified.js"></script>
   <script src="anime-battle-system.js"></script>
+  <script src="logger.js"></script>
+  <script src="loading-states.js"></script>
+  <script src="error-handler.js"></script>
+  <script src="debounce-throttle.js"></script>
+  <script src="validation.js"></script>
+  <script src="keyboard-shortcuts.js"></script>
+  <script src="theme-toggle.js"></script>
+  <script src="auto-save.js"></script>
+  <script src="search-enhancements.js"></script>
+  <script src="mobile-responsive.js"></script>
+  <script src="lazy-loading.js"></script>
+  <script src="api-cache.js"></script>
+  <script src="image-optimization.js"></script>
+  <script src="accessibility.js"></script>
   <script src="script.js?v=9"></script>
   <script>
     // Load redesign sections

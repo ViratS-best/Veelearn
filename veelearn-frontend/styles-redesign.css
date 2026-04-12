@@ -1210,6 +1210,83 @@ textarea {
   .dashboard-card {
     padding: 16px;
   }
+
+  /* Mobile responsiveness for new landing pages */
+  #blog-grid,
+  .features-grid,
+  .steps-grid,
+  .topic-card {
+    grid-template-columns: 1fr;
+  }
+
+  .blog-card,
+  .topic-card,
+  .sim-card,
+  .feature-card {
+    padding: 20px;
+  }
+
+  #blog-section h1,
+  #physics-hub h1,
+  #chemistry-hub h1,
+  #math-hub h1,
+  #simulators-hub h1,
+  #teachers-hub h1,
+  #students-hub h1 {
+    font-size: 32px;
+  }
+
+  #blog-section p,
+  #physics-hub p,
+  #chemistry-hub p,
+  #math-hub p,
+  #simulators-hub p,
+  #teachers-hub p,
+  #students-hub p {
+    font-size: 16px;
+  }
+
+  .category-btn {
+    padding: 6px 16px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Extra small mobile devices */
+  header nav {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  header nav a,
+  header nav button {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+
+  #blog-grid,
+  .features-grid,
+  .steps-grid {
+    gap: 15px;
+  }
+
+  .blog-card,
+  .topic-card,
+  .sim-card,
+  .feature-card {
+    padding: 16px;
+  }
+
+  #blog-section h1,
+  #physics-hub h1,
+  #chemistry-hub h1,
+  #math-hub h1,
+  #simulators-hub h1,
+  #teachers-hub h1,
+  #students-hub h1 {
+    font-size: 28px;
+  }
 }
 
 /* APPLY REDESIGN TO EXISTING VEELEARN LISTS */

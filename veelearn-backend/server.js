@@ -16,6 +16,7 @@ const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const axios = require('axios');
 const { openRouterChatCompletion, getOpenRouterKeys } = require('./openrouter');
+const { debug, info, warn, error } = require('./logger');
 // path is already required above
 
 dotenv.config({ path: path.resolve(__dirname, '.env') });
@@ -41,17 +42,17 @@ let smtpReady = false;
 const brevoApiKey = process.env.BREVO_API_KEY;
 
 if (brevoApiKey) {
-    console.log('✓ Brevo API key configured - using HTTP-based email delivery');
+    info('✓ Brevo API key configured - using HTTP-based email delivery');
 } else {
-    console.log('ℹ️ No BREVO_API_KEY set, trying Gmail SMTP...');
+    info('ℹ️ No BREVO_API_KEY set, trying Gmail SMTP...');
 }
 
 if (process.env.SMTP_EMAIL && process.env.SMTP_PASSWORD) {
     smtpTransporter.verify()
-        .then(() => { smtpReady = true; console.log('✓ SMTP email service ready (fallback)'); })
-        .catch(err => console.warn('⚠️ SMTP unavailable:', err.message, '(port likely blocked)'));
+        .then(() => { smtpReady = true; info('✓ SMTP email service ready (fallback)'); })
+        .catch(err => warn('⚠️ SMTP unavailable:', err.message, '(port likely blocked)'));
 } else if (!brevoApiKey) {
-    console.warn('⚠️ No email provider configured. Set BREVO_API_KEY or SMTP_EMAIL+SMTP_PASSWORD.');
+    warn('⚠️ No email provider configured. Set BREVO_API_KEY or SMTP_EMAIL+SMTP_PASSWORD.');
 }
 
 async function sendEmail({ to, subject, html }) {
@@ -97,6 +98,47 @@ if (!process.env.JWT_SECRET) {
     console.error('   Please add JWT_SECRET to your environment variables.');
     process.exit(1);
 }
+
+// ===== RATE LIMITING MIDDLEWARE =====
+
+// General rate limiter for all endpoints
+const generalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 1000, // Limit each IP to 1000 requests per windowMs
+    message: { success: false, message: 'Too many requests from this IP, please try again later.' },
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false,
+});
+
+// Strict rate limiter for authentication endpoints
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // Limit each IP to 5 requests per windowMs
+    message: { success: false, message: 'Too many authentication attempts, please try again later.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+// Rate limiter for API endpoints that modify data
+const writeLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 write requests per windowMs
+    message: { success: false, message: 'Too many write requests, please try again later.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+// Rate limiter for search endpoints
+const searchLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minute
+    max: 30, // Limit each IP to 30 search requests per minute
+    message: { success: false, message: 'Too many search requests, please try again later.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+// Apply general rate limiting to all routes
+app.use(generalLimiter);
 
 // ===== SECURITY HEADERS MIDDLEWARE =====
 app.use(helmet({
@@ -191,7 +233,7 @@ setInterval(async () => {
 // Initialize database and tables sequentially
 const initializeDatabase = async () => {
     try {
-        console.log(`📡 Attempting to connect to database at ${dbConfig.host}:${dbConfig.port}`);
+        info(`📡 Attempting to connect to database at ${dbConfig.host}:${dbConfig.port}`);
         // 1. Ensure database exists
         const connection = mysql.createConnection({
             host: dbConfig.host,
@@ -203,10 +245,10 @@ const initializeDatabase = async () => {
 
         await connectionQuery(`CREATE DATABASE IF NOT EXISTS ${dbConfig.database}`);
         connection.end();
-        console.log(`Database '${dbConfig.database}' verified/created`);
+        info(`Database '${dbConfig.database}' verified/created`);
 
         // 2. Create tables in proper order
-        console.log('Initializing tables...');
+        info('Initializing tables...');
 
         // Users table (Parent)
         await query(`
@@ -223,7 +265,7 @@ const initializeDatabase = async () => {
                 INDEX idx_role (role)
             )
         `);
-        console.log('✓ Users table ready');
+        info('✓ Users table ready');
 
         // Courses table (Parent)
         await query(`
@@ -247,7 +289,7 @@ const initializeDatabase = async () => {
                 INDEX idx_grade_level (grade_level)
             )
         `);
-        console.log('✓ Courses table ready');
+        info('✓ Courses table ready');
 
         // Helper to safely add column
         const addColumn = (table, column, definition) => {
@@ -272,7 +314,7 @@ const initializeDatabase = async () => {
                             if (alterErr) {
                                 console.error(`Error adding column ${column}:`, alterErr);
                             } else {
-                                console.log(`✓ Added column ${column} to ${table}`);
+                                info(`✓ Added column ${column} to ${table}`);
                             }
                             resolve();
                         });
@@ -304,17 +346,17 @@ const initializeDatabase = async () => {
         // Migration: Add teacher-specific columns
         await addColumn('users', 'class_code', 'VARCHAR(20) UNIQUE');
         await addColumn('users', 'teacher_approved', 'BOOLEAN DEFAULT FALSE');
-        console.log('✓ Teacher columns verified/added to users table');
+        info('✓ Teacher columns verified/added to users table');
 
         // ===== COURSE NESTING SYSTEM MIGRATIONS =====
         
         // Migration: Add course_type column to courses table
         await addColumn('courses', 'course_type', "ENUM('single', 'master') DEFAULT 'single'");
-        console.log('✓ Course type column verified/added');
+        info('✓ Course type column verified/added');
 
         // Migration: Add is_master_enrollment column to enrollments table
         await addColumn('enrollments', 'is_master_enrollment', 'BOOLEAN DEFAULT FALSE');
-        console.log('✓ Master enrollment column verified/added');
+        info('✓ Master enrollment column verified/added');
 
         // Course Units table - manages parent-child course relationships
         await query(`
@@ -335,7 +377,7 @@ const initializeDatabase = async () => {
                 INDEX idx_order (order_index)
             )
         `);
-        console.log('✓ Course units table ready');
+        info('✓ Course units table ready');
 
         // Course Enrollment Progress table - per-unit progress tracking
         await query(`
@@ -355,11 +397,11 @@ const initializeDatabase = async () => {
                 INDEX idx_user_course (user_id, course_id)
             )
         `);
-        console.log('✓ Course enrollment progress table ready');
+        info('✓ Course enrollment progress table ready');
 
         // Migration: Add linked_course_id to course_units for standalone progress sync
         await addColumn('course_units', 'linked_course_id', 'INT');
-        console.log('✓ Course units linked_course_id column verified/added');
+        info('✓ Course units linked_course_id column verified/added');
 
         // Classroom assignments table
         await query(`
@@ -377,7 +419,7 @@ const initializeDatabase = async () => {
                 INDEX idx_class_code (class_code)
             )
         `);
-        console.log('✓ Classroom assignments table ready');
+        info('✓ Classroom assignments table ready');
 
         // Student enrollments in classes
         await query(`
@@ -394,7 +436,7 @@ const initializeDatabase = async () => {
                 INDEX idx_class_code (class_code)
             )
         `);
-        console.log('✓ Student enrollments table ready');
+        info('✓ Student enrollments table ready');
 
         // Assignment submissions
         await query(`
@@ -422,12 +464,12 @@ const initializeDatabase = async () => {
         await addColumn('assignment_submissions', 'correct_answers', 'INT DEFAULT 0');
         await addColumn('assignment_submissions', 'total_questions', 'INT DEFAULT 0');
         await addColumn('assignment_submissions', 'quiz_accuracy', 'DECIMAL(5,2) DEFAULT 0');
-        console.log('✓ Assignment submission columns verified');
+        info('✓ Assignment submission columns verified');
         // Migration: Add unique constraint to quiz attempts if not already present
         // Note: Generic try/catch because MySQL 8.0 doesn't support IF NOT EXISTS for ADD UNIQUE
         try {
             await query(`ALTER TABLE user_quiz_attempts ADD UNIQUE KEY unique_attempt (user_id, question_id)`);
-            console.log('✓ Unique constraint added to user_quiz_attempts');
+            info('✓ Unique constraint added to user_quiz_attempts');
         } catch (e) {
             // Likely already exists
         }
@@ -456,7 +498,7 @@ const initializeDatabase = async () => {
                 INDEX idx_rating (rating)
             )
         `);
-        console.log('✓ Simulators table ready');
+        info('✓ Simulators table ready');
 
         // Migration: Add simulator fork and code mode columns
         await addColumn('simulators', 'forked_from', 'INT');
@@ -465,7 +507,7 @@ const initializeDatabase = async () => {
         await addColumn('simulators', 'sim_type', "VARCHAR(50) DEFAULT 'block'");
         await addColumn('simulators', 'blocked_reason', 'TEXT');
         await addColumn('simulators', 'is_blocked', 'BOOLEAN DEFAULT FALSE');
-        console.log('✓ Simulator fork/code columns verified/added');
+        info('✓ Simulator fork/code columns verified/added');
 
         // Dependents on Users & Courses
         await query(`
@@ -525,7 +567,7 @@ const initializeDatabase = async () => {
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             )
         `);
-        console.log('✓ AI tutor tables ready');
+        info('✓ AI tutor tables ready');
 
         // Course likes table
         await query(`
@@ -541,7 +583,7 @@ const initializeDatabase = async () => {
                 INDEX idx_user (user_id)
             )
         `);
-        console.log('✓ User-Course relationship tables ready');
+        info('✓ User-Course relationship tables ready');
 
         // Dependents on Simulators
         await query(`
@@ -598,7 +640,7 @@ const initializeDatabase = async () => {
                 INDEX idx_simulator (simulator_id)
             )
         `);
-        console.log('✓ Simulator dependent tables ready');
+        info('✓ Simulator dependent tables ready');
 
         // Integration tables
         await query(`
@@ -673,7 +715,7 @@ const initializeDatabase = async () => {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
-        console.log('✓ Sponsorships table ready');
+        info('✓ Sponsorships table ready');
 
         await query(`
             CREATE TABLE IF NOT EXISTS certificates (
@@ -688,9 +730,9 @@ const initializeDatabase = async () => {
                 INDEX idx_verification (verification_code)
             )
         `);
-        console.log('✓ Certificates table ready');
+        info('✓ Certificates table ready');
 
-        console.log('✓ All tables initialized successfully');
+        info('✓ All tables initialized successfully');
 
         // Check for superadmin
         const superadminEmail = process.env.SUPERADMIN_EMAIL || 'viratsuper6@gmail.com';
@@ -701,9 +743,9 @@ const initializeDatabase = async () => {
             const hashedPassword = await bcrypt.hash(superadminPassword, 10);
             await query('INSERT INTO users (email, password, role, is_admin_approved) VALUES (?, ?, \'superadmin\', TRUE)',
                 [superadminEmail, hashedPassword]);
-            console.log('✓ Superadmin created successfully');
+            info('✓ Superadmin created successfully');
         } else {
-            console.log('✓ Superadmin already exists');
+            info('✓ Superadmin already exists');
         }
 
     } catch (err) {
@@ -828,19 +870,7 @@ const authorize = (...roles) => {
     };
 };
 
-// Rate limiting setup
-const apiLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 200, // limit each IP to 200 requests per windowMs
-    message: { success: false, message: 'Too many requests from this IP, please try again later.' }
-});
-
-const authLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    max: 10, // limit each IP to 10 login/register requests per hour
-    message: { success: false, message: 'Too many accounts created or login attempts from this IP, please try again after an hour.' }
-});
-
+// AI Tutor rate limiter (kept separate as it has specific requirements)
 const aiTutorLimiter = rateLimit({
     windowMs: 60 * 1000,
     max: 20,
@@ -1020,13 +1050,13 @@ app.post('/api/forgot-password', authLimiter, async (req, res) => {
                         </div>
                     `
                 });
-                console.log(`✓ Password reset code sent to ${email}`);
+                debug(`✓ Password reset code sent to ${email}`);
             } catch (emailErr) {
                 console.error('❌ Failed to send reset email:', emailErr.message);
                 return apiResponse(res, 500, 'Failed to send reset email. Please try again later.');
             }
         } else {
-            console.log(`⚠️ Password reset requested for non-existent email: ${email}`);
+            debug(`⚠️ Password reset requested for non-existent email: ${email}`);
         }
 
         // Always return success (don't reveal if email exists)
@@ -1068,7 +1098,7 @@ app.post('/api/reset-password', authLimiter, async (req, res) => {
         await query('UPDATE users SET password = ? WHERE email = ?', [hashedPassword, email]);
         resetCodes.delete(email.toLowerCase());
 
-        console.log(`✓ Password reset successful for ${email}`);
+        debug(`✓ Password reset successful for ${email}`);
         apiResponse(res, 200, 'Password reset successfully! You can now log in with your new password.');
     } catch (error) {
         console.error('Reset password error:', error);
@@ -1077,7 +1107,7 @@ app.post('/api/reset-password', authLimiter, async (req, res) => {
 });
 
 // ===== GLOBAL SEARCH ROUTE =====
-app.get('/api/search', async (req, res) => {
+app.get('/api/search', searchLimiter, async (req, res) => {
     try {
         const queryStr = req.query.q || '';
         const searchPhrase = `%${queryStr}%`;
@@ -1263,19 +1293,19 @@ app.put('/api/superadmin/users/:id/role', authenticateToken, authorize('superadm
 });
 
 // ===== COURSE ROUTES =====
-app.post('/api/courses', authenticateToken, (req, res) => {
+app.post('/api/courses', authenticateToken, writeLimiter, (req, res) => {
     const { title, description, content, blocks, status, creation_time, grade_level, video_url, course_type } = req.body;
     const creator_id = req.user.id;
 
-    console.log('📝 CREATE COURSE DEBUG:');
-    console.log('  User ID:', creator_id);
-    console.log('  Title:', title);
-    console.log('  Description:', description ? 'YES' : 'NO');
-    console.log('  Content length:', content ? content.length : 0, 'chars');
-    console.log('  Blocks count:', Array.isArray(blocks) ? blocks.length : 'NOT PROVIDED');
-    console.log('  Status:', status || 'draft');
-    console.log('  Grade Level:', grade_level || 'NOT PROVIDED');
-    console.log('  Course Type:', course_type || 'single');
+    debug('📝 CREATE COURSE DEBUG:');
+    debug('  User ID:', creator_id);
+    debug('  Title:', title);
+    debug('  Description:', description ? 'YES' : 'NO');
+    debug('  Content length:', content ? content.length : 0, 'chars');
+    debug('  Blocks count:', Array.isArray(blocks) ? blocks.length : 'NOT PROVIDED');
+    debug('  Status:', status || 'draft');
+    debug('  Grade Level:', grade_level || 'NOT PROVIDED');
+    debug('  Course Type:', course_type || 'single');
 
     if (!title) {
         return apiResponse(res, 400, 'Course title is required');
@@ -1299,8 +1329,8 @@ app.post('/api/courses', authenticateToken, (req, res) => {
 
     const creationTime = parseInt(creation_time) || 0;
     const gradeLevelValue = grade_level !== undefined && grade_level !== null ? parseInt(grade_level) : null;
-    console.log('  Database:', dbConfig.database);
-    console.log('  Host:', dbConfig.host);
+    debug('  Database:', dbConfig.database);
+    debug('  Host:', dbConfig.host);
 
     const insertCourseQuery = 'INSERT INTO courses (title, description, content, blocks, creator_id, status, creation_time, grade_level, video_url, course_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
     db.query(insertCourseQuery, [title, description || '', content || '', blocksJson, creator_id, courseStatus, creationTime, gradeLevelValue, video_url || null, course_type || 'single'], (err, result) => {
@@ -1310,9 +1340,7 @@ app.post('/api/courses', authenticateToken, (req, res) => {
         }
 
         const newCourseId = result.insertId;
-        console.log('✅ Course created with ID:', newCourseId, 'Status:', courseStatus);
-        console.log('  Database:', dbConfig.database);
-        console.log('  Host:', dbConfig.host);
+        debug('✅ Course created with ID:', newCourseId, 'Status:', courseStatus);
 
         // Auto-grant volunteer hours from tracked creation time
         if (creationTime > 0) {
@@ -1322,30 +1350,30 @@ app.post('/api/courses', authenticateToken, (req, res) => {
                     'UPDATE users SET total_volunteer_hours = total_volunteer_hours + ? WHERE id = ?',
                     [addedHours, creator_id],
                     (volErr) => {
-                        if (volErr) console.error('Error auto-granting volunteer hours:', volErr.message);
-                        else console.log(`✓ Auto-granted ${addedHours}h volunteer hours to user ${creator_id} from tracked time`);
+                        if (volErr) error('Error auto-granting volunteer hours:', volErr.message);
+                        else debug(`✓ Auto-granted ${addedHours}h volunteer hours to user ${creator_id} from tracked time`);
                     }
                 );
             }
         }
 
         // VERIFY the course was actually inserted
-        console.log('  Verifying course was inserted...');
+        debug('  Verifying course was inserted...');
         db.query('SELECT id, title FROM courses WHERE id = ?', [newCourseId], (verifyErr, verifyResults) => {
             if (verifyErr) {
-                console.error('  ❌ Verification query failed:', verifyErr.message);
+                error('  ❌ Verification query failed:', verifyErr.message);
                 return apiResponse(res, 500, 'Course created but verification failed', { details: verifyErr.message, id: newCourseId });
             }
             if (verifyResults.length === 0) {
-                console.error('  ❌ CRITICAL: Course inserted but SELECT returned 0 rows!');
-                console.log('  Checking all courses:');
+                error('  ❌ CRITICAL: Course inserted but SELECT returned 0 rows!');
+                debug('  Checking all courses:');
                 db.query('SELECT COUNT(*) as count FROM courses', (countErr, countResults) => {
                     const count = countErr ? 'ERROR' : countResults[0].count;
-                    console.log('  Total courses in DB:', count);
+                    debug('  Total courses in DB:', count);
                     apiResponse(res, 201, `Course created (ID: ${newCourseId}) but verification failed!`, { id: newCourseId, courseId: newCourseId });
                 });
             } else {
-                console.log('  ✓ Verification successful - course exists in DB');
+                debug('  ✓ Verification successful - course exists in DB');
                 apiResponse(res, 201, `Course created successfully with status: ${courseStatus}`, { id: newCourseId, courseId: newCourseId });
             }
         });
@@ -2032,10 +2060,10 @@ app.get('/api/courses/:id', authenticateToken, (req, res) => {
     const userId = req.user.id;
     const userRole = req.user.role;
 
-    console.log('📖 GET COURSE DEBUG:');
-    console.log('  Course ID:', courseId);
-    console.log('  User ID:', userId);
-    console.log('  Database:', dbConfig.database);
+    debug('📖 GET COURSE DEBUG:');
+    debug('  Course ID:', courseId);
+    debug('  User ID:', userId);
+    debug('  Database:', dbConfig.database);
 
     const query = `
         SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time, grade_level, video_url, course_type
@@ -2049,10 +2077,10 @@ app.get('/api/courses/:id', authenticateToken, (req, res) => {
             return apiResponse(res, 500, 'Server error fetching course');
         }
         if (results.length === 0) {
-            console.log('  ❌ Course not found (query returned 0 results)');
+            debug('  ❌ Course not found (query returned 0 results)');
             return apiResponse(res, 404, 'Course not found');
         }
-        console.log('  ✓ Course found:', results[0].title);
+        debug('  ✓ Course found:', results[0].title);
 
         const course = results[0];
 
@@ -2067,22 +2095,22 @@ app.get('/api/courses/:id', authenticateToken, (req, res) => {
 });
 
 // Update course
-app.put('/api/courses/:id', authenticateToken, (req, res) => {
+app.put('/api/courses/:id', authenticateToken, writeLimiter, (req, res) => {
     const courseId = req.params.id;
     const userId = req.user.id;
     const { title, description, content, blocks, status, creation_time, grade_level, video_url, course_type } = req.body;
 
-    console.log('📝 UPDATE COURSE DEBUG:');
-    console.log('  Course ID:', courseId);
-    console.log('  User ID:', userId);
-    console.log('  Title:', title);
-    console.log('  Content length:', content ? content.length : 0, 'chars');
-    console.log('  Blocks count:', Array.isArray(blocks) ? blocks.length : 'NOT PROVIDED');
-    console.log('  Status:', status || 'unchanged');
-    console.log('  Grade Level:', grade_level || 'unchanged');
-    console.log('  Course Type:', course_type || 'unchanged');
-    console.log('  Database:', dbConfig.database);
-    console.log('  Host:', dbConfig.host);
+    debug('📝 UPDATE COURSE DEBUG:');
+    debug('  Course ID:', courseId);
+    debug('  User ID:', userId);
+    debug('  Title:', title);
+    debug('  Content length:', content ? content.length : 0, 'chars');
+    debug('  Blocks count:', Array.isArray(blocks) ? blocks.length : 'NOT PROVIDED');
+    debug('  Status:', status || 'unchanged');
+    debug('  Grade Level:', grade_level || 'unchanged');
+    debug('  Course Type:', course_type || 'unchanged');
+    debug('  Database:', dbConfig.database);
+    debug('  Host:', dbConfig.host);
 
     if (!title) {
         return apiResponse(res, 400, 'Course title is required');
@@ -2104,21 +2132,21 @@ app.put('/api/courses/:id', authenticateToken, (req, res) => {
             return apiResponse(res, 500, 'Server error', { error: err.message });
         }
         if (results.length === 0) {
-            console.log('❌ Course not found in database. Query returned 0 results.');
-            console.log('  Querying all courses to debug:');
+            debug('❌ Course not found in database. Query returned 0 results.');
+            debug('  Querying all courses to debug:');
             db.query('SELECT id FROM courses LIMIT 5', (err2, allCourses) => {
-                console.log('  All courses in DB:', allCourses ? allCourses.map(c => c.id) : 'ERROR');
+                debug('  All courses in DB:', allCourses ? allCourses.map(c => c.id) : 'ERROR');
             });
             return apiResponse(res, 404, 'Course not found');
         }
 
         const course = results[0];
-        console.log('  Course found - creator_id:', course.creator_id, 'current user:', userId);
+        debug('  Course found - creator_id:', course.creator_id, 'current user:', userId);
         if (parseInt(course.creator_id) !== parseInt(userId)) {
-            console.log('  ❌ Authorization failed - not course creator');
+            debug('  ❌ Authorization failed - not course creator');
             return apiResponse(res, 403, 'You can only edit your own courses');
         }
-        console.log('  ✓ Authorization passed');
+        debug('  ✓ Authorization passed');
 
         // Prepare blocks JSON
         const blocksJson = blocks ? (typeof blocks === 'string' ? blocks : JSON.stringify(blocks)) : undefined;
@@ -2165,7 +2193,7 @@ app.put('/api/courses/:id', authenticateToken, (req, res) => {
                 console.error('❌ Error updating course:', err);
                 return apiResponse(res, 500, 'Server error updating course', { details: err.message });
             }
-            console.log('✅ Course updated - ID:', courseId, 'Status:', status || 'unchanged');
+            debug('✅ Course updated - ID:', courseId, 'Status:', status || 'unchanged');
 
             // Auto-grant volunteer hours from tracked creation time
             if (creation_time !== undefined) {
@@ -2180,7 +2208,7 @@ app.put('/api/courses/:id', authenticateToken, (req, res) => {
                             [addedHours, userId],
                             (volErr) => {
                                 if (volErr) console.error('Error auto-granting volunteer hours:', volErr.message);
-                                else console.log(`✓ Auto-granted ${addedHours}h volunteer hours to user ${userId} from tracked time`);
+                                else debug(`✓ Auto-granted ${addedHours}h volunteer hours to user ${userId} from tracked time`);
                             }
                         );
                     }
@@ -2207,7 +2235,7 @@ app.delete('/api/courses/:id', authenticateToken, (req, res) => {
         }
 
         const course = results[0];
-        console.log(`DEBUG DELETE: Course ${courseId}, Creator: ${course.creator_id}, User: ${userId}, Role: ${req.user.role}`);
+        debug(`DEBUG DELETE: Course ${courseId}, Creator: ${course.creator_id}, User: ${userId}, Role: ${req.user.role}`);
 
         if (parseInt(course.creator_id) !== parseInt(userId) && req.user.role !== 'superadmin' && req.user.role !== 'admin') {
             return apiResponse(res, 403, 'You can only delete your own courses');
@@ -2293,7 +2321,7 @@ WHERE (c.status = 'approved' OR c.creator_id = ?)
 app.post('/api/courses/:id/like', authenticateToken, (req, res) => {
     const courseId = req.params.id;
     const userId = req.user.id;
-    console.log('✅ Like endpoint - User:', userId, 'Course:', courseId);
+    debug('✅ Like endpoint - User:', userId, 'Course:', courseId);
 
     // Insert like
     const insertQuery = 'INSERT INTO course_likes (course_id, user_id) VALUES (?, ?)';
@@ -2504,7 +2532,7 @@ app.put('/api/admin/courses/:id/status', authenticateToken, authorize('admin', '
                     if (err) {
                         console.error('Error awarding shells to creator:', err);
                     } else {
-                        console.log(`Awarded ${shellsAwarded} shells to user ${currentCourse.creator_id} for course approval.`);
+                        debug(`Awarded ${shellsAwarded} shells to user ${currentCourse.creator_id} for course approval.`);
                     }
                 });
             }
@@ -2576,7 +2604,7 @@ app.post('/api/courses/:id/enroll', authenticateToken, (req, res) => {
             return apiResponse(res, 400, 'This is a Master Course. Please use the Master Course enrollment endpoint.');
         }
 
-        console.log(`DEBUG ENROLL: Course found: ${course.title}, paid: ${course.is_paid}, cost: ${course.shells_cost}`);
+        debug(`DEBUG ENROLL: Course found: ${course.title}, paid: ${course.is_paid}, cost: ${course.shells_cost}`);
 
         // Check if already enrolled
         db.query('SELECT * FROM enrollments WHERE user_id = ? AND course_id = ?', [userId, courseId], (err, enrollResults) => {
@@ -2602,7 +2630,7 @@ app.post('/api/courses/:id/enroll', authenticateToken, (req, res) => {
                     }
 
                     // Deduct shells and enroll
-                    console.log(`DEBUG ENROLL: Deducting ${course.shells_cost} shells from user ${userId}`);
+                    debug(`DEBUG ENROLL: Deducting ${course.shells_cost} shells from user ${userId}`);
                     db.query('UPDATE users SET shells = shells - ? WHERE id = ?', [course.shells_cost, userId], (err) => {
                         if (err) {
                             console.error('Error deducting shells:', err);
@@ -2625,13 +2653,13 @@ app.post('/api/courses/:id/enroll', authenticateToken, (req, res) => {
             }
 
             function enrollUser() {
-                console.log(`DEBUG ENROLL: Inserting enrollment for user ${userId}, course ${courseId}`);
+                debug(`DEBUG ENROLL: Inserting enrollment for user ${userId}, course ${courseId}`);
                 db.query('INSERT INTO enrollments (user_id, course_id) VALUES (?, ?)', [userId, courseId], (err) => {
                     if (err) {
                         console.error('Error enrolling user:', err);
                         return apiResponse(res, 500, 'Server error enrolling in course');
                     }
-                    console.log(`DEBUG ENROLL: Successfully enrolled user ${userId}`);
+                    debug(`DEBUG ENROLL: Successfully enrolled user ${userId}`);
                     apiResponse(res, 201, 'Successfully enrolled in course');
                 });
             }
@@ -3481,12 +3509,12 @@ app.post('/api/simulators', authenticateToken, (req, res) => {
     const { title, description, blocks, connections, tags, preview_image, is_public, status, code_mode, sim_type, forked_from } = req.body;
     const creator_id = req.user.id;
 
-    console.log('📝 CREATE SIMULATOR DEBUG:');
-    console.log('  User ID:', creator_id);
-    console.log('  Title:', title);
-    console.log('  Blocks count:', Array.isArray(blocks) ? blocks.length : 'NOT AN ARRAY');
-    console.log('  Connections count:', Array.isArray(connections) ? connections.length : 'NOT AN ARRAY');
-    console.log('  Status:', status);
+    debug('📝 CREATE SIMULATOR DEBUG:');
+    debug('  User ID:', creator_id);
+    debug('  Title:', title);
+    debug('  Blocks count:', Array.isArray(blocks) ? blocks.length : 'NOT AN ARRAY');
+    debug('  Connections count:', Array.isArray(connections) ? connections.length : 'NOT AN ARRAY');
+    debug('  Status:', status);
 
     if (!title) {
         console.error('❌ Missing title');
@@ -3512,8 +3540,8 @@ app.post('/api/simulators', authenticateToken, (req, res) => {
         const connectionsJson = typeof connections === 'string' ? connections : JSON.stringify(connections || []);
         const codeModeJson = code_mode ? (typeof code_mode === 'string' ? code_mode : JSON.stringify(code_mode)) : null;
 
-        console.log('✓ Blocks JSON length:', blocksJson.length);
-        console.log('✓ Connections JSON length:', connectionsJson.length);
+        debug('✓ Blocks JSON length:', blocksJson.length);
+        debug('✓ Connections JSON length:', connectionsJson.length);
 
         db.query(
             insertQuery,
@@ -3523,7 +3551,7 @@ app.post('/api/simulators', authenticateToken, (req, res) => {
                     console.error('❌ Database error:', err);
                     return apiResponse(res, 500, 'Error creating simulator', { details: err.message });
                 }
-                console.log('✅ Simulator created with ID:', result.insertId);
+                debug('✅ Simulator created with ID:', result.insertId);
                 apiResponse(res, 201, 'Simulator created successfully', { simulatorId: result.insertId });
             }
         );
@@ -4220,7 +4248,7 @@ app.post('/api/courses/:courseId/questions', authenticateToken, (req, res) => {
 // Get all questions for a course
 app.get('/api/courses/:courseId/questions', authenticateToken, (req, res) => {
     const courseId = req.params.courseId;
-    console.log(`DEBUG GET QUESTIONS: Course ${courseId}, User: ${req.user.id}, Role: ${req.user.role}`);
+    debug(`DEBUG GET QUESTIONS: Course ${courseId}, User: ${req.user.id}, Role: ${req.user.role}`);
 
     const query = `
         SELECT id, course_id, question_text, question_type, options, correct_answer, 
@@ -4525,7 +4553,7 @@ app.get('/api/users/volunteer-stats', authenticateToken, (req, res) => {
                     }
 
                     if (missingMilestones.length > 0) {
-                        console.log(`Creating ${missingMilestones.length} missing certificates for user ${userId}:`, missingMilestones);
+                        debug(`Creating ${missingMilestones.length} missing certificates for user ${userId}:`, missingMilestones);
                         const crypto = require('crypto');
                         let inserted = 0;
                         missingMilestones.forEach(milestone => {
@@ -4536,7 +4564,7 @@ app.get('/api/users/volunteer-stats', authenticateToken, (req, res) => {
                                 (insertErr) => {
                                     inserted++;
                                     if (insertErr) console.error('Error creating certificate for milestone', milestone, insertErr.message);
-                                    else console.log(`✓ Created ${milestone}h certificate for user ${userId}`);
+                                    else debug(`✓ Created ${milestone}h certificate for user ${userId}`);
 
                                     if (inserted === missingMilestones.length) {
                                         db.query(
@@ -4610,7 +4638,7 @@ app.post('/api/users/update-volunteer-hours', authenticateToken, authorize('admi
                                             'INSERT INTO certificates (user_id, certificate_type, hours_certified, verification_code) VALUES (?, "volunteer_hours", ?, ?)',
                                             [user_id, milestone, verificationCode]
                                         );
-                                        console.log(`Issued volunteer certificate for ${milestone} hours to user ${user_id}`);
+                                        debug(`Issued volunteer certificate for ${milestone} hours to user ${user_id}`);
                                     }
                                 });
                             }
@@ -4703,11 +4731,11 @@ app.get('/api/certificates/verify/:code', async (req, res) => {
                     for (const signatureUrl of signatureUrls) {
                         if (signatureLoaded) break;
                         try {
-                            console.log('Trying signature from:', signatureUrl);
+                            debug('Trying signature from:', signatureUrl);
                             const response = await axios.get(signatureUrl, { responseType: 'arraybuffer', timeout: 8000 });
                             if (response.data && response.data.length > 100) {
                                 doc.image(response.data, 120, signatureY - 15, { width: 150, height: 60 });
-                                console.log('✓ Signature loaded from:', signatureUrl);
+                                debug('✓ Signature loaded from:', signatureUrl);
                                 signatureLoaded = true;
                             }
                         } catch (imgErr) {
@@ -5331,6 +5359,83 @@ app.get('/api/ai/tutor/history', aiTutorLimiter, authenticateToken, (req, res) =
     });
 });
 
+// ===== SEO ENDPOINTS =====
+// Sitemap.xml endpoint
+app.get('/sitemap.xml', async (req, res) => {
+    try {
+        const baseUrl = 'https://veelearn.org';
+        let sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n';
+        sitemap += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+        
+        // Static pages
+        const staticPages = [
+            { url: '/', priority: '1.0', changefreq: 'daily' },
+            { url: '/blog.html', priority: '0.9', changefreq: 'daily' },
+            { url: '/physics.html', priority: '0.8', changefreq: 'weekly' },
+            { url: '/chemistry.html', priority: '0.8', changefreq: 'weekly' },
+            { url: '/math.html', priority: '0.8', changefreq: 'weekly' },
+            { url: '/simulators.html', priority: '0.8', changefreq: 'weekly' },
+            { url: '/for-teachers.html', priority: '0.7', changefreq: 'weekly' },
+            { url: '/for-students.html', priority: '0.7', changefreq: 'weekly' },
+            { url: '/simulator-studio.html', priority: '0.7', changefreq: 'weekly' },
+            { url: '/simulator-marketplace.html', priority: '0.8', changefreq: 'daily' },
+        ];
+        
+        staticPages.forEach(page => {
+            sitemap += `  <url>\n`;
+            sitemap += `    <loc>${baseUrl}${page.url}</loc>\n`;
+            sitemap += `    <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>\n`;
+            sitemap += `    <changefreq>${page.changefreq}</changefreq>\n`;
+            sitemap += `    <priority>${page.priority}</priority>\n`;
+            sitemap += `  </url>\n`;
+        });
+        
+        // Dynamic courses
+        const coursesQuery = 'SELECT id, updated_at FROM courses WHERE status = "approved"';
+        pool.query(coursesQuery, (err, courses) => {
+            if (err) {
+                console.error('Error fetching courses for sitemap:', err);
+                // Return sitemap with just static pages
+                sitemap += '</urlset>';
+                res.header('Content-Type', 'application/xml');
+                res.send(sitemap);
+                return;
+            }
+            
+            courses.forEach(course => {
+                sitemap += `  <url>\n`;
+                sitemap += `    <loc>${baseUrl}/course-viewer.html?id=${course.id}</loc>\n`;
+                sitemap += `    <lastmod>${course.updated_at ? course.updated_at.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]}</lastmod>\n`;
+                sitemap += `    <changefreq>weekly</changefreq>\n`;
+                sitemap += `    <priority>0.7</priority>\n`;
+                sitemap += `  </url>\n`;
+            });
+            
+            sitemap += '</urlset>';
+            res.header('Content-Type', 'application/xml');
+            res.send(sitemap);
+        });
+    } catch (error) {
+        console.error('Sitemap generation error:', error);
+        res.status(500).send('Error generating sitemap');
+    }
+});
+
+// Robots.txt endpoint
+app.get('/robots.txt', (req, res) => {
+    const robotsTxt = `User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /dashboard
+Disallow: /course-editor
+Disallow: /auth
+
+Sitemap: https://veelearn.org/sitemap.xml
+`;
+    res.header('Content-Type', 'text/plain');
+    res.send(robotsTxt);
+});
+
 // ===== ERROR HANDLING =====
 app.use((err, req, res, next) => {
     console.error('Unhandled error:', err);
@@ -5340,10 +5445,10 @@ app.use((err, req, res, next) => {
 // ===== START SERVER =====
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT} `);
-    console.log(`Environment: ${process.env.NODE_ENV || 'development'} `);
+    info(`Server running on port ${PORT} `);
+    info(`Environment: ${process.env.NODE_ENV || 'development'} `);
     if (getOpenRouterKeys().length) {
-        console.log('✓ OpenRouter API keys loaded for study coach');
+        debug('✓ OpenRouter API keys loaded for study coach');
     } else {
         console.warn('ℹ️ No OPENROUTER_API_KEYS — study coach disabled until keys are set (see .env.example)');
     }

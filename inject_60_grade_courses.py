@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """Inject 60 comprehensive courses (5 per grade, grades 1-12) into Veelearn Aiven DB.
 
 - Uses env vars at runtime for secrets.
@@ -262,6 +262,8 @@ def render_sim_html(sim_names):
 
 
 def course_topic(course):
+    if course.get("display_topic"):
+        return course["display_topic"]
     parts = course["title"].split(" ", 2)
     return parts[2] if len(parts) >= 3 else course["title"]
 
