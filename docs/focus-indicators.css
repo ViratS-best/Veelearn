@@ -1,0 +1,217 @@
+/**
+ * Veelearn Focus Indicators CSS
+ * Custom focus styles, visible focus states, skip to content link
+ */
+
+/* Skip to content link */
+.skip-to-content {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: #667eea;
+    color: white;
+    padding: 8px 16px;
+    z-index: 10000;
+    text-decoration: none;
+    font-weight: 600;
+    transition: top 0.3s ease;
+}
+
+.skip-to-content:focus {
+    top: 0;
+}
+
+/* Custom focus styles */
+:focus {
+    outline: 3px solid #667eea;
+    outline-offset: 2px;
+}
+
+/* High contrast focus for better visibility */
+button:focus,
+a:focus,
+input:focus,
+textarea:focus,
+select:focus {
+    outline: 3px solid #667eea;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.3);
+}
+
+/* Focus visible only when keyboard navigation is used */
+:focus:not(:focus-visible) {
+    outline: none;
+    box-shadow: none;
+}
+
+:focus-visible {
+    outline: 3px solid #667eea;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.3);
+}
+
+/* Button focus states */
+button:focus-visible {
+    outline: 3px solid #667eea;
+    outline-offset: 2px;
+}
+
+/* Input focus states */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+    outline: 3px solid #667eea;
+    outline-offset: 2px;
+    border-color: #667eea;
+}
+
+/* Link focus states */
+a:focus-visible {
+    outline: 3px solid #667eea;
+    outline-offset: 2px;
+    text-decoration: underline;
+}
+
+/* Modal focus trap styles */
+.modal:focus-within {
+    outline: 3px solid #667eea;
+    outline-offset: 2px;
+}
+
+/* Screen reader only class */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* Focus indicators for interactive elements */
+.interactive-element:focus-visible {
+    outline: 3px solid #667eea;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.3);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    :focus {
+        outline-color: #818cf8;
+    }
+
+    button:focus,
+    a:focus,
+    input:focus,
+    textarea:focus,
+    select:focus {
+        outline-color: #818cf8;
+        box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.3);
+    }
+
+    :focus-visible {
+        outline-color: #818cf8;
+        box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.3);
+    }
+
+    button:focus-visible {
+        outline-color: #818cf8;
+    }
+
+    input:focus-visible,
+    textarea:focus-visible,
+    select:focus-visible {
+        outline-color: #818cf8;
+        border-color: #818cf8;
+    }
+
+    a:focus-visible {
+        outline-color: #818cf8;
+    }
+
+    .modal:focus-within {
+        outline-color: #818cf8;
+    }
+
+    .interactive-element:focus-visible {
+        outline-color: #818cf8;
+        box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.3);
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    :focus,
+    :focus-visible {
+        outline-width: 4px;
+        outline-offset: 3px;
+    }
+
+    button:focus,
+    a:focus,
+    input:focus,
+    textarea:focus,
+    select:focus {
+        outline-width: 4px;
+        outline-offset: 3px;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+    }
+
+    .skip-to-content {
+        transition: none;
+    }
+}
+
+/* Focus ring for custom components */
+.focus-ring {
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.5);
+}
+
+.focus-ring:focus-visible {
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.6);
+}
+
+/* Focus indicators for dropdown menus */
+.dropdown-item:focus-visible {
+    background: #f3f4f6;
+    outline: 2px solid #667eea;
+    outline-offset: -2px;
+}
+
+@media (prefers-color-scheme: dark) {
+    .dropdown-item:focus-visible {
+        background: #374151;
+        outline-color: #818cf8;
+    }
+}
+
+/* Focus indicators for card elements */
+.card:focus-visible {
+    outline: 3px solid #667eea;
+    outline-offset: 4px;
+}
+
+/* Focus indicators for list items */
+.list-item:focus-visible {
+    background: #f3f4f6;
+    outline: 2px solid #667eea;
+    outline-offset: -2px;
+}
+
+@media (prefers-color-scheme: dark) {
+    .list-item:focus-visible {
+        background: #374151;
+        outline-color: #818cf8;
+    }
+}

@@ -53,7 +53,7 @@ let transitionCount = 0;
 document.addEventListener('keydown', async (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'z' && lastDeletedQuestion) {
         e.preventDefault();
-        console.log('↩️ Ctrl+Z pressed - Undoing quiz deletion');
+        if (window.logger) window.logger.debug('↩️ Ctrl+Z pressed - Undoing quiz deletion');
 
         if (!currentEditingCourseId) {
             console.warn('Cannot undo: no course being edited');
@@ -94,7 +94,9 @@ document.addEventListener('keydown', async (e) => {
 
 
 // ===== INITIALIZATION =====
-console.log("🚀 Veelearn Script v3 Loaded");
+if (window.logger) {
+    window.logger.debug("🚀 Veelearn Script v3 Loaded");
+}
 
 if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initializeApp);
@@ -992,7 +994,7 @@ style.textContent = `
 document.head.appendChild(style);
 
 function initializeApp() {
-    console.log("Initializing App...");
+    if (window.logger) window.logger.debug("Initializing App...");
     createAuroraOverlay();
     setupAuthListeners();
     setupNavigationListeners();
@@ -1267,9 +1269,11 @@ function setupMessageListeners() {
         } else if (e.data.type === "save-simulator") {
             // Receive simulator data from popup (block-simulator.html sends this)
             const { data } = e.data;
-            console.log('💾 Received save-simulator message');
-            console.log('   blocks:', data?.blocks?.length, 'connections:', data?.connections?.length);
-            console.log('   currentEditingSimulatorBlockId:', currentEditingSimulatorBlockId);
+            if (window.logger) {
+                window.logger.debug('💾 Received save-simulator message');
+                window.logger.debug('   blocks:', data?.blocks?.length, 'connections:', data?.connections?.length);
+                window.logger.debug('   currentEditingSimulatorBlockId:', currentEditingSimulatorBlockId);
+            }
 
             // Use the stored currentEditingSimulatorBlockId
             if (currentEditingSimulatorBlockId && data) {
@@ -1279,7 +1283,7 @@ function setupMessageListeners() {
                         blocks: data.blocks || [],
                         connections: data.connections || []
                     };
-                    console.log('✅ Saved to block:', currentEditingSimulatorBlockId, 'at index:', blockIndex);
+                    if (window.logger) window.logger.debug('✅ Saved to block:', currentEditingSimulatorBlockId, 'at index:', blockIndex);
                 } else {
                     console.warn('⚠️ Block not found:', currentEditingSimulatorBlockId);
                 }
@@ -1287,7 +1291,7 @@ function setupMessageListeners() {
         } else if (e.data.type === "saveBlockSimulator") {
             // Legacy support - receive simulator data
             const { courseBlockId, blocks, connections } = e.data;
-            console.log('💾 Saving simulator data:', courseBlockId, 'Blocks:', blocks?.length, 'Connections:', connections?.length);
+            if (window.logger) window.logger.debug('💾 Saving simulator data:', courseBlockId, 'Blocks:', blocks?.length, 'Connections:', connections?.length);
 
             const blockIndex = courseBlocks.findIndex(b => b.id === courseBlockId);
             if (blockIndex !== -1) {
@@ -1295,14 +1299,14 @@ function setupMessageListeners() {
                     blocks: blocks || [],
                     connections: connections || []
                 };
-                console.log('✅ Simulator data saved to courseBlocks[' + blockIndex + ']');
+                if (window.logger) window.logger.debug('✅ Simulator data saved to courseBlocks[' + blockIndex + ']');
             } else {
                 console.warn('⚠️ Block not found:', courseBlockId);
             }
         } else if (e.data.type === "saveVisualSimulator") {
             // Receive visual simulator code
             const { courseBlockId, code, variables } = e.data;
-            console.log('💾 Saving visual simulator:', courseBlockId);
+            if (window.logger) window.logger.debug('💾 Saving visual simulator:', courseBlockId);
 
             const blockIndex = courseBlocks.findIndex(b => b.id === courseBlockId);
             if (blockIndex !== -1) {
@@ -1310,7 +1314,7 @@ function setupMessageListeners() {
                     code: code || "",
                     variables: variables || {}
                 };
-                console.log('✅ Visual simulator saved');
+                if (window.logger) window.logger.debug('✅ Visual simulator saved');
             }
         }
     });
@@ -1534,7 +1538,7 @@ function handleLogin() {
                     role: userData.role,
                     shells: userData.shells || 0
                 };
-                console.log("Login successful, currentUser set:", currentUser);
+                if (window.logger) window.logger.debug("Login successful, currentUser set:", currentUser);
                 // INSTANT: Show dashboard immediately without needing a reload
                 showDashboard();
                 // Setup teacher/student UI right away after login
@@ -1632,7 +1636,7 @@ function handleLogout() {
 }
 
 function logout() {
-    console.log("LOGOUT CALLED - Token will be cleared!");
+    if (window.logger) window.logger.debug("LOGOUT CALLED - Token will be cleared!");
 
     // Call backend logout to clear cookie
     fetch(`${API_BASE_URL}/api/logout`, { method: 'POST', credentials: 'include' })
@@ -1672,7 +1676,7 @@ function validateAuthToken() {
             return false;
         }
 
-        console.log("✅ Token is valid, expires at:", new Date(expiryTime).toISOString());
+        if (window.logger) window.logger.debug("✅ Token is valid, expires at:", new Date(expiryTime).toISOString());
         return true;
     } catch (e) {
         console.error("❌ Invalid token format:", e.message);
@@ -1759,7 +1763,7 @@ function formatCreationTime(seconds) {
 
 // ===== COURSE EDITOR LISTENERS =====
 function setupCourseEditorListeners() {
-    console.log("Setting up course editor listeners...");
+    if (window.logger) window.logger.debug("Setting up course editor listeners...");
     const courseForm = document.getElementById("course-form");
     const cancelBtn = document.getElementById("cancel-course-edit");
     const backBtn = document.getElementById("back-to-dashboard");
@@ -1774,7 +1778,7 @@ function setupCourseEditorListeners() {
     const deletePageBtn = document.getElementById("delete-page-btn");
 
     if (addPageBtn) {
-        console.log("Add Page button found, attaching listener");
+        if (window.logger) window.logger.debug("Add Page button found, attaching listener");
         addPageBtn.addEventListener("click", addNewPage);
     } else {
         console.error("Add Page button NOT found");
@@ -1796,7 +1800,7 @@ function setupCourseEditorListeners() {
     if (saveDraftBtn) {
         saveDraftBtn.addEventListener("click", (e) => {
             e.preventDefault();
-            console.log("📝 Save Draft button clicked - action: draft");
+            if (window.logger) window.logger.debug("📝 Save Draft button clicked - action: draft");
             saveCourse("draft");
         });
     }
@@ -1805,7 +1809,7 @@ function setupCourseEditorListeners() {
     if (submitApprovalBtn) {
         submitApprovalBtn.addEventListener("click", (e) => {
             e.preventDefault();
-            console.log("📋 Submit for Approval button clicked - action: pending");
+            if (window.logger) window.logger.debug("📋 Submit for Approval button clicked - action: pending");
             saveCourse("pending");
         });
     }
@@ -2153,7 +2157,7 @@ function openLatexEditorModal() {
     const previewDiv = document.getElementById('latex-preview');
     const typeRadios = document.querySelectorAll('input[name="latex-type"]');
 
-    input.addEventListener('input', updateLatexPreview);
+    input.addEventListener('input', window.debounce(updateLatexPreview, 300));
     typeRadios.forEach(radio => radio.addEventListener('change', updateLatexPreview));
 
     input.focus();
@@ -2193,7 +2197,7 @@ function updateLatexPreview() {
             })
             .catch(err => {
                 preview.classList.add('error');
-                console.log('LaTeX preview error:', err);
+                if (window.logger) window.logger.debug('LaTeX preview error:', err);
             });
     } else {
         // Fallback if MathJax not ready
@@ -2270,7 +2274,7 @@ function confirmLatexInsertion() {
                 // Trigger MathJax to re-render
                 if (window.MathJax && window.MathJax.typesetPromise) {
                     setTimeout(() => {
-                        window.MathJax.typesetPromise([contentEditor]).catch(err => console.log('MathJax error:', err));
+                        window.MathJax.typesetPromise([contentEditor]).catch(err => { if (window.logger) window.logger.debug('MathJax error:', err); });
                     }, 100);
                 }
                 return;
@@ -2286,7 +2290,7 @@ function confirmLatexInsertion() {
     // Trigger MathJax to re-render the equation
     if (window.MathJax && window.MathJax.typesetPromise) {
         setTimeout(() => {
-            window.MathJax.typesetPromise([contentEditor]).catch(err => console.log('MathJax error:', err));
+            window.MathJax.typesetPromise([contentEditor]).catch(err => { if (window.logger) window.logger.debug('MathJax error:', err); });
         }, 100);
     }
 }
@@ -2373,15 +2377,15 @@ function processLatexInEditor() {
         // Use longer timeout and ensure proper rendering
         setTimeout(async () => {
             try {
-                console.log("🔵 LaTeX: Processing", nodesToProcess.length, "text nodes");
+                if (window.logger) window.logger.debug("🔵 LaTeX: Processing", nodesToProcess.length, "text nodes");
                 await window.MathJax.typesetPromise([contentEditor]);
-                console.log("✅ LaTeX: All equations rendered");
+                if (window.logger) window.logger.debug("✅ LaTeX: All equations rendered");
             } catch (err) {
                 console.error("❌ LaTeX render error:", err);
             }
         }, 100);
     } else if (window.MathJax && window.MathJax.typesetPromise) {
-        console.log("ℹ️ LaTeX: No new equations to process");
+        if (window.logger) window.logger.debug("ℹ️ LaTeX: No new equations to process");
     } else {
         console.warn("⚠️ LaTeX: MathJax not loaded yet");
     }
@@ -2929,7 +2933,10 @@ function rejectCourse(courseId) {
 }
 
 function loadUserCourses() {
-    console.log("=== LOADING USER COURSES ===");
+    if (window.logger) window.logger.debug("=== LOADING USER COURSES ===");
+    
+    // Show loading state
+    if (window.loadingManager) window.loadingManager.show('Loading your courses...');
     
     // First load created courses, then enrich with enrollment data
     Promise.all([
@@ -2942,8 +2949,8 @@ function loadUserCourses() {
     .then(([coursesData, enrollmentData]) => {
         if (coursesData.success) {
             const allCoursesFromServer = coursesData.data || [];
-            console.log("Total courses from API:", allCoursesFromServer.length);
-            console.log("Current user ID:", currentUser.id);
+            if (window.logger) window.logger.debug("Total courses from API:", allCoursesFromServer.length);
+            if (window.logger) window.logger.debug("Current user ID:", currentUser.id);
 
             myCourses = allCoursesFromServer.filter(
                 (c) => c.creator_id === currentUser.id
@@ -2963,7 +2970,7 @@ function loadUserCourses() {
                 };
             });
             
-            console.log("Filtered user courses:", myCourses.length);
+            if (window.logger) window.logger.debug("Filtered user courses:", myCourses.length);
             // Clear search box
             const myCoursesSearch = document.getElementById('myCoursesSearch');
             if (myCoursesSearch) myCoursesSearch.value = '';
@@ -2981,11 +2988,21 @@ function loadUserCourses() {
             }
         }
     })
-    .catch((err) => console.error("Error loading user courses:", err));
+    .catch((err) => {
+        console.error("Error loading user courses:", err);
+    })
+    .finally(() => {
+        // Hide loading state
+        if (window.loadingManager) window.loadingManager.hide();
+    });
 }
 
 function loadAvailableCourses() {
-    console.log("=== LOADING AVAILABLE COURSES ===");
+    if (window.logger) window.logger.debug("=== LOADING AVAILABLE COURSES ===");
+    
+    // Show loading state
+    if (window.loadingManager) window.loadingManager.show('Loading available courses...');
+    
     fetch(`${API_BASE_URL}/api/courses`, {
         headers: { Authorization: `Bearer ${authToken}` },
         credentials: "include"
@@ -2994,8 +3011,8 @@ function loadAvailableCourses() {
         .then((data) => {
             if (data.success) {
                 const allCoursesFromServer = data.data || [];
-                console.log("Total courses from API:", allCoursesFromServer.length);
-                console.log(
+                if (window.logger) window.logger.debug("Total courses from API:", allCoursesFromServer.length);
+                if (window.logger) window.logger.debug(
                     "Course statuses:",
                     allCoursesFromServer.map((c) => ({
                         id: c.id,
@@ -3010,7 +3027,7 @@ function loadAvailableCourses() {
                     (c) => c.status === "approved" && c.creator_id !== currentUser.id
                 );
                 availableCourses = sortCoursesForDisplay(availableCourses);
-                console.log("Filtered available courses:", availableCourses.length);
+                if (window.logger) window.logger.debug("Filtered available courses:", availableCourses.length);
                 // Clear search box
                 const availableCoursesSearch = document.getElementById('availableCoursesSearch');
                 if (availableCoursesSearch) availableCoursesSearch.value = '';
@@ -3019,7 +3036,11 @@ function loadAvailableCourses() {
                 renderAvailableCourses('');
             }
         })
-        .catch((err) => console.error("Error loading available courses:", err));
+        .catch((err) => console.error("Error loading available courses:", err))
+        .finally(() => {
+            // Hide loading state
+            if (window.loadingManager) window.loadingManager.hide();
+        });
 }
 
 
@@ -3321,8 +3342,8 @@ function editCourse(courseId) {
             (typeof course.blocks === 'string' ? JSON.parse(course.blocks) : course.blocks)
             : [];
 
-        console.log("✅ Course loaded with", courseBlocks.length, "blocks");
-        console.log("  Blocks:", courseBlocks);
+        if (window.logger) window.logger.debug("✅ Course loaded with", courseBlocks.length, "blocks");
+        if (window.logger) window.logger.debug("  Blocks:", courseBlocks);
 
         // Load quiz questions for this course and re-render placeholders
         loadCourseQuestions(courseId).then(() => {
@@ -3431,21 +3452,25 @@ function saveCourse(action = "draft") {
     // Set course status based on action
     const status = action === "pending" ? "pending" : "draft";
 
-    console.log(`\n=== SAVE COURSE DEBUG ===`);
-    console.log(`Action: ${action}`);
-    console.log(`Status to save: ${status}`);
-    console.log(`Course Type: ${courseType}`);
-    console.log(`Title: "${title}"`);
-    console.log(`Description: "${description}"`);
-    console.log(`Content HTML length: ${content.length}`);
-    console.log(`courseBlocks count: ${courseBlocks.length}`);
-    console.log(`courseBlocks:`, courseBlocks);
+    if (window.logger) {
+        window.logger.debug(`\n=== SAVE COURSE DEBUG ===`);
+        window.logger.debug(`Action: ${action}`);
+        window.logger.debug(`Status to save: ${status}`);
+        window.logger.debug(`Course Type: ${courseType}`);
+        window.logger.debug(`Title: "${title}"`);
+        window.logger.debug(`Description: "${description}"`);
+        window.logger.debug(`Content HTML length: ${content.length}`);
+        window.logger.debug(`courseBlocks count: ${courseBlocks.length}`);
+        window.logger.debug(`courseBlocks:`, courseBlocks);
+    }
 
     const url = currentEditingCourseId
         ? `${API_BASE_URL}/api/courses/${currentEditingCourseId}`
         : `${API_BASE_URL}/api/courses`;
 
     const method = currentEditingCourseId ? "PUT" : "POST";
+
+    if (window.logger) window.logger.debug(`Sending ${method} request to ${url}`);
 
     const courseData = {
         title,
@@ -3459,8 +3484,8 @@ function saveCourse(action = "draft") {
         course_type: courseType
     };
 
-    console.log(`Sending ${method} request to ${url}`);
-    console.log(`Payload:`, courseData);
+    // Already replaced above
+    if (window.logger) window.logger.debug(`Payload:`, courseData);
 
     fetch(url, {
         method: method,
@@ -3473,12 +3498,12 @@ function saveCourse(action = "draft") {
     })
         .then((res) => res.json())
         .then((data) => {
-            console.log(`Response:`, data);
+            if (window.logger) window.logger.debug(`Response:`, data);
             if (data.success) {
                 // Set currentEditingCourseId if this was a new course
                 if (!currentEditingCourseId) {
                     currentEditingCourseId = data.data?.id || data.data;
-                    console.log("✅ New course saved, currentEditingCourseId set to:", currentEditingCourseId);
+                    if (window.logger) window.logger.debug("✅ New course saved, currentEditingCourseId set to:", currentEditingCourseId);
                 }
 
                 const message =
@@ -3613,7 +3638,7 @@ async function viewCourse(courseId, assignmentId = null, forceRegular = false) {
             if (window.MathJax && window.MathJax.typesetPromise) {
                 try {
                     await window.MathJax.typesetPromise([document.getElementById('course-content-display')]);
-                    console.log('✅ MathJax rendered LaTeX equations');
+                    if (window.logger) window.logger.debug('✅ MathJax rendered LaTeX equations');
                 } catch (err) {
                     console.error('MathJax rendering error:', err);
                 }
@@ -3630,11 +3655,11 @@ async function viewCourse(courseId, assignmentId = null, forceRegular = false) {
             // Render LaTeX - CRITICAL: Must wait for MathJax to be fully loaded
             if (window.MathJax && window.MathJax.typesetPromise) {
                 try {
-                    console.log("🔵 MathJax: Typesetting course content...");
+                    if (window.logger) window.logger.debug("🔵 MathJax: Typesetting course content...");
                     const contentDisplay = document.getElementById("course-content-display");
                     if (contentDisplay) {
                         await window.MathJax.typesetPromise([contentDisplay]);
-                        console.log("✅ MathJax: Content typeset successfully");
+                        if (window.logger) window.logger.debug("✅ MathJax: Content typeset successfully");
                     }
                 } catch (err) {
                     console.error("❌ MathJax error:", err);
@@ -3648,7 +3673,7 @@ async function viewCourse(courseId, assignmentId = null, forceRegular = false) {
     // Define setupViewerInteractions if it's not already defined globally
     // This function attaches event listeners to interactive elements in the viewer
     function setupViewerInteractions(courseId) {
-        console.log("Setting up viewer interactions for course:", courseId);
+        if (window.logger) window.logger.debug("Setting up viewer interactions for course:", courseId);
 
         // Hydrate quiz placeholders first
         hydrateQuizPlaceholders();
@@ -3688,7 +3713,7 @@ async function viewCourse(courseId, assignmentId = null, forceRegular = false) {
             } else {
                 // Finish course logic
                 if (currentAssignmentId) {
-                    console.log(`Course finished, auto-submitting assignment ${currentAssignmentId}`);
+                    if (window.logger) window.logger.debug(`Course finished, auto-submitting assignment ${currentAssignmentId}`);
                     submitAssignmentWork(currentAssignmentId, course.title);
                 } else {
                     alert('Congratulations! You have completed the course content.');
@@ -3749,8 +3774,10 @@ function runEmbeddedBlockSimulator(blockId, title) {
         return;
     }
 
-    console.log('🎮 Running simulator:', blockId, 'Type:', block.type);
-    console.log('   Simulator data:', block.data);
+    if (window.logger) {
+        window.logger.debug('🎮 Running simulator:', blockId, 'Type:', block.type);
+        window.logger.debug('   Simulator data:', block.data);
+    }
 
     if (block.type === 'block-simulator') {
         // Create popup window for simulator studio
@@ -3942,7 +3969,7 @@ function handleEditSimulator(event, blockId) {
         return;
     }
 
-    console.log("Opening simulator for editing:", block);
+    if (window.logger) window.logger.debug("Opening simulator for editing:", block);
     currentEditingSimulatorBlockId = blockId; // Store for saving later
 
     if (block.type === "block-simulator") {
@@ -4011,7 +4038,7 @@ function handleRemoveSimulator(event, blockId) {
         simulatorDiv.remove();
     }
 
-    console.log("Simulator removed. Remaining blocks:", courseBlocks);
+    if (window.logger) window.logger.debug("Simulator removed. Remaining blocks:", courseBlocks);
 }
 
 // ===== QUIZ FUNCTIONALITY =====
@@ -4039,7 +4066,7 @@ function setupQuizModalListeners() {
     if (deleteQuizBtn) {
         deleteQuizBtn.addEventListener('click', () => {
             if (currentEditingQuestionId) {
-                console.log('🗑️ Modal delete button clicked for question:', currentEditingQuestionId);
+                if (window.logger) window.logger.debug('🗑️ Modal delete button clicked for question:', currentEditingQuestionId);
                 deleteQuizQuestion(currentEditingQuestionId);
             } else {
                 console.warn('⚠️ No question selected for deletion');
@@ -4107,7 +4134,7 @@ function setupQuizModalListeners() {
                 e.preventDefault();
                 e.stopPropagation();
                 const questionId = parseInt(deleteBtn.dataset.questionId);
-                console.log(`🗑️ DELETE clicked for question:`, questionId);
+                if (window.logger) window.logger.debug(`🗑️ DELETE clicked for question:`, questionId);
                 deleteQuizQuestion(questionId);
                 return;
             }
@@ -4117,7 +4144,7 @@ function setupQuizModalListeners() {
             if (placeholder && !e.target.closest('button')) {
                 const questionId = placeholder.dataset.questionId;
                 if (questionId) {
-                    console.log(`📝 EDIT clicked for question:`, questionId);
+                    if (window.logger) window.logger.debug(`📝 EDIT clicked for question:`, questionId);
                     openQuizModal(parseInt(questionId));
                 }
             }
@@ -4285,7 +4312,7 @@ async function saveQuizQuestion() {
             } else {
                 // New question: Start placement mode
                 const newQuestionId = result.data.questionId || result.data.insertId || result.data.id;
-                console.log('New question created with ID:', newQuestionId, 'result.data:', result.data);
+                if (window.logger) window.logger.debug('New question created with ID:', newQuestionId, 'result.data:', result.data);
                 startPlacementMode('quiz', {
                     id: newQuestionId,
                     text: questionText
@@ -4376,9 +4403,11 @@ function insertQuizPlaceholder(questionText, questionId) {
 }
 
 async function deleteQuizQuestion(questionId, btnElement = null) {
-    console.log(`🗑️ Delete button clicked for question ID:`, questionId);
-    console.log(`   currentEditingCourseId:`, currentEditingCourseId);
-    console.log(`   authToken exists:`, !!authToken);
+    if (window.logger) {
+        window.logger.debug(`🗑️ Delete button clicked for question ID:`, questionId);
+        window.logger.debug(`   currentEditingCourseId:`, currentEditingCourseId);
+        window.logger.debug(`   authToken exists:`, !!authToken);
+    }
 
     if (!currentEditingCourseId) {
         alert('❌ Error: Course ID not set. Please save the course first.');
@@ -6206,9 +6235,9 @@ function setupPhetModalListeners() {
     if (cancelBtn) cancelBtn.onclick = () => modal.style.display = "none";
 
     if (searchInput) {
-        searchInput.addEventListener("input", (e) => {
+        searchInput.addEventListener("input", window.debounce((e) => {
             renderPhetList(e.target.value);
-        });
+        }, 300));
     }
 
     // Close on outside click
@@ -6752,7 +6781,7 @@ function attachEditorTypingListeners() {
     const descEl = document.getElementById('course-description');
 
     [editorEl, titleEl, descEl].filter(Boolean).forEach(el => {
-        el.addEventListener('input', onEditorActivity, { passive: true });
+        el.addEventListener('input', window.debounce(onEditorActivity, 1000), { passive: true });
         el.addEventListener('keydown', onEditorActivity, { passive: true });
     });
 }
@@ -7688,7 +7717,7 @@ function setupTeacherStudentListeners() {
     if (enrollBtn) enrollBtn.addEventListener('click', enrollInClass);
     if (createAssignmentBtn) createAssignmentBtn.addEventListener('click', createAssignment);
     if (searchInput) {
-        searchInput.addEventListener('input', searchAssignmentCourses);
+        searchInput.addEventListener('input', window.debounce(searchAssignmentCourses, 300));
         // Also trigger on focus to ensure dropdown is populated
         searchInput.addEventListener('focus', () => {
             if (allCoursesForAssignment.length === 0) {
@@ -8045,7 +8074,7 @@ async function toggleCourseLike(courseId, buttonElement) {
             courseInMy.like_count = newLikeCount;
         }
 
-        console.log(`✓ Course ${courseId} ${isNowLiked ? 'liked' : 'unliked'} successfully!`);
+        if (window.logger) window.logger.debug(`✓ Course ${courseId} ${isNowLiked ? 'liked' : 'unliked'} successfully!`);
     } catch (error) {
         console.error('Error toggling course like:', error);
         alert('Failed to update like status. Please try again.');
@@ -8077,7 +8106,7 @@ function loadCoursesWithSort(sortBy = 'newest') {
 
     const searchBox = document.getElementById('availableCoursesSearch');
     renderAvailableCourses(searchBox ? searchBox.value : '');
-    console.log(`✓ Courses sorted locally by: ${sortBy}`);
+    if (window.logger) window.logger.debug(`✓ Courses sorted locally by: ${sortBy}`);
 }
 
 /**
