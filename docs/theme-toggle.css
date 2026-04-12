@@ -43,72 +43,146 @@
     --bg-primary: #ffffff;
     --bg-secondary: #f9fafb;
     --bg-tertiary: #f3f4f6;
+    --bg-elevated: #ffffff;
     --text-primary: #111827;
     --text-secondary: #6b7280;
+    --text-muted: #9ca3af;
     --border-color: #e5e7eb;
+    --border-light: #f3f4f6;
     --accent-color: #667eea;
     --accent-hover: #5a67d8;
+    --accent-light: rgba(102, 126, 234, 0.1);
     --success-color: #10b981;
     --error-color: #ef4444;
     --warning-color: #f59e0b;
+    --info-color: #3b82f6;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --shadow-color-light: rgba(0, 0, 0, 0.05);
+    --input-bg: #ffffff;
+    --input-placeholder: #9ca3af;
+    --card-bg: #ffffff;
+    --modal-bg: #ffffff;
+    --dropdown-bg: #ffffff;
+    --sidebar-bg: #ffffff;
+    --footer-bg: #f9fafb;
+    --hero-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --hero-text: #ffffff;
 }
 
 /* Dark theme */
 [data-theme="dark"] {
-    --bg-primary: #1f2937;
-    --bg-secondary: #111827;
+    --bg-primary: #111827;
+    --bg-secondary: #1f2937;
     --bg-tertiary: #374151;
+    --bg-elevated: #1f2937;
     --text-primary: #f9fafb;
-    --text-secondary: #9ca3af;
+    --text-secondary: #d1d5db;
+    --text-muted: #9ca3af;
     --border-color: #4b5563;
+    --border-light: #374151;
     --accent-color: #818cf8;
     --accent-hover: #6366f1;
+    --accent-light: rgba(129, 140, 248, 0.15);
     --success-color: #34d399;
     --error-color: #f87171;
     --warning-color: #fbbf24;
+    --info-color: #60a5fa;
+    --shadow-color: rgba(0, 0, 0, 0.3);
+    --shadow-color-light: rgba(0, 0, 0, 0.15);
+    --input-bg: #1f2937;
+    --input-placeholder: #6b7280;
+    --card-bg: #1f2937;
+    --modal-bg: #1f2937;
+    --dropdown-bg: #1f2937;
+    --sidebar-bg: #111827;
+    --footer-bg: #1f2937;
+    --hero-bg: linear-gradient(135deg, #4c1d95 0%, #1e1b4b 100%);
+    --hero-text: #f9fafb;
 }
 
-/* Apply theme variables to common elements */
+/* Apply theme variables to ALL elements */
 body {
     background-color: var(--bg-primary);
     color: var(--text-primary);
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* Cards and containers */
 .card,
 .course-card,
-.modal {
-    background-color: var(--bg-secondary);
+.modal,
+.panel,
+.container,
+.box,
+.section {
+    background-color: var(--card-bg);
     border-color: var(--border-color);
     transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
+/* Inputs */
 input,
 textarea,
 select {
-    background-color: var(--bg-primary);
+    background-color: var(--input-bg);
     color: var(--text-primary);
     border-color: var(--border-color);
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
-button {
-    background-color: var(--accent-color);
+input::placeholder,
+textarea::placeholder {
+    color: var(--input-placeholder);
+}
+
+/* Buttons */
+button,
+.btn,
+.btn-primary,
+.btn-secondary,
+.btn-success,
+.btn-danger,
+.btn-warning {
     color: white;
     transition: background-color 0.3s ease;
 }
 
-button:hover {
+button:hover,
+.btn:hover {
     background-color: var(--accent-hover);
+}
+
+/* Buttons with text in dark mode */
+[data-theme="dark"] button:not([class*="btn-"]),
+[data-theme="dark"] .btn:not([class*="btn-"]) {
+    color: var(--text-primary);
 }
 
 /* Headers and navigation */
 header,
 nav,
-.navbar {
-    background-color: var(--bg-secondary);
+.navbar,
+.menu,
+.sidebar {
+    background-color: var(--sidebar-bg);
     border-color: var(--border-color);
     transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+header a,
+nav a,
+.navbar a,
+.menu a,
+.sidebar a {
+    color: var(--text-primary);
+}
+
+header a:hover,
+nav a:hover,
+.navbar a:hover,
+.menu a:hover,
+.sidebar a:hover {
+    color: var(--accent-color);
 }
 
 /* Links */
@@ -121,9 +195,15 @@ a:hover {
     color: var(--accent-hover);
 }
 
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--text-primary);
+}
+
 /* Code blocks */
 code,
-pre {
+pre,
+.code {
     background-color: var(--bg-tertiary);
     color: var(--text-primary);
     transition: background-color 0.3s ease, color 0.3s ease;
@@ -138,8 +218,126 @@ table {
 
 th,
 td {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
     border-color: var(--border-color);
-    transition: border-color 0.3s ease;
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Lists */
+ul, ol, li {
+    color: var(--text-primary);
+}
+
+/* Dropdowns */
+.dropdown,
+.select-wrapper,
+.menu-dropdown {
+    background-color: var(--dropdown-bg);
+    border-color: var(--border-color);
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.dropdown-item,
+.menu-item {
+    color: var(--text-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dropdown-item:hover,
+.menu-item:hover {
+    background-color: var(--bg-tertiary);
+}
+
+/* Modals */
+.modal-content,
+.modal-body,
+.modal-header,
+.modal-footer {
+    background-color: var(--modal-bg);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Forms */
+form,
+.form-group,
+.form-control {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+label {
+    color: var(--text-secondary);
+}
+
+/* Badges and tags */
+.badge,
+.tag,
+.label {
+    background-color: var(--accent-light);
+    color: var(--accent-color);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Alerts */
+.alert,
+.notification,
+.toast {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Progress bars */
+.progress-bar {
+    background-color: var(--bg-tertiary);
+}
+
+.progress-bar-fill {
+    background-color: var(--accent-color);
+}
+
+/* Hero sections */
+.hero,
+.hero-section {
+    background: var(--hero-bg);
+    color: var(--hero-text);
+    transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* Footer */
+footer,
+.footer {
+    background-color: var(--footer-bg);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+footer a,
+.footer a {
+    color: var(--text-secondary);
+}
+
+footer a:hover,
+.footer a:hover {
+    color: var(--accent-color);
+}
+
+/* Shadows */
+.card,
+.modal,
+.dropdown {
+    box-shadow: 0 4px 6px var(--shadow-color-light);
+}
+
+.card:hover,
+.modal:hover {
+    box-shadow: 0 8px 12px var(--shadow-color);
 }
 
 /* Scrollbar */
@@ -161,16 +359,38 @@ td {
     background: var(--text-secondary);
 }
 
+/* Selection */
+::selection {
+    background-color: var(--accent-color);
+    color: white;
+}
+
 /* Smooth transitions for theme changes */
 * {
-    transition-property: background-color, color, border-color;
+    transition-property: background-color, color, border-color, background;
     transition-duration: 0.3s;
     transition-timing-function: ease;
 }
 
 /* Exclude certain elements from transitions for performance */
-*:not(img):not(video):not(canvas) {
-    transition-property: background-color, color, border-color;
+*:not(img):not(video):not(canvas):not(svg) {
+    transition-property: background-color, color, border-color, background;
+}
+
+/* Force dark mode on all child elements when data-theme is dark */
+[data-theme="dark"] * {
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] a,
+[data-theme="dark"] button,
+[data-theme="dark"] .accent-text {
+    color: var(--accent-color);
+}
+
+[data-theme="dark"] .text-muted,
+[data-theme="dark"] .text-secondary {
+    color: var(--text-secondary);
 }
 
 /* Responsive adjustments */

@@ -40,12 +40,31 @@ class AutoSaveManager {
         document.addEventListener('keydown', (e) => {
             if ((e.ctrlKey || e.metaKey) && e.key === 's') {
                 e.preventDefault();
-                this.triggerManualSave();
+                // Only save if we're on a page with editable content
+                if (this.hasEditableContent()) {
+                    this.triggerManualSave();
+                }
             }
         });
 
-        // Listen for editor activity
-        document.addEventListener('input', this.handleEditorActivity.bind(this));
+        // Listen for editor activity - only on pages with editable content
+        document.addEventListener('input', (e) => {
+            if (this.hasEditableContent()) {
+                this.handleEditorActivity();
+            }
+        });
+    }
+
+    hasEditableContent() {
+        // Check if we're on a page with editable content (not front page)
+        const path = window.location.pathname;
+        const hasEditor = document.querySelector('textarea, [contenteditable="true"], .editor');
+        const isEditablePage = path.includes('/edit') || path.includes('/create') || hasEditor;
+        
+        // Don't auto-save on front page or static pages
+        const isStaticPage = path === '/' || path.endsWith('.html') && !path.includes('edit');
+        
+        return isEditablePage && !isStaticPage;
     }
 
     handleEditorActivity() {
