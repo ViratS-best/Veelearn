@@ -157,7 +157,7 @@
       "name": "Can I contribute articles to the Veelearn blog?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes! We welcome contributions from students, educators, and STEM professionals. If you have expertise in a particular topic or want to share your learning journey, you can submit article proposals for review. Approved contributions earn volunteer hours and help build your professional portfolio. Contact us at support@veelearn.org to learn more about becoming a contributor."
+        "text": "Yes! We welcome contributions from students, educators, and STEM professionals. If you have expertise in a particular topic or want to share your learning journey, you can submit article proposals for review. Approved contributions earn volunteer hours and help build your professional portfolio. Contact us at viratsuper@veelearn.org to learn more about becoming a contributor."
       }
     },
     {
@@ -248,7 +248,8 @@
         category: "physics",
         date: "2026-01-15",
         readTime: "8 min read",
-        image: "⚛️"
+        image: "",
+        url: "/blog/what-is-quantum-mechanics.html"
       },
       {
         id: 2,
@@ -257,7 +258,8 @@
         category: "math",
         date: "2026-01-10",
         readTime: "6 min read",
-        image: "∑"
+        image: "",
+        url: "/blog/what-is-linear-algebra.html"
       },
       {
         id: 3,
@@ -266,16 +268,18 @@
         category: "education",
         date: "2026-01-05",
         readTime: "10 min read",
-        image: "📊"
+        image: "",
+        url: "/blog/stem-education-statistics-2026.html"
       },
       {
         id: 4,
-        title: "Interactive Chemistry Experiments You Can Do Online",
-        excerpt: "Explore virtual chemistry labs and simulations that let you conduct safe, interactive experiments from atoms and molecules to chemical reactions.",
+        title: "Interactive Chemistry Labs: Virtual Experiments for Free",
+        excerpt: "Experience safe, virtual chemistry experiments covering acids, bases, reactions, and periodic table trends through interactive simulations.",
         category: "chemistry",
-        date: "2025-12-28",
+        date: "2025-12-25",
         readTime: "7 min read",
-        image: "🧪"
+        image: "",
+        url: "/blog/what-is-organic-chemistry.html"
       },
       {
         id: 5,
@@ -284,7 +288,8 @@
         category: "education",
         date: "2025-12-20",
         readTime: "9 min read",
-        image: "🏗️"
+        image: "",
+        url: "/blog/what-is-robotics.html"
       },
       {
         id: 6,
@@ -293,7 +298,8 @@
         category: "education",
         date: "2025-12-15",
         readTime: "8 min read",
-        image: "👨‍🏫"
+        image: "",
+        url: "/guides/how-to-use-phet-simulations.html"
       },
       {
         id: 7,
@@ -302,7 +308,8 @@
         category: "education",
         date: "2025-12-10",
         readTime: "6 min read",
-        image: "⏰"
+        image: "",
+        url: "/blog/stem-education-statistics-2026.html"
       },
       {
         id: 8,
@@ -311,7 +318,8 @@
         category: "physics",
         date: "2025-12-05",
         readTime: "12 min read",
-        image: "🌊"
+        image: "",
+        url: "/blog/what-is-quantum-mechanics.html"
       },
       {
         id: 9,
@@ -320,7 +328,8 @@
         category: "physics",
         date: "2025-11-28",
         readTime: "7 min read",
-        image: "🧬"
+        image: "",
+        url: "/blog/what-is-cell-biology.html"
       },
       {
         id: 10,
@@ -329,7 +338,8 @@
         category: "math",
         date: "2025-11-20",
         readTime: "9 min read",
-        image: "📐"
+        image: "",
+        url: "/blog/what-is-differential-equations.html"
       },
       {
         id: 11,
@@ -338,7 +348,8 @@
         category: "education",
         date: "2025-11-15",
         readTime: "8 min read",
-        image: "🔬"
+        image: "",
+        url: "/guides/how-to-use-phet-simulations.html"
       },
       {
         id: 12,
@@ -347,7 +358,8 @@
         category: "physics",
         date: "2025-11-10",
         readTime: "12 min read",
-        image: "🏗️"
+        image: "",
+        url: "/blog/what-is-waves.html"
       },
       {
         id: 13,
@@ -356,7 +368,8 @@
         category: "education",
         date: "2025-11-05",
         readTime: "10 min read",
-        image: "🚀"
+        image: "",
+        url: "/blog/what-is-artificial-intelligence.html"
       },
       {
         id: 14,
@@ -365,7 +378,8 @@
         category: "education",
         date: "2025-10-28",
         readTime: "11 min read",
-        image: "📊"
+        image: "",
+        url: "/guides/how-to-learn-physics-effectively.html"
       },
       {
         id: 15,
@@ -374,7 +388,8 @@
         category: "education",
         date: "2025-10-20",
         readTime: "9 min read",
-        image: "🌍"
+        image: "",
+        url: "/blog/stem-education-statistics-2026.html"
       }
     ];
 
@@ -398,7 +413,7 @@
             </div>
             <h3 style="font-size: 20px; margin: 0 0 12px 0; line-height: 1.4;">${post.title}</h3>
             <p style="color: var(--text-muted); font-size: 14px; line-height: 1.6; margin: 0 0 16px 0;">${post.excerpt}</p>
-            <a href="#" style="color: var(--primary); font-weight: 600; text-decoration: none; font-size: 14px;">Read More →</a>
+            <a href="${post.url}" style="color: var(--primary); font-weight: 600; text-decoration: none; font-size: 14px;">Read More →</a>
           </div>
         </article>
       `).join('');
@@ -435,7 +450,7 @@
         
         <div class="faq-item" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
           <h3 style="margin: 0 0 12px 0; font-size: 18px;">Can I contribute articles to the Veelearn blog?</h3>
-          <p style="color: var(--text-muted); margin: 0; line-height: 1.7;">Yes! We welcome contributions from students, educators, and STEM professionals. If you have expertise in a particular topic or want to share your learning journey, you can submit article proposals for review. Approved contributions earn volunteer hours and help build your professional portfolio. Contact us at support@veelearn.org to learn more about becoming a contributor.</p>
+          <p style="color: var(--text-muted); margin: 0; line-height: 1.7;">Yes! We welcome contributions from students, educators, and STEM professionals. If you have expertise in a particular topic or want to share your learning journey, you can submit article proposals for review. Approved contributions earn volunteer hours and help build your professional portfolio. Contact us at viratsuper@veelearn.org to learn more about becoming a contributor.</p>
         </div>
         
         <div class="faq-item" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
