@@ -4,11 +4,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/png" href="/VEELEARN.png" loading="lazy">
+  <link rel="shortcut icon" href="/VEELEARN.png" loading="lazy">
   <meta name="description"
     content="Free STEM learning for students. Master physics, chemistry, math, and biology with interactive simulations, courses, and quizzes. Earn volunteer hours by creating content. Perfect for K-12 and college." />
-  <link rel="icon" type="image/png" href="/VEELEARN.png">
-  <link rel="shortcut icon" href="/VEELEARN.png">
   <title>For Students | Free STEM Learning Platform | Earn Volunteer Hours</title>
+  <!-- Resource Hints for Performance -->
+  <link rel="preload" href="styles.css" as="style">
+  <link rel="preload" href="styles-redesign.css" as="style">
+  <link rel="preload" href="styles-humanized.css" as="style">
+  <link rel="preload" href="script.js" as="script">
+  <link rel="prefetch" href="for-teachers.html">
+  <link rel="prefetch" href="physics.html">
+  <link rel="prefetch" href="chemistry.html">
+  <link rel="prefetch" href="math.html">
+  <link rel="prefetch" href="index.html">
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="styles-redesign.css" />
   <link rel="stylesheet" href="styles-humanized.css" />
@@ -53,6 +63,98 @@
     "@type": "EducationalAudience",
     "educationalRole": "Student"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Is Veelearn really free for students?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, Veelearn is 100% free for all students worldwide. There are no subscription fees, hidden costs, or premium tiers. All features including access to 120+ PhET simulations, interactive courses, quizzes, progress tracking, and the ability to create your own content are completely free. We are funded by The Hack Foundation as a nonprofit educational initiative because we believe that quality STEM education should be accessible to every student regardless of their financial situation."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I join a class my teacher created?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Joining a class on Veelearn is simple. After creating your free student account, go to your dashboard and look for the \"Join Class\" option. Enter the unique class code provided by your teacher, and you'll be enrolled automatically. Once enrolled, you can access all the courses and assignments your teacher has created, track your progress, and see how you're doing compared to the class. Your teacher can then monitor your engagement and provide targeted support if needed."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What subjects can I learn on Veelearn?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Veelearn offers comprehensive STEM education covering physics (mechanics, electricity, magnetism, waves, quantum mechanics, thermodynamics, astrophysics), chemistry (atoms, molecules, reactions, acids and bases, periodic table, organic chemistry), mathematics (algebra, calculus, geometry, statistics, linear algebra, differential equations), and biology (genetics, natural selection, cell biology, ecosystems). Content is available from elementary level through college, so whether you're in middle school, high school, or college, there's something for you."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do interactive simulations help me learn better than textbooks?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Interactive simulations transform passive reading into active learning. Instead of just reading about concepts, you can manipulate variables, observe cause-and-effect relationships, and experiment with different scenarios. Research shows that students who use interactive simulations develop deeper conceptual understanding, remember material longer, and are better able to apply their knowledge to new situations. You can repeat experiments unlimited times, make mistakes without consequences, and build intuition through hands-on exploration."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I earn volunteer hours by creating content on Veelearn?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Absolutely! Veelearn has a unique program that allows you to earn verified volunteer hours by creating educational content. You can create courses on topics you understand well, build custom simulations using our visual programming engine, write tutorials and explanations, or translate existing content into other languages. Each approved contribution earns volunteer hours that can be used for college applications, scholarship requirements, or community service requirements. This is a great way to build your portfolio while helping other students learn."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Do I need coding skills to create simulations on Veelearn?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No coding skills required! Veelearn's simulation builder uses a block-based programming interface similar to Scratch. You simply drag and drop blocks to define objects, forces, and behaviors. This makes it easy to create custom physics and math experiments without writing a single line of code. If you do know how to code, you can also use our advanced features, but the block-based interface ensures everyone can create simulations regardless of their technical background."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I use Veelearn to prepare for standardized tests like SAT, ACT, or AP exams?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, Veelearn is an excellent resource for standardized test preparation. Our physics, chemistry, and mathematics content directly align with the material covered on SAT, ACT, AP exams, and other standardized tests. Use our interactive simulations to build conceptual understanding of topics that appear frequently on these exams. Practice with our quizzes to build speed and accuracy. The visual approach helps you remember formulas and understand problem-solving strategies better than memorization alone."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How can I connect with other learners on Veelearn?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Veelearn has a vibrant global community of learners. You can browse and use content created by other students and educators, leave feedback and comments, and collaborate on projects. The simulator marketplace allows you to discover, fork, and remix simulations created by the community. You can also share your own creations and build a following. Many students find study partners and form study groups through the platform, making learning more social and engaging."
+      }
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://veelearn.org/index.html"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "For Students",
+      "item": "https://veelearn.org/for-students.html"
+    }
+  ]
 }
 </script>
 </head>
@@ -149,6 +251,52 @@
             Join thousands of students mastering STEM with Veelearn. Create your free account and start exploring today.
           </p>
           <a href="index.html" class="primary-btn" style="display: inline-block; padding: 12px 32px; text-decoration: none;">Create Free Student Account</a>
+        </div>
+
+        <!-- FAQ Section -->
+        <div style="margin-bottom: 50px;">
+          <h2 style="margin-bottom: 30px; text-align: center;">Frequently Asked Questions for Students</h2>
+          <div style="display: grid; gap: 20px;">
+            <div class="faq-item" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+              <h3 style="margin: 0 0 12px 0; font-size: 18px;">Is Veelearn really free for students?</h3>
+              <p style="color: var(--text-muted); margin: 0; line-height: 1.7;">Yes, Veelearn is 100% free for all students worldwide. There are no subscription fees, hidden costs, or premium tiers. All features including access to 120+ PhET simulations, interactive courses, quizzes, progress tracking, and the ability to create your own content are completely free. We are funded by The Hack Foundation as a nonprofit educational initiative because we believe that quality STEM education should be accessible to every student regardless of their financial situation.</p>
+            </div>
+            
+            <div class="faq-item" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+              <h3 style="margin: 0 0 12px 0; font-size: 18px;">How do I join a class my teacher created?</h3>
+              <p style="color: var(--text-muted); margin: 0; line-height: 1.7;">Joining a class on Veelearn is simple. After creating your free student account, go to your dashboard and look for the "Join Class" option. Enter the unique class code provided by your teacher, and you'll be enrolled automatically. Once enrolled, you can access all the courses and assignments your teacher has created, track your progress, and see how you're doing compared to the class. Your teacher can then monitor your engagement and provide targeted support if needed.</p>
+            </div>
+            
+            <div class="faq-item" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+              <h3 style="margin: 0 0 12px 0; font-size: 18px;">What subjects can I learn on Veelearn?</h3>
+              <p style="color: var(--text-muted); margin: 0; line-height: 1.7;">Veelearn offers comprehensive STEM education covering physics (mechanics, electricity, magnetism, waves, quantum mechanics, thermodynamics, astrophysics), chemistry (atoms, molecules, reactions, acids and bases, periodic table, organic chemistry), mathematics (algebra, calculus, geometry, statistics, linear algebra, differential equations), and biology (genetics, natural selection, cell biology, ecosystems). Content is available from elementary level through college, so whether you're in middle school, high school, or college, there's something for you.</p>
+            </div>
+            
+            <div class="faq-item" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+              <h3 style="margin: 0 0 12px 0; font-size: 18px;">How do interactive simulations help me learn better than textbooks?</h3>
+              <p style="color: var(--text-muted); margin: 0; line-height: 1.7;">Interactive simulations transform passive reading into active learning. Instead of just reading about concepts, you can manipulate variables, observe cause-and-effect relationships, and experiment with different scenarios. Research shows that students who use interactive simulations develop deeper conceptual understanding, remember material longer, and are better able to apply their knowledge to new situations. You can repeat experiments unlimited times, make mistakes without consequences, and build intuition through hands-on exploration.</p>
+            </div>
+            
+            <div class="faq-item" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+              <h3 style="margin: 0 0 12px 0; font-size: 18px;">Can I earn volunteer hours by creating content on Veelearn?</h3>
+              <p style="color: var(--text-muted); margin: 0; line-height: 1.7;">Absolutely! Veelearn has a unique program that allows you to earn verified volunteer hours by creating educational content. You can create courses on topics you understand well, build custom simulations using our visual programming engine, write tutorials and explanations, or translate existing content into other languages. Each approved contribution earns volunteer hours that can be used for college applications, scholarship requirements, or community service requirements. This is a great way to build your portfolio while helping other students learn.</p>
+            </div>
+            
+            <div class="faq-item" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+              <h3 style="margin: 0 0 12px 0; font-size: 18px;">Do I need coding skills to create simulations on Veelearn?</h3>
+              <p style="color: var(--text-muted); margin: 0; line-height: 1.7;">No coding skills required! Veelearn's simulation builder uses a block-based programming interface similar to Scratch. You simply drag and drop blocks to define objects, forces, and behaviors. This makes it easy to create custom physics and math experiments without writing a single line of code. If you do know how to code, you can also use our advanced features, but the block-based interface ensures everyone can create simulations regardless of their technical background.</p>
+            </div>
+            
+            <div class="faq-item" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+              <h3 style="margin: 0 0 12px 0; font-size: 18px;">Can I use Veelearn to prepare for standardized tests like SAT, ACT, or AP exams?</h3>
+              <p style="color: var(--text-muted); margin: 0; line-height: 1.7;">Yes, Veelearn is an excellent resource for standardized test preparation. Our physics, chemistry, and mathematics content directly align with the material covered on SAT, ACT, AP exams, and other standardized tests. Use our interactive simulations to build conceptual understanding of topics that appear frequently on these exams. Practice with our quizzes to build speed and accuracy. The visual approach helps you remember formulas and understand problem-solving strategies better than memorization alone.</p>
+            </div>
+            
+            <div class="faq-item" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+              <h3 style="margin: 0 0 12px 0; font-size: 18px;">How can I connect with other learners on Veelearn?</h3>
+              <p style="color: var(--text-muted); margin: 0; line-height: 1.7;">Veelearn has a vibrant global community of learners. You can browse and use content created by other students and educators, leave feedback and comments, and collaborate on projects. The simulator marketplace allows you to discover, fork, and remix simulations created by the community. You can also share your own creations and build a following. Many students find study partners and form study groups through the platform, making learning more social and engaging.</p>
+            </div>
+          </div>
         </div>
       </div>
     </section>
