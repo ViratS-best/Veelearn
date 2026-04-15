@@ -6,9 +6,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description"
     content="Veelearn - Free interactive STEM learning platform for K-12 and college students. Master physics, chemistry, math, and biology with 120+ PhET simulations, block-based programming, and community courses. Earn volunteer hours by creating educational content." />
-  <link rel="icon" type="image/png" href="/VEELEARN.png">
-  <link rel="shortcut icon" href="/VEELEARN.png">
+  <link rel="icon" type="image/png" href="/VEELEARN.png" loading="lazy">
+  <link rel="shortcut icon" href="/VEELEARN.png" loading="lazy">
   <title>Veelearn - Free Interactive STEM Learning | Physics, Chemistry, Math Simulations | K-12 & College Education</title>
+  <!-- Resource Hints for Performance -->
+  <link rel="preload" href="styles.css" as="style">
+  <link rel="preload" href="styles-redesign.css" as="style">
+  <link rel="preload" href="styles-humanized.css" as="style">
+  <link rel="preload" href="script.js" as="script">
+  <link rel="prefetch" href="physics.html">
+  <link rel="prefetch" href="chemistry.html">
+  <link rel="prefetch" href="math.html">
+  <link rel="prefetch" href="simulators.html">
+  <link rel="prefetch" href="blog.html">
+  <link rel="prefetch" href="for-teachers.html">
+  <link rel="prefetch" href="for-students.html">
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="styles-redesign.css" />
   <link rel="stylesheet" href="styles-humanized.css" />
@@ -52,12 +64,28 @@
   "logo": "https://veelearn.org/VEELEARN.png",
   "description": "Free interactive STEM learning platform for K-12 and college students with 120+ PhET simulations, block-based programming, and community courses.",
   "sameAs": [
-    "https://www.hackclub.com"
+    "https://www.hackclub.com",
+    "https://github.com/ViratS-best/Veelearn",
+    "https://twitter.com/veelearn",
+    "https://www.linkedin.com/company/veelearn"
   ],
+  "founder": {
+    "@type": "Person",
+    "name": "Virat Sisodiya",
+    "jobTitle": "Founder & Developer"
+  },
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "contactType": "customer support",
+    "email": "support@veelearn.org",
+    "areaServed": "Worldwide",
+    "availableLanguage": "English"
+  },
   "parentOrganization": {
     "@type": "NonprofitOrganization",
     "name": "The Hack Foundation",
-    "taxID": "81-2908499"
+    "taxID": "81-2908499",
+    "url": "https://hackclub.com"
   },
   "offers": {
     "@type": "Offer",
@@ -70,7 +98,30 @@
     "@type": "EducationalAudience",
     "educationalRole": "Student",
     "educationalLevel": ["K-12", "College"]
+  },
+  "address": {
+    "@type": "PostalAddress",
+    "addressCountry": "US"
+  },
+  "foundingDate": "2024",
+  "numberOfEmployees": {
+    "@type": "QuantitativeValue",
+    "value": "5"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://veelearn.org/index.html"
+    }
+  ]
 }
 </script>
 </head>

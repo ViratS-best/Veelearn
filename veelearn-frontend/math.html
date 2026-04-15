@@ -4,11 +4,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/png" href="/VEELEARN.png" loading="lazy">
+  <link rel="shortcut icon" href="/VEELEARN.png" loading="lazy">
   <meta name="description"
     content="Free interactive math learning platform. Master algebra, calculus, geometry, statistics, linear algebra, and differential equations through visual simulations and LaTeX support. Perfect for K-12 and college students." />
-  <link rel="icon" type="image/png" href="/VEELEARN.png">
-  <link rel="shortcut icon" href="/VEELEARN.png">
   <title>Math Learning Hub | Free Interactive Math Simulations | Algebra, Calculus, Statistics</title>
+  <!-- Resource Hints for Performance -->
+  <link rel="preload" href="styles.css" as="style">
+  <link rel="preload" href="styles-redesign.css" as="style">
+  <link rel="preload" href="styles-humanized.css" as="style">
+  <link rel="preload" href="script.js" as="script">
+  <link rel="prefetch" href="physics.html">
+  <link rel="prefetch" href="chemistry.html">
+  <link rel="prefetch" href="simulators.html">
+  <link rel="prefetch" href="blog.html">
+  <link rel="prefetch" href="index.html">
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="styles-redesign.css" />
   <link rel="stylesheet" href="styles-humanized.css" />
@@ -53,6 +63,98 @@
     "@type": "Thing",
     "name": "Mathematics"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Why is mathematics important to learn?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Mathematics is the foundation of all scientific, technological, and engineering fields. It develops critical thinking, logical reasoning, problem-solving abilities, and analytical skills that are essential for success in virtually every career path. From managing finances to understanding data, from programming computers to designing buildings, mathematical knowledge enables you to understand and shape the world around you. Mathematics also builds mental discipline, improves memory, and enhances your ability to recognize patterns and make logical decisions."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do interactive math visualizations help students learn better?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Interactive math visualizations transform abstract mathematical concepts into concrete, manipulable experiences. Students can see functions graphed in real-time, manipulate geometric shapes to understand properties, observe statistical distributions change as parameters vary, and watch calculus concepts like derivatives and integrals unfold visually. Research shows that visual learning combined with interactive exploration leads to deeper conceptual understanding, better retention, and improved ability to apply mathematical knowledge to new situations compared to static textbook learning alone."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What math topics can I learn on Veelearn?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Veelearn offers comprehensive mathematics education from elementary arithmetic through advanced college-level topics. You can learn algebra (linear equations, quadratics, polynomials, functions), calculus (limits, derivatives, integrals, series, multivariable calculus), geometry (Euclidean geometry, trigonometry, coordinate geometry, proofs), statistics (probability, distributions, hypothesis testing, regression, data analysis), linear algebra (matrices, vectors, transformations, eigenvalues), and differential equations (first-order, second-order, systems, modeling). Each topic includes interactive simulations, step-by-step explanations, practice problems, and real-world applications."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is Veelearn completely free for math education?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, Veelearn is 100% free for all students, educators, and learners worldwide. Our math learning platform provides access to 20+ PhET math simulations, interactive courses, quizzes, and community-created content without any cost, subscriptions, or hidden fees. We are funded by The Hack Foundation as a nonprofit educational initiative because we believe that quality mathematics education should be accessible to everyone regardless of their financial situation or geographic location."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How can I overcome math anxiety and build confidence?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Veelearn is designed specifically to help students overcome math anxiety through interactive, low-stakes learning. Our simulations allow you to experiment with mathematical concepts without fear of making mistakes, as you can always reset and try again. Start with topics you're comfortable with and gradually increase difficulty. Use our visualizations to build intuitive understanding before tackling symbolic manipulation. Practice regularly with our quizzes to build confidence through mastery. Remember that mathematics is a skill that improves with practice, and our platform provides a safe, supportive environment for learning at your own pace."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What is LaTeX and how does Veelearn support mathematical notation?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "LaTeX is a professional typesetting system used in mathematics, science, and engineering to format complex mathematical equations and formulas beautifully and precisely. Veelearn includes full LaTeX support throughout our platform, allowing you to see properly formatted mathematical notation in courses, create your own content with professional equations, and learn to read and write standard mathematical notation. This prepares you for college-level STEM courses where LaTeX is the standard for mathematical communication."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How can I use Veelearn for standardized test preparation (SAT, ACT, GRE)?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Veelearn is an excellent resource for standardized test preparation. Our algebra, geometry, statistics, and calculus content directly align with the mathematics sections of major standardized tests. Use our interactive simulations to build conceptual understanding of topics that appear frequently on these exams. Practice with our quizzes to build speed and accuracy. The visual approach helps you remember formulas and understand problem-solving strategies better than memorization alone. Many students find that visual understanding makes test questions more intuitive and less intimidating."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I earn volunteer hours by creating math content on Veelearn?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Absolutely! Veelearn encourages students to create educational content and earn verified volunteer hours for their contributions. You can create math courses, build custom mathematical simulations using our visual programming engine, write explanations and tutorials, solve and share problem sets, or translate existing content into other languages. Each approved contribution earns volunteer hours that can be used for college applications, scholarship requirements, or community service requirements. This system helps build your portfolio while making mathematics education accessible to more students worldwide."
+      }
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://veelearn.org/index.html"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Math",
+      "item": "https://veelearn.org/math.html"
+    }
+  ]
 }
 </script>
 </head>
@@ -117,12 +219,95 @@
           </div>
         </div>
 
+        <!-- Related Resources Section -->
+        <div style="margin-bottom: 50px;">
+          <h2 style="margin-bottom: 30px; text-align: center;">Related Resources</h2>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+            <a href="simulators.html" style="text-decoration: none; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; display: block; transition: all 0.3s ease;">
+              <div style="font-size: 32px; margin-bottom: 12px;">🎮</div>
+              <h3 style="margin: 0 0 8px 0; font-size: 18px; color: var(--text-light);">Math Simulations</h3>
+              <p style="color: var(--text-muted); margin: 0; font-size: 14px;">Explore 20+ interactive math simulations from PhET. Build your own visualizations.</p>
+            </a>
+            <a href="blog.html" style="text-decoration: none; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; display: block; transition: all 0.3s ease;">
+              <div style="font-size: 32px; margin-bottom: 12px;">📝</div>
+              <h3 style="margin: 0 0 8px 0; font-size: 18px; color: var(--text-light);">Math Blog Articles</h3>
+              <p style="color: var(--text-muted); margin: 0; font-size: 14px;">Read in-depth articles about math concepts, career paths, and learning strategies.</p>
+            </a>
+            <a href="for-teachers.html" style="text-decoration: none; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; display: block; transition: all 0.3s ease;">
+              <div style="font-size: 32px; margin-bottom: 12px;">👨‍🏫</div>
+              <h3 style="margin: 0 0 8px 0; font-size: 18px; color: var(--text-light);">For Teachers</h3>
+              <p style="color: var(--text-muted); margin: 0; font-size: 14px;">Learn how to use Veelearn for math instruction. Create courses and track progress.</p>
+            </a>
+            <a href="for-students.html" style="text-decoration: none; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; display: block; transition: all 0.3s ease;">
+              <div style="font-size: 32px; margin-bottom: 12px;">👨‍🎓</div>
+              <h3 style="margin: 0 0 8px 0; font-size: 18px; color: var(--text-light);">For Students</h3>
+              <p style="color: var(--text-muted); margin: 0; font-size: 14px;">Discover how Veelearn helps students master mathematics. Earn volunteer hours creating content.</p>
+            </a>
+            <a href="physics.html" style="text-decoration: none; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; display: block; transition: all 0.3s ease;">
+              <div style="font-size: 32px; margin-bottom: 12px;">⚡</div>
+              <h3 style="margin: 0 0 8px 0; font-size: 18px; color: var(--text-light);">Physics Learning</h3>
+              <p style="color: var(--text-muted); margin: 0; font-size: 14px;">Explore physics with interactive simulations. Master mechanics, electricity, magnetism, and more.</p>
+            </a>
+            <a href="chemistry.html" style="text-decoration: none; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; display: block; transition: all 0.3s ease;">
+              <div style="font-size: 32px; margin-bottom: 12px;">⚗️</div>
+              <h3 style="margin: 0 0 8px 0; font-size: 18px; color: var(--text-light);">Chemistry Learning</h3>
+              <p style="color: var(--text-muted); margin: 0; font-size: 14px;">Explore chemistry with interactive virtual labs. Master atoms, molecules, and reactions.</p>
+            </a>
+          </div>
+        </div>
+
         <div style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(6, 182, 212, 0.1)); border: 1px solid var(--border); border-radius: 12px; padding: 40px; text-align: center; margin-bottom: 50px;">
           <h2 style="margin: 0 0 16px 0;">Start Learning Math Today</h2>
           <p style="color: var(--text-muted); margin: 0 0 24px 0; max-width: 600px; margin-left: auto; margin-right: auto;">
             Join thousands of students mastering mathematics through interactive visualizations. Create your free account and start solving.
           </p>
           <a href="index.html" class="primary-btn" style="display: inline-block; padding: 12px 32px; text-decoration: none;">Get Started Free</a>
+        </div>
+
+        <!-- FAQ Section -->
+        <div style="margin-bottom: 50px;">
+          <h2 style="margin-bottom: 30px; text-align: center;">Frequently Asked Questions About Math Learning</h2>
+          <div style="display: grid; gap: 20px;">
+            <div class="faq-item" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+              <h3 style="margin: 0 0 12px 0; font-size: 18px;">Why is mathematics important to learn?</h3>
+              <p style="color: var(--text-muted); margin: 0; line-height: 1.7;">Mathematics is the foundation of all scientific, technological, and engineering fields. It develops critical thinking, logical reasoning, problem-solving abilities, and analytical skills that are essential for success in virtually every career path. From managing finances to understanding data, from programming computers to designing buildings, mathematical knowledge enables you to understand and shape the world around you. Mathematics also builds mental discipline, improves memory, and enhances your ability to recognize patterns and make logical decisions.</p>
+            </div>
+            
+            <div class="faq-item" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+              <h3 style="margin: 0 0 12px 0; font-size: 18px;">How do interactive math visualizations help students learn better?</h3>
+              <p style="color: var(--text-muted); margin: 0; line-height: 1.7;">Interactive math visualizations transform abstract mathematical concepts into concrete, manipulable experiences. Students can see functions graphed in real-time, manipulate geometric shapes to understand properties, observe statistical distributions change as parameters vary, and watch calculus concepts like derivatives and integrals unfold visually. Research shows that visual learning combined with interactive exploration leads to deeper conceptual understanding, better retention, and improved ability to apply mathematical knowledge to new situations compared to static textbook learning alone.</p>
+            </div>
+            
+            <div class="faq-item" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+              <h3 style="margin: 0 0 12px 0; font-size: 18px;">What math topics can I learn on Veelearn?</h3>
+              <p style="color: var(--text-muted); margin: 0; line-height: 1.7;">Veelearn offers comprehensive mathematics education from elementary arithmetic through advanced college-level topics. You can learn algebra (linear equations, quadratics, polynomials, functions), calculus (limits, derivatives, integrals, series, multivariable calculus), geometry (Euclidean geometry, trigonometry, coordinate geometry, proofs), statistics (probability, distributions, hypothesis testing, regression, data analysis), linear algebra (matrices, vectors, transformations, eigenvalues), and differential equations (first-order, second-order, systems, modeling). Each topic includes interactive simulations, step-by-step explanations, practice problems, and real-world applications.</p>
+            </div>
+            
+            <div class="faq-item" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+              <h3 style="margin: 0 0 12px 0; font-size: 18px;">Is Veelearn completely free for math education?</h3>
+              <p style="color: var(--text-muted); margin: 0; line-height: 1.7;">Yes, Veelearn is 100% free for all students, educators, and learners worldwide. Our math learning platform provides access to 20+ PhET math simulations, interactive courses, quizzes, and community-created content without any cost, subscriptions, or hidden fees. We are funded by The Hack Foundation as a nonprofit educational initiative because we believe that quality mathematics education should be accessible to everyone regardless of their financial situation or geographic location.</p>
+            </div>
+            
+            <div class="faq-item" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+              <h3 style="margin: 0 0 12px 0; font-size: 18px;">How can I overcome math anxiety and build confidence?</h3>
+              <p style="color: var(--text-muted); margin: 0; line-height: 1.7;">Veelearn is designed specifically to help students overcome math anxiety through interactive, low-stakes learning. Our simulations allow you to experiment with mathematical concepts without fear of making mistakes, as you can always reset and try again. Start with topics you're comfortable with and gradually increase difficulty. Use our visualizations to build intuitive understanding before tackling symbolic manipulation. Practice regularly with our quizzes to build confidence through mastery. Remember that mathematics is a skill that improves with practice, and our platform provides a safe, supportive environment for learning at your own pace.</p>
+            </div>
+            
+            <div class="faq-item" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+              <h3 style="margin: 0 0 12px 0; font-size: 18px;">What is LaTeX and how does Veelearn support mathematical notation?</h3>
+              <p style="color: var(--text-muted); margin: 0; line-height: 1.7;">LaTeX is a professional typesetting system used in mathematics, science, and engineering to format complex mathematical equations and formulas beautifully and precisely. Veelearn includes full LaTeX support throughout our platform, allowing you to see properly formatted mathematical notation in courses, create your own content with professional equations, and learn to read and write standard mathematical notation. This prepares you for college-level STEM courses where LaTeX is the standard for mathematical communication.</p>
+            </div>
+            
+            <div class="faq-item" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+              <h3 style="margin: 0 0 12px 0; font-size: 18px;">How can I use Veelearn for standardized test preparation (SAT, ACT, GRE)?</h3>
+              <p style="color: var(--text-muted); margin: 0; line-height: 1.7;">Veelearn is an excellent resource for standardized test preparation. Our algebra, geometry, statistics, and calculus content directly align with the mathematics sections of major standardized tests. Use our interactive simulations to build conceptual understanding of topics that appear frequently on these exams. Practice with our quizzes to build speed and accuracy. The visual approach helps you remember formulas and understand problem-solving strategies better than memorization alone. Many students find that visual understanding makes test questions more intuitive and less intimidating.</p>
+            </div>
+            
+            <div class="faq-item" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+              <h3 style="margin: 0 0 12px 0; font-size: 18px;">Can I earn volunteer hours by creating math content on Veelearn?</h3>
+              <p style="color: var(--text-muted); margin: 0; line-height: 1.7;">Absolutely! Veelearn encourages students to create educational content and earn verified volunteer hours for their contributions. You can create math courses, build custom mathematical simulations using our visual programming engine, write explanations and tutorials, solve and share problem sets, or translate existing content into other languages. Each approved contribution earns volunteer hours that can be used for college applications, scholarship requirements, or community service requirements. This system helps build your portfolio while making mathematics education accessible to more students worldwide.</p>
+            </div>
+          </div>
         </div>
       </div>
     </section>

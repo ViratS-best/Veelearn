@@ -4,11 +4,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/png" href="/VEELEARN.png" loading="lazy">
+  <link rel="shortcut icon" href="/VEELEARN.png" loading="lazy">
   <meta name="description"
     content="Free STEM teaching platform for educators. Create interactive courses, assign lessons, track student progress, and use 120+ PhET simulations. Perfect for K-12 and college teachers." />
-  <link rel="icon" type="image/png" href="/VEELEARN.png">
-  <link rel="shortcut icon" href="/VEELEARN.png">
   <title>For Teachers | Free STEM Education Platform | Create Courses & Track Progress</title>
+  <!-- Resource Hints for Performance -->
+  <link rel="preload" href="styles.css" as="style">
+  <link rel="preload" href="styles-redesign.css" as="style">
+  <link rel="preload" href="styles-humanized.css" as="style">
+  <link rel="preload" href="script.js" as="script">
+  <link rel="prefetch" href="for-students.html">
+  <link rel="prefetch" href="physics.html">
+  <link rel="prefetch" href="chemistry.html">
+  <link rel="prefetch" href="math.html">
+  <link rel="prefetch" href="index.html">
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="styles-redesign.css" />
   <link rel="stylesheet" href="styles-humanized.css" />
@@ -53,6 +63,98 @@
     "@type": "EducationalAudience",
     "educationalRole": "Teacher"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Is Veelearn really free for teachers and schools?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, Veelearn is 100% free for teachers, schools, and educational institutions worldwide. There are no subscription fees, per-student costs, or premium tiers. All features including course creation, class management, progress tracking, and access to 120+ PhET simulations are completely free. We are funded by The Hack Foundation as a nonprofit educational initiative because we believe that quality STEM education should be accessible to every student regardless of their school's budget."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I create and manage classes on Veelearn?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Creating classes on Veelearn is simple and designed for busy teachers. After signing up as an educator, you can create unlimited classes, each with a unique class code that students use to enroll. You can organize classes by subject, grade level, or period. Our dashboard allows you to view all your classes at a glance, manage student enrollments, assign courses with due dates, and track individual and class-wide progress. The system handles grading automatically for quizzes, saving you valuable time."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I use Veelearn with my existing curriculum?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Absolutely! Veelearn is designed to supplement and enhance your existing curriculum, not replace it. You can create custom courses that align with your textbook, state standards, or district requirements. Our PhET simulations can be used to demonstrate concepts you're already teaching. You can assign specific lessons as homework, in-class activities, or enrichment for advanced students. Many teachers use Veelearn to flip their classroom, having students explore simulations at home and discuss concepts in class."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What subjects and grade levels does Veelearn support?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Veelearn supports STEM education from elementary school through college level. Our content covers physics (mechanics, electricity, magnetism, waves, quantum mechanics, thermodynamics, astrophysics), chemistry (atoms, molecules, reactions, acids and bases, periodic table, organic chemistry), mathematics (algebra, calculus, geometry, statistics, linear algebra, differential equations), and biology (genetics, natural selection, cell biology, ecosystems). The platform is suitable for K-12 teachers, college professors, homeschool educators, and after-school program coordinators."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do PhET simulations integrate with my teaching?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "PhET Interactive Simulations, developed by the University of Colorado Boulder, are seamlessly integrated into Veelearn's course creation system. You can embed any of the 120+ simulations directly into your courses alongside text, images, and quizzes. Students interact with simulations as part of their lessons, and you can track their engagement and understanding. Research shows that PhET simulations significantly improve student understanding of abstract STEM concepts, increase engagement, and help develop scientific reasoning skills."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I track student progress and performance?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, Veelearn provides comprehensive progress tracking for all your students. Our dashboard shows completion rates, quiz scores, time spent on lessons, and overall class performance. You can view individual student reports to identify who needs extra help and who is excelling. Progress data updates in real-time, allowing you to adjust your teaching strategies based on current student understanding. You can export reports for parent conferences, administrative records, or personal analysis."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Do I need technical skills to create courses on Veelearn?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No technical skills are required to create courses on Veelearn. Our course editor is designed for educators, not programmers. You can create rich content using a simple interface that supports text, images, embedded simulations, and quizzes. Our block-based simulation builder allows you to create custom physics experiments without writing code. If you can use a word processor, you can create courses on Veelearn. We also provide templates and examples to help you get started quickly."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I share and use content created by other teachers?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes! Veelearn has a vibrant community of educators who share their courses and simulations. You can browse the community marketplace to find content that matches your needs, then use it directly in your classes or remix it to better fit your curriculum. When you create high-quality content, you can share it with the community, helping other teachers while building your professional reputation. All community content is reviewed to ensure quality and educational value."
+      }
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://veelearn.org/index.html"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "For Teachers",
+      "item": "https://veelearn.org/for-teachers.html"
+    }
+  ]
 }
 </script>
 </head>
@@ -149,6 +251,52 @@
             Join thousands of educators using Veelearn to transform STEM education. Create your free teacher account today.
           </p>
           <a href="index.html" class="primary-btn" style="display: inline-block; padding: 12px 32px; text-decoration: none;">Create Free Teacher Account</a>
+        </div>
+
+        <!-- FAQ Section -->
+        <div style="margin-bottom: 50px;">
+          <h2 style="margin-bottom: 30px; text-align: center;">Frequently Asked Questions for Educators</h2>
+          <div style="display: grid; gap: 20px;">
+            <div class="faq-item" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+              <h3 style="margin: 0 0 12px 0; font-size: 18px;">Is Veelearn really free for teachers and schools?</h3>
+              <p style="color: var(--text-muted); margin: 0; line-height: 1.7;">Yes, Veelearn is 100% free for teachers, schools, and educational institutions worldwide. There are no subscription fees, per-student costs, or premium tiers. All features including course creation, class management, progress tracking, and access to 120+ PhET simulations are completely free. We are funded by The Hack Foundation as a nonprofit educational initiative because we believe that quality STEM education should be accessible to every student regardless of their school's budget.</p>
+            </div>
+            
+            <div class="faq-item" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+              <h3 style="margin: 0 0 12px 0; font-size: 18px;">How do I create and manage classes on Veelearn?</h3>
+              <p style="color: var(--text-muted); margin: 0; line-height: 1.7;">Creating classes on Veelearn is simple and designed for busy teachers. After signing up as an educator, you can create unlimited classes, each with a unique class code that students use to enroll. You can organize classes by subject, grade level, or period. Our dashboard allows you to view all your classes at a glance, manage student enrollments, assign courses with due dates, and track individual and class-wide progress. The system handles grading automatically for quizzes, saving you valuable time.</p>
+            </div>
+            
+            <div class="faq-item" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+              <h3 style="margin: 0 0 12px 0; font-size: 18px;">Can I use Veelearn with my existing curriculum?</h3>
+              <p style="color: var(--text-muted); margin: 0; line-height: 1.7;">Absolutely! Veelearn is designed to supplement and enhance your existing curriculum, not replace it. You can create custom courses that align with your textbook, state standards, or district requirements. Our PhET simulations can be used to demonstrate concepts you're already teaching. You can assign specific lessons as homework, in-class activities, or enrichment for advanced students. Many teachers use Veelearn to flip their classroom, having students explore simulations at home and discuss concepts in class.</p>
+            </div>
+            
+            <div class="faq-item" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+              <h3 style="margin: 0 0 12px 0; font-size: 18px;">What subjects and grade levels does Veelearn support?</h3>
+              <p style="color: var(--text-muted); margin: 0; line-height: 1.7;">Veelearn supports STEM education from elementary school through college level. Our content covers physics (mechanics, electricity, magnetism, waves, quantum mechanics, thermodynamics, astrophysics), chemistry (atoms, molecules, reactions, acids and bases, periodic table, organic chemistry), mathematics (algebra, calculus, geometry, statistics, linear algebra, differential equations), and biology (genetics, natural selection, cell biology, ecosystems). The platform is suitable for K-12 teachers, college professors, homeschool educators, and after-school program coordinators.</p>
+            </div>
+            
+            <div class="faq-item" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+              <h3 style="margin: 0 0 12px 0; font-size: 18px;">How do PhET simulations integrate with my teaching?</h3>
+              <p style="color: var(--text-muted); margin: 0; line-height: 1.7;">PhET Interactive Simulations, developed by the University of Colorado Boulder, are seamlessly integrated into Veelearn's course creation system. You can embed any of the 120+ simulations directly into your courses alongside text, images, and quizzes. Students interact with simulations as part of their lessons, and you can track their engagement and understanding. Research shows that PhET simulations significantly improve student understanding of abstract STEM concepts, increase engagement, and help develop scientific reasoning skills.</p>
+            </div>
+            
+            <div class="faq-item" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+              <h3 style="margin: 0 0 12px 0; font-size: 18px;">Can I track student progress and performance?</h3>
+              <p style="color: var(--text-muted); margin: 0; line-height: 1.7;">Yes, Veelearn provides comprehensive progress tracking for all your students. Our dashboard shows completion rates, quiz scores, time spent on lessons, and overall class performance. You can view individual student reports to identify who needs extra help and who is excelling. Progress data updates in real-time, allowing you to adjust your teaching strategies based on current student understanding. You can export reports for parent conferences, administrative records, or personal analysis.</p>
+            </div>
+            
+            <div class="faq-item" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+              <h3 style="margin: 0 0 12px 0; font-size: 18px;">Do I need technical skills to create courses on Veelearn?</h3>
+              <p style="color: var(--text-muted); margin: 0; line-height: 1.7;">No technical skills are required to create courses on Veelearn. Our course editor is designed for educators, not programmers. You can create rich content using a simple interface that supports text, images, embedded simulations, and quizzes. Our block-based simulation builder allows you to create custom physics experiments without writing code. If you can use a word processor, you can create courses on Veelearn. We also provide templates and examples to help you get started quickly.</p>
+            </div>
+            
+            <div class="faq-item" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+              <h3 style="margin: 0 0 12px 0; font-size: 18px;">Can I share and use content created by other teachers?</h3>
+              <p style="color: var(--text-muted); margin: 0; line-height: 1.7;">Yes! Veelearn has a vibrant community of educators who share their courses and simulations. You can browse the community marketplace to find content that matches your needs, then use it directly in your classes or remix it to better fit your curriculum. When you create high-quality content, you can share it with the community, helping other teachers while building your professional reputation. All community content is reviewed to ensure quality and educational value.</p>
+            </div>
+          </div>
         </div>
       </div>
     </section>
