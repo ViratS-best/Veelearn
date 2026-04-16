@@ -158,6 +158,68 @@
             color: #888;
             font-size: 12px;
         }
+        .message-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .message-item {
+            background: #16213e;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #0f3460;
+        }
+        .message-item.sent {
+            border-left: 3px solid #667eea;
+        }
+        .message-item.received {
+            border-left: 3px solid #764ba2;
+        }
+        .message-item h4 {
+            color: #667eea;
+            margin: 0 0 10px 0;
+        }
+        .message-item p {
+            color: #eee;
+            margin: 5px 0;
+        }
+        .message-item .meta {
+            color: #888;
+            font-size: 12px;
+        }
+        .calendar-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .calendar-item {
+            background: #16213e;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #0f3460;
+            border-left: 3px solid #667eea;
+        }
+        .calendar-item.assignment {
+            border-left-color: #ff6b6b;
+        }
+        .calendar-item.exam {
+            border-left-color: #ffd93d;
+        }
+        .calendar-item.event {
+            border-left-color: #51cf66;
+        }
+        .calendar-item h4 {
+            color: #667eea;
+            margin: 0 0 10px 0;
+        }
+        .calendar-item p {
+            color: #eee;
+            margin: 5px 0;
+        }
+        .calendar-item .meta {
+            color: #888;
+            font-size: 12px;
+        }
         .loading {
             text-align: center;
             padding: 40px;
@@ -192,6 +254,8 @@
             <button class="tab active" onclick="showTab('classes')">My Classes</button>
             <button class="tab" onclick="showTab('assignments')">Assignments</button>
             <button class="tab" onclick="showTab('posts')">Class Posts</button>
+            <button class="tab" onclick="showTab('messages')">Messages</button>
+            <button class="tab" onclick="showTab('calendar')">Calendar</button>
         </div>
 
         <div id="classesTab" class="tab-content active">
@@ -217,6 +281,24 @@
                 <h2>📢 Class Posts</h2>
                 <div class="post-list" id="postsList">
                     <p class="loading">Loading posts...</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="messagesTab" class="tab-content">
+            <div class="dashboard-card">
+                <h2>💬 Messages</h2>
+                <div class="message-list" id="messageList">
+                    <p class="loading">Loading messages...</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="calendarTab" class="tab-content">
+            <div class="dashboard-card">
+                <h2>📅 Calendar</h2>
+                <div class="calendar-list" id="calendarList">
+                    <p class="loading">Loading calendar events...</p>
                 </div>
             </div>
         </div>
@@ -350,10 +432,10 @@
                         
                         // Add click handler to redirect to course
                         assignmentItem.addEventListener('click', () => {
-                            const baseUrl = window.location.hostname.includes('github.io') 
+                            const baseUrl = window.location.hostname.includes('github.io')
                                 ? 'https://virat-sisodiya.github.io/Veelearn/veelearn-frontend'
                                 : window.location.origin;
-                            window.open(`${baseUrl}/index.html?courseId=${assignment.course_id}`, '_blank');
+                            window.open(`${baseUrl}/course-viewer.html?courseId=${assignment.course_id}`, '_blank');
                         });
                         
                         assignmentList.appendChild(assignmentItem);
@@ -459,6 +541,79 @@
             }
         }
 
+        async function loadMessages() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/messages`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.data) {
+                    const messages = data.data;
+                    const messageList = document.getElementById('messageList');
+                    
+                    messageList.innerHTML = '';
+                    
+                    if (messages.length === 0) {
+                        messageList.innerHTML = '<p style="color: #888; text-align: center;">No messages yet.</p>';
+                        return;
+                    }
+                    
+                    messages.forEach(message => {
+                        const messageItem = document.createElement('div');
+                        const isSent = message.sender_id === currentUser.id;
+                        messageItem.className = `message-item ${isSent ? 'sent' : 'received'}`;
+                        const timestamp = new Date(message.created_at).toLocaleString();
+                        messageItem.innerHTML = `
+                            <h4>${isSent ? 'To: ' + message.recipient_name : 'From: ' + message.sender_name}</h4>
+                            <p>${message.content}</p>
+                            <p class="meta">${timestamp}</p>
+                        `;
+                        messageList.appendChild(messageItem);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading messages:', error);
+            }
+        }
+
+        async function loadCalendar() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/calendar`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.data) {
+                    const events = data.data;
+                    const calendarList = document.getElementById('calendarList');
+                    
+                    calendarList.innerHTML = '';
+                    
+                    if (events.length === 0) {
+                        calendarList.innerHTML = '<p style="color: #888; text-align: center;">No calendar events yet.</p>';
+                        return;
+                    }
+                    
+                    events.forEach(event => {
+                        const eventItem = document.createElement('div');
+                        eventItem.className = `calendar-item ${event.event_type}`;
+                        const eventDate = new Date(event.event_date).toLocaleDateString();
+                        eventItem.innerHTML = `
+                            <h4>${event.title}</h4>
+                            <p>${event.description || 'No description'}</p>
+                            <p class="meta">Date: ${eventDate} | Type: ${event.event_type}</p>
+                        `;
+                        calendarList.appendChild(eventItem);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading calendar:', error);
+            }
+        }
+
         function logout() {
             localStorage.removeItem('token');
             localStorage.removeItem('user');
@@ -470,6 +625,8 @@
         loadClasses();
         loadAssignments();
         loadPosts();
+        loadMessages();
+        loadCalendar();
     </script>
 </body>
 </html>

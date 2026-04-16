@@ -107,11 +107,11 @@
         .progress-view.active {
             display: block;
         }
-        .class-list, .assignment-list, .post-list {
+        .class-list, .assignment-list, .post-list, .message-list {
             max-height: 400px;
             overflow-y: auto;
         }
-        .class-item, .assignment-item, .post-item {
+        .class-item, .assignment-item, .post-item, .message-item {
             background: #16213e;
             padding: 15px;
             margin-bottom: 10px;
@@ -136,6 +136,39 @@
             margin: 5px 0;
         }
         .post-item .meta {
+            color: #888;
+            font-size: 12px;
+        }
+        .calendar-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .calendar-item {
+            background: #16213e;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #0f3460;
+            border-left: 3px solid #667eea;
+        }
+        .calendar-item.assignment {
+            border-left-color: #ff6b6b;
+        }
+        .calendar-item.exam {
+            border-left-color: #ffd93d;
+        }
+        .calendar-item.event {
+            border-left-color: #51cf66;
+        }
+        .calendar-item h4 {
+            color: #667eea;
+            margin: 0 0 10px 0;
+        }
+        .calendar-item p {
+            color: #eee;
+            margin: 5px 0;
+        }
+        .calendar-item .meta {
             color: #888;
             font-size: 12px;
         }
@@ -202,6 +235,8 @@
                     <button class="tab active" onclick="showChildTab('classes')">Classes</button>
                     <button class="tab" onclick="showChildTab('assignments')">Assignments</button>
                     <button class="tab" onclick="showChildTab('posts')">Posts</button>
+                    <button class="tab" onclick="showChildTab('messages')">Messages</button>
+                    <button class="tab" onclick="showChildTab('calendar')">Calendar</button>
                 </div>
 
                 <div id="childClassesTab" class="tab-content active">
@@ -219,6 +254,18 @@
                 <div id="childPostsTab" class="tab-content">
                     <div class="post-list" id="childPostList">
                         <p class="loading">Select a child to view their posts</p>
+                    </div>
+                </div>
+
+                <div id="childMessagesTab" class="tab-content">
+                    <div class="message-list" id="childMessageList">
+                        <p class="loading">Select a child to view their messages</p>
+                    </div>
+                </div>
+
+                <div id="childCalendarTab" class="tab-content">
+                    <div class="calendar-list" id="childCalendarList">
+                        <p class="loading">Select a child to view their calendar</p>
                     </div>
                 </div>
             </div>
@@ -376,9 +423,93 @@
                             postList.appendChild(postItem);
                         });
                     }
+
+                    // Load messages for this child
+                    loadChildMessages(childId);
+
+                    // Load calendar for this child
+                    loadChildCalendar(childId);
                 }
             } catch (error) {
                 console.error('Error loading child progress:', error);
+            }
+        }
+
+        async function loadChildCalendar(childId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/calendar`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.data) {
+                    const events = data.data;
+                    const calendarList = document.getElementById('childCalendarList');
+                    
+                    calendarList.innerHTML = '';
+                    
+                    if (events.length === 0) {
+                        calendarList.innerHTML = '<p style="color: #888; text-align: center;">No calendar events yet.</p>';
+                        return;
+                    }
+                    
+                    events.forEach(event => {
+                        const eventItem = document.createElement('div');
+                        eventItem.className = `calendar-item ${event.event_type}`;
+                        const eventDate = new Date(event.event_date).toLocaleDateString();
+                        eventItem.innerHTML = `
+                            <h4>${event.title}</h4>
+                            <p>${event.description || 'No description'}</p>
+                            <p class="meta">Date: ${eventDate} | Type: ${event.event_type}</p>
+                        `;
+                        calendarList.appendChild(eventItem);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading child calendar:', error);
+            }
+        }
+
+        async function loadChildMessages(childId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/messages`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.data) {
+                    const messages = data.data;
+                    const messageList = document.getElementById('childMessageList');
+                    
+                    messageList.innerHTML = '';
+                    
+                    // Filter messages between parent and child
+                    const childMessages = messages.filter(m => 
+                        m.sender_id === childId || m.recipient_id === childId
+                    );
+                    
+                    if (childMessages.length === 0) {
+                        messageList.innerHTML = '<p style="color: #888; text-align: center;">No messages with this child.</p>';
+                        return;
+                    }
+                    
+                    childMessages.forEach(message => {
+                        const messageItem = document.createElement('div');
+                        const isSent = message.sender_id === currentUser.id;
+                        messageItem.className = 'message-item';
+                        const timestamp = new Date(message.created_at).toLocaleString();
+                        messageItem.innerHTML = `
+                            <h4>${isSent ? 'To: ' + message.recipient_name : 'From: ' + message.sender_name}</h4>
+                            <p>${message.content}</p>
+                            <p class="meta">${timestamp}</p>
+                        `;
+                        messageList.appendChild(messageItem);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading child messages:', error);
             }
         }
 
