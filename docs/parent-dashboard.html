@@ -507,9 +507,12 @@
                         `;
                         messageList.appendChild(messageItem);
                     });
+                } else {
+                    document.getElementById('childMessageList').innerHTML = '<p style="color: #888; text-align: center;">No messages with this child.</p>';
                 }
             } catch (error) {
                 console.error('Error loading child messages:', error);
+                document.getElementById('childMessageList').innerHTML = '<p style="color: #888; text-align: center;">Error loading messages.</p>';
             }
         }
 
