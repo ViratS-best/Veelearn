@@ -2716,6 +2716,10 @@ function showSuperadminDashboard() {
     document
         .getElementById("create-course-button-superadmin")
         ?.addEventListener("click", createNewCourse);
+
+    // Load EMS school approval data
+    loadPendingSchools();
+    loadAllSchools();
 }
 
 function showAdminDashboard() {
@@ -2857,6 +2861,110 @@ function loadPendingCourses() {
         })
         .catch((err) => console.error("Error loading pending courses:", err));
 }
+
+// ===== EMS SCHOOL APPROVAL FUNCTIONS =====
+
+function loadPendingSchools() {
+    fetch(`${API_BASE_URL}/api/schools/pending`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+        credentials: "include"
+    })
+        .then((res) => res.json())
+        .then((data) => {
+            if (data.success || data.data) {
+                renderPendingSchools(data.data);
+            }
+        })
+        .catch((err) => console.error("Error loading pending schools:", err));
+}
+
+function renderPendingSchools(schools) {
+    const list = document.getElementById("superadmin-pending-schools-list");
+    if (!list) return;
+
+    if (!schools || schools.length === 0) {
+        list.innerHTML = "<li><em>No pending schools</em></li>";
+        return;
+    }
+
+    list.innerHTML = schools
+        .map(
+            (school) => `
+        <li>
+            <strong>${escapeHtml(school.name)}</strong>
+            <p>Admin: ${escapeHtml(school.admin_name)} (${escapeHtml(school.email)})</p>
+            <button onclick="approveSchool(${school.id})">Approve</button>
+        </li>
+    `
+        )
+        .join("");
+}
+
+function loadAllSchools() {
+    fetch(`${API_BASE_URL}/api/schools`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+        credentials: "include"
+    })
+        .then((res) => res.json())
+        .then((data) => {
+            if (data.success || data.data) {
+                renderAllSchools(data.data);
+            }
+        })
+        .catch((err) => console.error("Error loading schools:", err));
+}
+
+function renderAllSchools(schools) {
+    const list = document.getElementById("superadmin-all-schools-list");
+    if (!list) return;
+
+    if (!schools || schools.length === 0) {
+        list.innerHTML = "<li><em>No schools</em></li>";
+        return;
+    }
+
+    list.innerHTML = schools
+        .map(
+            (school) => `
+        <li>
+            <strong>${escapeHtml(school.name)}</strong>
+            <p>Admin: ${escapeHtml(school.admin_name)} (${escapeHtml(school.email)})</p>
+            <p>School Code: ${escapeHtml(school.school_code || 'Not approved yet')}</p>
+            <p>Status: ${school.is_approved ? '✅ Approved' : '⏳ Pending'}</p>
+        </li>
+    `
+        )
+        .join("");
+}
+
+function approveSchool(schoolId) {
+    if (!confirm("Are you sure you want to approve this school?")) return;
+
+    fetch(`${API_BASE_URL}/api/schools/${schoolId}/approve`, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authToken}`
+        },
+        credentials: "include"
+    })
+        .then((res) => res.json())
+        .then((data) => {
+            if (data.success || data.message) {
+                alert("School approved! School code: " + (data.data?.school_code || 'Generated'));
+                loadPendingSchools();
+                loadAllSchools();
+            } else {
+                alert(data.message || "Failed to approve school");
+            }
+        })
+        .catch((err) => {
+            console.error("Error approving school:", err);
+            alert("Error approving school");
+        });
+}
+
+window.approveSchool = approveSchool;
 
 function renderPendingCourses(courses) {
     const list =

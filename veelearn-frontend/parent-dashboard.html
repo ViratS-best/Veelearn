@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parent Dashboard - Veelearn</title>
+    <link rel="stylesheet" href="styles-redesign.css">
+    <style>
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #1a1a2e;
+            border-radius: 10px;
+        }
+        .dashboard-header h1 {
+            color: #667eea;
+            margin: 0;
+        }
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .dashboard-card {
+            background: #1a1a2e;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #0f3460;
+        }
+        .dashboard-card h2 {
+            color: #667eea;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+        .btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        .btn-secondary {
+            background: #0f3460;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #eee;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            background: #16213e;
+            border: 1px solid #0f3460;
+            border-radius: 5px;
+            color: #eee;
+        }
+        .children-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .child-item {
+            background: #16213e;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #0f3460;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        .child-item:hover {
+            border-color: #667eea;
+        }
+        .child-item.selected {
+            border-color: #667eea;
+            background: #1a1a2e;
+        }
+        .child-item h3 {
+            color: #eee;
+            margin: 0 0 10px 0;
+        }
+        .child-item p {
+            color: #888;
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        .progress-view {
+            display: none;
+        }
+        .progress-view.active {
+            display: block;
+        }
+        .class-list, .assignment-list, .post-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .class-item, .assignment-item, .post-item {
+            background: #16213e;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #0f3460;
+        }
+        .class-item h3, .assignment-item h3 {
+            color: #eee;
+            margin: 0 0 10px 0;
+        }
+        .class-item p, .assignment-item p {
+            color: #888;
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        .post-item h4 {
+            color: #667eea;
+            margin: 0 0 10px 0;
+        }
+        .post-item p {
+            color: #eee;
+            margin: 5px 0;
+        }
+        .post-item .meta {
+            color: #888;
+            font-size: 12px;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            background: #0f3460;
+            color: #eee;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .tab.active {
+            background: #667eea;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1>👨‍👩‍👧 Parent Dashboard</h1>
+            <button class="btn btn-secondary" onclick="logout()">Logout</button>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="dashboard-card">
+                <h2>👶 My Children</h2>
+                <div class="children-list" id="childrenList">
+                    <p class="loading">Loading children...</p>
+                </div>
+            </div>
+
+            <div class="dashboard-card">
+                <h2>🔗 Link Additional Child</h2>
+                <form id="linkChildForm">
+                    <div class="form-group">
+                        <label for="studentCode">Student's Parent Code</label>
+                        <input type="text" id="studentCode" required placeholder="Enter the code from your child's account">
+                    </div>
+                    <button type="submit" class="btn">Link Child</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="progressView" class="progress-view">
+            <div class="dashboard-card">
+                <h2 id="selectedChildName">Child's Progress</h2>
+                <div class="tabs">
+                    <button class="tab active" onclick="showChildTab('classes')">Classes</button>
+                    <button class="tab" onclick="showChildTab('assignments')">Assignments</button>
+                    <button class="tab" onclick="showChildTab('posts')">Posts</button>
+                </div>
+
+                <div id="childClassesTab" class="tab-content active">
+                    <div class="class-list" id="childClassList">
+                        <p class="loading">Select a child to view their classes</p>
+                    </div>
+                </div>
+
+                <div id="childAssignmentsTab" class="tab-content">
+                    <div class="assignment-list" id="childAssignmentList">
+                        <p class="loading">Select a child to view their assignments</p>
+                    </div>
+                </div>
+
+                <div id="childPostsTab" class="tab-content">
+                    <div class="post-list" id="childPostList">
+                        <p class="loading">Select a child to view their posts</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = (() => {
+            if (window.location.hostname.includes('veelearn.org')) {
+                return 'https://api.veelearn.org';
+            }
+            if (window.location.hostname.includes('github.io')) {
+                return 'https://veelearn.onrender.com';
+            }
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                return 'http://localhost:3000';
+            }
+            return window.location.origin;
+        })();
+
+        let authToken = localStorage.getItem('token');
+        let currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+        let selectedChildId = null;
+
+        if (!authToken) {
+            window.location.href = 'index.html';
+        }
+
+        function showChildTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            document.querySelector(`.tab[onclick="showChildTab('${tabName}')"]`).classList.add('active');
+            document.getElementById(`child${tabName.charAt(0).toUpperCase() + tabName.slice(1)}Tab`).classList.add('active');
+        }
+
+        async function loadChildren() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/parent/my-children`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.data) {
+                    const children = data.data;
+                    const childrenList = document.getElementById('childrenList');
+                    
+                    childrenList.innerHTML = '';
+                    
+                    if (children.length === 0) {
+                        childrenList.innerHTML = '<p style="color: #888; text-align: center;">No children linked yet. Use the form to link your first child.</p>';
+                        return;
+                    }
+                    
+                    children.forEach(child => {
+                        const childItem = document.createElement('div');
+                        childItem.className = 'child-item';
+                        childItem.dataset.childId = child.id;
+                        childItem.innerHTML = `
+                            <h3>${child.name}</h3>
+                            <p>School: ${child.school_name || 'N/A'}</p>
+                            <p>Email: ${child.email}</p>
+                        `;
+                        childItem.onclick = () => selectChild(child);
+                        childrenList.appendChild(childItem);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading children:', error);
+            }
+        }
+
+        async function selectChild(child) {
+            selectedChildId = child.id;
+            
+            // Update UI
+            document.querySelectorAll('.child-item').forEach(item => item.classList.remove('selected'));
+            document.querySelector(`.child-item[data-child-id="${child.id}"]`).classList.add('selected');
+            
+            document.getElementById('selectedChildName').textContent = `${child.name}'s Progress`;
+            document.getElementById('progressView').classList.add('active');
+            
+            // Load child's data
+            loadChildProgress(child.id);
+        }
+
+        async function loadChildProgress(childId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/parent/child/${childId}/progress`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.data) {
+                    const { classes, assignments, posts } = data.data;
+                    
+                    // Load classes
+                    const classList = document.getElementById('childClassList');
+                    classList.innerHTML = '';
+                    
+                    if (classes.length === 0) {
+                        classList.innerHTML = '<p style="color: #888; text-align: center;">No classes enrolled.</p>';
+                    } else {
+                        classes.forEach(cls => {
+                            const classItem = document.createElement('div');
+                            classItem.className = 'class-item';
+                            classItem.innerHTML = `
+                                <h3>${cls.name}</h3>
+                                <p>Teacher: ${cls.teacher_name || 'Not assigned'}</p>
+                            `;
+                            classList.appendChild(classItem);
+                        });
+                    }
+                    
+                    // Load assignments
+                    const assignmentList = document.getElementById('childAssignmentList');
+                    assignmentList.innerHTML = '';
+                    
+                    if (assignments.length === 0) {
+                        assignmentList.innerHTML = '<p style="color: #888; text-align: center;">No assignments.</p>';
+                    } else {
+                        assignments.forEach(assignment => {
+                            const assignmentItem = document.createElement('div');
+                            assignmentItem.className = 'assignment-item';
+                            const dueDate = new Date(assignment.due_date).toLocaleString();
+                            assignmentItem.innerHTML = `
+                                <h3>${assignment.title}</h3>
+                                <p>Course: ${assignment.course_title}</p>
+                                <p>Due: ${dueDate}</p>
+                                <p>Progress: ${assignment.completion_percentage || 0}%</p>
+                                <p>Score: ${assignment.score || 'N/A'}</p>
+                            `;
+                            assignmentList.appendChild(assignmentItem);
+                        });
+                    }
+                    
+                    // Load posts
+                    const postList = document.getElementById('childPostList');
+                    postList.innerHTML = '';
+                    
+                    if (posts.length === 0) {
+                        postList.innerHTML = '<p style="color: #888; text-align: center;">No posts.</p>';
+                    } else {
+                        posts.forEach(post => {
+                            const postItem = document.createElement('div');
+                            postItem.className = 'post-item';
+                            const timestamp = new Date(post.created_at).toLocaleString();
+                            postItem.innerHTML = `
+                                <h4>${post.class_name || 'School Post'}</h4>
+                                <p>${post.content}</p>
+                                <p class="meta">${timestamp}</p>
+                            `;
+                            postList.appendChild(postItem);
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading child progress:', error);
+            }
+        }
+
+        // Link child form
+        document.getElementById('linkChildForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const studentCode = document.getElementById('studentCode').value;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/parent/link-student`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ student_code: studentCode.toUpperCase() })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert('Child linked successfully!');
+                    document.getElementById('studentCode').value = '';
+                    loadChildren();
+                } else {
+                    alert(data.message || 'Failed to link child');
+                }
+            } catch (error) {
+                console.error('Error linking child:', error);
+                alert('Error linking child');
+            }
+        });
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = 'index.html';
+        }
+
+        // Initialize
+        loadChildren();
+    </script>
+</body>
+</html>

@@ -256,13 +256,20 @@ const initializeDatabase = async () => {
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 email VARCHAR(255) NOT NULL UNIQUE,
                 password VARCHAR(255) NOT NULL,
-                role ENUM('superadmin', 'admin', 'teacher', 'user') DEFAULT 'user',
+                role ENUM('superadmin', 'admin', 'school_admin', 'teacher', 'student', 'parent', 'user') DEFAULT 'user',
                 is_admin_approved BOOLEAN DEFAULT FALSE,
                 shells INT DEFAULT 0,
+                name VARCHAR(255),
+                school_code VARCHAR(20) NULL,
+                school_id INT NULL,
+                parent_code VARCHAR(20) UNIQUE NULL,
+                is_approved BOOLEAN DEFAULT FALSE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 INDEX idx_email (email),
-                INDEX idx_role (role)
+                INDEX idx_role (role),
+                INDEX idx_school_code (school_code),
+                INDEX idx_parent_code (parent_code)
             )
         `);
         info('✓ Users table ready');
@@ -347,6 +354,28 @@ const initializeDatabase = async () => {
         await addColumn('users', 'class_code', 'VARCHAR(20) UNIQUE');
         await addColumn('users', 'teacher_approved', 'BOOLEAN DEFAULT FALSE');
         info('✓ Teacher columns verified/added to users table');
+
+        // ===== EDUCATIONAL MANAGEMENT SYSTEM (EMS) MIGRATIONS =====
+
+        // Migration: Update users role ENUM to include new EMS roles
+        // Note: MySQL doesn't support ALTER TABLE for ENUM modifications directly
+        // We'll modify the CREATE TABLE statement above to include new roles
+        // For existing databases, we'll use a manual ALTER TABLE approach
+        try {
+            await query(`ALTER TABLE users MODIFY COLUMN role ENUM('superadmin', 'admin', 'school_admin', 'teacher', 'student', 'parent', 'user') DEFAULT 'user'`);
+            info('✓ Users role ENUM updated for EMS roles');
+        } catch (e) {
+            // Likely already updated or table doesn't exist yet
+            info('ℹ️ Role ENUM update skipped (may already exist)');
+        }
+
+        // Migration: Add EMS-related columns to users table
+        await addColumn('users', 'name', 'VARCHAR(255)');
+        await addColumn('users', 'school_code', 'VARCHAR(20) NULL');
+        await addColumn('users', 'school_id', 'INT NULL');
+        await addColumn('users', 'parent_code', 'VARCHAR(20) UNIQUE NULL');
+        await addColumn('users', 'is_approved', 'BOOLEAN DEFAULT FALSE');
+        info('✓ EMS columns verified/added to users table');
 
         // ===== COURSE NESTING SYSTEM MIGRATIONS =====
         
@@ -473,6 +502,175 @@ const initializeDatabase = async () => {
         } catch (e) {
             // Likely already exists
         }
+
+        // ===== EDUCATIONAL MANAGEMENT SYSTEM (EMS) TABLES =====
+
+        // Schools table
+        await query(`
+            CREATE TABLE IF NOT EXISTS schools (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                school_code VARCHAR(20) UNIQUE NOT NULL,
+                school_admin_id INT,
+                is_approved BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (school_admin_id) REFERENCES users(id) ON DELETE SET NULL,
+                INDEX idx_school_code (school_code),
+                INDEX idx_school_admin (school_admin_id)
+            )
+        `);
+        info('✓ Schools table ready');
+
+        // Classes table
+        await query(`
+            CREATE TABLE IF NOT EXISTS classes (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                school_id INT NOT NULL,
+                name VARCHAR(255) NOT NULL,
+                teacher_id INT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (school_id) REFERENCES schools(id) ON DELETE CASCADE,
+                FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE SET NULL,
+                INDEX idx_school (school_id),
+                INDEX idx_teacher (teacher_id)
+            )
+        `);
+        info('✓ Classes table ready');
+
+        // Class enrollments table
+        await query(`
+            CREATE TABLE IF NOT EXISTS class_enrollments (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                class_id INT NOT NULL,
+                student_id INT NOT NULL,
+                enrolled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
+                FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
+                UNIQUE KEY unique_enrollment (class_id, student_id),
+                INDEX idx_class (class_id),
+                INDEX idx_student (student_id)
+            )
+        `);
+        info('✓ Class enrollments table ready');
+
+        // Parent-student links table
+        await query(`
+            CREATE TABLE IF NOT EXISTS parent_student_links (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                parent_id INT NOT NULL,
+                student_id INT NOT NULL,
+                linked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (parent_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
+                UNIQUE KEY unique_link (parent_id, student_id),
+                INDEX idx_parent (parent_id),
+                INDEX idx_student (student_id)
+            )
+        `);
+        info('✓ Parent-student links table ready');
+
+        // Messages table
+        await query(`
+            CREATE TABLE IF NOT EXISTS messages (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                sender_id INT NOT NULL,
+                recipient_id INT NOT NULL,
+                class_id INT NULL,
+                content TEXT NOT NULL,
+                is_read BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (recipient_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
+                INDEX idx_sender (sender_id),
+                INDEX idx_recipient (recipient_id),
+                INDEX idx_class (class_id),
+                INDEX idx_created (created_at)
+            )
+        `);
+        info('✓ Messages table ready');
+
+        // Posts table
+        await query(`
+            CREATE TABLE IF NOT EXISTS posts (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                author_id INT NOT NULL,
+                class_id INT NULL,
+                school_id INT NULL,
+                content TEXT NOT NULL,
+                post_type ENUM('announcement', 'homework', 'event') DEFAULT 'announcement',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
+                FOREIGN KEY (school_id) REFERENCES schools(id) ON DELETE CASCADE,
+                INDEX idx_author (author_id),
+                INDEX idx_class (class_id),
+                INDEX idx_school (school_id),
+                INDEX idx_created (created_at)
+            )
+        `);
+        info('✓ Posts table ready');
+
+        // Calendar events table
+        await query(`
+            CREATE TABLE IF NOT EXISTS calendar_events (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                post_id INT,
+                class_id INT NULL,
+                school_id INT NULL,
+                title VARCHAR(255) NOT NULL,
+                event_date DATE NOT NULL,
+                event_type ENUM('homework', 'assignment', 'event') DEFAULT 'event',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE SET NULL,
+                FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
+                FOREIGN KEY (school_id) REFERENCES schools(id) ON DELETE CASCADE,
+                INDEX idx_post (post_id),
+                INDEX idx_class (class_id),
+                INDEX idx_school (school_id),
+                INDEX idx_event_date (event_date)
+            )
+        `);
+        info('✓ Calendar events table ready');
+
+        // Assignments table
+        await query(`
+            CREATE TABLE IF NOT EXISTS assignments (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                class_id INT NOT NULL,
+                course_id INT NOT NULL,
+                teacher_id INT NOT NULL,
+                title VARCHAR(255) NOT NULL,
+                due_date DATETIME NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
+                FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
+                FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE,
+                INDEX idx_class (class_id),
+                INDEX idx_course (course_id),
+                INDEX idx_teacher (teacher_id),
+                INDEX idx_due_date (due_date)
+            )
+        `);
+        info('✓ Assignments table ready');
+
+        // Assignment progress table
+        await query(`
+            CREATE TABLE IF NOT EXISTS assignment_progress (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                assignment_id INT NOT NULL,
+                student_id INT NOT NULL,
+                completion_percentage INT DEFAULT 0,
+                score DECIMAL(5,2) DEFAULT 0,
+                submitted_at TIMESTAMP NULL,
+                FOREIGN KEY (assignment_id) REFERENCES assignments(id) ON DELETE CASCADE,
+                FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
+                UNIQUE KEY unique_progress (assignment_id, student_id),
+                INDEX idx_assignment (assignment_id),
+                INDEX idx_student (student_id)
+            )
+        `);
+        info('✓ Assignment progress table ready');
 
         // Simulators table (Parent)
         await query(`
@@ -1005,6 +1203,1296 @@ app.post('/api/logout', (req, res) => {
         path: '/'
     });
     apiResponse(res, 200, 'Logged out successfully');
+});
+
+// ===== EMS REGISTRATION ENDPOINTS =====
+
+// School Admin Registration
+app.post('/api/register/school-admin', authLimiter, async (req, res) => {
+    const { email, password, name, school_name, school_address } = req.body;
+
+    if (!email || !password || !name || !school_name) {
+        return apiResponse(res, 400, 'Email, password, name, and school name are required');
+    }
+
+    if (!validateEmail(email)) {
+        return apiResponse(res, 400, 'Invalid email format');
+    }
+
+    if (!validatePassword(password)) {
+        return apiResponse(res, 400, 'Password must be at least 8 characters with uppercase, lowercase, and number');
+    }
+
+    try {
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Create user with school_admin role
+        const insertUser = 'INSERT INTO users (email, password, name, role, is_approved) VALUES (?, ?, ?, \'school_admin\', FALSE)';
+        db.query(insertUser, [email, hashedPassword, name], async (err, result) => {
+            if (err) {
+                if (err.code === 'ER_DUP_ENTRY') {
+                    return apiResponse(res, 409, 'Email already registered');
+                }
+                console.error('Error during school admin registration:', err);
+                return apiResponse(res, 500, 'Server error during registration');
+            }
+
+            const userId = result.insertId;
+
+            // Create school record
+            const insertSchool = 'INSERT INTO schools (name, school_admin_id, is_approved) VALUES (?, ?, FALSE)';
+            db.query(insertSchool, [school_name, userId], (schoolErr) => {
+                if (schoolErr) {
+                    console.error('Error creating school:', schoolErr);
+                    return apiResponse(res, 500, 'Server error creating school');
+                }
+
+                apiResponse(res, 201, 'School admin registered successfully. Pending approval from Superadmin.', {
+                    user: { id: userId, email, name, role: 'school_admin' },
+                    status: 'pending_approval'
+                });
+            });
+        });
+    } catch (error) {
+        console.error('Hashing error:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// Teacher Registration with School Code
+app.post('/api/register/teacher', authLimiter, async (req, res) => {
+    const { email, password, name, school_code } = req.body;
+
+    if (!email || !password || !name || !school_code) {
+        return apiResponse(res, 400, 'Email, password, name, and school code are required');
+    }
+
+    if (!validateEmail(email)) {
+        return apiResponse(res, 400, 'Invalid email format');
+    }
+
+    if (!validatePassword(password)) {
+        return apiResponse(res, 400, 'Password must be at least 8 characters with uppercase, lowercase, and number');
+    }
+
+    try {
+        // Validate school code and get school_id
+        const schools = await query('SELECT id, is_approved FROM schools WHERE school_code = ?', [school_code]);
+        if (schools.length === 0) {
+            return apiResponse(res, 400, 'Invalid school code');
+        }
+
+        const school = schools[0];
+        if (!school.is_approved) {
+            return apiResponse(res, 400, 'School is not yet approved');
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Create teacher user
+        const insertUser = 'INSERT INTO users (email, password, name, role, school_id, school_code, is_approved) VALUES (?, ?, ?, \'teacher\', ?, ?, TRUE)';
+        db.query(insertUser, [email, hashedPassword, name, school.id, school_code], (err, result) => {
+            if (err) {
+                if (err.code === 'ER_DUP_ENTRY') {
+                    return apiResponse(res, 409, 'Email already registered');
+                }
+                console.error('Error during teacher registration:', err);
+                return apiResponse(res, 500, 'Server error during registration');
+            }
+
+            const newUser = {
+                id: result.insertId,
+                email,
+                name,
+                role: 'teacher',
+                school_id: school.id
+            };
+
+            apiResponse(res, 201, 'Teacher registered successfully', { user: newUser });
+        });
+    } catch (error) {
+        console.error('Registration error:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// Student Registration (with optional school code)
+app.post('/api/register/student', authLimiter, async (req, res) => {
+    const { email, password, name, school_code } = req.body;
+
+    if (!email || !password || !name) {
+        return apiResponse(res, 400, 'Email, password, and name are required');
+    }
+
+    if (!validateEmail(email)) {
+        return apiResponse(res, 400, 'Invalid email format');
+    }
+
+    if (!validatePassword(password)) {
+        return apiResponse(res, 400, 'Password must be at least 8 characters with uppercase, lowercase, and number');
+    }
+
+    try {
+        let school_id = null;
+        let role = 'user'; // Default to regular user if no school code
+
+        // If school code provided, validate and set role to student
+        if (school_code) {
+            const schools = await query('SELECT id, is_approved FROM schools WHERE school_code = ?', [school_code]);
+            if (schools.length === 0) {
+                return apiResponse(res, 400, 'Invalid school code');
+            }
+
+            const school = schools[0];
+            if (!school.is_approved) {
+                return apiResponse(res, 400, 'School is not yet approved');
+            }
+
+            school_id = school.id;
+            role = 'student';
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Generate unique parent code for students
+        const parent_code = role === 'student' ? Math.random().toString(36).substring(2, 8).toUpperCase() : null;
+
+        // Create user
+        const insertUser = 'INSERT INTO users (email, password, name, role, school_id, school_code, parent_code, is_approved) VALUES (?, ?, ?, ?, ?, ?, ?, TRUE)';
+        db.query(insertUser, [email, hashedPassword, name, role, school_id, school_code || null, parent_code], (err, result) => {
+            if (err) {
+                if (err.code === 'ER_DUP_ENTRY') {
+                    return apiResponse(res, 409, 'Email already registered');
+                }
+                console.error('Error during student registration:', err);
+                return apiResponse(res, 500, 'Server error during registration');
+            }
+
+            const newUser = {
+                id: result.insertId,
+                email,
+                name,
+                role,
+                school_id,
+                parent_code
+            };
+
+            apiResponse(res, 201, 'User registered successfully', { user: newUser });
+        });
+    } catch (error) {
+        console.error('Registration error:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// Parent Registration with Student Code
+app.post('/api/register/parent', authLimiter, async (req, res) => {
+    const { email, password, name, student_code } = req.body;
+
+    if (!email || !password || !name || !student_code) {
+        return apiResponse(res, 400, 'Email, password, name, and student code are required');
+    }
+
+    if (!validateEmail(email)) {
+        return apiResponse(res, 400, 'Invalid email format');
+    }
+
+    if (!validatePassword(password)) {
+        return apiResponse(res, 400, 'Password must be at least 8 characters with uppercase, lowercase, and number');
+    }
+
+    try {
+        // Validate student code and get student_id
+        const students = await query('SELECT id FROM users WHERE parent_code = ? AND role = \'student\'', [student_code]);
+        if (students.length === 0) {
+            return apiResponse(res, 400, 'Invalid student code');
+        }
+
+        const student_id = students[0].id;
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Create parent user
+        const insertUser = 'INSERT INTO users (email, password, name, role, is_approved) VALUES (?, ?, ?, \'parent\', TRUE)';
+        db.query(insertUser, [email, hashedPassword, name], (err, result) => {
+            if (err) {
+                if (err.code === 'ER_DUP_ENTRY') {
+                    return apiResponse(res, 409, 'Email already registered');
+                }
+                console.error('Error during parent registration:', err);
+                return apiResponse(res, 500, 'Server error during registration');
+            }
+
+            const parent_id = result.insertId;
+
+            // Link parent to student
+            const insertLink = 'INSERT INTO parent_student_links (parent_id, student_id) VALUES (?, ?)';
+            db.query(insertLink, [parent_id, student_id], (linkErr) => {
+                if (linkErr) {
+                    console.error('Error linking parent to student:', linkErr);
+                    return apiResponse(res, 500, 'Server error linking parent to student');
+                }
+
+                const newUser = {
+                    id: parent_id,
+                    email,
+                    name,
+                    role: 'parent'
+                };
+
+                apiResponse(res, 201, 'Parent registered successfully', { user: newUser });
+            });
+        });
+    } catch (error) {
+        console.error('Registration error:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// ===== EMS SCHOOL MANAGEMENT ENDPOINTS =====
+
+// Get pending school admin approvals (Superadmin only)
+app.get('/api/schools/pending', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'superadmin') {
+        return apiResponse(res, 403, 'Only superadmin can view pending approvals');
+    }
+
+    try {
+        const pendingSchools = await query(`
+            SELECT s.*, u.email, u.name as admin_name
+            FROM schools s
+            JOIN users u ON s.school_admin_id = u.id
+            WHERE s.is_approved = FALSE
+        `);
+        apiResponse(res, 200, 'Pending schools retrieved', pendingSchools);
+    } catch (error) {
+        console.error('Error fetching pending schools:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// Approve school (Superadmin only)
+app.put('/api/schools/:schoolId/approve', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'superadmin') {
+        return apiResponse(res, 403, 'Only superadmin can approve schools');
+    }
+
+    const { schoolId } = req.params;
+
+    try {
+        // Generate unique school code
+        const school_code = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+        // Update school
+        await query('UPDATE schools SET is_approved = TRUE, school_code = ? WHERE id = ?', [school_code, schoolId]);
+
+        // Update school admin user approval
+        await query('UPDATE users SET is_approved = TRUE WHERE id = (SELECT school_admin_id FROM schools WHERE id = ?)', [schoolId]);
+
+        apiResponse(res, 200, 'School approved successfully', { school_code });
+    } catch (error) {
+        console.error('Error approving school:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// Get school by code
+app.get('/api/schools/by-code/:schoolCode', async (req, res) => {
+    const { schoolCode } = req.params;
+
+    try {
+        const schools = await query('SELECT id, name, is_approved FROM schools WHERE school_code = ?', [schoolCode]);
+        if (schools.length === 0) {
+            return apiResponse(res, 404, 'School not found');
+        }
+        apiResponse(res, 200, 'School found', schools[0]);
+    } catch (error) {
+        console.error('Error fetching school:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// Get school info for school admin
+app.get('/api/schools/my-school', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'school_admin') {
+        return apiResponse(res, 403, 'Only school admin can view their school');
+    }
+
+    try {
+        const schools = await query('SELECT * FROM schools WHERE school_admin_id = ?', [req.user.id]);
+        if (schools.length === 0) {
+            return apiResponse(res, 404, 'School not found');
+        }
+        apiResponse(res, 200, 'School found', schools[0]);
+    } catch (error) {
+        console.error('Error fetching school:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// Get all schools (Superadmin only)
+app.get('/api/schools', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'superadmin') {
+        return apiResponse(res, 403, 'Only superadmin can view all schools');
+    }
+
+    try {
+        const schools = await query(`
+            SELECT s.*, u.email, u.name as admin_name
+            FROM schools s
+            JOIN users u ON s.school_admin_id = u.id
+            ORDER BY s.created_at DESC
+        `);
+        apiResponse(res, 200, 'Schools retrieved', schools);
+    } catch (error) {
+        console.error('Error fetching schools:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// ===== EMS CLASS MANAGEMENT ENDPOINTS =====
+
+// Create class (School admin only)
+app.post('/api/classes', authenticateToken, writeLimiter, async (req, res) => {
+    if (req.user.role !== 'school_admin') {
+        return apiResponse(res, 403, 'Only school admin can create classes');
+    }
+
+    const { name } = req.body;
+
+    if (!name) {
+        return apiResponse(res, 400, 'Class name is required');
+    }
+
+    try {
+        // Get school_id for this school admin
+        const schools = await query('SELECT id FROM schools WHERE school_admin_id = ?', [req.user.id]);
+        if (schools.length === 0) {
+            return apiResponse(res, 404, 'School not found');
+        }
+
+        const school_id = schools[0].id;
+
+        const result = await query('INSERT INTO classes (school_id, name) VALUES (?, ?)', [school_id, name]);
+
+        apiResponse(res, 201, 'Class created successfully', { id: result.insertId, name, school_id });
+    } catch (error) {
+        console.error('Error creating class:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// Assign teacher to class (School admin only)
+app.put('/api/classes/:classId/teacher', authenticateToken, writeLimiter, async (req, res) => {
+    if (req.user.role !== 'school_admin') {
+        return apiResponse(res, 403, 'Only school admin can assign teachers');
+    }
+
+    const { classId } = req.params;
+    const { teacher_id } = req.body;
+
+    if (!teacher_id) {
+        return apiResponse(res, 400, 'Teacher ID is required');
+    }
+
+    try {
+        // Verify teacher belongs to same school
+        const teachers = await query('SELECT school_id FROM users WHERE id = ? AND role = \'teacher\'', [teacher_id]);
+        if (teachers.length === 0) {
+            return apiResponse(res, 404, 'Teacher not found');
+        }
+
+        // Verify class belongs to this school admin's school
+        const classes = await query(`
+            SELECT c.id
+            FROM classes c
+            JOIN schools s ON c.school_id = s.id
+            WHERE c.id = ? AND s.school_admin_id = ?
+        `, [classId, req.user.id]);
+
+        if (classes.length === 0) {
+            return apiResponse(res, 404, 'Class not found or access denied');
+        }
+
+        await query('UPDATE classes SET teacher_id = ? WHERE id = ?', [teacher_id, classId]);
+
+        apiResponse(res, 200, 'Teacher assigned to class successfully');
+    } catch (error) {
+        console.error('Error assigning teacher:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// Get classes for school admin
+app.get('/api/classes/my-classes', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'school_admin') {
+        return apiResponse(res, 403, 'Only school admin can view their classes');
+    }
+
+    try {
+        const classes = await query(`
+            SELECT c.*, u.name as teacher_name, u.email as teacher_email
+            FROM classes c
+            LEFT JOIN users u ON c.teacher_id = u.id
+            JOIN schools s ON c.school_id = s.id
+            WHERE s.school_admin_id = ?
+            ORDER BY c.created_at DESC
+        `, [req.user.id]);
+
+        // Get student count for each class
+        for (let cls of classes) {
+            const countResult = await query('SELECT COUNT(*) as count FROM class_enrollments WHERE class_id = ?', [cls.id]);
+            cls.student_count = countResult[0].count;
+        }
+
+        apiResponse(res, 200, 'Classes retrieved', classes);
+    } catch (error) {
+        console.error('Error fetching classes:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// Get students in school (School admin only)
+app.get('/api/schools/my-school/students', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'school_admin') {
+        return apiResponse(res, 403, 'Only school admin can view school students');
+    }
+
+    try {
+        const schools = await query('SELECT id FROM schools WHERE school_admin_id = ?', [req.user.id]);
+        if (schools.length === 0) {
+            return apiResponse(res, 404, 'School not found');
+        }
+
+        const school_id = schools[0].id;
+
+        const students = await query(`
+            SELECT u.id, u.email, u.name
+            FROM users u
+            WHERE u.school_id = ? AND u.role = 'student'
+            ORDER BY u.name ASC
+        `, [school_id]);
+
+        apiResponse(res, 200, 'Students retrieved', students);
+    } catch (error) {
+        console.error('Error fetching students:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// Enroll student in class (School admin only)
+app.post('/api/class-enrollments', authenticateToken, writeLimiter, async (req, res) => {
+    if (req.user.role !== 'school_admin') {
+        return apiResponse(res, 403, 'Only school admin can enroll students');
+    }
+
+    const { class_id, student_id } = req.body;
+
+    if (!class_id || !student_id) {
+        return apiResponse(res, 400, 'Class ID and Student ID are required');
+    }
+
+    try {
+        // Verify class belongs to this school admin's school
+        const classes = await query(`
+            SELECT c.id
+            FROM classes c
+            JOIN schools s ON c.school_id = s.id
+            WHERE c.id = ? AND s.school_admin_id = ?
+        `, [class_id, req.user.id]);
+
+        if (classes.length === 0) {
+            return apiResponse(res, 404, 'Class not found or access denied');
+        }
+
+        // Check if already enrolled
+        const existing = await query('SELECT id FROM class_enrollments WHERE class_id = ? AND student_id = ?', [class_id, student_id]);
+        if (existing.length > 0) {
+            return apiResponse(res, 400, 'Student already enrolled in this class');
+        }
+
+        await query('INSERT INTO class_enrollments (class_id, student_id) VALUES (?, ?)', [class_id, student_id]);
+
+        apiResponse(res, 201, 'Student enrolled successfully');
+    } catch (error) {
+        console.error('Error enrolling student:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// Remove student from class (School admin only)
+app.delete('/api/class-enrollments/:enrollmentId', authenticateToken, writeLimiter, async (req, res) => {
+    if (req.user.role !== 'school_admin') {
+        return apiResponse(res, 403, 'Only school admin can remove students');
+    }
+
+    const { enrollmentId } = req.params;
+
+    try {
+        // Verify enrollment belongs to this school admin's school
+        const enrollments = await query(`
+            SELECT ce.id
+            FROM class_enrollments ce
+            JOIN classes c ON ce.class_id = c.id
+            JOIN schools s ON c.school_id = s.id
+            WHERE ce.id = ? AND s.school_admin_id = ?
+        `, [enrollmentId, req.user.id]);
+
+        if (enrollments.length === 0) {
+            return apiResponse(res, 404, 'Enrollment not found or access denied');
+        }
+
+        await query('DELETE FROM class_enrollments WHERE id = ?', [enrollmentId]);
+
+        apiResponse(res, 200, 'Student removed from class successfully');
+    } catch (error) {
+        console.error('Error removing student:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// Get unassigned students for a class (School admin only)
+app.get('/api/classes/:classId/unassigned-students', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'school_admin') {
+        return apiResponse(res, 403, 'Only school admin can view unassigned students');
+    }
+
+    const { classId } = req.params;
+
+    try {
+        // Verify class belongs to this school admin's school
+        const classes = await query(`
+            SELECT c.school_id
+            FROM classes c
+            JOIN schools s ON c.school_id = s.id
+            WHERE c.id = ? AND s.school_admin_id = ?
+        `, [classId, req.user.id]);
+
+        if (classes.length === 0) {
+            return apiResponse(res, 404, 'Class not found or access denied');
+        }
+
+        const school_id = classes[0].school_id;
+
+        // Get students not enrolled in this specific class
+        const students = await query(`
+            SELECT u.id, u.email, u.name
+            FROM users u
+            WHERE u.school_id = ? AND u.role = 'student'
+            AND u.id NOT IN (
+                SELECT student_id FROM class_enrollments WHERE class_id = ?
+            )
+            ORDER BY u.name ASC
+        `, [school_id, classId]);
+
+        apiResponse(res, 200, 'Unassigned students retrieved', students);
+    } catch (error) {
+        console.error('Error fetching unassigned students:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// Get enrolled students for a class (School admin only)
+app.get('/api/classes/:classId/enrolled-students', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'school_admin') {
+        return apiResponse(res, 403, 'Only school admin can view enrolled students');
+    }
+
+    const { classId } = req.params;
+
+    try {
+        // Verify class belongs to this school admin's school
+        const classes = await query(`
+            SELECT c.id
+            FROM classes c
+            JOIN schools s ON c.school_id = s.id
+            WHERE c.id = ? AND s.school_admin_id = ?
+        `, [classId, req.user.id]);
+
+        if (classes.length === 0) {
+            return apiResponse(res, 404, 'Class not found or access denied');
+        }
+
+        const students = await query(`
+            SELECT u.id, u.email, u.name, ce.enrolled_at
+            FROM users u
+            JOIN class_enrollments ce ON u.id = ce.student_id
+            WHERE ce.class_id = ?
+            ORDER BY u.name ASC
+        `, [classId]);
+
+        apiResponse(res, 200, 'Enrolled students retrieved', students);
+    } catch (error) {
+        console.error('Error fetching enrolled students:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// ===== EMS TEACHER ENDPOINTS =====
+
+// Get teacher's classes
+app.get('/api/teacher/my-classes', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'teacher') {
+        return apiResponse(res, 403, 'Only teachers can view their classes');
+    }
+
+    try {
+        const classes = await query(`
+            SELECT c.*, s.name as school_name
+            FROM classes c
+            JOIN schools s ON c.school_id = s.id
+            WHERE c.teacher_id = ?
+            ORDER BY c.created_at DESC
+        `, [req.user.id]);
+
+        // Get student count for each class
+        for (let cls of classes) {
+            const countResult = await query('SELECT COUNT(*) as count FROM class_enrollments WHERE class_id = ?', [cls.id]);
+            cls.student_count = countResult[0].count;
+        }
+
+        apiResponse(res, 200, 'Classes retrieved', classes);
+    } catch (error) {
+        console.error('Error fetching classes:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// Get students in teacher's class
+app.get('/api/teacher/class/:classId/students', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'teacher') {
+        return apiResponse(res, 403, 'Only teachers can view their class students');
+    }
+
+    const { classId } = req.params;
+
+    try {
+        // Verify class belongs to this teacher
+        const classes = await query('SELECT id FROM classes WHERE id = ? AND teacher_id = ?', [classId, req.user.id]);
+        if (classes.length === 0) {
+            return apiResponse(res, 404, 'Class not found or access denied');
+        }
+
+        const students = await query(`
+            SELECT u.id, u.email, u.name, ce.enrolled_at
+            FROM users u
+            JOIN class_enrollments ce ON u.id = ce.student_id
+            WHERE ce.class_id = ?
+            ORDER BY u.name ASC
+        `, [classId]);
+
+        apiResponse(res, 200, 'Students retrieved', students);
+    } catch (error) {
+        console.error('Error fetching students:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// Post school-wide announcement (School admin only)
+app.post('/api/posts/school', authenticateToken, writeLimiter, async (req, res) => {
+    if (req.user.role !== 'school_admin') {
+        return apiResponse(res, 403, 'Only school admin can post school-wide announcements');
+    }
+
+    const { content, post_type } = req.body;
+
+    if (!content) {
+        return apiResponse(res, 400, 'Content is required');
+    }
+
+    try {
+        const schools = await query('SELECT id FROM schools WHERE school_admin_id = ?', [req.user.id]);
+        if (schools.length === 0) {
+            return apiResponse(res, 404, 'School not found');
+        }
+
+        const school_id = schools[0].id;
+
+        const result = await query(
+            'INSERT INTO posts (author_id, school_id, content, post_type) VALUES (?, ?, ?, ?)',
+            [req.user.id, school_id, content, post_type || 'announcement']
+        );
+
+        // Trigger AI calendar parsing
+        // This will be implemented in Phase 5
+
+        apiResponse(res, 201, 'Post created successfully', { id: result.insertId });
+    } catch (error) {
+        console.error('Error creating post:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// Post class announcement (Teacher only)
+app.post('/api/posts/class', authenticateToken, writeLimiter, async (req, res) => {
+    if (req.user.role !== 'teacher') {
+        return apiResponse(res, 403, 'Only teachers can post class announcements');
+    }
+
+    const { class_id, content, post_type } = req.body;
+
+    if (!class_id || !content) {
+        return apiResponse(res, 400, 'Class ID and content are required');
+    }
+
+    try {
+        // Verify class belongs to this teacher
+        const classes = await query('SELECT id FROM classes WHERE id = ? AND teacher_id = ?', [class_id, req.user.id]);
+        if (classes.length === 0) {
+            return apiResponse(res, 404, 'Class not found or access denied');
+        }
+
+        const result = await query(
+            'INSERT INTO posts (author_id, class_id, content, post_type) VALUES (?, ?, ?, ?)',
+            [req.user.id, class_id, content, post_type || 'announcement']
+        );
+
+        // Trigger AI calendar parsing
+        // This will be implemented in Phase 5
+
+        apiResponse(res, 201, 'Post created successfully', { id: result.insertId });
+    } catch (error) {
+        console.error('Error creating post:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// Get posts for class
+app.get('/api/posts/class/:classId', authenticateToken, async (req, res) => {
+    const { classId } = req.params;
+
+    try {
+        // Verify user has access to this class
+        if (req.user.role === 'teacher') {
+            const classes = await query('SELECT id FROM classes WHERE id = ? AND teacher_id = ?', [classId, req.user.id]);
+            if (classes.length === 0) {
+                return apiResponse(res, 404, 'Class not found or access denied');
+            }
+        } else if (req.user.role === 'student') {
+            const enrollments = await query('SELECT id FROM class_enrollments WHERE class_id = ? AND student_id = ?', [classId, req.user.id]);
+            if (enrollments.length === 0) {
+                return apiResponse(res, 404, 'Class not found or access denied');
+            }
+        } else {
+            return apiResponse(res, 403, 'Access denied');
+        }
+
+        const posts = await query(`
+            SELECT p.*, u.name as author_name
+            FROM posts p
+            JOIN users u ON p.author_id = u.id
+            WHERE p.class_id = ?
+            ORDER BY p.created_at DESC
+        `, [classId]);
+
+        apiResponse(res, 200, 'Posts retrieved', posts);
+    } catch (error) {
+        console.error('Error fetching posts:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// Get posts for school
+app.get('/api/posts/school/:schoolId', authenticateToken, async (req, res) => {
+    const { schoolId } = req.params;
+
+    try {
+        // Verify user belongs to this school
+        const users = await query('SELECT school_id FROM users WHERE id = ?', [req.user.id]);
+        if (users.length === 0 || users[0].school_id !== parseInt(schoolId)) {
+            return apiResponse(res, 403, 'Access denied');
+        }
+
+        const posts = await query(`
+            SELECT p.*, u.name as author_name
+            FROM posts p
+            JOIN users u ON p.author_id = u.id
+            WHERE p.school_id = ?
+            ORDER BY p.created_at DESC
+        `, [schoolId]);
+
+        apiResponse(res, 200, 'Posts retrieved', posts);
+    } catch (error) {
+        console.error('Error fetching posts:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// ===== EMS STUDENT ENDPOINTS =====
+
+// Get student's classes
+app.get('/api/student/my-classes', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'student') {
+        return apiResponse(res, 403, 'Only students can view their classes');
+    }
+
+    try {
+        const classes = await query(`
+            SELECT c.*, u.name as teacher_name, u.email as teacher_email
+            FROM classes c
+            JOIN class_enrollments ce ON c.id = ce.class_id
+            LEFT JOIN users u ON c.teacher_id = u.id
+            WHERE ce.student_id = ?
+            ORDER BY c.name ASC
+        `, [req.user.id]);
+
+        apiResponse(res, 200, 'Classes retrieved', classes);
+    } catch (error) {
+        console.error('Error fetching classes:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// Get student's parent code
+app.get('/api/student/my-parent-code', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'student') {
+        return apiResponse(res, 403, 'Only students can view their parent code');
+    }
+
+    try {
+        const users = await query('SELECT parent_code FROM users WHERE id = ?', [req.user.id]);
+        if (users.length === 0) {
+            return apiResponse(res, 404, 'User not found');
+        }
+
+        apiResponse(res, 200, 'Parent code retrieved', { parent_code: users[0].parent_code });
+    } catch (error) {
+        console.error('Error fetching parent code:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// Get student's assignments
+app.get('/api/student/my-assignments', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'student') {
+        return apiResponse(res, 403, 'Only students can view their assignments');
+    }
+
+    try {
+        const assignments = await query(`
+            SELECT a.*, c.title as course_title, ap.completion_percentage, ap.score, ap.submitted_at
+            FROM assignments a
+            JOIN classes cl ON a.class_id = cl.id
+            JOIN class_enrollments ce ON cl.id = ce.class_id
+            JOIN courses c ON a.course_id = c.id
+            LEFT JOIN assignment_progress ap ON a.id = ap.assignment_id AND ap.student_id = ?
+            WHERE ce.student_id = ?
+            ORDER BY a.due_date ASC
+        `, [req.user.id, req.user.id]);
+
+        apiResponse(res, 200, 'Assignments retrieved', assignments);
+    } catch (error) {
+        console.error('Error fetching assignments:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// Submit assignment progress
+app.post('/api/assignments/:assignmentId/submit', authenticateToken, writeLimiter, async (req, res) => {
+    if (req.user.role !== 'student') {
+        return apiResponse(res, 403, 'Only students can submit assignments');
+    }
+
+    const { assignmentId } = req.params;
+    const { completion_percentage, score } = req.body;
+
+    if (completion_percentage === undefined || score === undefined) {
+        return apiResponse(res, 400, 'Completion percentage and score are required');
+    }
+
+    try {
+        // Verify student is enrolled in the class for this assignment
+        const assignments = await query(`
+            SELECT a.id
+            FROM assignments a
+            JOIN class_enrollments ce ON a.class_id = ce.class_id
+            WHERE a.id = ? AND ce.student_id = ?
+        `, [assignmentId, req.user.id]);
+
+        if (assignments.length === 0) {
+            return apiResponse(res, 404, 'Assignment not found or access denied');
+        }
+
+        // Update or insert assignment progress
+        await query(`
+            INSERT INTO assignment_progress (assignment_id, student_id, completion_percentage, score, submitted_at)
+            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON DUPLICATE KEY UPDATE
+            completion_percentage = ?, score = ?, submitted_at = CURRENT_TIMESTAMP
+        `, [assignmentId, req.user.id, completion_percentage, score, completion_percentage, score]);
+
+        apiResponse(res, 200, 'Assignment progress updated successfully');
+    } catch (error) {
+        console.error('Error updating assignment progress:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// ===== EMS PARENT ENDPOINTS =====
+
+// Get parent's linked children
+app.get('/api/parent/my-children', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'parent') {
+        return apiResponse(res, 403, 'Only parents can view their children');
+    }
+
+    try {
+        const children = await query(`
+            SELECT u.id, u.email, u.name, u.school_id, s.name as school_name
+            FROM users u
+            JOIN parent_student_links psl ON u.id = psl.student_id
+            LEFT JOIN schools s ON u.school_id = s.id
+            WHERE psl.parent_id = ?
+            ORDER BY u.name ASC
+        `, [req.user.id]);
+
+        apiResponse(res, 200, 'Children retrieved', children);
+    } catch (error) {
+        console.error('Error fetching children:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// Link parent to additional student
+app.post('/api/parent/link-student', authenticateToken, writeLimiter, async (req, res) => {
+    if (req.user.role !== 'parent') {
+        return apiResponse(res, 403, 'Only parents can link to students');
+    }
+
+    const { student_code } = req.body;
+
+    if (!student_code) {
+        return apiResponse(res, 400, 'Student code is required');
+    }
+
+    try {
+        // Validate student code
+        const students = await query('SELECT id FROM users WHERE parent_code = ? AND role = \'student\'', [student_code]);
+        if (students.length === 0) {
+            return apiResponse(res, 400, 'Invalid student code');
+        }
+
+        const student_id = students[0].id;
+
+        // Check if already linked
+        const existing = await query('SELECT id FROM parent_student_links WHERE parent_id = ? AND student_id = ?', [req.user.id, student_id]);
+        if (existing.length > 0) {
+            return apiResponse(res, 400, 'Already linked to this student');
+        }
+
+        await query('INSERT INTO parent_student_links (parent_id, student_id) VALUES (?, ?)', [req.user.id, student_id]);
+
+        apiResponse(res, 201, 'Student linked successfully');
+    } catch (error) {
+        console.error('Error linking student:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// Get child's progress
+app.get('/api/parent/child/:studentId/progress', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'parent') {
+        return apiResponse(res, 403, 'Only parents can view child progress');
+    }
+
+    const { studentId } = req.params;
+
+    try {
+        // Verify parent is linked to this student
+        const links = await query('SELECT id FROM parent_student_links WHERE parent_id = ? AND student_id = ?', [req.user.id, studentId]);
+        if (links.length === 0) {
+            return apiResponse(res, 403, 'Not linked to this student');
+        }
+
+        // Get child's classes
+        const classes = await query(`
+            SELECT c.*, u.name as teacher_name
+            FROM classes c
+            JOIN class_enrollments ce ON c.id = ce.class_id
+            LEFT JOIN users u ON c.teacher_id = u.id
+            WHERE ce.student_id = ?
+            ORDER BY c.name ASC
+        `, [studentId]);
+
+        // Get child's assignments
+        const assignments = await query(`
+            SELECT a.*, c.title as course_title, ap.completion_percentage, ap.score, ap.submitted_at
+            FROM assignments a
+            JOIN classes cl ON a.class_id = cl.id
+            JOIN class_enrollments ce ON cl.id = ce.class_id
+            JOIN courses c ON a.course_id = c.id
+            LEFT JOIN assignment_progress ap ON a.id = ap.assignment_id AND ap.student_id = ?
+            WHERE ce.student_id = ?
+            ORDER BY a.due_date ASC
+        `, [studentId, studentId]);
+
+        // Get child's posts
+        const posts = await query(`
+            SELECT p.*, c.name as class_name
+            FROM posts p
+            JOIN classes c ON p.class_id = c.id
+            JOIN class_enrollments ce ON c.id = ce.class_id
+            WHERE ce.student_id = ?
+            ORDER BY p.created_at DESC
+            LIMIT 20
+        `, [studentId]);
+
+        apiResponse(res, 200, 'Child progress retrieved', { classes, assignments, posts });
+    } catch (error) {
+        console.error('Error fetching child progress:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// ===== EMS MESSAGING ENDPOINTS =====
+
+// Send message
+app.post('/api/messages/send', authenticateToken, writeLimiter, async (req, res) => {
+    const { recipient_id, content, class_id } = req.body;
+
+    if (!recipient_id || !content) {
+        return apiResponse(res, 400, 'Recipient ID and content are required');
+    }
+
+    try {
+        const result = await query(
+            'INSERT INTO messages (sender_id, recipient_id, class_id, content) VALUES (?, ?, ?, ?)',
+            [req.user.id, recipient_id, class_id || null, content]
+        );
+
+        apiResponse(res, 201, 'Message sent successfully', { id: result.insertId });
+    } catch (error) {
+        console.error('Error sending message:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// Get messages for user
+app.get('/api/messages', authenticateToken, async (req, res) => {
+    try {
+        const messages = await query(`
+            SELECT m.*, 
+                   sender.name as sender_name,
+                   recipient.name as recipient_name
+            FROM messages m
+            JOIN users sender ON m.sender_id = sender.id
+            JOIN users recipient ON m.recipient_id = recipient.id
+            WHERE m.sender_id = ? OR m.recipient_id = ?
+            ORDER BY m.created_at DESC
+            LIMIT 50
+        `, [req.user.id, req.user.id]);
+
+        apiResponse(res, 200, 'Messages retrieved', messages);
+    } catch (error) {
+        console.error('Error fetching messages:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// Mark message as read
+app.put('/api/messages/:messageId/read', authenticateToken, async (req, res) => {
+    const { messageId } = req.params;
+
+    try {
+        // Verify message is for this user
+        const messages = await query('SELECT id FROM messages WHERE id = ? AND recipient_id = ?', [messageId, req.user.id]);
+        if (messages.length === 0) {
+            return apiResponse(res, 404, 'Message not found or access denied');
+        }
+
+        await query('UPDATE messages SET is_read = TRUE WHERE id = ?', [messageId]);
+
+        apiResponse(res, 200, 'Message marked as read');
+    } catch (error) {
+        console.error('Error marking message as read:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// ===== EMS ASSIGNMENT ENDPOINTS =====
+
+// Create assignment (Teacher only)
+app.post('/api/assignments', authenticateToken, writeLimiter, async (req, res) => {
+    if (req.user.role !== 'teacher') {
+        return apiResponse(res, 403, 'Only teachers can create assignments');
+    }
+
+    const { class_id, course_id, title, due_date } = req.body;
+
+    if (!class_id || !course_id || !due_date) {
+        return apiResponse(res, 400, 'Class ID, course ID, and due date are required');
+    }
+
+    try {
+        // Verify class belongs to this teacher
+        const classes = await query('SELECT id FROM classes WHERE id = ? AND teacher_id = ?', [class_id, req.user.id]);
+        if (classes.length === 0) {
+            return apiResponse(res, 404, 'Class not found or access denied');
+        }
+
+        // Get course title if not provided
+        let assignmentTitle = title;
+        if (!assignmentTitle) {
+            const courses = await query('SELECT title FROM courses WHERE id = ?', [course_id]);
+            if (courses.length > 0) {
+                assignmentTitle = courses[0].title;
+            } else {
+                assignmentTitle = 'Assignment';
+            }
+        }
+
+        const result = await query(
+            'INSERT INTO assignments (class_id, course_id, teacher_id, title, due_date) VALUES (?, ?, ?, ?, ?)',
+            [class_id, course_id, req.user.id, assignmentTitle, due_date]
+        );
+
+        // Create assignment progress records for all students in the class
+        const students = await query('SELECT student_id FROM class_enrollments WHERE class_id = ?', [class_id]);
+        for (const student of students) {
+            await query(
+                'INSERT INTO assignment_progress (assignment_id, student_id) VALUES (?, ?)',
+                [result.insertId, student.student_id]
+            );
+        }
+
+        apiResponse(res, 201, 'Assignment created successfully', { id: result.insertId });
+    } catch (error) {
+        console.error('Error creating assignment:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// Get assignment progress (Teacher only)
+app.get('/api/assignments/:assignmentId/progress', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'teacher') {
+        return apiResponse(res, 403, 'Only teachers can view assignment progress');
+    }
+
+    const { assignmentId } = req.params;
+
+    try {
+        // Verify assignment belongs to this teacher
+        const assignments = await query('SELECT id FROM assignments WHERE id = ? AND teacher_id = ?', [assignmentId, req.user.id]);
+        if (assignments.length === 0) {
+            return apiResponse(res, 404, 'Assignment not found or access denied');
+        }
+
+        const progress = await query(`
+            SELECT ap.*, u.name as student_name, u.email as student_email
+            FROM assignment_progress ap
+            JOIN users u ON ap.student_id = u.id
+            WHERE ap.assignment_id = ?
+            ORDER BY u.name ASC
+        `, [assignmentId]);
+
+        apiResponse(res, 200, 'Assignment progress retrieved', progress);
+    } catch (error) {
+        console.error('Error fetching assignment progress:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// Get teacher's assignments
+app.get('/api/teacher/my-assignments', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'teacher') {
+        return apiResponse(res, 403, 'Only teachers can view their assignments');
+    }
+
+    try {
+        const assignments = await query(`
+            SELECT a.*, c.name as class_name, co.title as course_title
+            FROM assignments a
+            JOIN classes c ON a.class_id = c.id
+            JOIN courses co ON a.course_id = co.id
+            WHERE a.teacher_id = ?
+            ORDER BY a.due_date DESC
+        `, [req.user.id]);
+
+        apiResponse(res, 200, 'Assignments retrieved', assignments);
+    } catch (error) {
+        console.error('Error fetching assignments:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// ===== EMS CALENDAR ENDPOINTS =====
+
+// Get calendar events for user
+app.get('/api/calendar', authenticateToken, async (req, res) => {
+    const { month, year } = req.query;
+
+    try {
+        let events = [];
+
+        if (req.user.role === 'student') {
+            // Get events from student's classes
+            events = await query(`
+                SELECT ce.*, c.name as class_name
+                FROM calendar_events ce
+                JOIN classes c ON ce.class_id = c.id
+                JOIN class_enrollments ce2 ON c.id = ce2.class_id
+                WHERE ce2.student_id = ?
+                ${month && year ? 'AND MONTH(ce.event_date) = ? AND YEAR(ce.event_date) = ?' : ''}
+                ORDER BY ce.event_date ASC
+            `, month && year ? [req.user.id, month, year] : [req.user.id]);
+        } else if (req.user.role === 'teacher') {
+            // Get events from teacher's classes
+            events = await query(`
+                SELECT ce.*, c.name as class_name
+                FROM calendar_events ce
+                JOIN classes c ON ce.class_id = c.id
+                WHERE c.teacher_id = ?
+                ${month && year ? 'AND MONTH(ce.event_date) = ? AND YEAR(ce.event_date) = ?' : ''}
+                ORDER BY ce.event_date ASC
+            `, month && year ? [req.user.id, month, year] : [req.user.id]);
+        } else if (req.user.role === 'parent') {
+            // Get events from linked children's classes
+            events = await query(`
+                SELECT ce.*, c.name as class_name
+                FROM calendar_events ce
+                JOIN classes c ON ce.class_id = c.id
+                JOIN class_enrollments ce2 ON c.id = ce2.class_id
+                JOIN parent_student_links psl ON ce2.student_id = psl.student_id
+                WHERE psl.parent_id = ?
+                ${month && year ? 'AND MONTH(ce.event_date) = ? AND YEAR(ce.event_date) = ?' : ''}
+                ORDER BY ce.event_date ASC
+            `, month && year ? [req.user.id, month, year] : [req.user.id]);
+        } else if (req.user.role === 'school_admin') {
+            // Get events from school admin's school
+            events = await query(`
+                SELECT ce.*, c.name as class_name, s.name as school_name
+                FROM calendar_events ce
+                LEFT JOIN classes c ON ce.class_id = c.id
+                LEFT JOIN schools s ON ce.school_id = s.id
+                WHERE ce.school_id = (SELECT id FROM schools WHERE school_admin_id = ?)
+                ${month && year ? 'AND MONTH(ce.event_date) = ? AND YEAR(ce.event_date) = ?' : ''}
+                ORDER BY ce.event_date ASC
+            `, month && year ? [req.user.id, month, year] : [req.user.id]);
+        }
+
+        apiResponse(res, 200, 'Calendar events retrieved', events);
+    } catch (error) {
+        console.error('Error fetching calendar events:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// Parse post for calendar events (AI integration - Phase 5)
+app.post('/api/calendar/parse-post', authenticateToken, async (req, res) => {
+    const { post_id, content } = req.body;
+
+    if (!post_id || !content) {
+        return apiResponse(res, 400, 'Post ID and content are required');
+    }
+
+    try {
+        // This will be implemented in Phase 5 with OpenRouter integration
+        // For now, return a placeholder response
+        apiResponse(res, 200, 'Calendar parsing will be implemented in Phase 5', { events: [] });
+    } catch (error) {
+        console.error('Error parsing post:', error);
+        apiResponse(res, 500, 'Server error');
+    }
 });
 
 // ===== FORGOT / RESET PASSWORD =====
