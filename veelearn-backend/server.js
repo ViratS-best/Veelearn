@@ -7134,11 +7134,12 @@ async function parsePostForCalendarEvents(postId, content, classId, authorId) {
             return;
         }
 
-        const prompt = `Analyze this teacher's post and extract any calendar events (due dates, exam dates, etc.). Return JSON in this format:
+        const prompt = `Extract dates and events from this post. Look for dates like "Monday", "January 15", "2024-01-15", "next week", etc.
+Return ONLY valid JSON in this format:
 {
   "events": [
     {
-      "title": "Event title",
+      "title": "Event Title",
       "description": "Event description",
       "event_date": "YYYY-MM-DD",
       "event_type": "assignment|exam|event"
@@ -7146,45 +7147,53 @@ async function parsePostForCalendarEvents(postId, content, classId, authorId) {
   ]
 }
 
-Post content: ${content}
+Post: ${content}
 
 If no dates are found, return {"events": []}.`;
 
         const response = await openRouterChatCompletion([{ role: 'user', content: prompt }], { max_tokens: 500 });
 
         if (!response) {
-            console.error('OpenRouter returned undefined response');
+            console.error('[Calendar AI] OpenRouter returned undefined response');
             return;
         }
 
         const aiResponse = response.content || response;
         
         if (!aiResponse) {
-            console.error('OpenRouter response content is empty');
+            console.error('[Calendar AI] OpenRouter response content is empty');
             return;
         }
+
+        console.log('[Calendar AI] AI Response:', aiResponse);
 
         let parsed;
         try {
             parsed = JSON.parse(aiResponse);
         } catch (error) {
-            console.error('Failed to parse OpenRouter response as JSON:', error);
-            console.error('Response content:', aiResponse);
+            console.error('[Calendar AI] Failed to parse response as JSON:', error);
+            console.error('[Calendar AI] Response content:', aiResponse);
             return;
         }
 
         if (parsed.events && parsed.events.length > 0) {
             for (const event of parsed.events) {
-                await query(
-                    'INSERT INTO calendar_events (title, description, event_date, event_type, class_id, post_id) VALUES (?, ?, ?, ?, ?, ?)',
-                    [event.title, event.description, event.event_date, event.event_type, classId, postId]
-                );
+                try {
+                    await query(
+                        'INSERT INTO calendar_events (title, description, event_date, event_type, class_id, post_id) VALUES (?, ?, ?, ?, ?, ?)',
+                        [event.title, event.description, event.event_date, event.event_type, classId, postId]
+                    );
+                    console.log(`[Calendar AI] Added event: ${event.title} on ${event.event_date}`);
+                } catch (dbError) {
+                    console.error('[Calendar AI] Error inserting event:', dbError);
+                }
             }
-            console.log(`Added ${parsed.events.length} calendar events from post ${postId}`);
+            console.log(`[Calendar AI] Added ${parsed.events.length} calendar events from post ${postId}`);
+        } else {
+            console.log(`[Calendar AI] No events found in post ${postId}`);
         }
     } catch (error) {
-        console.error('Error parsing post for calendar events:', error);
-        // Don't fail the post creation if AI parsing fails
+        console.error('[Calendar AI] Error parsing post for calendar events:', error);
     }
 }
 
