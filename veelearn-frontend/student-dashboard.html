@@ -448,14 +448,21 @@
 
         async function loadPosts() {
             try {
+                console.log('[Posts] Loading posts...');
+                
                 // Get user's school info
                 const userResponse = await fetch(`${API_BASE_URL}/api/student/my-parent-code`, {
                     headers: { 'Authorization': `Bearer ${authToken}` }
                 });
                 const userData = await userResponse.json();
+                console.log('[Posts] User data:', userData);
+                
                 let schoolId = null;
                 if (userResponse.ok && userData.data && userData.data.school_id) {
                     schoolId = userData.data.school_id;
+                    console.log('[Posts] School ID found:', schoolId);
+                } else {
+                    console.log('[Posts] No school ID found. Response ok:', userResponse.ok, 'Data:', userData);
                 }
 
                 const postsList = document.getElementById('postsList');
@@ -464,13 +471,16 @@
                 // Load school-wide posts if student has a school
                 if (schoolId) {
                     try {
+                        console.log('[Posts] Loading school posts for school ID:', schoolId);
                         const schoolPostsResponse = await fetch(`${API_BASE_URL}/api/posts/school/${schoolId}`, {
                             headers: { 'Authorization': `Bearer ${authToken}` }
                         });
                         const schoolPostsData = await schoolPostsResponse.json();
+                        console.log('[Posts] School posts response:', schoolPostsData);
                         
                         if (schoolPostsResponse.ok && schoolPostsData.data) {
                             const schoolPosts = schoolPostsData.data;
+                            console.log('[Posts] School posts count:', schoolPosts.length);
                             schoolPosts.forEach(post => {
                                 const postItem = document.createElement('div');
                                 postItem.className = 'post-item';
@@ -482,21 +492,26 @@
                                 `;
                                 postsList.appendChild(postItem);
                             });
+                        } else {
+                            console.log('[Posts] School posts failed. Response ok:', schoolPostsResponse.ok);
                         }
                     } catch (error) {
-                        console.error('Error loading school posts:', error);
+                        console.error('[Posts] Error loading school posts:', error);
                     }
                 }
 
                 // Get user's classes and load class posts
+                console.log('[Posts] Loading user classes...');
                 const classesResponse = await fetch(`${API_BASE_URL}/api/student/my-classes`, {
                     headers: { 'Authorization': `Bearer ${authToken}` }
                 });
                 
                 const classesData = await classesResponse.json();
+                console.log('[Posts] Classes response:', classesData);
                 
                 if (classesResponse.ok && classesData.data) {
                     const classes = classesData.data;
+                    console.log('[Posts] Classes count:', classes.length);
                     
                     if (classes.length === 0 && postsList.children.length === 0) {
                         postsList.innerHTML = '<p style="color: #888; text-align: center;">No classes to show posts from.</p>';
@@ -506,14 +521,17 @@
                     // Load posts for each class
                     for (const cls of classes) {
                         try {
+                            console.log('[Posts] Loading posts for class:', cls.id, cls.name);
                             const postsResponse = await fetch(`${API_BASE_URL}/api/posts/class/${cls.id}`, {
                                 headers: { 'Authorization': `Bearer ${authToken}` }
                             });
                             
                             const postsData = await postsResponse.json();
+                            console.log('[Posts] Class posts response for', cls.name, ':', postsData);
                             
                             if (postsResponse.ok && postsData.data) {
                                 const posts = postsData.data;
+                                console.log('[Posts] Class posts count for', cls.name, ':', posts.length);
                                 
                                 posts.forEach(post => {
                                     const postItem = document.createElement('div');
@@ -526,18 +544,24 @@
                                     `;
                                     postsList.appendChild(postItem);
                                 });
+                            } else {
+                                console.log('[Posts] Class posts failed for', cls.name, '. Response ok:', postsResponse.ok);
                             }
                         } catch (error) {
-                            console.error('Error loading posts for class:', error);
+                            console.error('[Posts] Error loading posts for class:', cls.name, error);
                         }
                     }
+                } else {
+                    console.log('[Posts] Classes request failed. Response ok:', classesResponse.ok);
                 }
                 
                 if (postsList.children.length === 0) {
                     postsList.innerHTML = '<p style="color: #888; text-align: center;">No posts yet.</p>';
                 }
+                
+                console.log('[Posts] Total posts displayed:', postsList.children.length);
             } catch (error) {
-                console.error('Error loading posts:', error);
+                console.error('[Posts] Error loading posts:', error);
             }
         }
 
