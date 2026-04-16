@@ -1673,6 +1673,75 @@ app.post('/api/classes', authenticateToken, writeLimiter, async (req, res) => {
     }
 });
 
+// Lookup users (teachers) for school admin
+app.get('/api/users/lookup', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'school_admin' && req.user.role !== 'superadmin') {
+        return apiResponse(res, 403, 'Only school admin or superadmin can lookup users');
+    }
+
+    const { search, role } = req.query;
+
+    try {
+        let users = [];
+        
+        if (req.user.role === 'school_admin') {
+            // Get school admin's school
+            const schools = await query('SELECT id FROM schools WHERE school_admin_id = ?', [req.user.id]);
+            if (schools.length === 0) {
+                return apiResponse(res, 404, 'School not found');
+            }
+            const schoolId = schools[0].id;
+
+            // Search teachers in the same school
+            let queryStr = `
+                SELECT id, name, email, role
+                FROM users
+                WHERE school_id = ?
+            `;
+            const params = [schoolId];
+
+            if (role) {
+                queryStr += ' AND role = ?';
+                params.push(role);
+            }
+
+            if (search) {
+                queryStr += ' AND (name LIKE ? OR email LIKE ?)';
+                params.push(`%${search}%`, `%${search}%`);
+            }
+
+            queryStr += ' ORDER BY name ASC LIMIT 20';
+            users = await query(queryStr, params);
+        } else {
+            // Superadmin can search all users
+            let queryStr = `
+                SELECT id, name, email, role, school_id
+                FROM users
+                WHERE 1=1
+            `;
+            const params = [];
+
+            if (role) {
+                queryStr += ' AND role = ?';
+                params.push(role);
+            }
+
+            if (search) {
+                queryStr += ' AND (name LIKE ? OR email LIKE ?)';
+                params.push(`%${search}%`, `%${search}%`);
+            }
+
+            queryStr += ' ORDER BY name ASC LIMIT 20';
+            users = await query(queryStr, params);
+        }
+
+        apiResponse(res, 200, 'Users retrieved', users);
+    } catch (error) {
+        console.error('Error looking up users:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
 // Assign teacher to class (School admin only)
 app.put('/api/classes/:classId/teacher', authenticateToken, writeLimiter, async (req, res) => {
     if (req.user.role !== 'school_admin') {
