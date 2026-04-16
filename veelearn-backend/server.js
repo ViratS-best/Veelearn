@@ -2210,12 +2210,12 @@ app.get('/api/student/my-parent-code', authenticateToken, async (req, res) => {
     }
 
     try {
-        const users = await query('SELECT parent_code FROM users WHERE id = ?', [req.user.id]);
+        const users = await query('SELECT parent_code, school_id FROM users WHERE id = ?', [req.user.id]);
         if (users.length === 0) {
             return apiResponse(res, 404, 'User not found');
         }
 
-        apiResponse(res, 200, 'Parent code retrieved', { parent_code: users[0].parent_code });
+        apiResponse(res, 200, 'Parent code retrieved', { parent_code: users[0].parent_code, school_id: users[0].school_id });
     } catch (error) {
         console.error('Error fetching parent code:', error);
         apiResponse(res, 500, 'Server error');
@@ -7152,8 +7152,26 @@ If no dates are found, return {"events": []}.`;
 
         const response = await openRouterChatCompletion([{ role: 'user', content: prompt }], { max_tokens: 500 });
 
-        const aiResponse = response.content;
-        const parsed = JSON.parse(aiResponse);
+        if (!response) {
+            console.error('OpenRouter returned undefined response');
+            return;
+        }
+
+        const aiResponse = response.content || response;
+        
+        if (!aiResponse) {
+            console.error('OpenRouter response content is empty');
+            return;
+        }
+
+        let parsed;
+        try {
+            parsed = JSON.parse(aiResponse);
+        } catch (error) {
+            console.error('Failed to parse OpenRouter response as JSON:', error);
+            console.error('Response content:', aiResponse);
+            return;
+        }
 
         if (parsed.events && parsed.events.length > 0) {
             for (const event of parsed.events) {
