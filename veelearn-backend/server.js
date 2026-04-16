@@ -1,4 +1,5 @@
 const express = require('express');
+const WebSocket = require('ws');
 const mysql = require('mysql2');
 const dotenv = require('dotenv');
 const bcrypt = require('bcryptjs');
@@ -2038,7 +2039,7 @@ app.post('/api/posts/class', authenticateToken, writeLimiter, async (req, res) =
         );
 
         // Trigger AI calendar parsing
-        // This will be implemented in Phase 5
+        parsePostForCalendarEvents(result.insertId, content, class_id, req.user.id);
 
         apiResponse(res, 201, 'Post created successfully', { id: result.insertId });
     } catch (error) {
@@ -2462,10 +2463,17 @@ app.get('/api/assignments/:assignmentId/progress', authenticateToken, async (req
 
     try {
         // Verify assignment belongs to this teacher
-        const assignments = await query('SELECT id FROM assignments WHERE id = ? AND teacher_id = ?', [assignmentId, req.user.id]);
+        const assignments = await query('SELECT id, course_id FROM assignments WHERE id = ? AND teacher_id = ?', [assignmentId, req.user.id]);
         if (assignments.length === 0) {
             return apiResponse(res, 404, 'Assignment not found or access denied');
         }
+
+        const assignment = assignments[0];
+        const courseId = assignment.course_id;
+
+        // Get course questions to calculate total possible score
+        const course = await query('SELECT questions FROM courses WHERE id = ?', [courseId]);
+        const totalQuestions = course.length > 0 && course[0].questions ? JSON.parse(course[0].questions).length : 0;
 
         const progress = await query(`
             SELECT ap.*, u.name as student_name, u.email as student_email
@@ -2475,7 +2483,25 @@ app.get('/api/assignments/:assignmentId/progress', authenticateToken, async (req
             ORDER BY u.name ASC
         `, [assignmentId]);
 
-        apiResponse(res, 200, 'Assignment progress retrieved', progress);
+        // Calculate percentage for each student
+        const progressWithStats = progress.map(p => {
+            const correctAnswers = p.correct_answers || 0;
+            const totalAnswered = p.total_questions || 0;
+            const percentage = totalAnswered > 0 ? Math.round((correctAnswers / totalAnswered) * 100) : 0;
+            
+            return {
+                ...p,
+                student_name: p.student_name,
+                student_email: p.student_email,
+                correct_answers: correctAnswers,
+                total_questions: totalAnswered,
+                percentage: percentage,
+                total_possible: totalQuestions,
+                completion_percentage: totalQuestions > 0 ? Math.round((totalAnswered / totalQuestions) * 100) : 0
+            };
+        });
+
+        apiResponse(res, 200, 'Assignment progress retrieved', progressWithStats);
     } catch (error) {
         console.error('Error fetching assignment progress:', error);
         apiResponse(res, 500, 'Server error');
@@ -2567,18 +2593,39 @@ app.get('/api/calendar', authenticateToken, async (req, res) => {
     }
 });
 
-// Parse post for calendar events (AI integration - Phase 5)
+// Parse post content for calendar events (AI-powered)
 app.post('/api/calendar/parse-post', authenticateToken, async (req, res) => {
-    const { post_id, content } = req.body;
+    if (req.user.role !== 'teacher') {
+        return apiResponse(res, 403, 'Only teachers can parse posts');
+    }
 
-    if (!post_id || !content) {
-        return apiResponse(res, 400, 'Post ID and content are required');
+    const { post_id } = req.body;
+
+    if (!post_id) {
+        return apiResponse(res, 400, 'Post ID is required');
     }
 
     try {
-        // This will be implemented in Phase 5 with OpenRouter integration
-        // For now, return a placeholder response
-        apiResponse(res, 200, 'Calendar parsing will be implemented in Phase 5', { events: [] });
+        // Get post details
+        const posts = await query('SELECT content, class_id, author_id FROM posts WHERE id = ?', [post_id]);
+        if (posts.length === 0) {
+            return apiResponse(res, 404, 'Post not found');
+        }
+
+        const post = posts[0];
+
+        // Verify post belongs to this teacher
+        if (post.author_id !== req.user.id) {
+            return apiResponse(res, 403, 'Access denied');
+        }
+
+        // Parse with AI
+        await parsePostForCalendarEvents(post_id, post.content, post.class_id, post.author_id);
+
+        // Get the created events
+        const events = await query('SELECT * FROM calendar_events WHERE post_id = ?', [post_id]);
+
+        apiResponse(res, 200, 'Calendar events parsed successfully', events);
     } catch (error) {
         console.error('Error parsing post:', error);
         apiResponse(res, 500, 'Server error');
@@ -7014,6 +7061,56 @@ Sitemap: https://veelearn.org/sitemap.xml
     res.send(robotsTxt);
 });
 
+// ===== AI CALENDAR PARSING =====
+
+async function parsePostForCalendarEvents(postId, content, classId, authorId) {
+    try {
+        const openRouterKeys = getOpenRouterKeys();
+        if (!openRouterKeys.length) {
+            console.warn('No OpenRouter keys for calendar parsing');
+            return;
+        }
+
+        const prompt = `Analyze this teacher's post and extract any calendar events (due dates, exam dates, etc.). Return JSON in this format:
+{
+  "events": [
+    {
+      "title": "Event title",
+      "description": "Event description",
+      "event_date": "YYYY-MM-DD",
+      "event_type": "assignment|exam|event"
+    }
+  ]
+}
+
+Post content: ${content}
+
+If no dates are found, return {"events": []}.`;
+
+        const response = await openRouterChatCompletion({
+            messages: [{ role: 'user', content: prompt }],
+            model: 'openai/gpt-3.5-turbo',
+            max_tokens: 500
+        });
+
+        const aiResponse = response.content;
+        const parsed = JSON.parse(aiResponse);
+
+        if (parsed.events && parsed.events.length > 0) {
+            for (const event of parsed.events) {
+                await query(
+                    'INSERT INTO calendar_events (title, description, event_date, event_type, class_id, post_id) VALUES (?, ?, ?, ?, ?, ?)',
+                    [event.title, event.description, event.event_date, event.event_type, classId, postId]
+                );
+            }
+            console.log(`Added ${parsed.events.length} calendar events from post ${postId}`);
+        }
+    } catch (error) {
+        console.error('Error parsing post for calendar events:', error);
+        // Don't fail the post creation if AI parsing fails
+    }
+}
+
 // ===== ERROR HANDLING =====
 app.use((err, req, res, next) => {
     console.error('Unhandled error:', err);
@@ -7022,7 +7119,7 @@ app.use((err, req, res, next) => {
 
 // ===== START SERVER =====
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
     info(`Server running on port ${PORT} `);
     info(`Environment: ${process.env.NODE_ENV || 'development'} `);
     if (getOpenRouterKeys().length) {
@@ -7030,4 +7127,99 @@ app.listen(PORT, () => {
     } else {
         console.warn('ℹ️ No OPENROUTER_API_KEYS — study coach disabled until keys are set (see .env.example)');
     }
+});
+
+// WebSocket Server for real-time messaging
+const wss = new WebSocket.Server({ server });
+
+// Store connected users with their userId
+const connectedUsers = new Map();
+
+wss.on('connection', (ws, req) => {
+    // Extract token from query string
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    const token = url.searchParams.get('token');
+
+    if (!token) {
+        ws.close(1008, 'No token provided');
+        return;
+    }
+
+    // Verify token and get user info
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+        if (err) {
+            ws.close(1008, 'Invalid token');
+            return;
+        }
+
+        const userId = user.id;
+        connectedUsers.set(userId, ws);
+
+        ws.on('message', async (message) => {
+            try {
+                const data = JSON.parse(message);
+
+                // Handle message sending
+                if (data.type === 'send_message') {
+                    const { recipient_id, content } = data;
+
+                    // Save message to database
+                    const insertMessage = 'INSERT INTO messages (sender_id, recipient_id, content) VALUES (?, ?, ?)';
+                    db.query(insertMessage, [userId, recipient_id, content], (err, result) => {
+                        if (err) {
+                            ws.send(JSON.stringify({ type: 'error', message: 'Failed to send message' }));
+                            return;
+                        }
+
+                        const messageData = {
+                            type: 'new_message',
+                            message_id: result.insertId,
+                            sender_id: userId,
+                            recipient_id,
+                            content,
+                            created_at: new Date().toISOString()
+                        };
+
+                        // Send to recipient if online
+                        const recipientWs = connectedUsers.get(recipient_id);
+                        if (recipientWs && recipientWs.readyState === WebSocket.OPEN) {
+                            recipientWs.send(JSON.stringify(messageData));
+                        }
+
+                        // Confirm to sender
+                        ws.send(JSON.stringify({ type: 'message_sent', message_id: result.insertId }));
+                    });
+                }
+
+                // Handle typing indicator
+                if (data.type === 'typing') {
+                    const { recipient_id, is_typing } = data;
+                    const recipientWs = connectedUsers.get(recipient_id);
+                    if (recipientWs && recipientWs.readyState === WebSocket.OPEN) {
+                        recipientWs.send(JSON.stringify({
+                            type: 'typing',
+                            sender_id: userId,
+                            is_typing
+                        }));
+                    }
+                }
+
+                // Handle message read status
+                if (data.type === 'mark_read') {
+                    const { message_id } = data;
+                    db.query('UPDATE messages SET is_read = TRUE WHERE id = ? AND recipient_id = ?', [message_id, userId]);
+                }
+            } catch (error) {
+                console.error('WebSocket message error:', error);
+            }
+        });
+
+        ws.on('close', () => {
+            connectedUsers.delete(userId);
+        });
+
+        ws.on('error', (error) => {
+            console.error('WebSocket error:', error);
+        });
+    });
 });
