@@ -346,6 +346,15 @@
           <button type="submit">Register</button>
         </form>
         <p>
+          <strong>Register as:</strong>
+        </p>
+        <p style="font-size: 0.9em;">
+          <a href="school-admin-signup.html" style="color: var(--accent);">🏫 School Admin</a> | 
+          <a href="teacher-signup.html" style="color: var(--accent);">👨‍🏫 Teacher</a> | 
+          <a href="student-signup.html" style="color: var(--accent);">🎓 Student</a> | 
+          <a href="parent-signup.html" style="color: var(--accent);">👨‍👩‍👧 Parent</a>
+        </p>
+        <p>
           Already have an account? <a href="#" id="show-login">Login here</a>
         </p>
       </div>
@@ -366,6 +375,12 @@
 
         <h4>Manage Users</h4>
         <ul id="user-list"></ul>
+
+        <h4>Pending Schools for Approval</h4>
+        <ul id="superadmin-pending-schools-list"></ul>
+
+        <h4>All Schools</h4>
+        <ul id="superadmin-all-schools-list"></ul>
 
         <h4>Pending Courses for Approval</h4>
         <ul id="superadmin-pending-courses-list"></ul>
