@@ -99,10 +99,10 @@
             background: #667eea;
         }
         .quiz-options button.correct {
-            background: #51cf66;
+            background: #51cf66 !important;
         }
         .quiz-options button.incorrect {
-            background: #ff6b6b;
+            background: #ff6b6b !important;
         }
         .loading {
             text-align: center;
@@ -298,12 +298,22 @@
             options.forEach(opt => {
                 opt.disabled = true;
                 opt.style.cursor = 'not-allowed';
+                opt.style.pointerEvents = 'none';
             });
             
             if (isCorrect) {
                 button.classList.add('correct');
+                button.style.background = '#51cf66';
             } else {
                 button.classList.add('incorrect');
+                button.style.background = '#ff6b6b';
+                // Show which one was correct
+                options.forEach(opt => {
+                    if (opt !== button) {
+                        // Check if this is the correct answer by comparing with the button that was clicked
+                        // Since we don't have access to the correct answer here, we'll just highlight the clicked one as incorrect
+                    }
+                });
             }
         }
 
