@@ -510,7 +510,7 @@ const initializeDatabase = async () => {
             CREATE TABLE IF NOT EXISTS schools (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(255) NOT NULL,
-                school_code VARCHAR(20) UNIQUE NOT NULL,
+                school_code VARCHAR(20) UNIQUE NULL,
                 school_admin_id INT,
                 is_approved BOOLEAN DEFAULT FALSE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -520,6 +520,17 @@ const initializeDatabase = async () => {
             )
         `);
         info('✓ Schools table ready');
+
+        // Migration: Allow NULL for school_code (for existing tables)
+        try {
+            await query(`ALTER TABLE schools MODIFY COLUMN school_code VARCHAR(20) UNIQUE NULL`);
+            info('✓ Schools table migrated: school_code now allows NULL');
+        } catch (err) {
+            // Migration may have already been applied, ignore error
+            if (err.code !== 'ER_DUP_ENTRY' && err.code !== 'ER_KEY_COLUMN_DOES_NOT_EXIST') {
+                warn('School table migration skipped (may already exist)');
+            }
+        }
 
         // Classes table
         await query(`
