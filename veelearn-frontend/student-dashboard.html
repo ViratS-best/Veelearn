@@ -67,6 +67,11 @@
             margin-bottom: 10px;
             border-radius: 5px;
             border: 1px solid #0f3460;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        .class-item:hover, .assignment-item:hover {
+            border-color: #667eea;
         }
         .class-item h3, .assignment-item h3 {
             color: #eee;
@@ -319,6 +324,7 @@
                     assignments.forEach(assignment => {
                         const assignmentItem = document.createElement('div');
                         assignmentItem.className = 'assignment-item';
+                        assignmentItem.style.cursor = 'pointer';
                         
                         const dueDate = new Date(assignment.due_date);
                         const now = new Date();
@@ -341,6 +347,15 @@
                             <span class="status ${status}">${status.replace('-', ' ')}</span>
                             ${isLate ? '<span class="status not-started" style="margin-left: 10px;">LATE</span>' : ''}
                         `;
+                        
+                        // Add click handler to redirect to course
+                        assignmentItem.addEventListener('click', () => {
+                            const baseUrl = window.location.hostname.includes('github.io') 
+                                ? 'https://virat-sisodiya.github.io/Veelearn/veelearn-frontend'
+                                : window.location.origin;
+                            window.open(`${baseUrl}/index.html?courseId=${assignment.course_id}`, '_blank');
+                        });
+                        
                         assignmentList.appendChild(assignmentItem);
                     });
                 }
@@ -351,7 +366,47 @@
 
         async function loadPosts() {
             try {
-                // Get user's classes first
+                // Get user's school info
+                const userResponse = await fetch(`${API_BASE_URL}/api/student/my-parent-code`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const userData = await userResponse.json();
+                let schoolId = null;
+                if (userData.ok && userData.data && userData.data.school_id) {
+                    schoolId = userData.data.school_id;
+                }
+
+                const postsList = document.getElementById('postsList');
+                postsList.innerHTML = '';
+
+                // Load school-wide posts if student has a school
+                if (schoolId) {
+                    try {
+                        const schoolPostsResponse = await fetch(`${API_BASE_URL}/api/posts/school/${schoolId}`, {
+                            headers: { 'Authorization': `Bearer ${authToken}` }
+                        });
+                        const schoolPostsData = await schoolPostsResponse.json();
+                        
+                        if (schoolPostsData.ok && schoolPostsData.data) {
+                            const schoolPosts = schoolPostsData.data;
+                            schoolPosts.forEach(post => {
+                                const postItem = document.createElement('div');
+                                postItem.className = 'post-item';
+                                const timestamp = new Date(post.created_at).toLocaleString();
+                                postItem.innerHTML = `
+                                    <h4>SCHOOL-WIDE - ${post.post_type.toUpperCase()}</h4>
+                                    <p>${post.content}</p>
+                                    <p class="meta">By ${post.author_name} - ${timestamp}</p>
+                                `;
+                                postsList.appendChild(postItem);
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Error loading school posts:', error);
+                    }
+                }
+
+                // Get user's classes and load class posts
                 const classesResponse = await fetch(`${API_BASE_URL}/api/student/my-classes`, {
                     headers: { 'Authorization': `Bearer ${authToken}` }
                 });
@@ -360,10 +415,8 @@
                 
                 if (classesData.ok && classesData.data) {
                     const classes = classesData.data;
-                    const postsList = document.getElementById('postsList');
-                    postsList.innerHTML = '';
                     
-                    if (classes.length === 0) {
+                    if (classes.length === 0 && postsList.children.length === 0) {
                         postsList.innerHTML = '<p style="color: #888; text-align: center;">No classes to show posts from.</p>';
                         return;
                     }
@@ -396,10 +449,10 @@
                             console.error('Error loading posts for class:', error);
                         }
                     }
-                    
-                    if (postsList.children.length === 0) {
-                        postsList.innerHTML = '<p style="color: #888; text-align: center;">No posts yet.</p>';
-                    }
+                }
+                
+                if (postsList.children.length === 0) {
+                    postsList.innerHTML = '<p style="color: #888; text-align: center;">No posts yet.</p>';
                 }
             } catch (error) {
                 console.error('Error loading posts:', error);
