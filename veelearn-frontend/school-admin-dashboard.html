@@ -291,8 +291,11 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="teacherEmail">Teacher Email</label>
-                            <input type="email" id="teacherEmail" required placeholder="teacher@school.com">
+                            <label for="teacherSearch">Search Teachers</label>
+                            <input type="text" id="teacherSearch" placeholder="Search by name or email" oninput="searchTeachers()">
+                            <select id="teacherSelect" required style="margin-top: 10px;">
+                                <option value="">Select a teacher</option>
+                            </select>
                         </div>
                         <button type="submit" class="btn">Assign Teacher</button>
                     </form>
@@ -655,23 +658,71 @@
             }
         });
 
+        // Search teachers function
+        async function searchTeachers() {
+            const searchTerm = document.getElementById('teacherSearch').value;
+            const teacherSelect = document.getElementById('teacherSelect');
+            
+            if (searchTerm.length < 2) {
+                teacherSelect.innerHTML = '<option value="">Select a teacher</option>';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/users/lookup?search=${encodeURIComponent(searchTerm)}&role=teacher`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.data) {
+                    const teachers = data.data;
+                    teacherSelect.innerHTML = '<option value="">Select a teacher</option>';
+                    
+                    teachers.forEach(teacher => {
+                        const option = document.createElement('option');
+                        option.value = teacher.id;
+                        option.textContent = `${teacher.name} (${teacher.email})`;
+                        teacherSelect.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error searching teachers:', error);
+            }
+        }
+
         // Assign teacher form
         document.getElementById('assignTeacherForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
             const classId = document.getElementById('classSelect').value;
-            const teacherEmail = document.getElementById('teacherEmail').value;
+            const teacherId = document.getElementById('teacherSelect').value;
+            
+            if (!classId || !teacherId) {
+                alert('Please select a class and a teacher');
+                return;
+            }
             
             try {
-                // First get teacher ID from email
-                const userResponse = await fetch(`${API_BASE_URL}/api/users/by-email/${teacherEmail}`, {
-                    headers: { 'Authorization': `Bearer ${authToken}` }
+                const response = await fetch(`${API_BASE_URL}/api/classes/${classId}/teacher`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ teacher_id: parseInt(teacherId) })
                 });
                 
-                // This endpoint doesn't exist yet, so we'll need to implement it or use a different approach
-                // For now, let's assume we need to implement user lookup by email
+                const data = await response.json();
                 
-                alert('Teacher assignment feature - user lookup endpoint needs to be implemented');
+                if (response.ok) {
+                    alert('Teacher assigned to class successfully!');
+                    document.getElementById('teacherSearch').value = '';
+                    document.getElementById('teacherSelect').innerHTML = '<option value="">Select a teacher</option>';
+                    loadClasses(); // Refresh to show updated teacher
+                } else {
+                    alert(data.message || 'Failed to assign teacher');
+                }
             } catch (error) {
                 console.error('Error assigning teacher:', error);
                 alert('Error assigning teacher');
