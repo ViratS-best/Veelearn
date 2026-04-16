@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Viewer - Veelearn</title>
+    <link rel="stylesheet" href="styles-redesign.css">
+    <style>
+        body {
+            background: #0f0f1a;
+            color: #eee;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #1a1a2e;
+            border-radius: 10px;
+        }
+        .header h1 {
+            color: #667eea;
+            margin: 0;
+        }
+        .btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .course-content {
+            background: #1a1a2e;
+            padding: 30px;
+            border-radius: 10px;
+            border: 1px solid #0f3460;
+        }
+        .course-title {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        .course-description {
+            color: #ccc;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        .content-section {
+            margin-bottom: 30px;
+        }
+        .content-section h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        .content-section p {
+            color: #ccc;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        .quiz-section {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 30px;
+        }
+        .quiz-section h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        .quiz-question {
+            margin-bottom: 20px;
+        }
+        .quiz-question p {
+            color: #eee;
+            margin-bottom: 10px;
+        }
+        .quiz-options button {
+            display: block;
+            width: 100%;
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            background: #0f3460;
+            color: #eee;
+            border: 1px solid #1a1a2e;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: left;
+        }
+        .quiz-options button:hover {
+            background: #667eea;
+        }
+        .quiz-options button.correct {
+            background: #51cf66;
+        }
+        .quiz-options button.incorrect {
+            background: #ff6b6b;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 Course Viewer</h1>
+            <a href="student-dashboard.html" class="btn">Back to Dashboard</a>
+        </div>
+        <div id="courseContent" class="course-content">
+            <p class="loading">Loading course...</p>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = (() => {
+            if (window.location.hostname.includes('veelearn.org')) {
+                return 'https://api.veelearn.org';
+            }
+            if (window.location.hostname.includes('github.io')) {
+                return 'https://veelearn.onrender.com';
+            }
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                return 'http://localhost:3000';
+            }
+            return window.location.origin;
+        })();
+
+        const authToken = localStorage.getItem('token');
+        const urlParams = new URLSearchParams(window.location.search);
+        const courseId = urlParams.get('courseId');
+
+        if (!authToken) {
+            window.location.href = 'index.html';
+        }
+
+        if (!courseId) {
+            document.getElementById('courseContent').innerHTML = '<p class="loading">No course specified.</p>';
+        }
+
+        async function loadCourse() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/courses/${courseId}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.data) {
+                    const course = data.data;
+                    const courseContent = document.getElementById('courseContent');
+                    
+                    let contentHtml = `
+                        <h2 class="course-title">${course.title}</h2>
+                        <p class="course-description">${course.description || 'No description available.'}</p>
+                    `;
+                    
+                    if (course.content) {
+                        try {
+                            const contentObj = typeof course.content === 'string' ? JSON.parse(course.content) : course.content;
+                            if (contentObj.CONTENT) {
+                                contentHtml += '<div class="content-section">';
+                                contentHtml += '<h3>📖 Course Content</h3>';
+                                contentObj.CONTENT.forEach((section, index) => {
+                                    contentHtml += `<p><strong>${index + 1}. ${section.title || 'Section ' + (index + 1)}</strong></p>`;
+                                    contentHtml += `<p>${section.text || section}</p>`;
+                                });
+                                contentHtml += '</div>';
+                            }
+                        } catch (e) {
+                            console.error('Error parsing course content:', e);
+                        }
+                    }
+                    
+                    if (course.questions) {
+                        try {
+                            const questionsObj = typeof course.questions === 'string' ? JSON.parse(course.questions) : course.questions;
+                            if (questionsObj.QUESTIONS && questionsObj.QUESTIONS.length > 0) {
+                                contentHtml += '<div class="quiz-section">';
+                                contentHtml += '<h3>📝 Quiz</h3>';
+                                questionsObj.QUESTIONS.forEach((q, index) => {
+                                    contentHtml += '<div class="quiz-question">';
+                                    contentHtml += `<p>${index + 1}. ${q.question}</p>`;
+                                    contentHtml += '<div class="quiz-options">';
+                                    q.options.forEach((opt, optIndex) => {
+                                        contentHtml += `<button onclick="checkAnswer(this, ${optIndex === q.correct})">${opt}</button>`;
+                                    });
+                                    contentHtml += '</div>';
+                                    contentHtml += '</div>';
+                                });
+                                contentHtml += '</div>';
+                            }
+                        } catch (e) {
+                            console.error('Error parsing quiz questions:', e);
+                        }
+                    }
+                    
+                    courseContent.innerHTML = contentHtml;
+                } else {
+                    document.getElementById('courseContent').innerHTML = '<p class="loading">Failed to load course.</p>';
+                }
+            } catch (error) {
+                console.error('Error loading course:', error);
+                document.getElementById('courseContent').innerHTML = '<p class="loading">Error loading course.</p>';
+            }
+        }
+
+        function checkAnswer(button, isCorrect) {
+            const options = button.parentElement.querySelectorAll('button');
+            options.forEach(opt => {
+                opt.disabled = true;
+                opt.style.cursor = 'not-allowed';
+            });
+            
+            if (isCorrect) {
+                button.classList.add('correct');
+            } else {
+                button.classList.add('incorrect');
+            }
+        }
+
+        if (courseId) {
+            loadCourse();
+        }
+    </script>
+</body>
+</html>
