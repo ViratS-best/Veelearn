@@ -148,8 +148,15 @@
             document.getElementById('courseContent').innerHTML = '<p class="loading">No course specified.</p>';
         }
 
+        let courseQuestions = [];
+        let currentViewerPageIndex = 0;
+        let viewerPages = [];
+
         async function loadCourse() {
             try {
+                // Load course questions first
+                await loadCourseQuestions(courseId);
+                
                 const response = await fetch(`${API_BASE_URL}/api/courses/${courseId}`, {
                     headers: { 'Authorization': `Bearer ${authToken}` }
                 });
@@ -158,128 +165,17 @@
                 
                 if (response.ok && data.data) {
                     const course = data.data;
-                    const courseContent = document.getElementById('courseContent');
                     
-                    let contentHtml = `
-                        <h2 class="course-title">${course.title}</h2>
-                        <p class="course-description">${course.description || 'No description available.'}</p>
-                    `;
-                    
-                    // Try to parse content - it might be in different formats
-                    if (course.content) {
-                        try {
-                            let contentObj;
-                            if (typeof course.content === 'string') {
-                                contentObj = JSON.parse(course.content);
-                            } else {
-                                contentObj = course.content;
-                            }
-                            
-                            console.log('Content object:', contentObj);
-                            
-                            // Handle different content structures
-                            if (Array.isArray(contentObj)) {
-                                contentHtml += '<div class="content-section">';
-                                contentHtml += '<h3>📖 Course Content</h3>';
-                                contentObj.forEach((section, index) => {
-                                    if (typeof section === 'string') {
-                                        contentHtml += `<p>${section}</p>`;
-                                    } else if (section.text) {
-                                        contentHtml += `<p><strong>${section.title || 'Section ' + (index + 1)}</strong></p>`;
-                                        contentHtml += `<p>${section.text}</p>`;
-                                    } else {
-                                        contentHtml += `<p>${JSON.stringify(section)}</p>`;
-                                    }
-                                });
-                                contentHtml += '</div>';
-                            } else if (contentObj.CONTENT && Array.isArray(contentObj.CONTENT)) {
-                                contentHtml += '<div class="content-section">';
-                                contentHtml += '<h3>📖 Course Content</h3>';
-                                contentObj.CONTENT.forEach((section, index) => {
-                                    if (typeof section === 'string') {
-                                        contentHtml += `<p>${section}</p>`;
-                                    } else if (section.text) {
-                                        contentHtml += `<p><strong>${section.title || 'Section ' + (index + 1)}</strong></p>`;
-                                        contentHtml += `<p>${section.text}</p>`;
-                                    } else {
-                                        contentHtml += `<p>${JSON.stringify(section)}</p>`;
-                                    }
-                                });
-                                contentHtml += '</div>';
-                            } else if (typeof contentObj === 'object') {
-                                contentHtml += '<div class="content-section">';
-                                contentHtml += '<h3>📖 Course Content</h3>';
-                                Object.keys(contentObj).forEach(key => {
-                                    contentHtml += `<p><strong>${key}</strong></p>`;
-                                    if (typeof contentObj[key] === 'string') {
-                                        contentHtml += `<p>${contentObj[key]}</p>`;
-                                    } else if (Array.isArray(contentObj[key])) {
-                                        contentObj[key].forEach(item => {
-                                            contentHtml += `<p>${typeof item === 'string' ? item : JSON.stringify(item)}</p>`;
-                                        });
-                                    }
-                                });
-                                contentHtml += '</div>';
-                            }
-                        } catch (e) {
-                            console.error('Error parsing course content:', e);
-                            contentHtml += '<div class="content-section">';
-                            contentHtml += '<h3>📖 Course Content</h3>';
-                            contentHtml += `<p>${course.content}</p>`;
-                            contentHtml += '</div>';
-                        }
+                    // Split content into pages for viewer
+                    const rawContent = course.content || "";
+                    if (rawContent.includes('<hr class="page-break">')) {
+                        viewerPages = rawContent.split('<hr class="page-break">');
+                    } else {
+                        viewerPages = [rawContent];
                     }
                     
-                    // Try to parse questions
-                    if (course.questions) {
-                        try {
-                            let questionsObj;
-                            if (typeof course.questions === 'string') {
-                                questionsObj = JSON.parse(course.questions);
-                            } else {
-                                questionsObj = course.questions;
-                            }
-                            
-                            console.log('Questions object:', questionsObj);
-                            
-                            let questions = [];
-                            if (Array.isArray(questionsObj)) {
-                                questions = questionsObj;
-                            } else if (questionsObj.QUESTIONS && Array.isArray(questionsObj.QUESTIONS)) {
-                                questions = questionsObj.QUESTIONS;
-                            } else if (questionsObj.questions && Array.isArray(questionsObj.questions)) {
-                                questions = questionsObj.questions;
-                            }
-                            
-                            if (questions.length > 0) {
-                                contentHtml += '<div class="quiz-section">';
-                                contentHtml += '<h3>📝 Quiz</h3>';
-                                questions.forEach((q, index) => {
-                                    contentHtml += '<div class="quiz-question">';
-                                    
-                                    let questionText = q.question || q.text || q;
-                                    let options = q.options || q.choices || [];
-                                    let correctIndex = q.correct || q.answer || q.correct_answer;
-                                    
-                                    contentHtml += `<p>${index + 1}. ${questionText}</p>`;
-                                    if (options.length > 0) {
-                                        contentHtml += '<div class="quiz-options">';
-                                        options.forEach((opt, optIndex) => {
-                                            const isCorrect = optIndex === correctIndex || opt === correctIndex;
-                                            contentHtml += `<button onclick="checkAnswer(this, ${isCorrect})">${opt}</button>`;
-                                        });
-                                        contentHtml += '</div>';
-                                    }
-                                    contentHtml += '</div>';
-                                });
-                                contentHtml += '</div>';
-                            }
-                        } catch (e) {
-                            console.error('Error parsing quiz questions:', e);
-                        }
-                    }
-                    
-                    courseContent.innerHTML = contentHtml;
+                    currentViewerPageIndex = 0;
+                    renderViewerPage(0);
                 } else {
                     document.getElementById('courseContent').innerHTML = '<p class="loading">Failed to load course.</p>';
                 }
@@ -287,6 +183,114 @@
                 console.error('Error loading course:', error);
                 document.getElementById('courseContent').innerHTML = '<p class="loading">Error loading course.</p>';
             }
+        }
+
+        async function loadCourseQuestions(courseId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/courses/${courseId}/questions`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const data = await response.json();
+                if (response.ok && data.data) {
+                    courseQuestions = data.data;
+                    console.log(`Loaded ${courseQuestions.length} questions for course ${courseId}`);
+                }
+            } catch (error) {
+                console.error('Error loading course questions:', error);
+            }
+        }
+
+        function renderViewerPage(index) {
+            const courseContent = document.getElementById('courseContent');
+            courseContent.innerHTML = `
+                <h2 class="course-title">Course Content</h2>
+                <div id="course-content-display" style="margin: 20px 0; position: relative; min-height: 400px;">
+                    ${viewerPages[index] || "No content"}
+                </div>
+                <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: space-between; align-items: center;">
+                    <button onclick="showDashboard()" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">Back to Dashboard</button>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <span id="viewer-page-indicator">Page ${index + 1} of ${viewerPages.length}</span>
+                        <button id="viewer-prev-btn" onclick="changeViewerPage(-1)" ${index === 0 ? 'disabled' : ''} style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">Previous</button>
+                        <button id="viewer-next-btn" onclick="changeViewerPage(1)" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">${index === viewerPages.length - 1 ? 'Finish' : 'Next'}</button>
+                    </div>
+                </div>
+            `;
+            
+            // Hydrate quiz placeholders
+            hydrateQuizPlaceholders();
+        }
+
+        function changeViewerPage(delta) {
+            const newIndex = currentViewerPageIndex + delta;
+            if (newIndex >= 0 && newIndex < viewerPages.length) {
+                currentViewerPageIndex = newIndex;
+                renderViewerPage(newIndex);
+            }
+        }
+
+        function hydrateQuizPlaceholders() {
+            const contentDisplay = document.getElementById('course-content-display');
+            if (!contentDisplay) return;
+            
+            const placeholders = contentDisplay.querySelectorAll('.quiz-question-placeholder');
+            if (placeholders.length === 0) return;
+            
+            console.log(`Hydrating ${placeholders.length} quiz placeholders, courseQuestions: ${courseQuestions.length}`);
+            
+            let questionCounter = 0;
+            placeholders.forEach(placeholder => {
+                const questionId = parseInt(placeholder.dataset.questionId);
+                if (!questionId || isNaN(questionId)) return;
+                
+                const question = courseQuestions.find(q => q.id === questionId);
+                if (question) {
+                    const questionEl = createQuizQuestionElement(question, questionCounter);
+                    questionCounter++;
+                    questionEl.style.border = '2px solid #667eea';
+                    questionEl.style.background = 'rgba(102, 126, 234, 0.1)';
+                    questionEl.style.cursor = 'default';
+                    placeholder.replaceWith(questionEl);
+                }
+            });
+        }
+
+        function createQuizQuestionElement(question, index) {
+            const div = document.createElement('div');
+            div.className = 'quiz-question';
+            div.style.margin = '20px 0';
+            div.style.padding = '20px';
+            div.style.borderRadius = '8px';
+            div.style.background = '#16213e';
+            
+            let questionText = question.question || question.text || '';
+            let options = question.options || question.choices || [];
+            let correctIndex = question.correct || question.answer || question.correct_answer;
+            
+            div.innerHTML = `
+                <p style="font-size: 18px; margin-bottom: 15px; color: #eee;"><strong>Question ${index + 1}:</strong> ${questionText}</p>
+                <div class="quiz-options" style="display: flex; flex-direction: column; gap: 10px;">
+                </div>
+            `;
+            
+            const optionsContainer = div.querySelector('.quiz-options');
+            options.forEach((opt, optIndex) => {
+                const isCorrect = optIndex === correctIndex || opt === correctIndex;
+                const btn = document.createElement('button');
+                btn.textContent = opt;
+                btn.style.padding = '10px 15px';
+                btn.style.background = '#0f3460';
+                btn.style.color = '#eee';
+                btn.style.border = '1px solid #1a1a2e';
+                btn.style.borderRadius = '5px';
+                btn.style.cursor = 'pointer';
+                btn.style.textAlign = 'left';
+                btn.onclick = () => checkAnswer(btn, isCorrect);
+                optionsContainer.appendChild(btn);
+            });
+            
+            return div;
         }
 
         function checkAnswer(button, isCorrect) {
