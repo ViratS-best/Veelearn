@@ -2639,6 +2639,21 @@ function showDashboard() {
     stopCourseTimer();
     currentViewingCourseId = null;
 
+    // Redirect EMS roles to their specific dashboards
+    if (currentUser?.role === 'school_admin') {
+        window.location.href = 'school-admin-dashboard.html';
+        return;
+    } else if (currentUser?.role === 'teacher') {
+        window.location.href = 'teacher-dashboard.html';
+        return;
+    } else if (currentUser?.role === 'student') {
+        window.location.href = 'student-dashboard.html';
+        return;
+    } else if (currentUser?.role === 'parent') {
+        window.location.href = 'parent-dashboard.html';
+        return;
+    }
+
     const dashboard = document.getElementById("dashboard-section");
     const landing = document.getElementById("landing-page");
     const auth = document.getElementById("auth-section");
@@ -2720,6 +2735,7 @@ function showSuperadminDashboard() {
     // Load EMS school approval data
     loadPendingSchools();
     loadAllSchools();
+    loadPendingTeachers();
 }
 
 function showAdminDashboard() {
@@ -2965,6 +2981,71 @@ function approveSchool(schoolId) {
 }
 
 window.approveSchool = approveSchool;
+
+function loadPendingTeachers() {
+    fetch(`${API_BASE_URL}/api/users/pending-teachers`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+        credentials: "include"
+    })
+        .then((res) => res.json())
+        .then((data) => {
+            if (data.success || data.data) {
+                renderPendingTeachers(data.data);
+            }
+        })
+        .catch((err) => console.error("Error loading pending teachers:", err));
+}
+
+function renderPendingTeachers(teachers) {
+    const list = document.getElementById("superadmin-pending-teachers-list");
+    if (!list) return;
+
+    if (!teachers || teachers.length === 0) {
+        list.innerHTML = "<li><em>No pending teachers</em></li>";
+        return;
+    }
+
+    list.innerHTML = teachers
+        .map(
+            (teacher) => `
+        <li>
+            <strong>${escapeHtml(teacher.name)}</strong>
+            <p>Email: ${escapeHtml(teacher.email)}</p>
+            <p>School: ${escapeHtml(teacher.school_name || 'N/A')}</p>
+            <button onclick="approveTeacher(${teacher.id})">Approve</button>
+        </li>
+    `
+        )
+        .join("");
+}
+
+function approveTeacher(userId) {
+    if (!confirm("Are you sure you want to approve this teacher?")) return;
+
+    fetch(`${API_BASE_URL}/api/users/${userId}/approve-teacher`, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authToken}`
+        },
+        credentials: "include"
+    })
+        .then((res) => res.json())
+        .then((data) => {
+            if (data.success || data.message) {
+                alert("Teacher approved successfully!");
+                loadPendingTeachers();
+            } else {
+                alert(data.message || "Failed to approve teacher");
+            }
+        })
+        .catch((err) => {
+            console.error("Error approving teacher:", err);
+            alert("Error approving teacher");
+        });
+}
+
+window.approveTeacher = approveTeacher;
 
 function renderPendingCourses(courses) {
     const list =
