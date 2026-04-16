@@ -6646,7 +6646,7 @@ app.get('/api/student/assignments', authenticateToken, (req, res) => {
 
 // Submit assignment completion with quiz accuracy tracking
 app.post('/api/student/submit-assignment', authenticateToken, (req, res) => {
-    const { assignmentId, completionPercentage } = req.body;
+    const { assignmentId, completionPercentage, correctAnswers, totalQuestions, quizAccuracy } = req.body;
     const studentId = req.user.id;
 
     if (!assignmentId) return apiResponse(res, 400, 'Assignment ID required');
@@ -6663,6 +6663,35 @@ app.post('/api/student/submit-assignment', authenticateToken, (req, res) => {
             const assignment = assignments[0];
             const isLate = assignment.due_date && new Date() > new Date(assignment.due_date);
             const submissionDate = new Date();
+
+            // If quiz score parameters are provided, use them directly
+            if (correctAnswers !== undefined && totalQuestions !== undefined) {
+                const finalQuizAccuracy = quizAccuracy !== undefined ? quizAccuracy : (totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0);
+                
+                // Insert or update assignment submission with quiz score
+                db.query(
+                    `INSERT INTO assignment_submissions 
+                     (assignment_id, student_id, submission_date, completion_percentage, is_submitted, is_late, correct_answers, total_questions, quiz_accuracy) 
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     ON DUPLICATE KEY UPDATE 
+                     completion_percentage = ?, submission_date = ?, is_submitted = ?, is_late = ?, correct_answers = ?, total_questions = ?, quiz_accuracy = ?`,
+                    [assignmentId, studentId, submissionDate, completionPercentage, true, isLate, correctAnswers, totalQuestions, finalQuizAccuracy,
+                        completionPercentage, submissionDate, true, isLate, correctAnswers, totalQuestions, finalQuizAccuracy],
+                    (err) => {
+                        if (err) {
+                            console.error('Error submitting assignment:', err);
+                            return apiResponse(res, 500, 'Error submitting assignment');
+                        }
+                        apiResponse(res, 200, 'Assignment submission recorded', {
+                            isLate,
+                            totalQuestions,
+                            correctAnswers,
+                            quizAccuracy: finalQuizAccuracy
+                        });
+                    }
+                );
+                return;
+            }
 
             // Get total questions count for the course
             db.query(
