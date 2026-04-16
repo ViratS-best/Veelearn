@@ -139,6 +139,7 @@
         const authToken = localStorage.getItem('token');
         const urlParams = new URLSearchParams(window.location.search);
         const courseId = urlParams.get('courseId');
+        const assignmentId = urlParams.get('assignmentId');
 
         if (!authToken) {
             window.location.href = 'index.html';
@@ -340,6 +341,44 @@
                 document.getElementById('correct-count').textContent = quizScore.correct;
                 document.getElementById('incorrect-count').textContent = quizScore.incorrect;
                 document.getElementById('total-count').textContent = quizScore.total;
+            }
+            
+            // Save score to assignment if assignmentId is provided
+            if (assignmentId) {
+                saveQuizScoreToAssignment();
+            }
+        }
+
+        async function saveQuizScoreToAssignment() {
+            if (!assignmentId || quizScore.total === 0) return;
+            
+            try {
+                const quizAccuracy = quizScore.total > 0 ? (quizScore.correct / quizScore.total) * 100 : 0;
+                const completionPercentage = Math.min(100, (quizScore.correct / courseQuestions.length) * 100);
+                
+                const response = await fetch(`${API_BASE_URL}/api/student/submit-assignment`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        assignmentId: parseInt(assignmentId),
+                        completionPercentage: completionPercentage,
+                        correctAnswers: quizScore.correct,
+                        totalQuestions: quizScore.total,
+                        quizAccuracy: quizAccuracy
+                    })
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    console.log('Quiz score saved to assignment:', data);
+                } else {
+                    console.error('Failed to save quiz score:', data);
+                }
+            } catch (error) {
+                console.error('Error saving quiz score:', error);
             }
         }
 

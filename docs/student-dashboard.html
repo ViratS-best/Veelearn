@@ -435,7 +435,7 @@
                             const baseUrl = window.location.hostname.includes('github.io')
                                 ? 'https://virat-sisodiya.github.io/Veelearn/veelearn-frontend'
                                 : window.location.origin;
-                            window.open(`${baseUrl}/course-viewer.html?courseId=${assignment.course_id}`, '_blank');
+                            window.open(`${baseUrl}/course-viewer.html?courseId=${assignment.course_id}&assignmentId=${assignment.id}`, '_blank');
                         });
                         
                         assignmentList.appendChild(assignmentItem);
