@@ -454,7 +454,7 @@
                 });
                 const userData = await userResponse.json();
                 let schoolId = null;
-                if (userData.ok && userData.data && userData.data.school_id) {
+                if (userResponse.ok && userData.data && userData.data.school_id) {
                     schoolId = userData.data.school_id;
                 }
 
@@ -469,7 +469,7 @@
                         });
                         const schoolPostsData = await schoolPostsResponse.json();
                         
-                        if (schoolPostsData.ok && schoolPostsData.data) {
+                        if (schoolPostsResponse.ok && schoolPostsData.data) {
                             const schoolPosts = schoolPostsData.data;
                             schoolPosts.forEach(post => {
                                 const postItem = document.createElement('div');
@@ -495,7 +495,7 @@
                 
                 const classesData = await classesResponse.json();
                 
-                if (classesData.ok && classesData.data) {
+                if (classesResponse.ok && classesData.data) {
                     const classes = classesData.data;
                     
                     if (classes.length === 0 && postsList.children.length === 0) {
@@ -512,7 +512,7 @@
                             
                             const postsData = await postsResponse.json();
                             
-                            if (postsData.ok && postsData.data) {
+                            if (postsResponse.ok && postsData.data) {
                                 const posts = postsData.data;
                                 
                                 posts.forEach(post => {

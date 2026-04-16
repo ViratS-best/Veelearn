@@ -165,37 +165,111 @@
                         <p class="course-description">${course.description || 'No description available.'}</p>
                     `;
                     
+                    // Try to parse content - it might be in different formats
                     if (course.content) {
                         try {
-                            const contentObj = typeof course.content === 'string' ? JSON.parse(course.content) : course.content;
-                            if (contentObj.CONTENT) {
+                            let contentObj;
+                            if (typeof course.content === 'string') {
+                                contentObj = JSON.parse(course.content);
+                            } else {
+                                contentObj = course.content;
+                            }
+                            
+                            console.log('Content object:', contentObj);
+                            
+                            // Handle different content structures
+                            if (Array.isArray(contentObj)) {
+                                contentHtml += '<div class="content-section">';
+                                contentHtml += '<h3>📖 Course Content</h3>';
+                                contentObj.forEach((section, index) => {
+                                    if (typeof section === 'string') {
+                                        contentHtml += `<p>${section}</p>`;
+                                    } else if (section.text) {
+                                        contentHtml += `<p><strong>${section.title || 'Section ' + (index + 1)}</strong></p>`;
+                                        contentHtml += `<p>${section.text}</p>`;
+                                    } else {
+                                        contentHtml += `<p>${JSON.stringify(section)}</p>`;
+                                    }
+                                });
+                                contentHtml += '</div>';
+                            } else if (contentObj.CONTENT && Array.isArray(contentObj.CONTENT)) {
                                 contentHtml += '<div class="content-section">';
                                 contentHtml += '<h3>📖 Course Content</h3>';
                                 contentObj.CONTENT.forEach((section, index) => {
-                                    contentHtml += `<p><strong>${index + 1}. ${section.title || 'Section ' + (index + 1)}</strong></p>`;
-                                    contentHtml += `<p>${section.text || section}</p>`;
+                                    if (typeof section === 'string') {
+                                        contentHtml += `<p>${section}</p>`;
+                                    } else if (section.text) {
+                                        contentHtml += `<p><strong>${section.title || 'Section ' + (index + 1)}</strong></p>`;
+                                        contentHtml += `<p>${section.text}</p>`;
+                                    } else {
+                                        contentHtml += `<p>${JSON.stringify(section)}</p>`;
+                                    }
+                                });
+                                contentHtml += '</div>';
+                            } else if (typeof contentObj === 'object') {
+                                contentHtml += '<div class="content-section">';
+                                contentHtml += '<h3>📖 Course Content</h3>';
+                                Object.keys(contentObj).forEach(key => {
+                                    contentHtml += `<p><strong>${key}</strong></p>`;
+                                    if (typeof contentObj[key] === 'string') {
+                                        contentHtml += `<p>${contentObj[key]}</p>`;
+                                    } else if (Array.isArray(contentObj[key])) {
+                                        contentObj[key].forEach(item => {
+                                            contentHtml += `<p>${typeof item === 'string' ? item : JSON.stringify(item)}</p>`;
+                                        });
+                                    }
                                 });
                                 contentHtml += '</div>';
                             }
                         } catch (e) {
                             console.error('Error parsing course content:', e);
+                            contentHtml += '<div class="content-section">';
+                            contentHtml += '<h3>📖 Course Content</h3>';
+                            contentHtml += `<p>${course.content}</p>`;
+                            contentHtml += '</div>';
                         }
                     }
                     
+                    // Try to parse questions
                     if (course.questions) {
                         try {
-                            const questionsObj = typeof course.questions === 'string' ? JSON.parse(course.questions) : course.questions;
-                            if (questionsObj.QUESTIONS && questionsObj.QUESTIONS.length > 0) {
+                            let questionsObj;
+                            if (typeof course.questions === 'string') {
+                                questionsObj = JSON.parse(course.questions);
+                            } else {
+                                questionsObj = course.questions;
+                            }
+                            
+                            console.log('Questions object:', questionsObj);
+                            
+                            let questions = [];
+                            if (Array.isArray(questionsObj)) {
+                                questions = questionsObj;
+                            } else if (questionsObj.QUESTIONS && Array.isArray(questionsObj.QUESTIONS)) {
+                                questions = questionsObj.QUESTIONS;
+                            } else if (questionsObj.questions && Array.isArray(questionsObj.questions)) {
+                                questions = questionsObj.questions;
+                            }
+                            
+                            if (questions.length > 0) {
                                 contentHtml += '<div class="quiz-section">';
                                 contentHtml += '<h3>📝 Quiz</h3>';
-                                questionsObj.QUESTIONS.forEach((q, index) => {
+                                questions.forEach((q, index) => {
                                     contentHtml += '<div class="quiz-question">';
-                                    contentHtml += `<p>${index + 1}. ${q.question}</p>`;
-                                    contentHtml += '<div class="quiz-options">';
-                                    q.options.forEach((opt, optIndex) => {
-                                        contentHtml += `<button onclick="checkAnswer(this, ${optIndex === q.correct})">${opt}</button>`;
-                                    });
-                                    contentHtml += '</div>';
+                                    
+                                    let questionText = q.question || q.text || q;
+                                    let options = q.options || q.choices || [];
+                                    let correctIndex = q.correct || q.answer || q.correct_answer;
+                                    
+                                    contentHtml += `<p>${index + 1}. ${questionText}</p>`;
+                                    if (options.length > 0) {
+                                        contentHtml += '<div class="quiz-options">';
+                                        options.forEach((opt, optIndex) => {
+                                            const isCorrect = optIndex === correctIndex || opt === correctIndex;
+                                            contentHtml += `<button onclick="checkAnswer(this, ${isCorrect})">${opt}</button>`;
+                                        });
+                                        contentHtml += '</div>';
+                                    }
                                     contentHtml += '</div>';
                                 });
                                 contentHtml += '</div>';
