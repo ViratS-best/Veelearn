@@ -988,6 +988,15 @@ function validatePassword(password) {
     return re.test(password);
 }
 
+function generateUniqueCode(length = 6) {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i = 0; i < length; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+}
+
 // JWT authentication middleware
 const authenticateToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
@@ -1300,8 +1309,8 @@ app.post('/api/register/teacher', authLimiter, async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Create teacher user
-        const insertUser = 'INSERT INTO users (email, password, name, role, school_id, school_code, is_approved) VALUES (?, ?, ?, \'teacher\', ?, ?, TRUE)';
+        // Create teacher user (pending approval)
+        const insertUser = 'INSERT INTO users (email, password, name, role, school_id, school_code, is_approved) VALUES (?, ?, ?, \'teacher\', ?, ?, FALSE)';
         db.query(insertUser, [email, hashedPassword, name, school.id, school_code], (err, result) => {
             if (err) {
                 if (err.code === 'ER_DUP_ENTRY') {
@@ -1319,7 +1328,7 @@ app.post('/api/register/teacher', authLimiter, async (req, res) => {
                 school_id: school.id
             };
 
-            apiResponse(res, 201, 'Teacher registered successfully', { user: newUser });
+            apiResponse(res, 201, 'Teacher registered successfully. Pending approval from Superadmin.', { user: newUser });
         });
     } catch (error) {
         console.error('Registration error:', error);
@@ -1327,12 +1336,12 @@ app.post('/api/register/teacher', authLimiter, async (req, res) => {
     }
 });
 
-// Student Registration (with optional school code)
+// Student Registration (with school code and optional class code)
 app.post('/api/register/student', authLimiter, async (req, res) => {
-    const { email, password, name, school_code } = req.body;
+    const { email, password, name, school_code, class_code } = req.body;
 
-    if (!email || !password || !name) {
-        return apiResponse(res, 400, 'Email, password, and name are required');
+    if (!email || !password || !name || !school_code) {
+        return apiResponse(res, 400, 'Email, password, name, and school code are required');
     }
 
     if (!validateEmail(email)) {
@@ -1344,33 +1353,43 @@ app.post('/api/register/student', authLimiter, async (req, res) => {
     }
 
     try {
-        let school_id = null;
-        let role = 'user'; // Default to regular user if no school code
+        // Validate school code and get school_id
+        const schools = await query('SELECT id, is_approved FROM schools WHERE school_code = ?', [school_code]);
+        if (schools.length === 0) {
+            return apiResponse(res, 400, 'Invalid school code');
+        }
 
-        // If school code provided, validate and set role to student
-        if (school_code) {
-            const schools = await query('SELECT id, is_approved FROM schools WHERE school_code = ?', [school_code]);
-            if (schools.length === 0) {
-                return apiResponse(res, 400, 'Invalid school code');
+        const school = schools[0];
+        if (!school.is_approved) {
+            return apiResponse(res, 400, 'School is not yet approved');
+        }
+
+        const school_id = school.id;
+        let class_id = null;
+
+        // If class code provided, validate and get class_id
+        if (class_code) {
+            const classes = await query(`
+                SELECT c.id 
+                FROM classes c
+                WHERE c.id = ?
+            `, [class_code]);
+
+            if (classes.length === 0) {
+                return apiResponse(res, 400, 'Invalid class code');
             }
 
-            const school = schools[0];
-            if (!school.is_approved) {
-                return apiResponse(res, 400, 'School is not yet approved');
-            }
-
-            school_id = school.id;
-            role = 'student';
+            class_id = classes[0].id;
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
         // Generate unique parent code for students
-        const parent_code = role === 'student' ? Math.random().toString(36).substring(2, 8).toUpperCase() : null;
+        const parent_code = generateUniqueCode(6).toUpperCase();
 
         // Create user
-        const insertUser = 'INSERT INTO users (email, password, name, role, school_id, school_code, parent_code, is_approved) VALUES (?, ?, ?, ?, ?, ?, ?, TRUE)';
-        db.query(insertUser, [email, hashedPassword, name, role, school_id, school_code || null, parent_code], (err, result) => {
+        const insertUser = 'INSERT INTO users (email, password, name, role, school_id, school_code, parent_code, is_approved) VALUES (?, ?, ?, \'student\', ?, ?, ?, TRUE)';
+        db.query(insertUser, [email, hashedPassword, name, school_id, school_code, parent_code], async (err, result) => {
             if (err) {
                 if (err.code === 'ER_DUP_ENTRY') {
                     return apiResponse(res, 409, 'Email already registered');
@@ -1379,16 +1398,29 @@ app.post('/api/register/student', authLimiter, async (req, res) => {
                 return apiResponse(res, 500, 'Server error during registration');
             }
 
+            const userId = result.insertId;
+
+            // If class code provided, auto-enroll student in class
+            if (class_id) {
+                try {
+                    await query('INSERT INTO class_enrollments (class_id, student_id) VALUES (?, ?)', [class_id, userId]);
+                } catch (enrollErr) {
+                    console.error('Error enrolling student in class:', enrollErr);
+                    // Continue even if enrollment fails
+                }
+            }
+
             const newUser = {
-                id: result.insertId,
+                id: userId,
                 email,
                 name,
-                role,
+                role: 'student',
                 school_id,
-                parent_code
+                parent_code,
+                class_id
             };
 
-            apiResponse(res, 201, 'User registered successfully', { user: newUser });
+            apiResponse(res, 201, `Student registered successfully! Parent code: ${parent_code}`, { user: newUser });
         });
     } catch (error) {
         console.error('Registration error:', error);
@@ -1492,7 +1524,7 @@ app.put('/api/schools/:schoolId/approve', authenticateToken, async (req, res) =>
 
     try {
         // Generate unique school code
-        const school_code = Math.random().toString(36).substring(2, 8).toUpperCase();
+        const school_code = generateUniqueCode(6).toUpperCase();
 
         // Update school
         await query('UPDATE schools SET is_approved = TRUE, school_code = ? WHERE id = ?', [school_code, schoolId]);
@@ -1503,6 +1535,53 @@ app.put('/api/schools/:schoolId/approve', authenticateToken, async (req, res) =>
         apiResponse(res, 200, 'School approved successfully', { school_code });
     } catch (error) {
         console.error('Error approving school:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// Approve teacher (Superadmin only)
+app.put('/api/users/:userId/approve-teacher', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'superadmin') {
+        return apiResponse(res, 403, 'Only superadmin can approve teachers');
+    }
+
+    const { userId } = req.params;
+
+    try {
+        // Verify user is a teacher
+        const users = await query('SELECT id, role FROM users WHERE id = ? AND role = ?', [userId, 'teacher']);
+        if (users.length === 0) {
+            return apiResponse(res, 404, 'Teacher not found');
+        }
+
+        // Update teacher approval
+        await query('UPDATE users SET is_approved = TRUE WHERE id = ?', [userId]);
+
+        apiResponse(res, 200, 'Teacher approved successfully');
+    } catch (error) {
+        console.error('Error approving teacher:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// Get pending teachers (Superadmin only)
+app.get('/api/users/pending-teachers', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'superadmin') {
+        return apiResponse(res, 403, 'Only superadmin can view pending teachers');
+    }
+
+    try {
+        const teachers = await query(`
+            SELECT u.id, u.email, u.name, u.school_id, s.name as school_name
+            FROM users u
+            LEFT JOIN schools s ON u.school_id = s.id
+            WHERE u.role = 'teacher' AND u.is_approved = FALSE
+            ORDER BY u.created_at DESC
+        `);
+
+        apiResponse(res, 200, 'Pending teachers retrieved successfully', teachers);
+    } catch (error) {
+        console.error('Error fetching pending teachers:', error);
         apiResponse(res, 500, 'Server error');
     }
 });
