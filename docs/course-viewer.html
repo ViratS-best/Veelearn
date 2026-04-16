@@ -151,6 +151,7 @@
         let courseQuestions = [];
         let currentViewerPageIndex = 0;
         let viewerPages = [];
+        let quizScore = { correct: 0, incorrect: 0, total: 0 };
 
         async function loadCourse() {
             try {
@@ -205,6 +206,14 @@
             const courseContent = document.getElementById('courseContent');
             courseContent.innerHTML = `
                 <h2 class="course-title">Course Content</h2>
+                <div id="quiz-score-display" style="margin: 10px 0; padding: 15px; background: #16213e; border-radius: 8px; border: 1px solid #0f3460; display: none;">
+                    <h4 style="color: #667eea; margin: 0 0 10px 0;">Quiz Score</h4>
+                    <div style="display: flex; gap: 20px; color: #eee;">
+                        <span>Correct: <strong id="correct-count" style="color: #51cf66;">0</strong></span>
+                        <span>Incorrect: <strong id="incorrect-count" style="color: #ff6b6b;">0</strong></span>
+                        <span>Total: <strong id="total-count">0</strong></span>
+                    </div>
+                </div>
                 <div id="course-content-display" style="margin: 20px 0; position: relative; min-height: 400px;">
                     ${viewerPages[index] || "No content"}
                 </div>
@@ -264,12 +273,17 @@
             div.style.borderRadius = '8px';
             div.style.background = '#16213e';
             
-            let questionText = question.question || question.text || '';
+            let questionText = question.question || question.text || question.question_text || '';
             let options = question.options || question.choices || [];
             let correctIndex = question.correct || question.answer || question.correct_answer;
             
+            console.log('Creating quiz question:', question);
+            console.log('Question text:', questionText);
+            console.log('Options:', options);
+            console.log('Correct index:', correctIndex);
+            
             div.innerHTML = `
-                <p style="font-size: 18px; margin-bottom: 15px; color: #eee;"><strong>Question ${index + 1}:</strong> ${questionText}</p>
+                <p style="font-size: 18px; margin-bottom: 15px; color: #eee;"><strong>Question ${index + 1}:</strong> ${escapeHtml(questionText)}</p>
                 <div class="quiz-options" style="display: flex; flex-direction: column; gap: 10px;">
                 </div>
             `;
@@ -293,6 +307,12 @@
             return div;
         }
 
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
         function checkAnswer(button, isCorrect) {
             const options = button.parentElement.querySelectorAll('button');
             options.forEach(opt => {
@@ -301,19 +321,25 @@
                 opt.style.pointerEvents = 'none';
             });
             
+            // Update score
+            quizScore.total++;
             if (isCorrect) {
+                quizScore.correct++;
                 button.classList.add('correct');
                 button.style.background = '#51cf66';
             } else {
+                quizScore.incorrect++;
                 button.classList.add('incorrect');
                 button.style.background = '#ff6b6b';
-                // Show which one was correct
-                options.forEach(opt => {
-                    if (opt !== button) {
-                        // Check if this is the correct answer by comparing with the button that was clicked
-                        // Since we don't have access to the correct answer here, we'll just highlight the clicked one as incorrect
-                    }
-                });
+            }
+            
+            // Update score display
+            const scoreDisplay = document.getElementById('quiz-score-display');
+            if (scoreDisplay) {
+                scoreDisplay.style.display = 'block';
+                document.getElementById('correct-count').textContent = quizScore.correct;
+                document.getElementById('incorrect-count').textContent = quizScore.incorrect;
+                document.getElementById('total-count').textContent = quizScore.total;
             }
         }
 
