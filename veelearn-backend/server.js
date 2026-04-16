@@ -7089,7 +7089,7 @@ If no dates are found, return {"events": []}.`;
 
         const response = await openRouterChatCompletion({
             messages: [{ role: 'user', content: prompt }],
-            model: 'openai/gpt-3.5-turbo',
+            model: 'google/gemma-7b-it:free',
             max_tokens: 500
         });
 
