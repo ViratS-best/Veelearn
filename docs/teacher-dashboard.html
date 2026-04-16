@@ -116,20 +116,31 @@
             overflow-y: auto;
         }
         .assignment-item {
-            background: #16213e;
+            background: #2a2a4a;
             padding: 15px;
+            border-radius: 8px;
             margin-bottom: 10px;
-            border-radius: 5px;
-            border: 1px solid #0f3460;
         }
         .assignment-item h4 {
-            color: #eee;
             margin: 0 0 10px 0;
+            color: #667eea;
         }
         .assignment-item p {
-            color: #888;
             margin: 5px 0;
-            font-size: 14px;
+            color: #ccc;
+            font-size: 0.9em;
+        }
+        .progress-bar {
+            background: #1a1a3a;
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        .progress-bar .fill {
+            background: linear-gradient(90deg, #667eea, #f093fb);
+            height: 100%;
+            transition: width 0.3s ease;
         }
         .tabs {
             display: flex;
@@ -283,6 +294,19 @@
                     </div>
                 </div>
             </div>
+
+            <div class="dashboard-card">
+                <h2>📊 Assignment Progress Tracking</h2>
+                <div class="form-group">
+                    <label for="progressAssignment">Select Assignment</label>
+                    <select id="progressAssignment" onchange="loadAssignmentProgress()">
+                        <option value="">Loading assignments...</option>
+                    </select>
+                </div>
+                <div id="assignmentProgress">
+                    <p class="loading">Select an assignment to view progress</p>
+                </div>
+            </div>
         </div>
 
         <div id="messagesTab" class="tab-content">
@@ -343,8 +367,80 @@
             return window.location.origin;
         })();
 
+        const WS_BASE_URL = (() => {
+            if (window.location.hostname.includes('veelearn.org')) {
+                return 'wss://api.veelearn.org';
+            }
+            if (window.location.hostname.includes('github.io')) {
+                return 'wss://veelearn.onrender.com';
+            }
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                return 'ws://localhost:3000';
+            }
+            return window.location.origin.replace('http', 'ws');
+        })();
+
         let authToken = localStorage.getItem('token');
         let currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+        let ws = null;
+
+        // Connect to WebSocket
+        function connectWebSocket() {
+            if (!authToken) return;
+
+            const wsUrl = `${WS_BASE_URL}?token=${authToken}`;
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+
+                if (data.type === 'new_message') {
+                    // Reload messages when new message received
+                    loadMessages();
+                } else if (data.type === 'typing') {
+                    // Show typing indicator
+                    const typingIndicator = document.getElementById('typing-indicator');
+                    if (typingIndicator) {
+                        typingIndicator.textContent = data.is_typing ? 'Typing...' : '';
+                    }
+                } else if (data.type === 'error') {
+                    console.error('WebSocket error:', data.message);
+                }
+            };
+
+            ws.onclose = () => {
+                console.log('WebSocket disconnected');
+                // Reconnect after 5 seconds
+                setTimeout(connectWebSocket, 5000);
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+        }
+
+        // Send message via WebSocket
+        function sendMessageWebSocket(recipientId, content) {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                // Fallback to REST API if WebSocket not connected
+                return false;
+            }
+
+            ws.send(JSON.stringify({
+                type: 'send_message',
+                recipient_id: recipientId,
+                content
+            }));
+
+            return true;
+        }
+
+        // Initialize WebSocket
+        connectWebSocket();
 
         if (!authToken) {
             window.location.href = 'index.html';
@@ -482,8 +578,10 @@
                 if (response.ok && data.data) {
                     const assignments = data.data;
                     const assignmentList = document.getElementById('assignmentList');
+                    const progressAssignment = document.getElementById('progressAssignment');
                     
                     assignmentList.innerHTML = '';
+                    progressAssignment.innerHTML = '<option value="">Select an assignment</option>';
                     
                     assignments.forEach(assignment => {
                         const assignmentItem = document.createElement('div');
@@ -496,10 +594,52 @@
                             <p>Due: ${dueDate}</p>
                         `;
                         assignmentList.appendChild(assignmentItem);
+                        
+                        const option = document.createElement('option');
+                        option.value = assignment.id;
+                        option.textContent = `${assignment.title} (${assignment.class_name})`;
+                        progressAssignment.appendChild(option);
                     });
                 }
             } catch (error) {
                 console.error('Error loading assignments:', error);
+            }
+        }
+
+        async function loadAssignmentProgress() {
+            const assignmentId = document.getElementById('progressAssignment').value;
+            if (!assignmentId) return;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/assignments/${assignmentId}/progress`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.data) {
+                    const progress = data.data;
+                    const progressDiv = document.getElementById('assignmentProgress');
+                    
+                    if (progress.length === 0) {
+                        progressDiv.innerHTML = '<p style="color: #888; text-align: center;">No students enrolled in this assignment yet.</p>';
+                        return;
+                    }
+                    
+                    progressDiv.innerHTML = progress.map(p => `
+                        <div class="assignment-item">
+                            <h4>${p.student_name}</h4>
+                            <p>Email: ${p.student_email}</p>
+                            <p>Score: ${p.correct_answers}/${p.total_questions} (${p.percentage}%)</p>
+                            <p>Completion: ${p.completion_percentage}% (${p.total_answered}/${p.total_possible} questions)</p>
+                            <div class="progress-bar">
+                                <div class="fill" style="width: ${p.percentage}%"></div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error loading assignment progress:', error);
             }
         }
 
@@ -651,6 +791,16 @@
             const recipientId = document.getElementById('messageRecipient').value;
             const content = document.getElementById('messageContent').value;
             
+            // Try WebSocket first
+            const wsSent = sendMessageWebSocket(parseInt(recipientId), content);
+            
+            if (wsSent) {
+                document.getElementById('messageContent').value = '';
+                loadMessages();
+                return;
+            }
+            
+            // Fallback to REST API
             try {
                 const response = await fetch(`${API_BASE_URL}/api/messages/send`, {
                     method: 'POST',
@@ -664,7 +814,6 @@
                 const data = await response.json();
                 
                 if (response.ok) {
-                    alert('Message sent successfully!');
                     document.getElementById('messageContent').value = '';
                     loadMessages();
                 } else {
