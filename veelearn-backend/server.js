@@ -2540,10 +2540,6 @@ app.get('/api/assignments/:assignmentId/progress', authenticateToken, async (req
         const assignment = assignments[0];
         const courseId = assignment.course_id;
 
-        // Get course questions to calculate total possible score
-        const course = await query('SELECT questions FROM courses WHERE id = ?', [courseId]);
-        const totalQuestions = course.length > 0 && course[0].questions ? JSON.parse(course[0].questions).length : 0;
-
         const progress = await query(`
             SELECT ap.*, u.name as student_name, u.email as student_email
             FROM assignment_progress ap
@@ -2557,16 +2553,14 @@ app.get('/api/assignments/:assignmentId/progress', authenticateToken, async (req
             const correctAnswers = p.correct_answers || 0;
             const totalAnswered = p.total_questions || 0;
             const percentage = totalAnswered > 0 ? Math.round((correctAnswers / totalAnswered) * 100) : 0;
-            
+
             return {
                 ...p,
                 student_name: p.student_name,
                 student_email: p.student_email,
                 correct_answers: correctAnswers,
                 total_questions: totalAnswered,
-                percentage: percentage,
-                total_possible: totalQuestions,
-                completion_percentage: totalQuestions > 0 ? Math.round((totalAnswered / totalQuestions) * 100) : 0
+                percentage: percentage
             };
         });
 
@@ -7156,11 +7150,7 @@ Post content: ${content}
 
 If no dates are found, return {"events": []}.`;
 
-        const response = await openRouterChatCompletion({
-            messages: [{ role: 'user', content: prompt }],
-            model: 'google/gemma-7b-it:free',
-            max_tokens: 500
-        });
+        const response = await openRouterChatCompletion([{ role: 'user', content: prompt }], { max_tokens: 500 });
 
         const aiResponse = response.content;
         const parsed = JSON.parse(aiResponse);
