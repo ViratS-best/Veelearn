@@ -7186,7 +7186,14 @@ Post: ${content}
 
 If no dates are found, return {"events": []}.`;
 
-        const response = await openRouterChatCompletion([{ role: 'user', content: prompt }], { max_tokens: 500 });
+        let response;
+        try {
+            response = await openRouterChatCompletion([{ role: 'user', content: prompt }], { max_tokens: 500 });
+        } catch (error) {
+            console.error('[Calendar AI] Error calling OpenRouter:', error.message);
+            console.error('[Calendar AI] Post will be created without calendar events');
+            return;
+        }
 
         if (!response) {
             console.error('[Calendar AI] OpenRouter returned undefined response');
@@ -7197,6 +7204,11 @@ If no dates are found, return {"events": []}.`;
         
         if (!aiResponse) {
             console.error('[Calendar AI] OpenRouter response content is empty');
+            return;
+        }
+        
+        if (typeof aiResponse !== 'string') {
+            console.error('[Calendar AI] OpenRouter response is not a string:', typeof aiResponse);
             return;
         }
 
