@@ -7202,12 +7202,21 @@ If no dates are found, return {"events": []}.`;
 
         console.log('[Calendar AI] AI Response:', aiResponse);
 
+        // Strip markdown code blocks from response
+        let cleanResponse = aiResponse;
+        if (aiResponse.includes('```json')) {
+            cleanResponse = aiResponse.replace(/```json\s*([\s\S]*?)\s*```/g, '$1');
+        } else if (aiResponse.includes('```')) {
+            cleanResponse = aiResponse.replace(/```\s*([\s\S]*?)\s*```/g, '$1');
+        }
+
         let parsed;
         try {
-            parsed = JSON.parse(aiResponse);
+            parsed = JSON.parse(cleanResponse);
         } catch (error) {
             console.error('[Calendar AI] Failed to parse response as JSON:', error);
             console.error('[Calendar AI] Response content:', aiResponse);
+            console.error('[Calendar AI] Cleaned response:', cleanResponse);
             return;
         }
 
