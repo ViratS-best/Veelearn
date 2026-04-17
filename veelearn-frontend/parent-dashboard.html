@@ -6,6 +6,14 @@
     <title>Parent Dashboard - Veelearn</title>
     <link rel="stylesheet" href="styles-redesign.css">
     <style>
+        body {
+            background-color: #f8fafc;
+            background-image: radial-gradient(circle at 20% 50%, rgba(102, 126, 234, 0.08) 0%, transparent 50%),
+                              radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.08) 0%, transparent 50%),
+                              radial-gradient(circle at 40% 20%, rgba(16, 185, 129, 0.05) 0%, transparent 50%);
+            background-attachment: fixed;
+            color: #1f2937;
+        }
         .dashboard-container {
             max-width: 1400px;
             margin: 0 auto;
@@ -17,8 +25,10 @@
             align-items: center;
             margin-bottom: 30px;
             padding: 20px;
-            background: #1a1a2e;
+            background: white;
             border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e5e7eb;
         }
         .dashboard-header h1 {
             color: #667eea;
@@ -31,10 +41,11 @@
             margin-bottom: 30px;
         }
         .dashboard-card {
-            background: #1a1a2e;
+            background: white;
             padding: 20px;
             border-radius: 10px;
-            border: 1px solid #0f3460;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
         }
         .dashboard-card h2 {
             color: #667eea;
@@ -54,7 +65,8 @@
             transform: translateY(-2px);
         }
         .btn-secondary {
-            background: #0f3460;
+            background: #e5e7eb;
+            color: #1f2937;
         }
         .form-group {
             margin-bottom: 15px;
@@ -62,26 +74,26 @@
         .form-group label {
             display: block;
             margin-bottom: 5px;
-            color: #eee;
+            color: #374151;
         }
         .form-group input {
             width: 100%;
             padding: 10px;
-            background: #16213e;
-            border: 1px solid #0f3460;
+            background: white;
+            border: 1px solid #e5e7eb;
             border-radius: 5px;
-            color: #eee;
+            color: #1f2937;
         }
         .children-list {
             max-height: 400px;
             overflow-y: auto;
         }
         .child-item {
-            background: #16213e;
+            background: #f8fafc;
             padding: 15px;
             margin-bottom: 10px;
             border-radius: 5px;
-            border: 1px solid #0f3460;
+            border: 1px solid #e5e7eb;
             cursor: pointer;
             transition: border-color 0.2s;
         }
@@ -90,14 +102,15 @@
         }
         .child-item.selected {
             border-color: #667eea;
-            background: #1a1a2e;
+            background: white;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
         }
         .child-item h3 {
-            color: #eee;
+            color: #1f2937;
             margin: 0 0 10px 0;
         }
         .child-item p {
-            color: #888;
+            color: #6b7280;
             margin: 5px 0;
             font-size: 14px;
         }
@@ -112,18 +125,18 @@
             overflow-y: auto;
         }
         .class-item, .assignment-item, .post-item, .message-item {
-            background: #16213e;
+            background: #f8fafc;
             padding: 15px;
             margin-bottom: 10px;
             border-radius: 5px;
-            border: 1px solid #0f3460;
+            border: 1px solid #e5e7eb;
         }
         .class-item h3, .assignment-item h3 {
-            color: #eee;
+            color: #1f2937;
             margin: 0 0 10px 0;
         }
         .class-item p, .assignment-item p {
-            color: #888;
+            color: #6b7280;
             margin: 5px 0;
             font-size: 14px;
         }
@@ -132,11 +145,11 @@
             margin: 0 0 10px 0;
         }
         .post-item p {
-            color: #eee;
+            color: #6b7280;
             margin: 5px 0;
         }
         .post-item .meta {
-            color: #888;
+            color: #9ca3af;
             font-size: 12px;
         }
         .calendar-list {
@@ -144,11 +157,11 @@
             overflow-y: auto;
         }
         .calendar-item {
-            background: #16213e;
+            background: #f8fafc;
             padding: 15px;
             margin-bottom: 10px;
             border-radius: 5px;
-            border: 1px solid #0f3460;
+            border: 1px solid #e5e7eb;
             border-left: 3px solid #667eea;
         }
         .calendar-item.assignment {
@@ -164,18 +177,14 @@
             color: #667eea;
             margin: 0 0 10px 0;
         }
-        .calendar-item p {
-            color: #eee;
-            margin: 5px 0;
-        }
         .calendar-item .meta {
-            color: #888;
-            font-size: 12px;
+            color: #6b7280;
+            font-size: 14px;
         }
         .loading {
             text-align: center;
             padding: 40px;
-            color: #888;
+            color: #6b7280;
         }
         .tabs {
             display: flex;
@@ -184,14 +193,16 @@
         }
         .tab {
             padding: 10px 20px;
-            background: #0f3460;
-            color: #eee;
-            border: none;
+            background: white;
+            color: #6b7280;
+            border: 1px solid #e5e7eb;
             border-radius: 5px;
             cursor: pointer;
         }
         .tab.active {
             background: #667eea;
+            color: white;
+            border-color: #667eea;
         }
         .tab-content {
             display: none;
