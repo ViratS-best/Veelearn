@@ -7186,17 +7186,34 @@ Post: ${content}
 
 If no dates are found, return {"events": []}.`;
 
-        let response;
-        try {
-            response = await openRouterChatCompletion([{ role: 'user', content: prompt }], { max_tokens: 500 });
-        } catch (error) {
-            console.error('[Calendar AI] Error calling OpenRouter:', error.message);
-            console.error('[Calendar AI] Post will be created without calendar events');
-            return;
+        // Try multiple models as fallbacks
+        const models = [
+            'z-ai/glm-4.5-air:free',
+            'meta-llama/llama-3-8b-instruct:free',
+            'mistralai/mistral-7b-instruct:free',
+            'google/gemma-2-9b-it:free'
+        ];
+
+        let response = null;
+        let lastError = null;
+
+        for (const model of models) {
+            try {
+                console.log(`[Calendar AI] Trying model: ${model}`);
+                response = await openRouterChatCompletion([{ role: 'user', content: prompt }], { max_tokens: 500, model });
+                if (response) {
+                    console.log(`[Calendar AI] Successfully got response from model: ${model}`);
+                    break;
+                }
+            } catch (error) {
+                console.error(`[Calendar AI] Model ${model} failed:`, error.message);
+                lastError = error;
+            }
         }
 
         if (!response) {
-            console.error('[Calendar AI] OpenRouter returned undefined response');
+            console.error('[Calendar AI] All models failed, last error:', lastError?.message);
+            console.error('[Calendar AI] Post will be created without calendar events');
             return;
         }
 
