@@ -6,6 +6,14 @@
     <title>Student Dashboard - Veelearn</title>
     <link rel="stylesheet" href="styles-redesign.css">
     <style>
+        body {
+            background-color: #f8fafc;
+            background-image: radial-gradient(circle at 20% 50%, rgba(102, 126, 234, 0.08) 0%, transparent 50%),
+                              radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.08) 0%, transparent 50%),
+                              radial-gradient(circle at 40% 20%, rgba(16, 185, 129, 0.05) 0%, transparent 50%);
+            background-attachment: fixed;
+            color: #1f2937;
+        }
         .dashboard-container {
             max-width: 1400px;
             margin: 0 auto;
@@ -17,8 +25,10 @@
             align-items: center;
             margin-bottom: 30px;
             padding: 20px;
-            background: #1a1a2e;
+            background: white;
             border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e5e7eb;
         }
         .dashboard-header h1 {
             color: #667eea;
@@ -47,10 +57,11 @@
             margin-bottom: 30px;
         }
         .dashboard-card {
-            background: #1a1a2e;
+            background: white;
             padding: 20px;
             border-radius: 10px;
-            border: 1px solid #0f3460;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
         }
         .dashboard-card h2 {
             color: #667eea;
@@ -62,28 +73,29 @@
             overflow-y: auto;
         }
         .class-item, .assignment-item {
-            background: #16213e;
+            background: #f8fafc;
             padding: 15px;
             margin-bottom: 10px;
             border-radius: 5px;
-            border: 1px solid #0f3460;
+            border: 1px solid #e5e7eb;
             cursor: pointer;
             transition: border-color 0.2s;
         }
         .class-item:hover, .assignment-item:hover {
             border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
         }
         .class-item h3, .assignment-item h3 {
-            color: #eee;
+            color: #1f2937;
             margin: 0 0 10px 0;
         }
         .class-item p, .assignment-item p {
-            color: #888;
+            color: #6b7280;
             margin: 5px 0;
             font-size: 14px;
         }
         .progress-bar {
-            background: #0f3460;
+            background: #e5e7eb;
             height: 10px;
             border-radius: 5px;
             overflow: hidden;
@@ -120,14 +132,20 @@
         }
         .tab {
             padding: 10px 20px;
-            background: #0f3460;
-            color: #eee;
-            border: none;
+            background: white;
+            color: #6b7280;
+            border: 1px solid #e5e7eb;
             border-radius: 5px;
             cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tab:hover {
+            border-color: #667eea;
         }
         .tab.active {
             background: #667eea;
+            color: white;
+            border-color: #667eea;
         }
         .tab-content {
             display: none;
@@ -135,39 +153,67 @@
         .tab-content.active {
             display: block;
         }
-        .post-list {
-            max-height: 400px;
-            overflow-y: auto;
+        .btn {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
         }
-        .post-item {
-            background: #16213e;
+        .loading {
+            color: #6b7280;
+            text-align: center;
+            padding: 20px;
+        }
+        .post-item, .message-item {
+            background: #f8fafc;
             padding: 15px;
             margin-bottom: 10px;
             border-radius: 5px;
-            border: 1px solid #0f3460;
+            border: 1px solid #e5e7eb;
         }
-        .post-item h4 {
+        .post-item h4, .message-item h4 {
             color: #667eea;
             margin: 0 0 10px 0;
         }
-        .post-item p {
-            color: #eee;
+        .post-item p, .message-item p {
+            color: #6b7280;
             margin: 5px 0;
         }
-        .post-item .meta {
-            color: #888;
+        .post-item .meta, .message-item .meta {
+            color: #9ca3af;
             font-size: 12px;
+        }
+        .calendar-item {
+            background: #f8fafc;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #e5e7eb;
+        }
+        .calendar-item h4 {
+            color: #667eea;
+            margin: 0 0 10px 0;
+        }
+        .calendar-item .meta {
+            color: #6b7280;
+            font-size: 14px;
+        }
+        .message-item h4 {
+            color: #667eea;
+            margin: 0 0 10px 0;
         }
         .message-list {
             max-height: 400px;
             overflow-y: auto;
         }
         .message-item {
-            background: #16213e;
+            background: #f8fafc;
             padding: 15px;
             margin-bottom: 10px;
             border-radius: 5px;
-            border: 1px solid #0f3460;
+            border: 1px solid #e5e7eb;
         }
         .message-item.sent {
             border-left: 3px solid #667eea;
