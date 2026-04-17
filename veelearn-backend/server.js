@@ -7260,8 +7260,8 @@ If no dates are found, return {"events": []}.`;
             for (const event of parsed.events) {
                 try {
                     await query(
-                        'INSERT INTO calendar_events (title, description, event_date, event_type, class_id, post_id) VALUES (?, ?, ?, ?, ?, ?)',
-                        [event.title, event.description, event.event_date, event.event_type, classId, postId]
+                        'INSERT INTO calendar_events (title, event_date, event_type, class_id, post_id) VALUES (?, ?, ?, ?, ?)',
+                        [event.title, event.event_date, event.event_type, classId, postId]
                     );
                     console.log(`[Calendar AI] Added event: ${event.title} on ${event.event_date}`);
                 } catch (dbError) {
