@@ -628,8 +628,16 @@
                         const eventItem = document.createElement('div');
                         eventItem.className = `calendar-item ${event.event_type}`;
                         // Parse date directly to avoid timezone conversion
-                        const dateParts = event.event_date.split('-');
-                        const eventDate = `${dateParts[1]}/${dateParts[2]}/${dateParts[0]}`;
+                        let eventDate;
+                        if (event.event_date.includes('T')) {
+                            // Handle ISO timestamp format
+                            const dateObj = new Date(event.event_date);
+                            eventDate = `${(dateObj.getMonth() + 1).toString().padStart(2, '0')}/${dateObj.getDate().toString().padStart(2, '0')}/${dateObj.getFullYear()}`;
+                        } else {
+                            // Handle YYYY-MM-DD format
+                            const dateParts = event.event_date.split('-');
+                            eventDate = `${dateParts[1]}/${dateParts[2]}/${dateParts[0]}`;
+                        }
                         eventItem.innerHTML = `
                             <h4>${event.title}</h4>
                             <p class="meta">Date: ${eventDate} | Type: ${event.event_type}</p>
