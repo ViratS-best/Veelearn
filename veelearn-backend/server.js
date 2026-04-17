@@ -2230,12 +2230,12 @@ app.get('/api/student/my-assignments', authenticateToken, async (req, res) => {
 
     try {
         const assignments = await query(`
-            SELECT a.*, c.title as course_title, ap.completion_percentage, ap.score, ap.submitted_at
+            SELECT a.*, c.title as course_title, asub.completion_percentage, asub.correct_answers, asub.total_questions, asub.quiz_accuracy, asub.submitted_at
             FROM assignments a
             JOIN classes cl ON a.class_id = cl.id
             JOIN class_enrollments ce ON cl.id = ce.class_id
             JOIN courses c ON a.course_id = c.id
-            LEFT JOIN assignment_progress ap ON a.id = ap.assignment_id AND ap.student_id = ?
+            LEFT JOIN assignment_submissions asub ON a.id = asub.assignment_id AND asub.student_id = ?
             WHERE ce.student_id = ?
             ORDER BY a.due_date ASC
         `, [req.user.id, req.user.id]);
@@ -2376,12 +2376,12 @@ app.get('/api/parent/child/:studentId/progress', authenticateToken, async (req, 
 
         // Get child's assignments
         const assignments = await query(`
-            SELECT a.*, c.title as course_title, ap.completion_percentage, ap.score, ap.submitted_at
+            SELECT a.*, c.title as course_title, asub.completion_percentage, asub.correct_answers, asub.total_questions, asub.quiz_accuracy, asub.submitted_at
             FROM assignments a
             JOIN classes cl ON a.class_id = cl.id
             JOIN class_enrollments ce ON cl.id = ce.class_id
             JOIN courses c ON a.course_id = c.id
-            LEFT JOIN assignment_progress ap ON a.id = ap.assignment_id AND ap.student_id = ?
+            LEFT JOIN assignment_submissions asub ON a.id = asub.assignment_id AND asub.student_id = ?
             WHERE ce.student_id = ?
             ORDER BY a.due_date ASC
         `, [studentId, studentId]);
