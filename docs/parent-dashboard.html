@@ -398,7 +398,10 @@
                                 <p>Course: ${assignment.course_title}</p>
                                 <p>Due: ${dueDate}</p>
                                 <p>Progress: ${assignment.completion_percentage || 0}%</p>
-                                <p>Score: ${assignment.score || 'N/A'}</p>
+                                ${assignment.correct_answers !== null && assignment.total_questions !== null
+                                    ? `<p>Score: ${assignment.correct_answers}/${assignment.total_questions} (${assignment.quiz_accuracy || 0}%)</p>`
+                                    : `<p>Score: ${assignment.score || 'N/A'}</p>`
+                                }
                             `;
                             assignmentList.appendChild(assignmentItem);
                         });

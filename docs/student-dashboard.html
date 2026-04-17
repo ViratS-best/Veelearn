@@ -425,7 +425,10 @@
                             <div class="progress-bar">
                                 <div class="fill" style="width: ${assignment.completion_percentage || 0}%"></div>
                             </div>
-                            <p>Score: ${assignment.score || 'N/A'}</p>
+                            ${assignment.correct_answers !== null && assignment.total_questions !== null
+                                ? `<p>Score: ${assignment.correct_answers}/${assignment.total_questions} (${assignment.quiz_accuracy || 0}%)</p>`
+                                : `<p>Score: ${assignment.score || 'N/A'}</p>`
+                            }
                             <span class="status ${status}">${status.replace('-', ' ')}</span>
                             ${isLate ? '<span class="status not-started" style="margin-left: 10px;">LATE</span>' : ''}
                         `;
