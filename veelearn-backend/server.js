@@ -2540,11 +2540,15 @@ app.get('/api/assignments/:assignmentId/progress', authenticateToken, async (req
         const assignment = assignments[0];
         const courseId = assignment.course_id;
 
+        // Get total questions in the course
+        const courseQuestions = await query('SELECT COUNT(*) as total FROM course_questions WHERE course_id = ?', [courseId]);
+        const totalQuestions = courseQuestions[0].total || 1;
+
         const progress = await query(`
-            SELECT ap.*, u.name as student_name, u.email as student_email
-            FROM assignment_progress ap
-            JOIN users u ON ap.student_id = u.id
-            WHERE ap.assignment_id = ?
+            SELECT asub.*, u.name as student_name, u.email as student_email
+            FROM assignment_submissions asub
+            JOIN users u ON asub.student_id = u.id
+            WHERE asub.assignment_id = ?
             ORDER BY u.name ASC
         `, [assignmentId]);
 
@@ -2552,7 +2556,8 @@ app.get('/api/assignments/:assignmentId/progress', authenticateToken, async (req
         const progressWithStats = progress.map(p => {
             const correctAnswers = p.correct_answers || 0;
             const totalAnswered = p.total_questions || 0;
-            const percentage = totalAnswered > 0 ? Math.round((correctAnswers / totalAnswered) * 100) : 0;
+            // Use quiz_accuracy from database or calculate it
+            const percentage = p.quiz_accuracy || (totalAnswered > 0 ? Math.round((correctAnswers / totalAnswered) * 100) : 0);
 
             return {
                 ...p,
@@ -2560,6 +2565,7 @@ app.get('/api/assignments/:assignmentId/progress', authenticateToken, async (req
                 student_email: p.student_email,
                 correct_answers: correctAnswers,
                 total_questions: totalAnswered,
+                total_possible: totalQuestions,
                 percentage: percentage
             };
         });
