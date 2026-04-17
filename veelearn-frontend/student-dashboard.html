@@ -630,9 +630,10 @@
                         // Parse date directly to avoid timezone conversion
                         let eventDate;
                         if (event.event_date.includes('T')) {
-                            // Handle ISO timestamp format
-                            const dateObj = new Date(event.event_date);
-                            eventDate = `${(dateObj.getMonth() + 1).toString().padStart(2, '0')}/${dateObj.getDate().toString().padStart(2, '0')}/${dateObj.getFullYear()}`;
+                            // Handle ISO timestamp format - extract date portion before T
+                            const dateOnly = event.event_date.split('T')[0];
+                            const dateParts = dateOnly.split('-');
+                            eventDate = `${dateParts[1]}/${dateParts[2]}/${dateParts[0]}`;
                         } else {
                             // Handle YYYY-MM-DD format
                             const dateParts = event.event_date.split('-');
