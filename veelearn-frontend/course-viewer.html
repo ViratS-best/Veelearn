@@ -361,7 +361,9 @@
             }
             
             try {
-                const quizAccuracy = quizScore.total > 0 ? (quizScore.correct / quizScore.total) * 100 : 0;
+                // Calculate accuracy based on total questions in the course, not just answered
+                const totalCourseQuestions = courseQuestions.length || 1;
+                const quizAccuracy = totalCourseQuestions > 0 ? (quizScore.correct / totalCourseQuestions) * 100 : 0;
                 // Use the total questions answered for completion percentage
                 const completionPercentage = quizAccuracy;
                 
@@ -370,8 +372,8 @@
                     completionPercentage: completionPercentage,
                     correctAnswers: quizScore.correct,
                     totalQuestions: quizScore.total,
-                    quizAccuracy: quizAccuracy,
-                    courseQuestionsLength: courseQuestions.length
+                    totalCourseQuestions: totalCourseQuestions,
+                    quizAccuracy: quizAccuracy
                 });
                 
                 const response = await fetch(`${API_BASE_URL}/api/student/submit-assignment`, {
@@ -384,7 +386,7 @@
                         assignmentId: parseInt(assignmentId),
                         completionPercentage: completionPercentage,
                         correctAnswers: quizScore.correct,
-                        totalQuestions: quizScore.total,
+                        totalQuestions: totalCourseQuestions,
                         quizAccuracy: quizAccuracy
                     })
                 });
