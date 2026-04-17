@@ -7169,7 +7169,14 @@ async function parsePostForCalendarEvents(postId, content, classId, authorId) {
             return;
         }
 
-        const prompt = `Extract dates and events from this post. Look for dates like "Monday", "January 15", "2024-01-15", "next week", etc.
+        const prompt = `Extract dates and events from this post. Look for:
+- Absolute dates: "Monday", "January 15", "2024-01-15"
+- Relative dates: "tomorrow", "today", "next week", "next Monday", "in 2 days"
+- Times: "4:59PM", "5:00 PM", "at 3pm"
+- Keywords indicating events: "due", "deadline", "HW", "homework", "test", "exam", "assignment", "quiz", "project"
+
+For relative dates like "tomorrow", calculate the actual date based on today's date (${new Date().toISOString().split('T')[0]}).
+
 Return ONLY valid JSON in this format:
 {
   "events": [
