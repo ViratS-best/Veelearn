@@ -350,11 +350,29 @@
         }
 
         async function saveQuizScoreToAssignment() {
-            if (!assignmentId || quizScore.total === 0) return;
+            if (!assignmentId) {
+                console.log('[Quiz Score] No assignment ID provided, skipping save');
+                return;
+            }
+            
+            if (quizScore.total === 0) {
+                console.log('[Quiz Score] No questions answered yet, skipping save');
+                return;
+            }
             
             try {
                 const quizAccuracy = quizScore.total > 0 ? (quizScore.correct / quizScore.total) * 100 : 0;
-                const completionPercentage = Math.min(100, (quizScore.correct / courseQuestions.length) * 100);
+                // Use the total questions answered for completion percentage
+                const completionPercentage = quizAccuracy;
+                
+                console.log('[Quiz Score] Saving to assignment:', {
+                    assignmentId: parseInt(assignmentId),
+                    completionPercentage: completionPercentage,
+                    correctAnswers: quizScore.correct,
+                    totalQuestions: quizScore.total,
+                    quizAccuracy: quizAccuracy,
+                    courseQuestionsLength: courseQuestions.length
+                });
                 
                 const response = await fetch(`${API_BASE_URL}/api/student/submit-assignment`, {
                     method: 'POST',
@@ -372,13 +390,14 @@
                 });
                 
                 const data = await response.json();
+                console.log('[Quiz Score] API response:', data);
                 if (response.ok) {
-                    console.log('Quiz score saved to assignment:', data);
+                    console.log('[Quiz Score] Successfully saved to assignment:', data);
                 } else {
-                    console.error('Failed to save quiz score:', data);
+                    console.error('[Quiz Score] Failed to save quiz score:', data);
                 }
             } catch (error) {
-                console.error('Error saving quiz score:', error);
+                console.error('[Quiz Score] Error saving quiz score:', error);
             }
         }
 
