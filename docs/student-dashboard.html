@@ -627,10 +627,11 @@
                     events.forEach(event => {
                         const eventItem = document.createElement('div');
                         eventItem.className = `calendar-item ${event.event_type}`;
-                        const eventDate = new Date(event.event_date).toLocaleDateString();
+                        // Parse date directly to avoid timezone conversion
+                        const dateParts = event.event_date.split('-');
+                        const eventDate = `${dateParts[1]}/${dateParts[2]}/${dateParts[0]}`;
                         eventItem.innerHTML = `
                             <h4>${event.title}</h4>
-                            <p>${event.description || 'No description'}</p>
                             <p class="meta">Date: ${eventDate} | Type: ${event.event_type}</p>
                         `;
                         calendarList.appendChild(eventItem);
