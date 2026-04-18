@@ -271,8 +271,27 @@
                 </div>
 
                 <div id="childMessagesTab" class="tab-content">
-                    <div class="message-list" id="childMessageList">
-                        <p class="loading">Select a child to view their messages</p>
+                    <div class="dashboard-card" style="margin-bottom: 20px;">
+                        <h2>💬 Send Message to Teacher</h2>
+                        <form id="parentMessageForm">
+                            <div class="form-group">
+                                <label for="teacherRecipient">Select Teacher</label>
+                                <select id="teacherRecipient" required>
+                                    <option value="">Loading teachers...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="parentMessageContent">Message</label>
+                                <textarea id="parentMessageContent" rows="4" required placeholder="Type your message to the teacher..."></textarea>
+                            </div>
+                            <button type="submit" class="btn">Send Message</button>
+                        </form>
+                    </div>
+                    <div class="dashboard-card">
+                        <h2>📨 Messages with Teachers</h2>
+                        <div class="message-list" id="teacherMessageList">
+                            <p class="loading">Loading messages...</p>
+                        </div>
                     </div>
                 </div>
 
@@ -511,9 +530,12 @@
                     
                     messageList.innerHTML = '';
                     
-                    // Filter messages between parent and child
+                    // Filter messages: parent to child, child to parent, teacher to child
                     const childMessages = messages.filter(m => 
-                        m.sender_id === childId || m.recipient_id === childId
+                        m.sender_id === childId || 
+                        m.recipient_id === childId ||
+                        (m.sender_id === currentUser.id && m.recipient_id === childId) ||
+                        (m.sender_id === childId && m.recipient_id === currentUser.id)
                     );
                     
                     if (childMessages.length === 0) {
@@ -526,8 +548,15 @@
                         const isSent = message.sender_id === currentUser.id;
                         messageItem.className = 'message-item';
                         const timestamp = new Date(message.created_at).toLocaleString();
+                        
+                        // Show sender role if available
+                        let senderLabel = isSent ? 'To: ' + message.recipient_name : 'From: ' + message.sender_name;
+                        if (message.sender_role === 'teacher') {
+                            senderLabel = 'From Teacher: ' + message.sender_name;
+                        }
+                        
                         messageItem.innerHTML = `
-                            <h4>${isSent ? 'To: ' + message.recipient_name : 'From: ' + message.sender_name}</h4>
+                            <h4>${senderLabel}</h4>
                             <p>${message.content}</p>
                             <p class="meta">${timestamp}</p>
                         `;
@@ -579,8 +608,113 @@
             window.location.href = 'index.html';
         }
 
+        // Load teachers for messaging
+        async function loadTeachers() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/users/teachers`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.data) {
+                    const teachers = data.data;
+                    const teacherSelect = document.getElementById('teacherRecipient');
+                    
+                    teacherSelect.innerHTML = '<option value="">Select a teacher</option>';
+                    
+                    teachers.forEach(teacher => {
+                        const option = document.createElement('option');
+                        option.value = teacher.id;
+                        option.textContent = teacher.name;
+                        teacherSelect.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading teachers:', error);
+            }
+        }
+
+        // Send message to teacher
+        document.getElementById('parentMessageForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const recipientId = document.getElementById('teacherRecipient').value;
+            const content = document.getElementById('parentMessageContent').value;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/messages/send`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ recipient_id: recipientId, content })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert('Message sent successfully!');
+                    document.getElementById('parentMessageContent').value = '';
+                    loadTeacherMessages();
+                } else {
+                    alert(data.message || 'Failed to send message');
+                }
+            } catch (error) {
+                console.error('Error sending message:', error);
+                alert('Error sending message');
+            }
+        });
+
+        // Load messages with teachers
+        async function loadTeacherMessages() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/messages`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.data) {
+                    const messages = data.data;
+                    const messageList = document.getElementById('teacherMessageList');
+                    
+                    messageList.innerHTML = '';
+                    
+                    // Filter messages between parent and teachers
+                    const teacherMessages = messages.filter(m => 
+                        (m.sender_id === currentUser.id && m.recipient_role === 'teacher') ||
+                        (m.recipient_id === currentUser.id && m.sender_role === 'teacher')
+                    );
+                    
+                    if (teacherMessages.length === 0) {
+                        messageList.innerHTML = '<p style="color: #888; text-align: center;">No messages with teachers.</p>';
+                        return;
+                    }
+                    
+                    teacherMessages.forEach(message => {
+                        const messageItem = document.createElement('div');
+                        const isSent = message.sender_id === currentUser.id;
+                        messageItem.className = 'message-item';
+                        const timestamp = new Date(message.created_at).toLocaleString();
+                        messageItem.innerHTML = `
+                            <h4>${isSent ? 'To: ' + message.recipient_name : 'From: ' + message.sender_name}</h4>
+                            <p>${message.content}</p>
+                            <p class="meta">${timestamp}</p>
+                        `;
+                        messageList.appendChild(messageItem);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading teacher messages:', error);
+            }
+        }
+
         // Initialize
         loadChildren();
+        loadTeachers();
+        loadTeacherMessages();
     </script>
 </body>
 </html>

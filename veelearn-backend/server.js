@@ -1587,6 +1587,49 @@ app.get('/api/users/pending-teachers', authenticateToken, async (req, res) => {
     }
 });
 
+// Get teachers for parent messaging
+app.get('/api/users/teachers', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'parent') {
+        return apiResponse(res, 403, 'Only parents can view teachers');
+    }
+
+    try {
+        const teachers = await query(`
+            SELECT u.id, u.email, u.name, u.school_id, s.name as school_name
+            FROM users u
+            LEFT JOIN schools s ON u.school_id = s.id
+            WHERE u.role = 'teacher' AND u.is_approved = TRUE
+            ORDER BY u.name ASC
+        `);
+
+        apiResponse(res, 200, 'Teachers retrieved successfully', teachers);
+    } catch (error) {
+        console.error('Error fetching teachers:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
+// Get parents for teacher messaging
+app.get('/api/users/parents', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'teacher') {
+        return apiResponse(res, 403, 'Only teachers can view parents');
+    }
+
+    try {
+        const parents = await query(`
+            SELECT u.id, u.email, u.name
+            FROM users u
+            WHERE u.role = 'parent'
+            ORDER BY u.name ASC
+        `);
+
+        apiResponse(res, 200, 'Parents retrieved successfully', parents);
+    } catch (error) {
+        console.error('Error fetching parents:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
 // Get school by code
 app.get('/api/schools/by-code/:schoolCode', async (req, res) => {
     const { schoolCode } = req.params;
@@ -2431,9 +2474,11 @@ app.post('/api/messages/send', authenticateToken, writeLimiter, async (req, res)
 app.get('/api/messages', authenticateToken, async (req, res) => {
     try {
         const messages = await query(`
-            SELECT m.*, 
+            SELECT m.*,
                    sender.name as sender_name,
-                   recipient.name as recipient_name
+                   sender.role as sender_role,
+                   recipient.name as recipient_name,
+                   recipient.role as recipient_role
             FROM messages m
             JOIN users sender ON m.sender_id = sender.id
             JOIN users recipient ON m.recipient_id = recipient.id

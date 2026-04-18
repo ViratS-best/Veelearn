@@ -330,7 +330,7 @@
         <div id="messagesTab" class="tab-content">
             <div class="dashboard-grid">
                 <div class="dashboard-card">
-                    <h2>💬 Send Message</h2>
+                    <h2>💬 Send Message to Student</h2>
                     <form id="messageForm">
                         <div class="form-group">
                             <label for="messageRecipient">Recipient</label>
@@ -347,8 +347,25 @@
                 </div>
 
                 <div class="dashboard-card">
-                    <h2>📨 Message History</h2>
-                    <div class="message-list" id="messageList">
+                    <h2>� Send Message to Parent</h2>
+                    <form id="parentMessageForm">
+                        <div class="form-group">
+                            <label for="parentRecipient">Select Parent</label>
+                            <select id="parentRecipient" required>
+                                <option value="">Loading parents...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="parentMessageContent">Message</label>
+                            <textarea id="parentMessageContent" rows="4" required placeholder="Type your message to the parent..."></textarea>
+                        </div>
+                        <button type="submit" class="btn">Send Message</button>
+                    </form>
+                </div>
+
+                <div class="dashboard-card">
+                    <h2>📨 Received Messages</h2>
+                    <div id="messageList">
                         <p class="loading">Loading messages...</p>
                     </div>
                 </div>
@@ -549,22 +566,22 @@
         async function loadClassStudents() {
             const classId = document.getElementById('studentClassSelect').value;
             if (!classId) return;
-            
+
             try {
                 const response = await fetch(`${API_BASE_URL}/api/teacher/class/${classId}/students`, {
                     headers: { 'Authorization': `Bearer ${authToken}` }
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (response.ok && data.data) {
                     const students = data.data;
                     const studentList = document.getElementById('studentList');
                     const messageRecipient = document.getElementById('messageRecipient');
-                    
+
                     studentList.innerHTML = '';
                     messageRecipient.innerHTML = '<option value="">Select a student</option>';
-                    
+
                     students.forEach(student => {
                         const studentItem = document.createElement('div');
                         studentItem.className = 'student-item';
@@ -573,7 +590,7 @@
                             <button class="btn message-btn" onclick="sendMessageToStudent(${student.id})">Message</button>
                         `;
                         studentList.appendChild(studentItem);
-                        
+
                         const option = document.createElement('option');
                         option.value = student.id;
                         option.textContent = student.name;
@@ -581,9 +598,68 @@
                     });
                 }
             } catch (error) {
-                console.error('Error loading students:', error);
+                console.error('Error loading class students:', error);
             }
         }
+
+        // Load parents for messaging
+        async function loadParents() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/users/parents`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.data) {
+                    const parents = data.data;
+                    const parentSelect = document.getElementById('parentRecipient');
+
+                    parentSelect.innerHTML = '<option value="">Select a parent</option>';
+
+                    parents.forEach(parent => {
+                        const option = document.createElement('option');
+                        option.value = parent.id;
+                        option.textContent = parent.name;
+                        parentSelect.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading parents:', error);
+            }
+        }
+
+        // Send message to parent
+        document.getElementById('parentMessageForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const recipientId = document.getElementById('parentRecipient').value;
+            const content = document.getElementById('parentMessageContent').value;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/messages/send`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ recipient_id: recipientId, content })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('Message sent successfully!');
+                    document.getElementById('parentMessageContent').value = '';
+                    loadMessages();
+                } else {
+                    alert(data.message || 'Failed to send message');
+                }
+            } catch (error) {
+                console.error('Error sending message:', error);
+                alert('Error sending message');
+            }
+        });
 
         async function loadAssignments() {
             try {
@@ -853,6 +929,7 @@
         loadClasses();
         loadAssignments();
         loadMessages();
+        loadParents();
     </script>
 </body>
 </html>
