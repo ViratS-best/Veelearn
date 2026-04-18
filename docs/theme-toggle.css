@@ -137,8 +137,14 @@ table, th, td,
 }
 
 [data-theme="light"] button,
-[data-theme="light"] .btn {
-    color: #ffffff !important;
+[data-theme="light"] .btn,
+[data-theme="light"] .secondary-btn,
+[data-theme="light"] .primary-btn,
+[data-theme="light"] .success-btn,
+[data-theme="light"] .create-course-btn,
+[data-theme="light"] .btn-save,
+[data-theme="light"] .btn-publish {
+    color: #1e293b !important;
 }
 
 [data-theme="light"] .auth-form {
@@ -222,6 +228,26 @@ table, th, td,
 
 [data-theme="light"] .editor-toolbar {
     border-bottom-color: #e2e8f0 !important;
+}
+
+[data-theme="light"] .editor-toolbar button {
+    color: #1e293b !important;
+}
+
+[data-theme="light"] .pagination-controls button {
+    color: #1e293b !important;
+}
+
+[data-theme="light"] .pagination-controls span {
+    color: #1e293b !important;
+}
+
+[data-theme="light"] .viewer-footer button {
+    color: #1e293b !important;
+}
+
+[data-theme="light"] .viewer-footer span {
+    color: #1e293b !important;
 }
 
 /* Scrollbar for light mode */
