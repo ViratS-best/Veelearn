@@ -319,8 +319,24 @@
         })();
 
         let authToken = localStorage.getItem('token');
-        let currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+        let currentUser = { id: null }; // Initialize with null id
         let selectedChildId = null;
+
+        // Fetch current user data from API
+        async function fetchCurrentUser() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/users/me`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const data = await response.json();
+                if (response.ok && data.data) {
+                    currentUser = data.data;
+                    console.log('Current user fetched:', currentUser);
+                }
+            } catch (error) {
+                console.error('Error fetching current user:', error);
+            }
+        }
 
         if (!authToken) {
             window.location.href = 'index.html';
@@ -528,6 +544,11 @@
                     const messages = data.data;
                     const messageList = document.getElementById('childMessageList');
                     
+                    if (!messageList) {
+                        console.error('childMessageList element not found');
+                        return;
+                    }
+                    
                     messageList.innerHTML = '';
                     
                     // Filter messages: parent to child, child to parent, teacher to child
@@ -729,9 +750,11 @@
         }
 
         // Initialize
-        loadChildren();
-        loadTeachers();
-        loadTeacherMessages();
+        fetchCurrentUser().then(() => {
+            loadChildren();
+            loadTeachers();
+            loadTeacherMessages();
+        });
     </script>
 </body>
 </html>
