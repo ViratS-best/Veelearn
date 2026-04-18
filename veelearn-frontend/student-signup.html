@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,16 +9,20 @@
     <link rel="stylesheet" href="styles-redesign.css">
     <link rel="stylesheet" href="theme-toggle.css">
     <style>
+        body {
+            background: #f8fafc;
+        }
         .signup-container {
             max-width: 500px;
             margin: 50px auto;
             padding: 40px;
-            background: #1a1a2e;
+            background: white;
             border-radius: 10px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            border: 1px solid #e5e7eb;
         }
         .signup-container h1 {
-            color: #667eea;
+            color: #1e293b;
             text-align: center;
             margin-bottom: 30px;
         }
@@ -28,16 +32,16 @@
         .form-group label {
             display: block;
             margin-bottom: 8px;
-            color: #eee;
+            color: #374151;
             font-weight: 500;
         }
         .form-group input {
             width: 100%;
             padding: 12px;
-            background: #16213e;
-            border: 1px solid #0f3460;
+            background: white;
+            border: 1px solid #d1d5db;
             border-radius: 5px;
-            color: #eee;
+            color: #1e293b;
             font-size: 16px;
         }
         .form-group input:focus {
@@ -71,26 +75,26 @@
             text-decoration: underline;
         }
         .error-message {
-            color: #ff6b6b;
+            color: #dc2626;
             text-align: center;
             margin-bottom: 20px;
             display: none;
         }
         .success-message {
-            color: #51cf66;
+            color: #16a34a;
             text-align: center;
             margin-bottom: 20px;
             display: none;
         }
         .info-box {
-            background: #16213e;
-            border: 1px solid #0f3460;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
             border-radius: 5px;
             padding: 15px;
             margin-bottom: 20px;
         }
         .info-box p {
-            color: #888;
+            color: #4b5563;
             font-size: 14px;
             margin: 0;
         }
