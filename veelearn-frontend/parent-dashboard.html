@@ -682,6 +682,9 @@
                     
                     messageList.innerHTML = '';
                     
+                    console.log('All messages:', messages);
+                    console.log('Current user ID:', currentUser.id);
+                    
                     // Filter messages: parent sends to teacher OR teacher sends to parent
                     const teacherMessages = messages.filter(m => {
                         const isFromParent = m.sender_id === currentUser.id;
@@ -689,9 +692,18 @@
                         const isToTeacher = m.recipient_role === 'teacher';
                         const isFromTeacher = m.sender_role === 'teacher';
                         
+                        console.log('Message:', m, {
+                            isFromParent,
+                            isToParent,
+                            isToTeacher,
+                            isFromTeacher
+                        });
+                        
                         // Parent sent to teacher OR teacher sent to parent
                         return (isFromParent && isToTeacher) || (isToParent && isFromTeacher);
                     });
+                    
+                    console.log('Filtered teacher messages:', teacherMessages);
                     
                     if (teacherMessages.length === 0) {
                         messageList.innerHTML = '<p style="color: #888; text-align: center;">No messages with teachers.</p>';
