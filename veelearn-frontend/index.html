@@ -442,7 +442,7 @@
           style="background: rgba(102, 126, 234, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
           <h4>Role Management</h4>
           <button id="become-teacher-btn" class="create-course-btn"
-            style="background: var(--warning); margin-bottom: 10px;">
+            style="background: var(--warning); margin-bottom: 10px; color: #1f2937;">
             👨‍🏫 Become a Teacher
           </button>
           <p id="teacher-status" style="color: #ccc; font-size: 0.9em;"></p>
@@ -453,7 +453,7 @@
           <h4>Join a Class</h4>
           <input type="text" id="class-code-input" placeholder="Enter class code from your teacher" maxlength="20"
             style="padding: 10px; border: 1px solid #555; border-radius: 4px; width: 100%; margin-bottom: 10px; background: #222; color: #fff;" />
-          <button id="enroll-class-btn" class="primary-btn" style="width: 100%;">📚 Join Class</button>
+          <button id="enroll-class-btn" class="primary-btn" style="width: 100%; color: #1f2937;">📚 Join Class</button>
           <div id="enrolled-classes" style="margin-top: 15px;"></div>
         </div>
 
@@ -478,10 +478,10 @@
           </select>
           <input type="date" id="assignment-due-date"
             style="width: 100%; padding: 10px; margin-bottom: 10px; background: #222; color: #fff; border: 1px solid #555; border-radius: 4px;" />
-          <button id="create-assignment-btn" class="success-btn" style="width: 100%;">📋 Assign Course</button>
+          <button id="create-assignment-btn" class="success-btn" style="width: 100%; color: #1f2937;">📋 Assign Course</button>
         </div>
 
-        <button id="create-course-button-user" class="create-course-btn">
+        <button id="create-course-button-user" class="create-course-btn" style="color: #1f2937;">
           Create New Course
         </button>
 
@@ -489,7 +489,7 @@
         <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
           <input type="text" id="myCoursesSearch" placeholder="Search your courses..."
             style="flex: 1; padding: 10px; border: 1px solid #555; border-radius: 4px; background: #222; color: #fff;" />
-          <button type="button" id="clearMyCoursesSearch" class="secondary-btn" style="padding: 8px 12px;">✕</button>
+          <button type="button" id="clearMyCoursesSearch" class="secondary-btn" style="padding: 8px 12px; color: #1f2937;">✕</button>
         </div>
         <ul id="my-courses-list-user"></ul>
 
@@ -499,7 +499,7 @@
             <input type="text" id="enrolledCoursesSearch" placeholder="Search enrolled courses..."
               style="flex: 1; padding: 10px; border: 1px solid #555; border-radius: 4px; background: #222; color: #fff;" />
             <button type="button" id="clearEnrolledCoursesSearch" class="secondary-btn"
-              style="padding: 8px 12px;">✕</button>
+              style="padding: 8px 12px; color: #1f2937;">✕</button>
           </div>
           <div id="assignments-list"></div>
         </div>
@@ -521,7 +521,7 @@
             <option value="popular">⭐ Popular</option>
           </select>
           <button type="button" id="clearAvailableCoursesSearch" class="secondary-btn"
-            style="padding: 8px 12px;">✕</button>
+            style="padding: 8px 12px; color: #1f2937;">✕</button>
         </div>
         <ul id="available-courses-list-user"></ul>
       </div>
