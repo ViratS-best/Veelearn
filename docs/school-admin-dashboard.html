@@ -123,61 +123,64 @@
             margin-top: 20px;
         }
         .student-pool, .class-buckets {
-            background: #16213e;
+            background: #f8fafc;
             padding: 20px;
             border-radius: 10px;
             min-height: 400px;
+            border: 1px solid #e5e7eb;
         }
         .student-pool h3, .class-buckets h3 {
             color: #667eea;
             margin-top: 0;
         }
         .student-card {
-            background: #1a1a2e;
+            background: white;
             padding: 10px 15px;
             margin-bottom: 10px;
             border-radius: 5px;
-            border: 1px solid #0f3460;
+            border: 1px solid #e5e7eb;
             cursor: grab;
+            color: #1f2937;
             transition: all 0.2s;
         }
         .student-card:hover {
             border-color: #667eea;
             transform: translateX(5px);
+            background: #f9fafb;
         }
         .student-card.dragging {
             opacity: 0.5;
         }
         .class-bucket {
-            background: #1a1a2e;
+            background: white;
             padding: 15px;
             margin-bottom: 15px;
             border-radius: 5px;
-            border: 2px dashed #0f3460;
+            border: 2px dashed #d1d5db;
             transition: border-color 0.2s;
         }
         .class-bucket.drag-over {
             border-color: #667eea;
-            background: #16213e;
+            background: #f0f9ff;
         }
         .class-bucket h4 {
-            color: #eee;
+            color: #1f2937;
             margin: 0 0 10px 0;
         }
         .class-bucket .student-count {
-            color: #888;
+            color: #6b7280;
             font-size: 12px;
         }
         .class-bucket .enrolled-students {
             margin-top: 10px;
         }
         .class-bucket .enrolled-student {
-            background: #16213e;
+            background: #f1f5f9;
             padding: 8px 12px;
             margin-bottom: 5px;
             border-radius: 3px;
-            color: #eee;
             font-size: 13px;
+            color: #1f2937;
         }
         .modal {
             display: none;
