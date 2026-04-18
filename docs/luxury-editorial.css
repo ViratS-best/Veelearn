@@ -64,6 +64,29 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
+/* Ensure all text elements have visible colors */
+body * {
+    color: inherit;
+}
+
+/* Override specific problematic text colors */
+h1, h2, h3, h4, h5, h6, p, span, div, li, a, button, label, input, textarea, select, td, th {
+    color: var(--color-foreground) !important;
+}
+
+p, li, span, div {
+    color: var(--color-muted-fg) !important;
+}
+
+a {
+    color: var(--color-foreground) !important;
+    text-decoration: underline;
+}
+
+a:hover {
+    color: var(--color-accent) !important;
+}
+
 /* ===== TYPOGRAPHY ===== */
 
 h1, h2, h3, h4, h5, h6 {
@@ -213,6 +236,73 @@ p {
 .card-featured {
     border-top-width: 4px;
     border-top-color: var(--color-accent);
+}
+
+/* ===== STEPS / HOW IT WORKS ===== */
+
+.how-it-works {
+    padding: var(--spacing-4xl) 0;
+}
+
+.how-it-works h2 {
+    font-family: var(--font-heading);
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    margin-bottom: var(--spacing-2xl);
+    text-align: center;
+    color: var(--color-foreground);
+}
+
+.steps-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--spacing-xl);
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 var(--spacing-lg);
+}
+
+@media (min-width: 768px) {
+    .steps-grid {
+        grid-template-columns: repeat(3, 1fr);
+        padding: 0 var(--spacing-xl);
+    }
+}
+
+.step {
+    background-color: transparent;
+    border-top: 1px solid var(--color-foreground);
+    padding: var(--spacing-lg);
+    position: relative;
+}
+
+.step-featured {
+    border-top-width: 4px;
+    border-top-color: var(--color-accent);
+}
+
+.step-num {
+    font-family: var(--font-heading);
+    font-size: clamp(3rem, 6vw, 4rem);
+    font-weight: 300;
+    color: var(--color-accent);
+    display: block;
+    margin-bottom: var(--spacing-md);
+    line-height: 1;
+}
+
+.step h4 {
+    font-family: var(--font-heading);
+    font-size: clamp(1.25rem, 2vw, 1.5rem);
+    margin-bottom: var(--spacing-sm);
+    color: var(--color-foreground) !important;
+}
+
+.step p {
+    font-family: var(--font-body);
+    font-size: 0.9375rem;
+    line-height: 1.625;
+    color: var(--color-muted-fg) !important;
+    margin: 0;
 }
 
 /* ===== INPUTS ===== */
