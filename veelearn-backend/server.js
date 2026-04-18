@@ -1587,6 +1587,26 @@ app.get('/api/users/pending-teachers', authenticateToken, async (req, res) => {
     }
 });
 
+// Get current user
+app.get('/api/users/me', authenticateToken, async (req, res) => {
+    try {
+        const user = await query(`
+            SELECT id, email, name, role, is_approved, school_id
+            FROM users
+            WHERE id = ?
+        `, [req.user.id]);
+        
+        if (user.length === 0) {
+            return apiResponse(res, 404, 'User not found');
+        }
+        
+        apiResponse(res, 200, 'User retrieved successfully', user[0]);
+    } catch (error) {
+        console.error('Error fetching current user:', error);
+        apiResponse(res, 500, 'Server error');
+    }
+});
+
 // Get teachers for parent messaging
 app.get('/api/users/teachers', authenticateToken, async (req, res) => {
     if (req.user.role !== 'parent') {
