@@ -1,0 +1,48 @@
+name: Server Keep-Alive Bot
+
+on:
+  schedule:
+    # Run every 10 minutes to keep the server awake
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Keep Server Alive
+      run: |
+        echo "🔄 Starting server keep-alive ping..."
+        
+        # Veelearn API
+        RENDER_URL="https://api.veelearn.org/api/health"
+        
+        # Make the health check request
+        response=$(curl -s -o /dev/null -w "%{http_code}" "$RENDER_URL")
+        
+        if [ "$response" = "200" ]; then
+          echo "✅ Server is awake and healthy (HTTP $response)"
+        else
+          echo "⚠️ Server responded with HTTP $response - attempting wake-up..."
+          
+          # Try a second time to wake it up
+          sleep 5
+          response2=$(curl -s -o /dev/null -w "%{http_code}" "$RENDER_URL")
+          
+          if [ "$response2" = "200" ]; then
+            echo "✅ Server successfully woke up (HTTP $response2)"
+          else
+            echo "❌ Server still not responding (HTTP $response2)"
+            exit 1
+          fi
+        fi
+        
+        echo "📊 Response time: $(curl -o /dev/null -s -w '%{time_total}' "$RENDER_URL") seconds"
+        
+    - name: Log Result
+      if: always()
+      run: |
+        echo "🕐 Keep-alive ping completed at $(date)"
+        echo "🌐 Server URL: https://api.veelearn.org"
+        echo "⏰ Next ping in 10 minutes"

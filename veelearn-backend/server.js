@@ -1099,6 +1099,65 @@ const aiTutorLimiter = rateLimit({
 const createAiTutorHandlers = require('./ai-tutor-handlers');
 const aiTutorHandlers = createAiTutorHandlers({ query, openRouterChatCompletion, apiResponse });
 
+// ===== SMART RATE LIMITING FOR SERVER WAKE-UP =====
+
+// Track server response times to detect wake-up periods
+let serverWakeUpMode = false;
+let responseTimeHistory = [];
+let wakeUpStartTime = null;
+
+// Enhanced auth limiter that adjusts during server wake-up
+const smartAuthLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: (req, res) => {
+        // Return 15 requests during wake-up, 5 normally
+        return serverWakeUpMode ? 15 : 5;
+    },
+    message: { success: false, message: 'Too many authentication attempts, please try again later.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => {
+        // Include wake-up mode in key to prevent limit abuse
+        return req.ip + (serverWakeUpMode ? '_wakeup' : '_normal');
+    }
+});
+
+// Middleware to track response times and detect server wake-up
+const trackResponseTime = (req, res, next) => {
+    const startTime = Date.now();
+    
+    res.on('finish', () => {
+        const responseTime = Date.now() - startTime;
+        responseTimeHistory.push(responseTime);
+        
+        // Keep only last 20 responses
+        if (responseTimeHistory.length > 20) {
+            responseTimeHistory.shift();
+        }
+        
+        // Detect server wake-up (average response time > 30 seconds)
+        const avgResponseTime = responseTimeHistory.reduce((a, b) => a + b, 0) / responseTimeHistory.length;
+        
+        if (avgResponseTime > 30000 && !serverWakeUpMode) {
+            serverWakeUpMode = true;
+            wakeUpStartTime = Date.now();
+            info('🔄 Server wake-up detected - Increasing auth rate limits');
+        }
+        
+        // Auto-reset wake-up mode after 5 minutes of normal response times
+        if (serverWakeUpMode && avgResponseTime < 5000 && (Date.now() - wakeUpStartTime > 300000)) {
+            serverWakeUpMode = false;
+            wakeUpStartTime = null;
+            info('✅ Server fully awake - Normal rate limits restored');
+        }
+    });
+    
+    next();
+};
+
+// Apply response time tracking
+app.use(trackResponseTime);
+
 // Apply generic rate limiter to all /api/ routes
 app.use('/api/', generalLimiter);
 
@@ -1109,8 +1168,18 @@ app.get('/', (req, res) => {
     res.send('Veelearn Backend API is running!');
 });
 
+// Health Check Endpoint for Keep-Alive Bot
+app.get('/api/health', (req, res) => {
+    res.json({ 
+        status: 'ok', 
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        wakeUpMode: serverWakeUpMode
+    });
+});
+
 // ===== AUTHENTICATION ROUTES =====
-app.post('/api/register', authLimiter, async (req, res) => {
+app.post('/api/register', smartAuthLimiter, async (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
@@ -1167,7 +1236,7 @@ app.post('/api/register', authLimiter, async (req, res) => {
     }
 });
 
-app.post('/api/login', authLimiter, async (req, res) => {
+app.post('/api/login', smartAuthLimiter, async (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
@@ -1229,7 +1298,7 @@ app.post('/api/logout', (req, res) => {
 // ===== EMS REGISTRATION ENDPOINTS =====
 
 // School Admin Registration
-app.post('/api/register/school-admin', authLimiter, async (req, res) => {
+app.post('/api/register/school-admin', smartAuthLimiter, async (req, res) => {
     const { email, password, name, school_name, school_address } = req.body;
 
     if (!email || !password || !name || !school_name) {
@@ -1281,7 +1350,7 @@ app.post('/api/register/school-admin', authLimiter, async (req, res) => {
 });
 
 // Teacher Registration with School Code
-app.post('/api/register/teacher', authLimiter, async (req, res) => {
+app.post('/api/register/teacher', smartAuthLimiter, async (req, res) => {
     const { email, password, name, school_code } = req.body;
 
     if (!email || !password || !name || !school_code) {
@@ -1338,7 +1407,7 @@ app.post('/api/register/teacher', authLimiter, async (req, res) => {
 });
 
 // Student Registration (with school code and optional class code)
-app.post('/api/register/student', authLimiter, async (req, res) => {
+app.post('/api/register/student', smartAuthLimiter, async (req, res) => {
     const { email, password, name, school_code, class_code } = req.body;
 
     if (!email || !password || !name || !school_code) {
@@ -1430,7 +1499,7 @@ app.post('/api/register/student', authLimiter, async (req, res) => {
 });
 
 // Parent Registration with Student Code
-app.post('/api/register/parent', authLimiter, async (req, res) => {
+app.post('/api/register/parent', smartAuthLimiter, async (req, res) => {
     const { email, password, name, student_code } = req.body;
 
     if (!email || !password || !name || !student_code) {
