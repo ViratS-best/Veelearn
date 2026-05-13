@@ -1,4 +1,6 @@
-// ===== GLOBAL STATE =====
+// ===== GLOBAL VARIABLES =====
+let serverLoadingManager = null;
+
 // Determine API base URL based on environment
 const API_BASE_URL = (() => {
     if (window.location.hostname.includes('veelearn.org')) {
@@ -92,6 +94,57 @@ document.addEventListener('keydown', async (e) => {
     }
 });
 
+
+// ===== SERVER LOADING DETECTION =====
+
+async function checkServerHealth() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/health`, {
+            method: 'GET',
+            timeout: 3000,
+            headers: {
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            }
+        });
+        return response.ok;
+    } catch (error) {
+        return false;
+    }
+}
+
+async function handleWithServerLoading(apiCall, action = 'login') {
+    const isServerHealthy = await checkServerHealth();
+    
+    if (!isServerHealthy) {
+        // Show loading screen for server wake-up
+        ServerLoadingManager.show(action);
+        
+        // Wait for server to be ready
+        let attempts = 0;
+        const maxAttempts = 30; // 30 * 2 seconds = 1 minute max
+        
+        while (attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            const serverReady = await checkServerHealth();
+            
+            if (serverReady) {
+                ServerLoadingManager.hide();
+                break;
+            }
+            attempts++;
+        }
+        
+        // If server still not ready after max attempts, proceed anyway
+        if (attempts >= maxAttempts) {
+            console.warn('Server still not ready after maximum attempts, proceeding with request');
+            ServerLoadingManager.hide();
+        }
+    }
+    
+    // Execute the original API call
+    return apiCall();
+}
 
 // ===== INITIALIZATION =====
 if (window.logger) {
@@ -1519,14 +1572,17 @@ function handleLogin() {
         return;
     }
 
-    fetch(`${API_BASE_URL}/api/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-        credentials: "include"
-    })
-        .then((res) => res.json())
-        .then((data) => {
+    handleWithServerLoading(async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/login`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, password }),
+                credentials: "include"
+            });
+            
+            const data = await response.json();
+            
             if (data.success) {
                 authToken = data.data.token;
                 localStorage.setItem("token", authToken); // Store for API calls like 'like' feature
@@ -1558,16 +1614,15 @@ function handleLogin() {
                         loadUserCourses();
                         loadAvailableCourses();
                     }
-                }, 0);
+                }, 100);
             } else {
                 errorMessage.textContent = data.message || "Login failed";
             }
-        })
-        .catch((err) => {
+        } catch (err) {
             console.error("Login error:", err);
-            errorMessage.textContent =
-                "Connection error. Is the backend API running?";
-        });
+            errorMessage.textContent = "Connection error";
+        }
+    }, 'login');
 }
 
 function handleRegister() {
@@ -1580,25 +1635,29 @@ function handleRegister() {
         return;
     }
 
-    fetch(`${API_BASE_URL}/api/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-        credentials: "include"
-    })
-        .then((res) => res.json())
-        .then((data) => {
+    // Wrap API call with server loading detection
+    handleWithServerLoading(async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/register`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, password }),
+                credentials: "include"
+            });
+            
+            const data = await response.json();
+            
             if (data.success) {
                 alert("Registration successful! Please login.");
                 document.getElementById("show-login").click();
             } else {
                 errorMsg.textContent = data.message || "Registration failed";
             }
-        })
-        .catch((err) => {
+        } catch (err) {
             console.error("Register error:", err);
             errorMsg.textContent = "Connection error";
-        });
+        }
+    }, 'register');
 }
 
 function fetchUserProfile() {
