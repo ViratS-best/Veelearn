@@ -3,20 +3,33 @@ name: Server Keep-Alive Bot
 on:
   schedule:
     # Run every 10 minutes to keep the server awake
+    # GitHub Actions uses UTC, so this runs every 10 minutes UTC
     - cron: '*/10 * * * *'
   workflow_dispatch: # Allow manual triggering
+  # Also run on push to main for testing
+  push:
+    branches: [ main, master ]
 
 jobs:
   keep-alive:
     runs-on: ubuntu-latest
     
     steps:
+    - name: Debug Workflow Trigger
+      run: |
+        echo "🔍 Workflow triggered at: $(date)"
+        echo "🔍 GitHub event: ${{ github.event_name }}"
+        echo "🔍 Repository: ${{ github.repository }}"
+        echo "🔍 Ref: ${{ github.ref }}"
+        
     - name: Keep Server Alive
       run: |
         echo "🔄 Starting server keep-alive ping..."
+        echo "⏰ Current time: $(date)"
         
         # Veelearn API
         RENDER_URL="https://api.veelearn.org/api/health"
+        echo "🌐 Pinging URL: $RENDER_URL"
         
         # Make the health check request
         response=$(curl -s -o /dev/null -w "%{http_code}" "$RENDER_URL")
@@ -45,4 +58,15 @@ jobs:
       run: |
         echo "🕐 Keep-alive ping completed at $(date)"
         echo "🌐 Server URL: https://api.veelearn.org"
-        echo "⏰ Next ping in 10 minutes"
+        echo "⏰ Next scheduled run in 10 minutes"
+        echo "📊 Workflow status: ${{ job.status }}"
+        
+        # Show when the next cron should run (next 10-minute mark)
+        current_min=$(date +%M)
+        next_min=$(( ((current_min / 10) + 1) * 10 ))
+        if [ $next_min -eq 60 ]; then
+          next_min=0
+          echo "🕐 Next cron run: $(date -d '+1 hour' '+%Y-%m-%d %H:00:00') UTC"
+        else
+          echo "🕐 Next cron run: $(date -d "+$((next_min - current_min)) minutes" '+%Y-%m-%d %H:%M:00') UTC"
+        fi
