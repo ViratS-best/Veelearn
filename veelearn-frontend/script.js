@@ -171,51 +171,90 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function checkServerHealth() {
     try {
+        // Use a shorter timeout to quickly detect if server is responsive
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
+        
         const response = await fetch(`${API_BASE_URL}/api/health`, {
             method: 'GET',
-            timeout: 3000,
+            signal: controller.signal,
+            cache: 'no-cache',
             headers: {
                 'Cache-Control': 'no-cache',
                 'Pragma': 'no-cache'
             }
         });
-        return response.ok;
+        
+        clearTimeout(timeoutId);
+        
+        // Check if response is successful and has valid JSON
+        if (response.ok) {
+            const data = await response.json();
+            return data.status === 'ok';
+        }
+        return false;
     } catch (error) {
+        // Only treat as failure if it's not a timeout (server might be slow but working)
+        if (error.name === 'AbortError') {
+            console.log('Server health check timeout - server might be slow');
+            return false;
+        }
+        console.log('Server health check failed:', error.message);
         return false;
     }
 }
 
 async function handleWithServerLoading(apiCall, action = 'login') {
-    const isServerHealthy = await checkServerHealth();
-    
-    if (!isServerHealthy) {
-        // Show loading screen for server wake-up
-        ServerLoadingManager.show(action);
+    // Try the API call first - only show loading screen if it fails
+    try {
+        // Set a timeout for the API call
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('API timeout')), 5000);
+        });
         
-        // Wait for server to be ready
-        let attempts = 0;
-        const maxAttempts = 30; // 30 * 2 seconds = 1 minute max
+        // Race between the actual API call and timeout
+        const result = await Promise.race([apiCall(), timeoutPromise]);
         
-        while (attempts < maxAttempts) {
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            const serverReady = await checkServerHealth();
+        // If we get here, the API call succeeded - no loading screen needed
+        return result;
+        
+    } catch (error) {
+        // API call failed or timed out - now check if it's a server wake-up issue
+        console.log('API call failed, checking server health:', error.message);
+        
+        // Quick server health check
+        const isServerHealthy = await checkServerHealth();
+        
+        if (!isServerHealthy && (error.message === 'API timeout' || error.message.includes('fetch'))) {
+            // Server is likely waking up - show loading screen
+            console.log('Server appears to be waking up, showing loading screen');
+            ServerLoadingManager.show(action);
             
-            if (serverReady) {
-                ServerLoadingManager.hide();
-                break;
+            // Wait for server to be ready
+            let attempts = 0;
+            const maxAttempts = 15; // 15 * 2 seconds = 30 seconds max
+            
+            while (attempts < maxAttempts) {
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                const serverReady = await checkServerHealth();
+                
+                if (serverReady) {
+                    ServerLoadingManager.hide();
+                    console.log('Server is ready, retrying API call');
+                    // Retry the original API call
+                    return apiCall();
+                }
+                attempts++;
             }
-            attempts++;
-        }
-        
-        // If server still not ready after max attempts, proceed anyway
-        if (attempts >= maxAttempts) {
-            console.warn('Server still not ready after maximum attempts, proceeding with request');
+            
+            // If server still not ready, hide loading screen and proceed with original error
+            console.warn('Server still not ready after maximum attempts');
             ServerLoadingManager.hide();
         }
+        
+        // Re-throw the original error
+        throw error;
     }
-    
-    // Execute the original API call
-    return apiCall();
 }
 
 // ===== INITIALIZATION =====
