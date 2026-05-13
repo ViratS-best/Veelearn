@@ -95,6 +95,78 @@ document.addEventListener('keydown', async (e) => {
 });
 
 
+// ===== CLIENT-SIDE KEEP-ALIVE SYSTEM =====
+
+// Keep server alive during user activity
+let keepAliveInterval = null;
+let lastActivityTime = Date.now();
+
+function startKeepAlive() {
+    // Clear any existing interval
+    if (keepAliveInterval) {
+        clearInterval(keepAliveInterval);
+    }
+    
+    // Ping server every 10 minutes during user activity
+    keepAliveInterval = setInterval(async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/health`, {
+                method: 'GET',
+                cache: 'no-cache',
+                headers: { 'Cache-Control': 'no-cache' },
+                credentials: 'omit'
+            });
+            
+            if (response.ok) {
+                console.log('✅ Keep-alive ping successful');
+            } else {
+                console.log('⚠️ Keep-alive ping failed:', response.status);
+            }
+        } catch (error) {
+            console.log('❌ Keep-alive ping error:', error.message);
+        }
+    }, 10 * 60 * 1000); // Every 10 minutes
+    
+    console.log('🔄 Client-side keep-alive started');
+}
+
+// Track user activity to keep server alive
+function trackUserActivity() {
+    lastActivityTime = Date.now();
+    
+    // Start keep-alive if not already running
+    if (!keepAliveInterval) {
+        startKeepAlive();
+    }
+}
+
+// Stop keep-alive after 30 minutes of inactivity
+function checkInactivity() {
+    const inactiveTime = Date.now() - lastActivityTime;
+    const thirtyMinutes = 30 * 60 * 1000;
+    
+    if (inactiveTime > thirtyMinutes && keepAliveInterval) {
+        clearInterval(keepAliveInterval);
+        keepAliveInterval = null;
+        console.log('⏸️ Keep-alive paused due to inactivity');
+    }
+}
+
+// Set up activity tracking
+document.addEventListener('DOMContentLoaded', () => {
+    // Track user interactions
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+    events.forEach(event => {
+        document.addEventListener(event, trackUserActivity, { passive: true });
+    });
+    
+    // Check inactivity every 5 minutes
+    setInterval(checkInactivity, 5 * 60 * 1000);
+    
+    // Start keep-alive immediately
+    startKeepAlive();
+});
+
 // ===== SERVER LOADING DETECTION =====
 
 async function checkServerHealth() {
