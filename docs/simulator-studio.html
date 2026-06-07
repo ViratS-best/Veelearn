@@ -1146,7 +1146,7 @@ function toggleFullscreen(){
   window.addEventListener('resize',resizeFullscreenCanvas);
   // Redirect mouse events to sim
   fullscreenOverlay.addEventListener('mousemove',e=>{const r=fsCanvas.getBoundingClientRect();mouseState.x=(e.clientX-r.left)*(fsCanvas.width/r.width);mouseState.y=(e.clientY-r.top)*(fsCanvas.height/r.height)});
-  fullscreenOverlay.addEventListener('mousedown',e=>{e.preventDefault();mouseState.down=true});
+  fullscreenOverlay.addEventListener('mousedown',e=>{if(e.target===fsCanvas){e.preventDefault();}mouseState.down=true;});
   fullscreenOverlay.addEventListener('mouseup',()=>{mouseState.down=false});
   fullscreenOverlay.addEventListener('contextmenu',e=>e.preventDefault());
   // Move controls to fullscreen overlay
