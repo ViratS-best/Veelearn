@@ -482,6 +482,7 @@ const initializeDatabase = async () => {
                 correct_answers INT DEFAULT 0,
                 total_questions INT DEFAULT 0,
                 quiz_accuracy DECIMAL(5,2) DEFAULT 0,
+                current_status VARCHAR(255) DEFAULT 'Not Started',
                 submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 FOREIGN KEY (assignment_id) REFERENCES classroom_assignments(id) ON DELETE CASCADE,
                 FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
@@ -494,6 +495,7 @@ const initializeDatabase = async () => {
         await addColumn('assignment_submissions', 'correct_answers', 'INT DEFAULT 0');
         await addColumn('assignment_submissions', 'total_questions', 'INT DEFAULT 0');
         await addColumn('assignment_submissions', 'quiz_accuracy', 'DECIMAL(5,2) DEFAULT 0');
+        await addColumn('assignment_submissions', 'current_status', "VARCHAR(255) DEFAULT 'Not Started'");
         info('✓ Assignment submission columns verified');
         // Migration: Add unique constraint to quiz attempts if not already present
         // Note: Generic try/catch because MySQL 8.0 doesn't support IF NOT EXISTS for ADD UNIQUE
@@ -6977,7 +6979,8 @@ u.email,
     asub.submission_date,
     ca.due_date,
     asub.correct_answers,
-    asub.total_questions
+    asub.total_questions,
+    asub.current_status
         FROM assignment_submissions asub
         JOIN users u ON asub.student_id = u.id
         JOIN classroom_assignments ca ON asub.assignment_id = ca.id
@@ -7004,6 +7007,7 @@ u.email,
                 correct_answers: r.correct_answers,
                 total_questions: r.total_questions,
                 status: !r.is_submitted ? 'Not Started' : r.is_late ? 'Late' : 'On Time',
+                current_status: r.current_status || 'Not Started',
                 progressBar: `${r.completion_percentage}% `
             };
         });
@@ -7166,6 +7170,46 @@ asub.student_id,
                     });
                 }
             );
+        }
+    );
+});
+
+// Update student active status/objective
+app.post('/api/student/update-status', authenticateToken, (req, res) => {
+    const { assignmentId, status } = req.body;
+    const studentId = req.user.id;
+
+    if (!assignmentId) return apiResponse(res, 400, 'Assignment ID required');
+    if (!status) return apiResponse(res, 400, 'Status description required');
+
+    // Check if a submission already exists for this student and assignment
+    db.query(
+        'SELECT id FROM assignment_submissions WHERE assignment_id = ? AND student_id = ?',
+        [assignmentId, studentId],
+        (err, results) => {
+            if (err) return apiResponse(res, 500, 'Database error');
+
+            if (results.length === 0) {
+                // Insert a new record in assignment_submissions (not fully submitted, just tracking active status)
+                db.query(
+                    'INSERT INTO assignment_submissions (assignment_id, student_id, completion_percentage, is_submitted, current_status) VALUES (?, ?, ?, ?, ?)',
+                    [assignmentId, studentId, 0, false, status],
+                    (err) => {
+                        if (err) return apiResponse(res, 500, 'Error setting status');
+                        apiResponse(res, 200, 'Active status initialized', { status });
+                    }
+                );
+            } else {
+                // Update current_status on existing record
+                db.query(
+                    'UPDATE assignment_submissions SET current_status = ? WHERE assignment_id = ? AND student_id = ?',
+                    [status, assignmentId, studentId],
+                    (err) => {
+                        if (err) return apiResponse(res, 500, 'Error updating status');
+                        apiResponse(res, 200, 'Active status updated', { status });
+                    }
+                );
+            }
         }
     );
 });
@@ -7508,6 +7552,95 @@ wss.on('connection', (ws, req) => {
                 if (data.type === 'mark_read') {
                     const { message_id } = data;
                     db.query('UPDATE messages SET is_read = TRUE WHERE id = ? AND recipient_id = ?', [message_id, userId]);
+                }
+
+                // Join a workspace module room
+                if (data.type === 'join_module') {
+                    const { moduleId } = data;
+                    ws.moduleId = moduleId;
+                    ws.userId = userId;
+                    
+                    wss.clients.forEach(client => {
+                        if (client !== ws && client.moduleId === moduleId && client.readyState === WebSocket.OPEN) {
+                            client.send(JSON.stringify({
+                                type: 'user_joined',
+                                userId: userId,
+                                userEmail: user.email
+                            }));
+                        }
+                    });
+                    
+                    ws.send(JSON.stringify({ type: 'joined_module', moduleId }));
+                }
+
+                // Sync block positions and connections
+                if (data.type === 'sync_blocks') {
+                    const { moduleId, blocks, connections } = data;
+                    wss.clients.forEach(client => {
+                        if (client !== ws && client.moduleId === moduleId && client.readyState === WebSocket.OPEN) {
+                            client.send(JSON.stringify({
+                                type: 'sync_blocks',
+                                blocks,
+                                connections,
+                                userId
+                            }));
+                        }
+                    });
+                }
+
+                // Lock individual blocks during edit
+                if (data.type === 'lock_block') {
+                    const { moduleId, blockId } = data;
+                    wss.clients.forEach(client => {
+                        if (client !== ws && client.moduleId === moduleId && client.readyState === WebSocket.OPEN) {
+                            client.send(JSON.stringify({
+                                type: 'lock_block',
+                                blockId,
+                                userId,
+                                userEmail: user.email
+                            }));
+                        }
+                    });
+                }
+
+                // Unlock individual blocks after edit
+                if (data.type === 'unlock_block') {
+                    const { moduleId, blockId } = data;
+                    wss.clients.forEach(client => {
+                        if (client !== ws && client.moduleId === moduleId && client.readyState === WebSocket.OPEN) {
+                            client.send(JSON.stringify({
+                                type: 'unlock_block',
+                                blockId,
+                                userId
+                            }));
+                        }
+                    });
+                }
+
+                // Update active student status / objective
+                if (data.type === 'update_status') {
+                    const { assignmentId, status } = data;
+                    db.query(
+                        'INSERT INTO assignment_submissions (assignment_id, student_id, completion_percentage, is_submitted, current_status) VALUES (?, ?, 0, FALSE, ?) ON DUPLICATE KEY UPDATE current_status = ?',
+                        [assignmentId, userId, status, status],
+                        (err) => {
+                            if (err) {
+                                console.error('Error updating status via WS:', err);
+                            } else {
+                                wss.clients.forEach(client => {
+                                    if (client.readyState === WebSocket.OPEN) {
+                                        client.send(JSON.stringify({
+                                            type: 'student_status_update',
+                                            studentId: userId,
+                                            studentEmail: user.email,
+                                            assignmentId,
+                                            status
+                                        }));
+                                    }
+                                });
+                            }
+                        }
+                    );
                 }
             } catch (error) {
                 console.error('WebSocket message error:', error);

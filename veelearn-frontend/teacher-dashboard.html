@@ -208,6 +208,14 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            position: relative;
+        }
+        .student-name-cell {
+            position: relative;
+            cursor: pointer;
+        }
+        .student-name-cell:hover .hover-card {
+            display: block !important;
         }
         .message-btn {
             padding: 5px 10px;
@@ -808,9 +816,21 @@
                         return;
                     }
                     
-                    progressDiv.innerHTML = progress.map(p => `
+                    progressDiv.innerHTML = progress.map(p => {
+                        const currentStatus = p.current_status || 'Not Started';
+                        const indicatorColor = currentStatus.includes('Stuck') ? '#ef4444' : currentStatus.includes('Completed') ? '#10b981' : '#3b82f6';
+                        return `
                         <div class="assignment-item">
-                            <h4>${p.student_name}</h4>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                <span style="width: 8px; height: 8px; border-radius: 50%; background-color: ${indicatorColor}; display: inline-block;" title="${escapeHtml(currentStatus)}"></span>
+                                <h4 class="student-name-cell" style="margin: 0; cursor: help; display: inline-block;">
+                                    ${p.student_name}
+                                    <div class="hover-card" style="display: none; position: absolute; bottom: 100%; left: 0; background: #1e293b; border: 1px solid #334155; border-radius: 6px; padding: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 1000; width: 240px; font-size: 0.85em; font-weight: normal; color: #f1f5f9; text-align: left; pointer-events: none;">
+                                        <div style="font-weight: bold; color: #3b82f6; margin-bottom: 4px;">Student Status:</div>
+                                        <div>${escapeHtml(currentStatus)}</div>
+                                    </div>
+                                </h4>
+                            </div>
                             <p>Email: ${p.student_email}</p>
                             <p>Score: ${p.correct_answers}/${p.total_possible} (${p.percentage}%)</p>
                             <p>Completion: ${p.completion_percentage}%</p>
@@ -818,7 +838,8 @@
                                 <div class="fill" style="width: ${p.percentage}%"></div>
                             </div>
                         </div>
-                    `).join('');
+                        `;
+                    }).join('');
                 }
             } catch (error) {
                 console.error('Error loading assignment progress:', error);
