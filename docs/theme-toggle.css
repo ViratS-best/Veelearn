@@ -50,12 +50,12 @@
 
 /* Dark theme uses existing styles.css values */
 [data-theme="dark"] {
-    --bg-dark: #0f172a !important;
-    --bg-card: #1e293b !important;
-    --bg-input: #0f172a !important;
-    --text-light: #f1f5f9 !important;
-    --text-muted: #cbd5e1 !important;
-    --border: #334155 !important;
+    --bg-dark: #09090b !important;
+    --bg-card: #18181b !important;
+    --bg-input: #09090b !important;
+    --text-light: #fafafa !important;
+    --text-muted: #a1a1aa !important;
+    --border: #27272a !important;
 }
 
 /* Apply transitions to all elements */

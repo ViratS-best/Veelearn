@@ -1153,11 +1153,11 @@ function toggleFullscreen(){
   const controlsSection = document.getElementById('controlsSection');
   if (controlsSection) {
     const drawer = document.createElement('div');
-    drawer.className = 'fs-controls-drawer closed';
+    drawer.className = 'fs-controls-drawer';
     drawer.id = 'fsControlsDrawer';
     const drawerBtn = document.createElement('button');
     drawerBtn.className = 'fs-drawer-btn';
-    drawerBtn.innerHTML = '◀';
+    drawerBtn.innerHTML = '▶';
     drawerBtn.onclick = () => {
       const isClosed = drawer.classList.contains('closed');
       if (isClosed) { drawer.classList.remove('closed'); drawerBtn.innerHTML = '▶'; }

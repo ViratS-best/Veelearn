@@ -2450,9 +2450,13 @@ function confirmLatexInsertion() {
             if (commonAncestor.nodeType === Node.TEXT_NODE) {
                 // Insert the LaTeX span at cursor
                 range.insertNode(span);
+                
+                // Add a zero-width space after it so cursor doesn't get trapped
+                const zws = document.createTextNode('\u200B');
+                span.parentNode.insertBefore(zws, span.nextSibling);
 
                 // Move cursor after the equation
-                range.setStartAfter(span);
+                range.setStartAfter(zws);
                 range.collapse(true);
                 selection.removeAllRanges();
                 selection.addRange(range);
@@ -6836,6 +6840,29 @@ function setupContentEditorListeners() {
     contentEditor.addEventListener('blur', () => {
         // Small delay to ensure DOM is ready
         setTimeout(processLatexInEditor, 100);
+    });
+
+    // Fix empty editor state where it gets trapped
+    const fixEmptyState = () => {
+        // If there are no regular blocks (p, br, text) other than absolute wrappers
+        const hasTextNode = Array.from(contentEditor.childNodes).some(n => 
+            (n.nodeType === Node.TEXT_NODE && n.textContent.trim().length > 0) || 
+            (n.nodeType === Node.ELEMENT_NODE && n.tagName === 'P') ||
+            (n.nodeType === Node.ELEMENT_NODE && n.tagName === 'BR')
+        );
+        
+        if (!hasTextNode) {
+            const p = document.createElement('p');
+            p.innerHTML = '<br>';
+            contentEditor.appendChild(p);
+        }
+    };
+
+    contentEditor.addEventListener('input', fixEmptyState);
+    contentEditor.addEventListener('click', (e) => {
+        if (e.target === contentEditor) {
+            fixEmptyState();
+        }
     });
 }
 
