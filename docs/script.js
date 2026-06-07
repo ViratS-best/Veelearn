@@ -2253,11 +2253,11 @@ function openLatexEditorModal() {
   `;
 
     modal.innerHTML = `
-    <div style="background: white; padding: 25px; border-radius: 8px; max-width: 700px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-      <h2 style="margin: 0 0 15px 0; color: #333;">Insert LaTeX Equation</h2>
+    <div style="background: #18181b; color: #fafafa; padding: 25px; border-radius: 8px; max-width: 900px; width: 95%; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+      <h2 style="margin: 0 0 15px 0; color: #6366f1;">Insert LaTeX Equation</h2>
       
-      <div style="margin-bottom: 20px;">
-        <label style="display: block; margin-bottom: 8px; font-weight: 500;">Equation Type:</label>
+      <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #a1a1aa;">Equation Type:</label>
         <div style="display: flex; gap: 10px;">
           <label style="display: flex; align-items: center; cursor: pointer;">
             <input type="radio" name="latex-type" value="inline" checked style="margin-right: 5px;" />
@@ -2270,52 +2270,59 @@ function openLatexEditorModal() {
         </div>
       </div>
       
-      <div style="margin-bottom: 20px;">
-        <label style="display: block; margin-bottom: 8px; font-weight: 500;">LaTeX Code:</label>
-        <textarea id="latex-input" placeholder="Enter your LaTeX equation here&#10;&#10;Examples:&#10;E = mc^2&#10;\\frac{a}{b}&#10;\\sum_{i=1}^{n} x_i&#10;x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}" 
-          style="width: 100%; height: 150px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; font-size: 14px; resize: vertical;"></textarea>
+      <div style="display: flex; flex: 1; gap: 15px; margin-bottom: 15px; min-height: 200px;">
+        <!-- Left: Input -->
+        <div style="flex: 1; display: flex; flex-direction: column;">
+          <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #a1a1aa;">LaTeX Code:</label>
+          <textarea id="latex-input" placeholder="Enter your LaTeX equation here&#10;&#10;Examples:&#10;E = mc^2&#10;\\frac{a}{b}&#10;\\sum_{i=1}^{n} x_i&#10;x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}" 
+            style="flex: 1; width: 100%; padding: 12px; background: #09090b; border: 1px solid #27272a; border-radius: 6px; color: #fafafa; font-family: 'Menlo', 'Monaco', monospace; font-size: 14px; resize: none;"></textarea>
+        </div>
+        
+        <!-- Divider -->
+        <div style="width: 2px; background: #27272a;"></div>
+        
+        <!-- Right: Preview -->
+        <div style="flex: 1; display: flex; flex-direction: column;">
+          <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #a1a1aa;">Live Preview:</label>
+          <div id="latex-preview" style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 15px; background: #09090b; border: 1px solid #27272a; border-radius: 6px; overflow: auto; transition: opacity 0.15s; font-size: 1.2em;">
+            <span style="color: #a1a1aa;">(preview will appear here)</span>
+          </div>
+        </div>
       </div>
       
-      <div style="margin-bottom: 20px; padding: 15px; background: #f9f9f9; border-radius: 4px; border-left: 4px solid #667eea;">
-        <strong style="display: block; margin-bottom: 10px;">Preview:</strong>
-        <div id="latex-preview" style="padding: 10px; background: white; border-radius: 4px; min-height: 40px; font-size: 16px;">
-          (preview will appear here)
+      <div style="margin-bottom: 15px;">
+        <strong style="display: block; margin-bottom: 8px; color: #a1a1aa;">Common Symbols:</strong>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 6px;">
+          <button type="button" onclick="insertLatexSnippet('\\\\alpha')" class="latex-snippet-btn" style="background:#27272a;color:#fff;border:none;padding:5px;border-radius:4px;cursor:pointer;">α (alpha)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\beta')" class="latex-snippet-btn" style="background:#27272a;color:#fff;border:none;padding:5px;border-radius:4px;cursor:pointer;">β (beta)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\gamma')" class="latex-snippet-btn" style="background:#27272a;color:#fff;border:none;padding:5px;border-radius:4px;cursor:pointer;">γ (gamma)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\Delta')" class="latex-snippet-btn" style="background:#27272a;color:#fff;border:none;padding:5px;border-radius:4px;cursor:pointer;">Δ (Delta)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\frac{a}{b}')" class="latex-snippet-btn" style="background:#27272a;color:#fff;border:none;padding:5px;border-radius:4px;cursor:pointer;">a/b (fraction)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\sqrt{x}')" class="latex-snippet-btn" style="background:#27272a;color:#fff;border:none;padding:5px;border-radius:4px;cursor:pointer;">√x (sqrt)</button>
+          <button type="button" onclick="insertLatexSnippet('x^{2}')" class="latex-snippet-btn" style="background:#27272a;color:#fff;border:none;padding:5px;border-radius:4px;cursor:pointer;">x² (power)</button>
+          <button type="button" onclick="insertLatexSnippet('x_{i}')" class="latex-snippet-btn" style="background:#27272a;color:#fff;border:none;padding:5px;border-radius:4px;cursor:pointer;">xᵢ (subscript)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\sum_{i=1}^{n}')" class="latex-snippet-btn" style="background:#27272a;color:#fff;border:none;padding:5px;border-radius:4px;cursor:pointer;">Σ (sum)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\int_a^b')" class="latex-snippet-btn" style="background:#27272a;color:#fff;border:none;padding:5px;border-radius:4px;cursor:pointer;">∫ (integral)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\pm')" class="latex-snippet-btn" style="background:#27272a;color:#fff;border:none;padding:5px;border-radius:4px;cursor:pointer;">± (plus/minus)</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\times')" class="latex-snippet-btn" style="background:#27272a;color:#fff;border:none;padding:5px;border-radius:4px;cursor:pointer;">× (times)</button>
         </div>
       </div>
       
       <div style="margin-bottom: 20px;">
-        <strong style="display: block; margin-bottom: 10px;">Common Symbols:</strong>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px;">
-          <button type="button" onclick="insertLatexSnippet('\\\\alpha')" class="latex-snippet-btn">α (alpha)</button>
-          <button type="button" onclick="insertLatexSnippet('\\\\beta')" class="latex-snippet-btn">β (beta)</button>
-          <button type="button" onclick="insertLatexSnippet('\\\\gamma')" class="latex-snippet-btn">γ (gamma)</button>
-          <button type="button" onclick="insertLatexSnippet('\\\\Delta')" class="latex-snippet-btn">Δ (Delta)</button>
-          <button type="button" onclick="insertLatexSnippet('\\\\frac{a}{b}')" class="latex-snippet-btn">a/b (fraction)</button>
-          <button type="button" onclick="insertLatexSnippet('\\\\sqrt{x}')" class="latex-snippet-btn">√x (sqrt)</button>
-          <button type="button" onclick="insertLatexSnippet('x^{2}')" class="latex-snippet-btn">x² (power)</button>
-          <button type="button" onclick="insertLatexSnippet('x_{i}')" class="latex-snippet-btn">xᵢ (subscript)</button>
-          <button type="button" onclick="insertLatexSnippet('\\\\sum_{i=1}^{n}')" class="latex-snippet-btn">Σ (sum)</button>
-          <button type="button" onclick="insertLatexSnippet('\\\\int_a^b')" class="latex-snippet-btn">∫ (integral)</button>
-          <button type="button" onclick="insertLatexSnippet('\\\\pm')" class="latex-snippet-btn">± (plus-minus)</button>
-          <button type="button" onclick="insertLatexSnippet('\\\\times')" class="latex-snippet-btn">× (times)</button>
+        <strong style="display: block; margin-bottom: 8px; color: #a1a1aa;">Common Equations:</strong>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 6px;">
+          <button type="button" onclick="insertLatexSnippet('E = mc^2')" class="latex-template-btn" style="background:#3f3f46;color:#fff;border:none;padding:5px;border-radius:4px;cursor:pointer;">E = mc²</button>
+          <button type="button" onclick="insertLatexSnippet('x = \\\\frac{-b \\\\pm \\\\sqrt{b^2 - 4ac}}{2a}')" class="latex-template-btn" style="background:#3f3f46;color:#fff;border:none;padding:5px;border-radius:4px;cursor:pointer;">Quadratic formula</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\lambda = \\\\frac{h}{p}')" class="latex-template-btn" style="background:#3f3f46;color:#fff;border:none;padding:5px;border-radius:4px;cursor:pointer;">de Broglie wavelength</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\Delta x \\\\cdot \\\\Delta p \\\\geq \\\\frac{h}{4\\\\pi}')" class="latex-template-btn" style="background:#3f3f46;color:#fff;border:none;padding:5px;border-radius:4px;cursor:pointer;">Uncertainty principle</button>
+          <button type="button" onclick="insertLatexSnippet('\\\\int_0^\\\\infty e^{-x} dx = 1')" class="latex-template-btn" style="background:#3f3f46;color:#fff;border:none;padding:5px;border-radius:4px;cursor:pointer;">Integral example</button>
+          <button type="button" onclick="insertLatexSnippet('F = ma')" class="latex-template-btn" style="background:#3f3f46;color:#fff;border:none;padding:5px;border-radius:4px;cursor:pointer;">Newton's 2nd law</button>
         </div>
       </div>
       
-      <div style="margin-bottom: 20px;">
-        <strong style="display: block; margin-bottom: 10px;">Common Equations:</strong>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px;">
-          <button type="button" onclick="insertLatexSnippet('E = mc^2')" class="latex-template-btn">E = mc²</button>
-          <button type="button" onclick="insertLatexSnippet('x = \\\\frac{-b \\\\pm \\\\sqrt{b^2 - 4ac}}{2a}')" class="latex-template-btn">Quadratic formula</button>
-          <button type="button" onclick="insertLatexSnippet('\\\\lambda = \\\\frac{h}{p}')" class="latex-template-btn">de Broglie wavelength</button>
-          <button type="button" onclick="insertLatexSnippet('\\\\Delta x \\\\cdot \\\\Delta p \\\\geq \\\\frac{h}{4\\\\pi}')" class="latex-template-btn">Uncertainty principle</button>
-          <button type="button" onclick="insertLatexSnippet('\\\\int_0^\\\\infty e^{-x} dx = 1')" class="latex-template-btn">Integral example</button>
-          <button type="button" onclick="insertLatexSnippet('F = ma')" class="latex-template-btn">Newton's 2nd law</button>
-        </div>
-      </div>
-      
-      <div style="display: flex; gap: 10px; justify-content: flex-end;">
-        <button type="button" onclick="closeLatexEditorModal()" style="padding: 10px 20px; background: #999; color: white; border: none; border-radius: 4px; cursor: pointer;">Cancel</button>
-        <button type="button" onclick="confirmLatexInsertion()" style="padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">Insert Equation</button>
+      <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: auto;">
+        <button type="button" onclick="closeLatexEditorModal()" style="padding: 10px 20px; background: #27272a; color: white; border: none; border-radius: 4px; cursor: pointer;">Cancel</button>
+        <button type="button" onclick="confirmLatexInsertion()" style="padding: 10px 20px; background: #6366f1; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Insert Equation</button>
       </div>
     </div>
   `;
@@ -2327,7 +2334,16 @@ function openLatexEditorModal() {
     const previewDiv = document.getElementById('latex-preview');
     const typeRadios = document.querySelectorAll('input[name="latex-type"]');
 
-    input.addEventListener('input', window.debounce(updateLatexPreview, 300));
+    let latexDebounceTimer = null;
+    input.addEventListener('input', () => {
+        clearTimeout(latexDebounceTimer);
+        previewDiv.style.opacity = '0.5';
+        latexDebounceTimer = setTimeout(() => {
+            updateLatexPreview();
+            previewDiv.style.opacity = '1';
+        }, 150);
+    });
+
     typeRadios.forEach(radio => radio.addEventListener('change', updateLatexPreview));
 
     input.focus();
@@ -3897,6 +3913,15 @@ async function viewCourse(courseId, assignmentId = null, forceRegular = false) {
     const course = myCourses.find((c) => c.id === courseId) ||
         availableCourses.find((c) => c.id === courseId) ||
         pendingCourses.find((c) => c.id === courseId);
+
+    if (assignmentId && course) {
+        localStorage.setItem('activeAssignmentId', assignmentId);
+        setTimeout(() => {
+            updateStudentActiveStatus("Active on Course: " + course.title);
+        }, 500);
+    } else {
+        localStorage.removeItem('activeAssignmentId');
+    }
 
     if (!course) {
         alert("Course not found");
@@ -8031,8 +8056,19 @@ async function viewClassSubmissions(classCode) {
             result.data.forEach(sub => {
                 const statusColor = sub.status === 'On Time' ? '#4ade80' : sub.status === 'Late' ? '#ff6b6b' : '#999';
                 const accuracyDisplay = displayStudentAccuracy(sub);
+                const currentStatus = sub.current_status || 'Not Started';
+                const indicatorColor = currentStatus.includes('Stuck') ? '#ef4444' : currentStatus.includes('Completed') ? '#10b981' : '#3b82f6';
                 html += `<tr style="border: 1px solid #555;">
-          <td style="padding: 10px; border: 1px solid #555;">${escapeHtml(sub.email)}</td>
+          <td style="padding: 10px; border: 1px solid #555; position: relative;" class="student-name-cell">
+            <span style="display: inline-flex; align-items: center; gap: 8px;">
+              <span style="width: 8px; height: 8px; border-radius: 50%; background-color: ${indicatorColor}; display: inline-block;" title="${escapeHtml(currentStatus)}"></span>
+              <strong>${escapeHtml(sub.email)}</strong>
+            </span>
+            <div class="hover-card" style="display: none; position: absolute; bottom: 100%; left: 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; padding: 10px; box-shadow: var(--shadow-lg); z-index: 1000; width: 240px; font-size: 0.85em; pointer-events: none; color: var(--text-light); text-align: left;">
+              <div style="font-weight: bold; color: var(--primary); margin-bottom: 4px;">Student Status:</div>
+              <div>${escapeHtml(currentStatus)}</div>
+            </div>
+          </td>
           <td style="padding: 10px; border: 1px solid #555; font-size: 0.9em;">${escapeHtml(sub.assignment_title)}</td>
           <td style="padding: 10px; border: 1px solid #555;">
             <div style="background: #333; border-radius: 4px; overflow: hidden; height: 20px;">
@@ -8480,3 +8516,38 @@ function setupCourseSortListener() {
         });
     }
 }
+
+// Global active student status update helper
+async function updateStudentActiveStatus(status) {
+    if (!authToken || !currentUser || currentUser.role !== 'student') return;
+    
+    const activeAssignmentId = localStorage.getItem('activeAssignmentId') || window.currentAssignmentId;
+    if (!activeAssignmentId) return;
+
+    try {
+        // Send via HTTP POST
+        fetch(`${API_BASE_URL}/api/student/update-status`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({
+                assignmentId: parseInt(activeAssignmentId),
+                status: status
+            })
+        });
+
+        // Send via WebSocket if connected
+        if (window.ws && window.ws.readyState === WebSocket.OPEN) {
+            window.ws.send(JSON.stringify({
+                type: 'update_status',
+                assignmentId: parseInt(activeAssignmentId),
+                status: status
+            }));
+        }
+    } catch (e) {
+        console.warn('Failed to update student active status:', e);
+    }
+}
+window.updateStudentActiveStatus = updateStudentActiveStatus;
