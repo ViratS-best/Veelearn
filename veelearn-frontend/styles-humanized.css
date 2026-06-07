@@ -240,17 +240,7 @@ textarea::placeholder {
   z-index: -2;
 }
 
-#landing-page .hero::after {
-  content: "";
-  position: absolute;
-  width: 220px;
-  height: 220px;
-  right: 18px;
-  bottom: 12px;
-  background: url('assets/brand/stem-wordmark.png') center/contain no-repeat;
-  opacity: 0.9;
-  z-index: -1;
-}
+
 
 #landing-page .hero h1 {
   color: #173c64 !important;
@@ -615,10 +605,7 @@ textarea::placeholder {
     height: 200px;
   }
 
-  #landing-page .hero::after {
-    width: 140px;
-    height: 140px;
-  }
+
 
   .viewer-layout {
     grid-template-columns: 1fr !important;
