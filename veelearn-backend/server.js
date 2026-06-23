@@ -871,8 +871,8 @@ const initializeDatabase = async () => {
             CREATE TABLE IF NOT EXISTS course_questions (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 course_id INT NOT NULL,
-                question_text TEXT NOT NULL,
-                question_type ENUM('multiple_choice', 'true_false', 'short_answer') DEFAULT 'multiple_choice',
+                question_text LONGTEXT NOT NULL,
+                question_type ENUM('multiple_choice', 'true_false', 'short_answer', 'fill_in_blank_with_image') DEFAULT 'multiple_choice',
                 options JSON,
                 correct_answer TEXT NOT NULL,
                 explanation TEXT,
@@ -884,13 +884,16 @@ const initializeDatabase = async () => {
             )
         `);
 
-        // Migrations for course_questions
+        // Migrations for existing course_questions tables (upgrades TEXT -> LONGTEXT and adds new enum value)
         try {
             await query(`ALTER TABLE course_questions MODIFY COLUMN question_text LONGTEXT NOT NULL`);
             await query(`ALTER TABLE course_questions MODIFY COLUMN question_type ENUM('multiple_choice', 'true_false', 'short_answer', 'fill_in_blank_with_image') DEFAULT 'multiple_choice'`);
-            info('✓ course_questions table migrated for LONGTEXT and new question types');
+            console.log('[INFO] ✓ course_questions table migrated for LONGTEXT and new question types');
         } catch (e) {
-            console.error('Error migrating course_questions:', e);
+            // This is expected to fail on fresh deployments where the table was already created correctly
+            if (e.code !== 'ER_BAD_FIELD_ERROR') {
+                console.error('[WARN] course_questions migration note:', e.message);
+            }
         }
 
         await query(`
