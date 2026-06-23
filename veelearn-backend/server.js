@@ -884,6 +884,15 @@ const initializeDatabase = async () => {
             )
         `);
 
+        // Migrations for course_questions
+        try {
+            await query(`ALTER TABLE course_questions MODIFY COLUMN question_text LONGTEXT NOT NULL`);
+            await query(`ALTER TABLE course_questions MODIFY COLUMN question_type ENUM('multiple_choice', 'true_false', 'short_answer', 'fill_in_blank_with_image') DEFAULT 'multiple_choice'`);
+            info('✓ course_questions table migrated for LONGTEXT and new question types');
+        } catch (e) {
+            console.error('Error migrating course_questions:', e);
+        }
+
         await query(`
             CREATE TABLE IF NOT EXISTS user_quiz_attempts (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -6191,7 +6200,7 @@ app.post('/api/courses/:courseId/questions/:questionId/answer', authenticateToke
     const { user_answer } = req.body;
 
     // Get the question to check correct answer
-    db.query('SELECT correct_answer, explanation FROM course_questions WHERE id = ?', [questionId], (err, results) => {
+    db.query('SELECT question_type, correct_answer, explanation FROM course_questions WHERE id = ?', [questionId], (err, results) => {
         if (err) {
             console.error('Error fetching question:', err);
             return apiResponse(res, 500, 'Server error');
@@ -6201,7 +6210,28 @@ app.post('/api/courses/:courseId/questions/:questionId/answer', authenticateToke
         }
 
         const question = results[0];
-        const isCorrect = user_answer.trim().toLowerCase() === question.correct_answer.trim().toLowerCase();
+        let isCorrect = false;
+        
+        if (question.question_type === 'fill_in_blank_with_image') {
+            try {
+                const parsedUser = JSON.parse(user_answer);
+                const parsedCorrect = JSON.parse(question.correct_answer);
+                
+                // Check if all parts match
+                isCorrect = true;
+                for (const key in parsedCorrect) {
+                    if (!parsedUser[key] || parsedUser[key].toString().trim().toLowerCase() !== parsedCorrect[key].toString().trim().toLowerCase()) {
+                        isCorrect = false;
+                        break;
+                    }
+                }
+            } catch (e) {
+                console.error("Error parsing fill_in_blank_with_image answers", e);
+                isCorrect = false;
+            }
+        } else {
+            isCorrect = user_answer.trim().toLowerCase() === question.correct_answer.trim().toLowerCase();
+        }
 
         // Record the attempt (Update if already exists to prevent double-counting)
         const insertQuery = `

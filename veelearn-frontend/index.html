@@ -614,16 +614,15 @@
           </div>
 
           <div class="editor-toolbar">
-            <button type="button" data-command="bold" title="Bold" style="color: #1e293b !important;"><b>B</b></button>
-            <button type="button" data-command="italic" title="Italic" style="color: #1e293b !important;"><i>I</i></button>
-            <button type="button" data-command="underline" title="Underline" style="color: #1e293b !important;"><u>U</u></button>
-            <button type="button" data-command="insertUnorderedList" title="Bullet List" style="color: #1e293b !important;">• List</button>
-            <button type="button" data-command="insertOrderedList" title="Numbered List" style="color: #1e293b !important;">1. List</button>
-            <button type="button" id="insert-phet-simulator" title="Add PhET Simulator" style="color: #1e293b !important;">⚛️ Simulator</button>
-            <button type="button" id="insert-block-simulator" title="Add Interactive Simulator" style="color: #1e293b !important;">🎮 Interactive
-              Simulator</button>
-            <button type="button" id="insert-quiz-question" title="Add Quiz Question" style="color: #1e293b !important;">❓ Question</button>
-            <button type="button" id="insert-latex" title="Insert LaTeX Equation" style="color: #1e293b !important;">∑ LaTeX</button>
+            <button type="button" data-command="bold" title="Bold"><i class="fas fa-bold"></i> B</button>
+            <button type="button" data-command="italic" title="Italic"><i class="fas fa-italic"></i> I</button>
+            <button type="button" data-command="underline" title="Underline"><i class="fas fa-underline"></i> U</button>
+            <button type="button" data-command="insertUnorderedList" title="Bullet List">• List</button>
+            <button type="button" data-command="insertOrderedList" title="Numbered List">1. List</button>
+            <button type="button" id="insert-phet-simulator" title="Add PhET Simulator">⚛️ PhET</button>
+            <button type="button" id="insert-block-simulator" title="Add Interactive Simulator">🎮 Interactive</button>
+            <button type="button" id="insert-quiz-question" title="Add Quiz Question">❓ Question</button>
+            <button type="button" id="insert-latex" title="Insert LaTeX Equation">∑ LaTeX</button>
           </div>
 
           <div class="pagination-controls"
@@ -793,7 +792,17 @@
           <option value="multiple_choice">Multiple Choice</option>
           <option value="true_false">True/False</option>
           <option value="short_answer">Short Answer</option>
+          <option value="fill_in_blank_with_image">Fill-in-the-Blank with Image</option>
         </select>
+        
+        <div id="quiz-image-upload-container" style="display: none; margin-bottom: 15px;">
+          <label>Problem Image (Optional)</label>
+          <input type="file" id="quiz-image-upload" accept="image/*" />
+          <div id="quiz-image-preview" style="margin-top: 10px; max-width: 100%; max-height: 200px; display: none;">
+             <img src="" style="max-width: 100%; max-height: 200px; border-radius: 4px; border: 1px solid var(--primary);" />
+             <button type="button" id="remove-quiz-image" style="display: block; margin-top: 5px; background: #e53e3e; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 0.8em;">Remove Image</button>
+          </div>
+        </div>
 
         <div id="quiz-options-container">
           <label>Answer Options (for Multiple Choice)</label>
@@ -805,10 +814,23 @@
           </div>
           <button type="button" id="add-quiz-option" class="secondary-btn">+ Add Option</button>
         </div>
+        
+        <div id="quiz-parts-container" style="display: none;">
+          <label>Question Parts (for Fill-in-the-Blank)</label>
+          <div id="quiz-parts-list">
+             <div class="quiz-part-item" style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <input type="text" class="quiz-part-label" placeholder="Part Label (e.g. part a)" style="flex: 1;" />
+                <input type="text" class="quiz-part-answer" placeholder="Correct Answer" style="flex: 1;" />
+                <input type="text" class="quiz-part-unit" placeholder="Unit (e.g. ft/min)" style="flex: 1;" />
+             </div>
+          </div>
+          <button type="button" id="add-quiz-part" class="secondary-btn">+ Add Part</button>
+        </div>
 
-        <label for="quiz-correct-answer">Correct Answer *</label>
-        <input type="text" id="quiz-correct-answer" placeholder="Enter the correct answer exactly as it should be"
-          required />
+        <div id="quiz-correct-answer-container">
+          <label for="quiz-correct-answer">Correct Answer *</label>
+          <input type="text" id="quiz-correct-answer" placeholder="Enter the correct answer exactly as it should be" />
+        </div>
 
         <textarea id="quiz-explanation" placeholder="Explain why the answer is correct (shown after submission)"
           rows="2"></textarea>

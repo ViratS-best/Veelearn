@@ -28,7 +28,7 @@ class KeyboardShortcuts {
 
     handleKeyDown(event) {
         // Don't trigger shortcuts when typing in input fields (except specific ones)
-        if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+        if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA' || event.target.isContentEditable) {
             // Allow Escape and Ctrl+K in input fields
             if (event.key !== 'Escape' && !(event.ctrlKey && event.key === 'k')) {
                 return;
