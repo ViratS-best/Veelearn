@@ -4483,11 +4483,57 @@ function setupQuizModalListeners() {
 
     if (questionTypeSelect) {
         questionTypeSelect.addEventListener('change', (e) => {
-            if (e.target.value === 'multiple_choice') {
-                optionsContainer.style.display = 'block';
-            } else {
-                optionsContainer.style.display = 'none';
+            const val = e.target.value;
+            const imgUpload = document.getElementById('quiz-image-upload-container');
+            const partsContainer = document.getElementById('quiz-parts-container');
+            const singleAnswer = document.getElementById('quiz-correct-answer-container');
+            
+            optionsContainer.style.display = val === 'multiple_choice' ? 'block' : 'none';
+            if (imgUpload) imgUpload.style.display = val === 'fill_in_blank_with_image' ? 'block' : 'none';
+            if (partsContainer) partsContainer.style.display = val === 'fill_in_blank_with_image' ? 'block' : 'none';
+            if (singleAnswer) singleAnswer.style.display = val === 'fill_in_blank_with_image' ? 'none' : 'block';
+        });
+    }
+
+    const addPartBtn = document.getElementById('add-quiz-part');
+    if (addPartBtn) {
+        addPartBtn.addEventListener('click', () => {
+            const partsList = document.getElementById('quiz-parts-list');
+            const partCount = partsList.querySelectorAll('.quiz-part-item').length + 1;
+            const newPart = document.createElement('div');
+            newPart.className = 'quiz-part-item';
+            newPart.style.display = 'flex';
+            newPart.style.gap = '10px';
+            newPart.style.marginBottom = '10px';
+            newPart.innerHTML = `
+                <input type="text" class="quiz-part-label" placeholder="Part Label (e.g. part ${String.fromCharCode(96 + partCount)})" style="flex: 1;" />
+                <input type="text" class="quiz-part-answer" placeholder="Correct Answer" style="flex: 1;" />
+                <input type="text" class="quiz-part-unit" placeholder="Unit (e.g. ft/min)" style="flex: 1;" />
+            `;
+            partsList.appendChild(newPart);
+        });
+    }
+
+    const imgUpload = document.getElementById('quiz-image-upload');
+    const imgPreview = document.getElementById('quiz-image-preview');
+    const removeImgBtn = document.getElementById('remove-quiz-image');
+    
+    if (imgUpload && imgPreview && removeImgBtn) {
+        imgUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    imgPreview.style.display = 'block';
+                    imgPreview.querySelector('img').src = e.target.result;
+                };
+                reader.readAsDataURL(file);
             }
+        });
+        removeImgBtn.addEventListener('click', () => {
+            imgUpload.value = '';
+            imgPreview.style.display = 'none';
+            imgPreview.querySelector('img').src = '';
         });
     }
 
@@ -4623,18 +4669,50 @@ function resetQuizForm() {
 }
 
 async function saveQuizQuestion() {
-    const questionText = document.getElementById('quiz-question-text').value.trim();
+    let questionText = document.getElementById('quiz-question-text').value.trim();
     const questionType = document.getElementById('quiz-question-type').value;
-    const correctAnswer = document.getElementById('quiz-correct-answer').value.trim();
+    let correctAnswer = document.getElementById('quiz-correct-answer').value.trim();
     const explanation = document.getElementById('quiz-explanation').value.trim();
     const points = parseInt(document.getElementById('quiz-points').value);
+
+    let options = null;
+
+    if (questionType === 'fill_in_blank_with_image') {
+        const imgPreview = document.getElementById('quiz-image-preview');
+        if (imgPreview && imgPreview.style.display !== 'none') {
+            const imgSrc = imgPreview.querySelector('img').src;
+            if (imgSrc && imgSrc.startsWith('data:image')) {
+                questionText = `<img src="${imgSrc}" class="quiz-embedded-image" style="max-width: 100%; border-radius: 4px; display: block; margin-bottom: 10px;" />\n` + questionText;
+            }
+        }
+
+        const partItems = document.querySelectorAll('.quiz-part-item');
+        options = [];
+        let correctAnswersObj = {};
+        
+        partItems.forEach(item => {
+            const label = item.querySelector('.quiz-part-label').value.trim();
+            const ans = item.querySelector('.quiz-part-answer').value.trim();
+            const unit = item.querySelector('.quiz-part-unit').value.trim();
+            if (label && ans) {
+                options.push({ label, unit });
+                correctAnswersObj[label] = ans;
+            }
+        });
+        
+        if (options.length === 0) {
+            alert('Please add at least one part for the fill-in-the-blank question.');
+            return;
+        }
+        
+        correctAnswer = JSON.stringify(correctAnswersObj);
+    }
 
     if (!questionText || !correctAnswer) {
         alert('Please fill in the question text and correct answer');
         return;
     }
 
-    let options = null;
     if (questionType === 'multiple_choice') {
         const optionInputs = document.querySelectorAll('.quiz-option-input');
         options = Array.from(optionInputs)
@@ -6117,7 +6195,7 @@ function createQuizQuestionElement(question, index) {
 
     let optionsHTML = '';
     if (question.question_type === 'multiple_choice' && question.options) {
-        optionsHTML = '<div class="quiz-options">';
+        optionsHTML = '<div class="quiz-options quiz-choice-container">';
         question.options.forEach((option, optIndex) => {
             optionsHTML += `
         <div class="quiz-option">
@@ -6140,6 +6218,20 @@ function createQuizQuestionElement(question, index) {
         </div>
       </div>
     `;
+    } else if (question.question_type === 'fill_in_blank_with_image') {
+        optionsHTML = '<div class="quiz-parts">';
+        if (question.options) {
+            question.options.forEach((part) => {
+                optionsHTML += `
+                    <div class="quiz-part-container" style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <span class="quiz-part-label-display" style="min-width: 60px; font-weight: bold; color: var(--primary);">${escapeHtml(part.label)}: </span>
+                        <input type="text" class="quiz-part-input" data-part="${escapeHtml(part.label)}" placeholder="Enter answer" style="flex: 1; padding: 0.8em; border: 1px solid var(--primary); border-radius: 4px; background: rgba(255,255,255,0.05); color: var(--light);">
+                        ${part.unit ? `<span class="quiz-part-unit-display" style="min-width: 60px;">${escapeHtml(part.unit)}</span>` : ''}
+                    </div>
+                `;
+            });
+        }
+        optionsHTML += '</div>';
     } else {
         optionsHTML = `
       <input type="text" id="q${question.id}-answer" placeholder="Enter your answer" style="width: 100%; padding: 0.8em; margin: 1em 0; border: 1px solid var(--primary); border-radius: 4px; background: rgba(255,255,255,0.05); color: var(--light);">
@@ -6170,6 +6262,13 @@ async function submitQuizAnswer(questionId) {
     let userAnswer;
     if (question.question_type === 'short_answer') {
         userAnswer = document.getElementById(`q${questionId}-answer`).value.trim();
+    } else if (question.question_type === 'fill_in_blank_with_image') {
+        const partInputs = document.querySelectorAll(`.quiz-question[data-question-id="${questionId}"] .quiz-part-input`);
+        let userAnswersObj = {};
+        partInputs.forEach(input => {
+            userAnswersObj[input.dataset.part] = input.value.trim();
+        });
+        userAnswer = JSON.stringify(userAnswersObj);
     } else {
         const selectedOption = document.querySelector(`input[name="question-${questionId}"]:checked`);
         if (!selectedOption) {
@@ -6216,8 +6315,13 @@ async function submitQuizAnswer(questionId) {
             }
 
             const submitBtn = feedbackDiv.previousElementSibling;
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Answered';
+            if (result.data.is_correct) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Answered';
+            } else {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Try Again';
+            }
         } else {
             alert('Error submitting answer: ' + result.message);
         }
