@@ -11,8 +11,10 @@
   --k12-secondary: #f59e0b;
   --k12-accent: #128c6a;
   --k12-danger: #d93f58;
+  --k12-danger: #d93f58;
   --k12-border: #c9def4;
   --k12-shadow: 0 10px 26px rgba(22, 56, 97, 0.12);
+  --k12-header-gradient: linear-gradient(120deg, rgba(255, 255, 255, 0.96), rgba(235, 245, 255, 0.96));
 }
 
 * {
@@ -82,7 +84,7 @@ header,
 .detail-header,
 .toolbar {
   background:
-    linear-gradient(120deg, rgba(255, 255, 255, 0.96), rgba(235, 245, 255, 0.96)),
+    var(--k12-header-gradient),
     url('assets/brand/stem-workshop.png') center/cover no-repeat !important;
   border: 1px solid var(--k12-border) !important;
   box-shadow: var(--k12-shadow) !important;
@@ -94,19 +96,19 @@ header h1,
 .header-bar h1,
 .dashboard-header h1,
 .detail-header h1 {
-  color: #12365f !important;
+  color: var(--k12-ink) !important;
 }
 
 header nav a,
 header nav button {
-  color: #1f4673 !important;
-  border-color: rgba(32, 88, 155, 0.2) !important;
+  color: var(--k12-ink) !important;
+  border-color: var(--k12-border) !important;
 }
 
 header nav a:hover,
 header nav button:hover {
-  background: rgba(30, 99, 208, 0.1) !important;
-  color: #134380 !important;
+  background: var(--k12-border) !important;
+  color: var(--k12-ink) !important;
 }
 
 section,
@@ -202,15 +204,15 @@ textarea,
 select,
 .pb-input,
 .sidebar-search input {
-  background: #ffffff !important;
-  color: #163458 !important;
-  border: 1px solid #b9d2ec !important;
+  background: var(--k12-surface) !important;
+  color: var(--k12-ink) !important;
+  border: 1px solid var(--k12-border) !important;
   border-radius: 10px !important;
 }
 
 input::placeholder,
 textarea::placeholder {
-  color: #5f7c98 !important;
+  color: var(--k12-ink-soft) !important;
 }
 
 /* Landing page: bright, playful STEM feel */
@@ -218,7 +220,7 @@ textarea::placeholder {
   background:
     radial-gradient(940px 460px at 12% 14%, rgba(47, 170, 237, 0.22), transparent 58%),
     radial-gradient(860px 460px at 88% 88%, rgba(80, 205, 146, 0.24), transparent 56%),
-    linear-gradient(160deg, #e9f6ff 0%, #f6fbff 100%) !important;
+    linear-gradient(160deg, var(--k12-bg) 0%, var(--k12-bg-alt) 100%) !important;
 }
 
 #landing-page .hero {
@@ -243,29 +245,29 @@ textarea::placeholder {
 
 
 #landing-page .hero h1 {
-  color: #173c64 !important;
+  color: var(--k12-ink) !important;
   font-size: clamp(2rem, 4.8vw, 3.5rem) !important;
   line-height: 1.12;
   max-width: 18ch;
 }
 
 #landing-page .hero p {
-  color: #284f79 !important;
+  color: var(--k12-ink-soft) !important;
   max-width: 64ch;
 }
 
 #landing-page .feature-card {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(160deg, #ffffff, #eef7ff) !important;
+  background: var(--k12-surface) !important;
 }
 
 #landing-page .feature-card h3 {
-  color: #1d4f81 !important;
+  color: var(--k12-ink) !important;
 }
 
 #landing-page .feature-card p {
-  color: #41658a !important;
+  color: var(--k12-ink-soft) !important;
 }
 
 #landing-page .feature-card:nth-child(1)::after {
@@ -281,18 +283,18 @@ textarea::placeholder {
 
 #landing-page .how-it-works {
   background:
-    linear-gradient(130deg, rgba(255, 255, 255, 0.93), rgba(243, 250, 255, 0.9)),
+    var(--k12-header-gradient),
     url('assets/brand/stem-workshop.png') center/cover no-repeat !important;
-  border: 1px solid #cde3f6;
+  border: 1px solid var(--k12-border);
 }
 
 #landing-page .how-it-works h2,
 #landing-page .how-it-works h4 {
-  color: #1a4777 !important;
+  color: var(--k12-ink) !important;
 }
 
 #landing-page .how-it-works p {
-  color: #3e6489 !important;
+  color: var(--k12-ink-soft) !important;
 }
 
 /* Simulator and dashboard pages forced to light surfaces */
@@ -310,8 +312,8 @@ textarea::placeholder {
 .palette-category-header,
 .preview-header,
 .console-header {
-  color: #173a60 !important;
-  background: linear-gradient(160deg, #ffffff, #eef6ff) !important;
+  color: var(--k12-ink) !important;
+  background: var(--k12-surface) !important;
 }
 
 .sidebar h2,
@@ -322,7 +324,7 @@ textarea::placeholder {
 .info-panel h3,
 .preview-header h3,
 .console-header h4 {
-  color: #1c4f82 !important;
+  color: var(--k12-ink) !important;
 }
 
 .stat-number,
@@ -343,9 +345,9 @@ textarea::placeholder {
 
 .console-output,
 .code-editor-panel textarea {
-  background: #f4f9ff !important;
-  color: #1e4a77 !important;
-  border: 1px solid #c9e0f5;
+  background: var(--bg-dark) !important;
+  color: var(--text-light) !important;
+  border: 1px solid var(--k12-border);
 }
 
 .placed-block {
@@ -424,9 +426,9 @@ textarea::placeholder {
 #dashboard-section [style*="background: rgba(102, 126, 234"],
 #dashboard-section [style*="background:rgba(102, 126, 234"],
 #dashboard-section [style*="background: rgba(0,0,0,0.3)"] {
-  background: #ffffff !important;
-  color: #1f4a76 !important;
-  border-color: #c9def4 !important;
+  background: var(--k12-surface) !important;
+  color: var(--k12-ink) !important;
+  border-color: var(--k12-border) !important;
 }
 
 #dashboard-section [style*="color: #fff"],
@@ -435,7 +437,7 @@ textarea::placeholder {
 #dashboard-section [style*="color:white"],
 #dashboard-section [style*="color: #ccc"],
 #dashboard-section [style*="color:#ccc"] {
-  color: #2b547b !important;
+  color: var(--k12-ink) !important;
 }
 
 #dashboard-section [style*="#667eea"],
@@ -453,17 +455,15 @@ textarea::placeholder {
 #course-content-editor,
 #unit-management-section,
 #unit-management-section > div {
-  background: #ffffff !important;
-  color: #1f4a76 !important;
-  border-color: #c9def4 !important;
+  background: var(--k12-surface) !important;
+  color: var(--k12-ink) !important;
+  border-color: var(--k12-border) !important;
 }
 
 #course-content-editor {
   min-height: 460px;
 }
 
-#course-editor-section .editor-toolbar button,
-#course-editor-section .secondary-btn,
 #course-editor-section .btn-save,
 #course-editor-section .btn-publish {
   color: #ffffff !important;
@@ -475,15 +475,15 @@ textarea::placeholder {
 #course-editor-section h4,
 #course-editor-section label,
 #course-editor-section .info-text {
-  color: #1f4a76 !important;
+  color: var(--k12-ink) !important;
 }
 
 #course-editor-section input,
 #course-editor-section textarea,
 #course-editor-section select {
-  background: #ffffff !important;
-  color: #1f4a76 !important;
-  border: 1px solid #c9def4 !important;
+  background: var(--k12-surface) !important;
+  color: var(--k12-ink) !important;
+  border: 1px solid var(--k12-border) !important;
 }
 
 /* Modal cleanup: remove old dark inline styles */
@@ -492,15 +492,15 @@ textarea::placeholder {
 #search-modal input,
 #search-modal .sim-sort-btn,
 #animation-pref-modal .animation-mode-btn {
-  background: #ffffff !important;
-  color: #1f4a76 !important;
-  border-color: #c9def4 !important;
+  background: var(--k12-surface) !important;
+  color: var(--k12-ink) !important;
+  border-color: var(--k12-border) !important;
 }
 
 #global-search-btn {
-  color: #1f4a76 !important;
-  background: #ffffff !important;
-  border: 1px solid #c9def4 !important;
+  color: var(--k12-ink) !important;
+  background: var(--k12-surface) !important;
+  border: 1px solid var(--k12-border) !important;
 }
 
 .course-pagination {
@@ -524,9 +524,9 @@ textarea::placeholder {
 }
 
 .course-pagination-buttons button {
-  border: 1px solid #c9def4 !important;
-  background: #ffffff !important;
-  color: #1d4d7f !important;
+  border: 1px solid var(--k12-border) !important;
+  background: var(--k12-surface) !important;
+  color: var(--k12-ink) !important;
   border-radius: 8px !important;
   padding: 7px 12px !important;
   font-weight: 700 !important;
@@ -542,19 +542,19 @@ textarea::placeholder {
 #viewer-regular-sidebar,
 #unit-navigation-sidebar,
 .related-courses {
-  background: linear-gradient(160deg, #ffffff, #f2f8ff) !important;
-  border-color: #c9def4 !important;
+  background: var(--k12-surface) !important;
+  border-color: var(--k12-border) !important;
 }
 
 #course-viewer-title,
 #course-viewer-description,
 #viewer-page-indicator {
-  color: #1a3e63 !important;
+  color: var(--k12-ink) !important;
 }
 
 #course-viewer-content,
 #course-viewer-content * {
-  color: #2a4d72 !important;
+  color: var(--k12-ink-soft) !important;
 }
 
 #course-viewer-content h1,
@@ -565,22 +565,22 @@ textarea::placeholder {
 #course-viewer-content h6,
 #course-viewer-content strong,
 #course-viewer-content b {
-  color: #173f68 !important;
+  color: var(--k12-ink) !important;
 }
 
 #course-viewer-content div[style*="background"],
 #course-viewer-content p[style*="background"],
 #course-viewer-content table[style*="background"] {
-  background: #f7fbff !important;
-  border-color: #c9def4 !important;
+  background: var(--k12-surface) !important;
+  border-color: var(--k12-border) !important;
 }
 
 #course-viewer-content table,
 #course-viewer-content th,
 #course-viewer-content td {
-  background: #ffffff !important;
-  border-color: #c9def4 !important;
-  color: #1f4a76 !important;
+  background: var(--k12-surface) !important;
+  border-color: var(--k12-border) !important;
+  color: var(--k12-ink) !important;
 }
 
 #course-viewer-content button,

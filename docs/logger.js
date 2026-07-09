@@ -74,5 +74,4 @@ if (typeof window !== 'undefined') {
     };
 }
 
-// For module usage
-export { debug, info, warn, error, setDebugLogging, isDevelopment, isDebugEnabled, LogLevel };
+// Logger is available globally via window.logger
