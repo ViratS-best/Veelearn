@@ -3592,11 +3592,13 @@ function renderUserCourses(searchText) {
 }
 
 function renderAvailableCourses(searchText) {
-    const lists = [
-        document.getElementById("available-courses-list-user"),
-        document.getElementById("available-courses-list-admin"),
-        document.getElementById("available-courses-list-superadmin"),
-    ];
+    const masterList = document.getElementById("available-courses-list-user");
+    const singleSection = document.getElementById("single-courses-section");
+    const singleList = document.getElementById("single-courses-list-user");
+
+    // Also update admin/superadmin lists if they exist
+    const adminList = document.getElementById("available-courses-list-admin");
+    const superadminList = document.getElementById("available-courses-list-superadmin");
 
     const resolvedSearch = typeof searchText === "string" ? searchText : availableCoursesCurrentSearch;
     const normalizedSearch = resolvedSearch.trim();
@@ -3606,40 +3608,73 @@ function renderAvailableCourses(searchText) {
     availableCoursesCurrentSearch = normalizedSearch;
 
     const filteredCourses = filterCourseList(availableCourses, normalizedSearch);
-    const pageData = paginateItems(filteredCourses, availableCoursesCurrentPage, COURSE_LIST_PAGE_SIZE);
-    availableCoursesCurrentPage = pageData.currentPage;
 
-    lists.forEach((list) => {
-        if (!list) return;
+    // Split into master and single/unit courses
+    const masterCourses = filteredCourses.filter(c => c.course_type === 'master');
+    const singleCourses = filteredCourses.filter(c => c.course_type !== 'master');
 
-        // INSTANT: Clear existing list to prevent duplicates
+    // When NOT searching, only show master courses
+    // When searching, show both master and single/unit courses
+    const isSearching = normalizedSearch.length > 0;
+
+    // --- Render Master Courses ---
+    const masterPageData = paginateItems(masterCourses, availableCoursesCurrentPage, COURSE_LIST_PAGE_SIZE);
+    availableCoursesCurrentPage = masterPageData.currentPage;
+
+    const allMasterLists = [masterList, adminList, superadminList].filter(Boolean);
+    allMasterLists.forEach((list) => {
         list.innerHTML = "";
 
-        if (availableCourses.length === 0) {
-            list.innerHTML = "<li><em>No available courses</em></li>";
+        if (masterCourses.length === 0) {
+            list.innerHTML = isSearching
+                ? `<li><em>No master courses found matching "${escapeHtml(normalizedSearch)}"</em></li>`
+                : "<li><em>No master courses available</em></li>";
             renderCoursePagination(list, "available", 0, 1, COURSE_LIST_PAGE_SIZE);
             return;
         }
 
-        if (filteredCourses.length === 0) {
-            list.innerHTML = `<li><em>No courses found matching "${escapeHtml(normalizedSearch)}"</em></li>`;
-            renderCoursePagination(list, "available", 0, 1, COURSE_LIST_PAGE_SIZE);
-            return;
+        masterPageData.pageItems.forEach((course) => {
+            list.appendChild(renderCourseCard(course));
+        });
+
+        renderCoursePagination(
+            list,
+            "available",
+            masterCourses.length,
+            availableCoursesCurrentPage,
+            COURSE_LIST_PAGE_SIZE
+        );
+    });
+
+    // --- Render Single/Unit Courses (only when searching) ---
+    if (singleSection) {
+        if (isSearching && singleCourses.length > 0) {
+            singleSection.style.display = "block";
+            if (singleList) {
+                singleList.innerHTML = "";
+                singleCourses.forEach((course) => {
+                    singleList.appendChild(renderCourseCard(course));
+                });
+            }
+        } else {
+            singleSection.style.display = "none";
+            if (singleList) singleList.innerHTML = "";
         }
+    }
+}
 
-        // INSTANT: Build and append items one by one instead of replacing all
-        pageData.pageItems.forEach((course) => {
-            const li = document.createElement("li");
-            const isLiked = course.is_liked ? true : false;
-            const likeCount = course.like_count || 0;
-            const likeButtonText = isLiked ? `❤️ ${likeCount}` : `🤍 ${likeCount}`;
-            const gradeLevelText = course.grade_level ? (course.grade_level === 13 ? 'College' : `Grade ${course.grade_level}`) : 'Any Level';
+function renderCourseCard(course) {
+    const li = document.createElement("li");
+    const isLiked = course.is_liked ? true : false;
+    const likeCount = course.like_count || 0;
+    const likeButtonText = isLiked ? `❤️ ${likeCount}` : `🤍 ${likeCount}`;
+    const gradeLevelText = course.grade_level ? (course.grade_level === 13 ? 'College' : `Grade ${course.grade_level}`) : 'Any Level';
 
-            li.className = "course-card";
-            li.style.display = "block";
-            li.style.listStyle = "none";
+    li.className = "course-card";
+    li.style.display = "block";
+    li.style.listStyle = "none";
 
-            li.innerHTML = `
+    li.innerHTML = `
          <div class="course-card-image" style="font-size: 40px; height: 120px;">🎓</div>
          <div class="course-card-content">
             <div class="course-card-title">${escapeHtml(course.title)}</div>
@@ -3661,17 +3696,7 @@ function renderAvailableCourses(searchText) {
             </div>
           </div>
         `;
-            list.appendChild(li);
-        });
-
-        renderCoursePagination(
-            list,
-            "available",
-            filteredCourses.length,
-            availableCoursesCurrentPage,
-            COURSE_LIST_PAGE_SIZE
-        );
-    });
+    return li;
 }
 
 function createNewCourse() {
