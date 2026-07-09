@@ -8421,7 +8421,7 @@ async function performGlobalSearch() {
             });
             const simData = await simRes.json();
             if (simData.success) {
-                const allSims = simData.data || [];
+                const allSims = simData.data?.simulators || (Array.isArray(simData.data) ? simData.data : []);
                 const q = query.toLowerCase();
                 simulators = allSims.filter(s =>
                     (s.title || '').toLowerCase().includes(q) ||
@@ -8467,14 +8467,36 @@ function renderSearchResults(courses, simulators) {
     // Render Courses
     if (courses && courses.length > 0) {
         coursesHeader.style.display = 'block';
-        coursesList.innerHTML = courses.map(c => `
-            <div style="background: #333; padding: 10px; border-radius: 4px; border-left: 4px solid #667eea; cursor: pointer;"
-                 onclick="viewCourseFromSearch(${c.id})">
-                <strong style="color: #fff; font-size: 16px;">${escapeHtml(c.title)}</strong>
-                <p style="color: #ccc; font-size: 14px; margin: 5px 0 0 0;">${escapeHtml(c.description || 'No description available.')}</p>
-                <small style="color: #999;">By ${escapeHtml(c.creator_email || '')}</small>
-            </div>
-        `).join('');
+        
+        const masterCourses = courses.filter(c => c.course_type === 'master');
+        const singleCourses = courses.filter(c => c.course_type !== 'master');
+        
+        let html = '';
+        if (masterCourses.length > 0) {
+            html += '<h4 style="color: #fff; margin: 10px 0 5px 0;">Master Courses</h4>';
+            html += masterCourses.map(c => `
+                <div style="background: #333; padding: 10px; border-radius: 4px; border-left: 4px solid #667eea; cursor: pointer; margin-bottom: 8px;"
+                     onclick="viewCourseFromSearch(${c.id})">
+                    <strong style="color: #fff; font-size: 16px;">${escapeHtml(c.title)}</strong>
+                    <p style="color: #ccc; font-size: 14px; margin: 5px 0 0 0;">${escapeHtml(c.description || 'No description available.')}</p>
+                    <small style="color: #999;">By ${escapeHtml(c.creator_email || 'Unknown')}</small>
+                </div>
+            `).join('');
+        }
+        
+        if (singleCourses.length > 0) {
+            html += '<h4 style="color: #fff; margin: 15px 0 5px 0;">Units / Single Courses</h4>';
+            html += singleCourses.map(c => `
+                <div style="background: #333; padding: 10px; border-radius: 4px; border-left: 4px solid #4ade80; cursor: pointer; margin-bottom: 8px;"
+                     onclick="viewCourseFromSearch(${c.id})">
+                    <strong style="color: #fff; font-size: 16px;">${escapeHtml(c.title)}</strong>
+                    <p style="color: #ccc; font-size: 14px; margin: 5px 0 0 0;">${escapeHtml(c.description || 'No description available.')}</p>
+                    <small style="color: #999;">By ${escapeHtml(c.creator_email || 'Unknown')}</small>
+                </div>
+            `).join('');
+        }
+        
+        coursesList.innerHTML = html;
     } else {
         coursesHeader.style.display = 'block';
         coursesList.innerHTML = '<p style="color: #999; font-style: italic;">No courses found for this query.</p>';

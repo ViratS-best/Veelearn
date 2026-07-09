@@ -4121,7 +4121,7 @@ SELECT c.id, c.title, c.description, c.content, c.blocks, c.creator_id, c.status
 FROM courses c
 LEFT JOIN users u ON c.creator_id = u.id
 LEFT JOIN course_likes cl ON c.id = cl.course_id AND cl.user_id = ?
-WHERE (c.status = 'approved' OR c.creator_id = ?)
+WHERE (c.status = 'approved' OR c.creator_id = ?) AND c.course_type = 'master'
 `;
 
     // Add grade_level filter if provided
@@ -7262,8 +7262,8 @@ app.get('/api/search', async (req, res) => {
 
     try {
         const courses = await query(
-            `SELECT id, title, description, status FROM courses 
-             WHERE status = 'published' AND (title LIKE ? OR description LIKE ?)
+            `SELECT id, title, description, status, course_type FROM courses 
+             WHERE status = 'approved' AND (title LIKE ? OR description LIKE ?)
              LIMIT 20`,
             [searchTerm, searchTerm]
         );
