@@ -33,7 +33,7 @@ async function openRouterChatCompletion(messages, opts = {}) {
         throw err;
     }
 
-    const model = process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash:free';
+    const model = process.env.OPENROUTER_MODEL || 'google/gemma-4-31b-it:free';
     const temperature = opts.temperature ?? 0.35;
     const max_tokens = opts.max_tokens ?? 1024;
     const referer = process.env.OPENROUTER_SITE_URL || 'https://veelearn.org';

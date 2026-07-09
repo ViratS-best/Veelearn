@@ -4121,7 +4121,7 @@ SELECT c.id, c.title, c.description, c.content, c.blocks, c.creator_id, c.status
 FROM courses c
 LEFT JOIN users u ON c.creator_id = u.id
 LEFT JOIN course_likes cl ON c.id = cl.course_id AND cl.user_id = ?
-WHERE (c.status = 'approved' OR c.creator_id = ?) AND c.course_type = 'master'
+WHERE (c.status = 'approved' OR c.creator_id = ?)
 `;
 
     // Add grade_level filter if provided

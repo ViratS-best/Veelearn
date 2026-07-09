@@ -509,9 +509,9 @@
           <div id="enrolled-courses-list"></div>
         </div>
 
-        <h4>Available Courses</h4>
+        <h4>🎓 Master Courses</h4>
         <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px; flex-wrap: wrap;">
-          <input type="text" id="availableCoursesSearch" placeholder="Search available courses..."
+          <input type="text" id="availableCoursesSearch" placeholder="Search all courses (master courses & units)..."
             style="flex: 1 1 300px; min-width: 250px; padding: 12px; font-size: 16px; border: 1px solid #667eea; border-radius: 4px; background: #222; color: #fff;" />
           <select id="courseSortDropdown"
             style="padding: 8px 12px; border: 1px solid #555; border-radius: 4px; background: #222; color: #fff; min-width: 140px;">
@@ -524,6 +524,11 @@
             style="padding: 8px 12px; color: #1e293b !important;">✕</button>
         </div>
         <ul id="available-courses-list-user"></ul>
+
+        <div id="single-courses-section" style="display: none; margin-top: 30px;">
+          <h4>📄 Units / Single Courses</h4>
+          <ul id="single-courses-list-user"></ul>
+        </div>
       </div>
 
       <div id="simulator-marketplace-section" style="margin-top: 30px;"></div>
