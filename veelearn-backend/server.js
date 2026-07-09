@@ -884,16 +884,20 @@ const initializeDatabase = async () => {
             )
         `);
 
-        // Migrations for existing course_questions tables (upgrades TEXT -> LONGTEXT and adds new enum value)
+        // Migration 1: Upgrade question_text from TEXT to LONGTEXT for base64 image support
         try {
             await query(`ALTER TABLE course_questions MODIFY COLUMN question_text LONGTEXT NOT NULL`);
-            await query(`ALTER TABLE course_questions MODIFY COLUMN question_type ENUM('multiple_choice', 'true_false', 'short_answer', 'fill_in_blank_with_image') DEFAULT 'multiple_choice'`);
-            console.log('[INFO] ✓ course_questions table migrated for LONGTEXT and new question types');
+            console.log('[INFO] ✓ course_questions.question_text migrated to LONGTEXT');
         } catch (e) {
-            // This is expected to fail on fresh deployments where the table was already created correctly
-            if (e.code !== 'ER_BAD_FIELD_ERROR') {
-                console.error('[WARN] course_questions migration note:', e.message);
-            }
+            console.error('[WARN] course_questions.question_text migration:', e.code, e.message);
+        }
+
+        // Migration 2: Add fill_in_blank_with_image to question_type ENUM
+        try {
+            await query(`ALTER TABLE course_questions MODIFY COLUMN question_type ENUM('multiple_choice', 'true_false', 'short_answer', 'fill_in_blank_with_image') DEFAULT 'multiple_choice'`);
+            console.log('[INFO] ✓ course_questions.question_type ENUM migrated');
+        } catch (e) {
+            console.error('[WARN] course_questions.question_type migration:', e.code, e.message);
         }
 
         await query(`

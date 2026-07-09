@@ -56,6 +56,16 @@
     --text-light: #fafafa !important;
     --text-muted: #a1a1aa !important;
     --border: #27272a !important;
+
+    /* K-12 STEM Theme Dark Overrides */
+    --k12-bg: #09090b !important;
+    --k12-bg-alt: #0a0e27 !important;
+    --k12-surface: #18181b !important;
+    --k12-ink: #fafafa !important;
+    --k12-ink-soft: #a1a1aa !important;
+    --k12-border: #27272a !important;
+    --k12-shadow: 0 10px 26px rgba(0, 0, 0, 0.5) !important;
+    --k12-header-gradient: linear-gradient(120deg, rgba(9, 9, 11, 0.96), rgba(24, 24, 27, 0.96)) !important;
 }
 
 /* Apply transitions to all elements */
