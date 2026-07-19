@@ -57,7 +57,7 @@ if (process.env.SMTP_EMAIL && process.env.SMTP_PASSWORD) {
 }
 
 async function sendEmail({ to, subject, html }) {
-    const senderEmail = process.env.SMTP_EMAIL || 'noreply@veelearn.com';
+    const senderEmail = process.env.SMTP_EMAIL || 'viratsuper@veelearn.org';
     const senderName = 'Veelearn';
 
     if (brevoApiKey) {
@@ -70,9 +70,13 @@ async function sendEmail({ to, subject, html }) {
             headers: {
                 'api-key': brevoApiKey,
                 'Content-Type': 'application/json'
-            }
+            },
+            validateStatus: () => true
         });
-        if (response.status >= 400) throw new Error(`Brevo error: ${response.statusText}`);
+        if (response.status >= 400) {
+            const detail = JSON.stringify(response.data).slice(0, 300);
+            throw new Error(`Brevo HTTP ${response.status}: ${detail}`);
+        }
         return;
     }
 

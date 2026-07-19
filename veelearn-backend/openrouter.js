@@ -1,6 +1,8 @@
 const axios = require('axios');
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const MAX_RETRIES_PER_KEY = 2;
+const BASE_RETRY_DELAY_MS = 2000;
 
 function getOpenRouterKeys() {
     const raw = process.env.OPENROUTER_API_KEYS || '';
@@ -15,9 +17,13 @@ function getOpenRouterKeys() {
 }
 
 function shouldTryNextKey(status, err) {
-    if (status === 401 || status === 429 || status >= 500) return true;
+    if (status === 401 || status >= 500) return true;
     if (err && (err.code === 'ECONNABORTED' || err.code === 'ETIMEDOUT' || err.code === 'ECONNRESET')) return true;
     return false;
+}
+
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -43,55 +49,72 @@ async function openRouterChatCompletion(messages, opts = {}) {
 
     for (let i = 0; i < keys.length; i++) {
         const key = keys[i];
-        try {
-            const res = await axios.post(
-                OPENROUTER_URL,
-                { model, messages, temperature, max_tokens },
-                {
-                    headers: {
-                        Authorization: `Bearer ${key}`,
-                        'HTTP-Referer': referer,
-                        'X-Title': title,
-                        'Content-Type': 'application/json'
-                    },
-                    timeout: 45000,
-                    validateStatus: () => true
+
+        for (let attempt = 0; attempt <= MAX_RETRIES_PER_KEY; attempt++) {
+            try {
+                const res = await axios.post(
+                    OPENROUTER_URL,
+                    { model, messages, temperature, max_tokens },
+                    {
+                        headers: {
+                            Authorization: `Bearer ${key}`,
+                            'HTTP-Referer': referer,
+                            'X-Title': title,
+                            'Content-Type': 'application/json'
+                        },
+                        timeout: 45000,
+                        validateStatus: () => true
+                    }
+                );
+
+                const status = res.status;
+
+                // Rate limited — retry this key with backoff before moving on
+                if (status === 429) {
+                    lastError = new Error(`OpenRouter HTTP 429 (rate limited)`);
+                    lastError.status = 429;
+                    if (attempt < MAX_RETRIES_PER_KEY) {
+                        const delay = BASE_RETRY_DELAY_MS * Math.pow(2, attempt);
+                        await sleep(delay);
+                        continue; // retry same key
+                    }
+                    break; // exhausted retries for this key, try next key
                 }
-            );
 
-            const status = res.status;
-            if (shouldTryNextKey(status)) {
-                lastError = new Error(`OpenRouter HTTP ${status}`);
-                lastError.status = status;
-                continue;
+                if (shouldTryNextKey(status)) {
+                    lastError = new Error(`OpenRouter HTTP ${status}`);
+                    lastError.status = status;
+                    break; // try next key immediately (no retry for 401/5xx)
+                }
+
+                if (status === 400) {
+                    const err = new Error(`OpenRouter bad request: ${JSON.stringify(res.data).slice(0, 300)}`);
+                    err.status = 400;
+                    throw err;
+                }
+
+                if (status !== 200) {
+                    lastError = new Error(`OpenRouter HTTP ${status}`);
+                    lastError.status = status;
+                    lastError.data = res.data;
+                    break;
+                }
+
+                const content = res.data?.choices?.[0]?.message?.content;
+                if (typeof content !== 'string' || !content.trim()) {
+                    lastError = new Error('Empty OpenRouter response');
+                    break;
+                }
+
+                return content.trim();
+            } catch (e) {
+                lastError = e;
+                const st = e.response?.status;
+                if (st && shouldTryNextKey(st, e)) break;
+                if (!e.response && shouldTryNextKey(0, e)) break;
+                if (e.response && !shouldTryNextKey(st, e)) throw e;
+                break;
             }
-
-            if (status === 400) {
-                const err = new Error(`OpenRouter bad request: ${JSON.stringify(res.data).slice(0, 300)}`);
-                err.status = 400;
-                throw err;
-            }
-
-            if (status !== 200) {
-                lastError = new Error(`OpenRouter HTTP ${status}`);
-                lastError.status = status;
-                lastError.data = res.data;
-                continue;
-            }
-
-            const content = res.data?.choices?.[0]?.message?.content;
-            if (typeof content !== 'string' || !content.trim()) {
-                lastError = new Error('Empty OpenRouter response');
-                continue;
-            }
-
-            return content.trim();
-        } catch (e) {
-            lastError = e;
-            const st = e.response?.status;
-            if (st && shouldTryNextKey(st, e)) continue;
-            if (!e.response && shouldTryNextKey(0, e)) continue;
-            if (e.response && !shouldTryNextKey(st, e)) throw e;
         }
     }
 
