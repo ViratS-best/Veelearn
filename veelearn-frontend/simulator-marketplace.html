@@ -1051,9 +1051,8 @@
         }
 
         function addToCoursechoiceSimulator(simulatorId) {
-            // This would integrate with the course editor
-            alert(`Would add simulator ${simulatorId} to your course. Redirect to course editor with this simulator.`);
-            // In real implementation, would pass simulator ID to course editor
+            // The main app shows a course picker and opens the course editor
+            // with this simulator ready to place.
             window.location.href = 'index.html?action=addSimulator&simulatorId=' + simulatorId;
         }
 
