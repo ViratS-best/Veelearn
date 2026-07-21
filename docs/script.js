@@ -1429,7 +1429,11 @@ function getYoutubeEmbedUrl(url) {
 function setupMessageListeners() {
     window.addEventListener("message", (e) => {
         if (e.data.type === "closeBlockSimulator") {
-            showDashboard();
+            // If the course editor is open, stay there — the user was editing a
+            // simulator inside a course and closing the studio shouldn't lose the course.
+            const editorSection = document.getElementById("course-editor-section");
+            const inCourseEditor = editorSection && getComputedStyle(editorSection).display !== "none";
+            if (!inCourseEditor) showDashboard();
         } else if (e.data.type === "save-simulator") {
             // Receive simulator data from popup (scratch-studio / legacy studio)
             const { data } = e.data;
@@ -2918,6 +2922,17 @@ function showDashboard() {
         showAdminDashboard();
     } else {
         showUserDashboard();
+    }
+
+    // Handle "Use in Course" redirect from the marketplace page
+    if (!window.__pendingAddSimHandled) {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('action') === 'addSimulator' && urlParams.get('simulatorId')) {
+            window.__pendingAddSimHandled = true;
+            const pendingSimId = parseInt(urlParams.get('simulatorId'));
+            history.replaceState({}, '', window.location.pathname);
+            setTimeout(() => showCoursePickerForSimulator(pendingSimId, null), 400);
+        }
     }
 
     // INSTANT: Load all data asynchronously in background without blocking UI
@@ -4413,11 +4428,13 @@ function openScratchPlayerEmbed(block, title, baseUrl) {
     modal.id = 'scratch-player-modal';
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;';
     modal.innerHTML = `
-      <div style="background:#09090b;border-radius:12px;padding:12px;max-width:520px;width:100%;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.5);">
-        <button id="scratch-player-close" style="position:absolute;top:8px;right:10px;background:transparent;border:none;color:#a1a1aa;font-size:22px;cursor:pointer;">&times;</button>
-        <h3 style="color:#fafafa;margin:0 0 10px 8px;font-size:16px;">${escapeHtml(title || 'Simulator')}</h3>
+      <div style="background:#09090b;border-radius:12px;padding:12px;max-width:540px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.5);">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 4px 10px;">
+          <h3 style="color:#fafafa;margin:0;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(title || 'Simulator')}</h3>
+          <button id="scratch-player-close" style="flex-shrink:0;background:#27272a;border:none;color:#fafafa;font-size:16px;cursor:pointer;border-radius:6px;width:28px;height:28px;line-height:1;">&times;</button>
+        </div>
         <iframe id="scratch-player-frame" src="${baseUrl}/scratch-player.html?embedded=true&t=${Date.now()}"
-          style="width:100%;height:440px;border:none;border-radius:8px;background:#111;" allowfullscreen></iframe>
+          style="width:100%;height:500px;border:none;border-radius:8px;background:#111;" allowfullscreen></iframe>
       </div>`;
     document.body.appendChild(modal);
     modal.querySelector('#scratch-player-close').onclick = () => modal.remove();
@@ -7216,11 +7233,7 @@ async function forkSimulator(simulatorId) {
     }
 }
 
-function addMarketplaceSimToCourse(simulatorId, title) {
-    if (!currentEditingCourseId) {
-        alert('Please open a course editor first, then add simulators from the toolbar.');
-        return;
-    }
+function insertMarketplaceSimBlock(simulatorId, title) {
     const blockId = Date.now();
     courseBlocks.push({
         id: blockId,
@@ -7230,6 +7243,102 @@ function addMarketplaceSimToCourse(simulatorId, title) {
         data: { simulatorId: simulatorId }
     });
     insertSimulatorBlock(blockId, title, 'Marketplace Simulator');
+}
+
+function addMarketplaceSimToCourse(simulatorId, title) {
+    const editorSection = document.getElementById("course-editor-section");
+    const inCourseEditor = currentEditingCourseId && editorSection && getComputedStyle(editorSection).display !== "none";
+    if (inCourseEditor) {
+        insertMarketplaceSimBlock(simulatorId, title);
+        return;
+    }
+    showCoursePickerForSimulator(simulatorId, title);
+}
+
+async function showCoursePickerForSimulator(simulatorId, title) {
+    if (!currentUser) {
+        alert('Please log in first to add simulators to your courses.');
+        return;
+    }
+
+    // Resolve the simulator title if we weren't given one (e.g. marketplace redirect)
+    if (!title) {
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/simulators/${simulatorId}`, {
+                headers: { Authorization: `Bearer ${authToken || localStorage.getItem('token') || ''}` },
+                credentials: 'include'
+            });
+            const json = await res.json();
+            if (json.success) title = json.data.title;
+        } catch (_) { /* fall through */ }
+        title = title || 'Simulator';
+    }
+
+    // Make sure we have the user's courses
+    if (!myCourses || myCourses.length === 0) {
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/courses`, {
+                headers: { Authorization: `Bearer ${authToken || localStorage.getItem('token') || ''}` },
+                credentials: 'include'
+            });
+            const json = await res.json();
+            if (json.success) {
+                myCourses = (json.data || []).filter(c => c.creator_id === currentUser.id);
+            }
+        } catch (err) {
+            console.error('Failed to load courses for picker:', err);
+        }
+    }
+
+    const existing = document.getElementById('course-picker-modal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'course-picker-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:10001;display:flex;align-items:center;justify-content:center;padding:20px;';
+
+    const courseListHtml = (myCourses && myCourses.length > 0)
+        ? myCourses.map(c => `
+            <button class="course-picker-item" data-course-id="${c.id}"
+                style="display:block;width:100%;text-align:left;padding:12px 14px;margin-bottom:8px;background:var(--panel,#18181b);border:1px solid var(--border,#3f3f46);border-radius:8px;color:var(--text,#fafafa);cursor:pointer;font-size:0.95em;">
+                <strong>${escapeHtml(c.title)}</strong>
+                <span style="display:block;font-size:0.8em;color:#a1a1aa;margin-top:2px;">${escapeHtml((c.description || '').slice(0, 80))}${c.status ? ` · ${escapeHtml(c.status)}` : ''}</span>
+            </button>`).join('')
+        : '<p style="color:#a1a1aa;padding:10px 0;">You haven\'t created any courses yet. Create a course first, then add this simulator to it.</p>';
+
+    modal.innerHTML = `
+      <div style="background:#09090b;border:1px solid #27272a;border-radius:12px;padding:20px;max-width:480px;width:100%;max-height:70vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.5);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <h3 style="color:#fafafa;margin:0;font-size:17px;">Add "${escapeHtml(title)}" to a course</h3>
+          <button id="course-picker-close" style="background:transparent;border:none;color:#a1a1aa;font-size:22px;cursor:pointer;line-height:1;">&times;</button>
+        </div>
+        <p style="color:#a1a1aa;font-size:0.85em;margin:0 0 12px;">Pick one of your courses — it will open in the editor with the simulator placed for you.</p>
+        <div style="overflow-y:auto;flex:1;">${courseListHtml}</div>
+      </div>`;
+
+    document.body.appendChild(modal);
+    modal.querySelector('#course-picker-close').onclick = () => modal.remove();
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+
+    modal.querySelectorAll('.course-picker-item').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const courseId = parseInt(btn.dataset.courseId);
+            modal.remove();
+            editCourse(courseId);
+            // The editor opens asynchronously (waits for quiz questions), so poll
+            // until it's visible before inserting the simulator block.
+            const started = Date.now();
+            const waiter = setInterval(() => {
+                const sec = document.getElementById('course-editor-section');
+                if (sec && getComputedStyle(sec).display !== 'none') {
+                    clearInterval(waiter);
+                    insertMarketplaceSimBlock(simulatorId, title);
+                } else if (Date.now() - started > 10000) {
+                    clearInterval(waiter);
+                }
+            }, 150);
+        });
+    });
 }
 
 function showFullMarketplace() {
@@ -7244,6 +7353,7 @@ window.viewSimulatorInStudio = viewSimulatorInStudio;
 window.viewSimulatorDetail = viewSimulatorDetail;
 window.forkSimulator = forkSimulator;
 window.addMarketplaceSimToCourse = addMarketplaceSimToCourse;
+window.showCoursePickerForSimulator = showCoursePickerForSimulator;
 window.showFullMarketplace = showFullMarketplace;
 window.renderSimulatorMarketplace = renderSimulatorMarketplace;
 
