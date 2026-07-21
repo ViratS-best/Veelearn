@@ -6,12 +6,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Block-Based Visual Simulator Creator</title>
   <link rel="icon" type="image/png" href="VEELEARN.png">
-  <link rel="stylesheet" href="luxury-editorial.css">
   <style>
     body {
       font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      background: #1a1a2e;
-      color: #eee;
+      background: #f4f6fa;
+      color: #1e293b;
       margin: 0;
       overflow: hidden;
       display: flex;
@@ -20,8 +19,9 @@
 
     .sidebar {
       width: 250px;
-      background: #16213e;
-      border-right: 2px solid #0f3460;
+      background: #ffffff;
+      border-right: 1px solid #e2e8f0;
+      box-shadow: 1px 0 4px rgba(15, 23, 42, 0.04);
       padding: 1em;
       overflow-y: auto;
       display: flex;
@@ -49,6 +49,7 @@
       padding-bottom: 0.5em;
     }
 
+    /* Palette blocks — unchanged */
     .block {
       background: linear-gradient(135deg, #533483 0%, #e94560 100%);
       padding: 0.8em;
@@ -57,6 +58,7 @@
       cursor: grab;
       transition: transform 0.2s;
       user-select: none;
+      color: #fff;
     }
 
     .block:hover {
@@ -71,11 +73,12 @@
     }
 
     .toolbar {
-      background: #0f3460;
+      background: #ffffff;
       padding: 1em;
       display: flex;
       gap: 0.5em;
-      border-bottom: 2px solid #533483;
+      border-bottom: 1px solid #e2e8f0;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
       flex-wrap: wrap;
       align-items: center;
     }
@@ -131,24 +134,35 @@
 
     .workspace {
       flex: 1;
-      background: #1a1a2e;
+      background-color: #f4f6fa;
+      background-image:
+        linear-gradient(rgba(148, 163, 184, 0.18) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148, 163, 184, 0.18) 1px, transparent 1px);
+      background-size: 24px 24px;
       position: relative;
       overflow: auto;
-      border-right: 2px solid #0f3460;
+      border-right: 1px solid #e2e8f0;
+    }
+
+    .workspace.drag-over {
+      background-color: rgba(59, 130, 246, 0.08);
+      outline: 2px dashed #3b82f6;
+      outline-offset: -4px;
     }
 
     .placed-block {
-      background: #16213e;
-      border: 1px solid #533483;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
       border-radius: 8px;
       padding: 0.8em;
       position: absolute;
       min-width: 150px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
       cursor: grab;
       user-select: none;
       transition: box-shadow 0.2s;
       z-index: 10;
+      color: #1e293b;
     }
 
     .placed-block.dragging {
@@ -166,7 +180,7 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 0.5em;
-      border-bottom: 1px solid #0f3460;
+      border-bottom: 1px solid #e2e8f0;
       padding-bottom: 0.5em;
     }
 
@@ -178,10 +192,14 @@
     .block-controls button {
       background: none;
       border: none;
-      color: #eee;
+      color: #64748b;
       font-size: 1.2em;
       cursor: pointer;
       padding: 0 0.3em;
+    }
+
+    .block-controls button:hover {
+      color: #e94560;
     }
 
     .block-input-group {
@@ -191,38 +209,52 @@
     .block-input-label {
       display: block;
       font-size: 0.8em;
-      color: #ccc;
+      color: #64748b;
       margin-bottom: 0.2em;
     }
 
     .block-input {
       width: 100%;
       padding: 0.4em;
-      background: #0f3460;
-      border: 1px solid #533483;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
       border-radius: 4px;
-      color: #eee;
+      color: #1e293b;
       font-size: 0.9em;
     }
 
+    .block-input:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+
     .block-input:disabled {
-      background: #2a2a3e;
+      background: #f1f5f9;
       cursor: not-allowed;
-      color: #999;
+      color: #94a3b8;
     }
 
     .preview-panel {
       width: 400px;
-      background: #16213e;
+      background: #ffffff;
+      border-left: 1px solid #e2e8f0;
       padding: 1em;
       display: flex;
       flex-direction: column;
+      color: #1e293b;
+    }
+
+    .preview-panel h2 {
+      color: #1e293b;
+      margin-top: 0;
     }
 
     .preview-canvas {
       background: white;
       border-radius: 8px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
       margin-bottom: 1em;
       flex-shrink: 0;
       position: relative;
@@ -233,6 +265,7 @@
       border-radius: 8px;
     }
 
+    /* Console stays dark — terminal style */
     .console {
       background: #0f0f0f;
       color: #0f0;
@@ -289,7 +322,7 @@
       padding: 0;
       width: 100vw;
       height: 100vh;
-      background: #1a1a2e;
+      background: #f4f6fa;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -310,7 +343,6 @@
       background: transparent;
       display: flex;
       flex-direction: row;
-      /* Side by side layout */
       gap: 20px;
       justify-content: center;
       align-items: center;
@@ -318,8 +350,8 @@
 
     body.view-only-active .preview-canvas {
       margin: 0;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-      border: 2px solid #533483;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+      border: 1px solid #e2e8f0;
       background: white;
       flex-shrink: 0;
     }
@@ -327,16 +359,16 @@
     /* Controls Panel for Sliders */
     .view-only-controls {
       display: none;
-      /* Hidden by default */
       width: 300px;
-      background: #16213e;
-      border: 2px solid #533483;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
       border-radius: 8px;
       padding: 20px;
       flex-direction: column;
       gap: 15px;
       max-height: 80vh;
       overflow-y: auto;
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
     }
 
     body.view-only-active .view-only-controls {
@@ -358,7 +390,7 @@
     }
 
     .control-value {
-      color: #ccc;
+      color: #64748b;
       font-weight: normal;
     }
 
@@ -366,7 +398,7 @@
       width: 100%;
       accent-color: #e94560;
       height: 6px;
-      background: #0f3460;
+      background: #e2e8f0;
       border-radius: 3px;
       outline: none;
     }
@@ -395,7 +427,7 @@
       display: block;
     }
 
-    /* Connection Points */
+    /* Connection Points — unchanged */
     .connection-point {
       width: 12px;
       height: 12px;
@@ -432,16 +464,14 @@
 
     .block-input-group .connection-point.input {
       left: -18px;
-      /* Move slightly outside block */
     }
 
     /* Highlight variable input in slider */
     .block-input[data-input-name="variable"] {
       border-color: #10b981;
-      background: #064e3b;
+      background: #ecfdf5;
     }
   </style>
-  <link rel="stylesheet" href="styles-humanized.css" />
 </head>
 
 <body>
@@ -660,7 +690,7 @@
       // FULL REPLACEMENT of body content to match simulator-view.html structure
       // We keep the scripts but replace the UI container
       const bodyContent = `
-        <div class="header" style="background: #0f3460; padding: 1.5em; border-bottom: 2px solid #533483; display: flex; justify-content: space-between; align-items: center;">
+        <div class="header" style="background: #ffffff; padding: 1.5em; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);">
             <h1 style="color: #e94560; font-size: 1.5em; margin: 0;">🎮 Simulator Viewer</h1>
             <div class="header-buttons" style="display: flex; gap: 1em;">
                 <button class="btn secondary" onclick="runSimulation()" style="padding: 0.7em 1.2em; background: #533483; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">▶ Run</button>
@@ -669,12 +699,12 @@
             </div>
         </div>
         
-        <div class="container" style="display: flex; height: calc(100vh - 80px); gap: 1em; padding: 1em;">
-            <div class="canvas-area" style="flex: 1; background: #16213e; border-radius: 8px; border: 2px solid #533483; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; overflow: hidden;">
-                <canvas id="simulatorCanvas" width="800" height="600" style="border-radius: 6px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5); max-width: 100%; max-height: 100%;"></canvas>
+        <div class="container" style="display: flex; height: calc(100vh - 80px); gap: 1em; padding: 1em; background: #f4f6fa;">
+            <div class="canvas-area" style="flex: 1; background: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; overflow: hidden; box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);">
+                <canvas id="simulatorCanvas" width="800" height="600" style="border-radius: 6px; box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08); max-width: 100%; max-height: 100%;"></canvas>
             </div>
             
-            <div class="info-panel" style="width: 350px; background: #16213e; border-radius: 8px; border: 2px solid #533483; padding: 1.5em; display: flex; flex-direction: column; overflow-y: auto;">
+            <div class="info-panel" style="width: 350px; background: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0; padding: 1.5em; display: flex; flex-direction: column; overflow-y: auto; box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);">
                 <h2 style="color: #e94560; margin-bottom: 1em; font-size: 1.2em;">🎛️ Controls</h2>
                 <div id="slidersContainer">
                     <!-- Sliders will be injected here -->
@@ -741,13 +771,13 @@
           controlGroup.innerHTML = `
             <label class="control-label" style="color: #e94560; font-weight: 600; font-size: 0.9em; display: flex; justify-content: space-between; margin-bottom: 5px;">
               ${escapeHtml(label)} (${escapeHtml(varName)})
-              <span class="control-value" id="val-${block.id}" style="color: #ccc; font-weight: normal;">${val}</span>
+              <span class="control-value" id="val-${block.id}" style="color: #64748b; font-weight: normal;">${val}</span>
             </label>
             <input type="range" class="control-slider" 
               min="${min}" max="${max}" value="${val}" 
               data-block-id="${block.id}"
               data-var-name="${escapeHtml(varName)}"
-              style="width: 100%; accent-color: #e94560; height: 6px; background: #0f3460; border-radius: 3px; outline: none;">
+              style="width: 100%; accent-color: #e94560; height: 6px; background: #e2e8f0; border-radius: 3px; outline: none;">
           `;
 
           slidersContainer.appendChild(controlGroup);
@@ -889,12 +919,12 @@
       if (isViewOnly) return;
       e.preventDefault();
       e.dataTransfer.dropEffect = "copy";
-      workspaceEl.style.backgroundColor = "rgba(102, 126, 234, 0.15)";
+      workspaceEl.classList.add("drag-over");
     });
 
     workspaceEl.addEventListener("dragleave", (e) => {
       if (e.target === workspaceEl) {
-        workspaceEl.style.backgroundColor = "#1a1a2e";
+        workspaceEl.classList.remove("drag-over");
       }
     });
 
@@ -902,7 +932,7 @@
       if (isViewOnly) return;
       e.preventDefault();
       e.stopPropagation();
-      workspaceEl.style.backgroundColor = "#1a1a2e";
+      workspaceEl.classList.remove("drag-over");
 
       console.log("Drop detected, draggedBlockPalette:", draggedBlockPalette);
       if (!draggedBlockPalette) {
