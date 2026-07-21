@@ -1438,9 +1438,10 @@ function setupMessageListeners() {
                 window.logger.debug('   currentEditingSimulatorBlockId:', currentEditingSimulatorBlockId);
             }
 
-            // Use the stored currentEditingSimulatorBlockId
-            if (currentEditingSimulatorBlockId && data) {
-                const blockIndex = courseBlocks.findIndex(b => b.id === currentEditingSimulatorBlockId);
+            // Use the stored currentEditingSimulatorBlockId, falling back to the id sent by the studio
+            const targetBlockId = currentEditingSimulatorBlockId || Number(e.data.courseBlockId) || e.data.courseBlockId;
+            if (targetBlockId && data) {
+                const blockIndex = courseBlocks.findIndex(b => b.id === targetBlockId);
                 if (blockIndex !== -1) {
                     if (isScratchSimulatorData(data)) {
                         courseBlocks[blockIndex].data = {
@@ -1456,9 +1457,9 @@ function setupMessageListeners() {
                             connections: data.connections || []
                         };
                     }
-                    if (window.logger) window.logger.debug('✅ Saved to block:', currentEditingSimulatorBlockId, 'at index:', blockIndex);
+                    if (window.logger) window.logger.debug('✅ Saved to block:', targetBlockId, 'at index:', blockIndex);
                 } else {
-                    console.warn('⚠️ Block not found:', currentEditingSimulatorBlockId);
+                    console.warn('⚠️ Block not found:', targetBlockId);
                 }
             }
         } else if (e.data.type === "saveBlockSimulator") {
