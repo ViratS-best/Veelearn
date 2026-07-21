@@ -34,7 +34,7 @@
   <link rel="stylesheet" href="mobile-responsive.css" />
   <link rel="stylesheet" href="lazy-loading.css" />
   <link rel="stylesheet" href="focus-indicators.css" />
-  <link rel="stylesheet" href="luxury-editorial.css" />
+  <link rel="stylesheet" href="stem-polish.css" />
   <meta name="keywords" content="STEM learning, interactive physics simulations, chemistry education, math learning, biology simulations, free education, K-12 learning, college STEM, PhET simulations, block-based programming, educational games, science education, online learning, volunteer hours" />
   <meta name="author" content="Veelearn by Virat" />
   <meta name="robots" content="index, follow" />
@@ -984,74 +984,13 @@
   <div id="redesign-container"></div>
 
   <style>
-    /* Study coach: fixed palette so text stays readable on any site theme */
-    #study-coach-root {
-      --sc-text: #ececf4;
-      --sc-text-soft: #b4b8c8;
-      --sc-bg: #1a1b26;
-      --sc-border: #3b3d52;
-      --sc-input-bg: #252636;
-      --sc-bubble-user: rgba(118, 139, 255, 0.35);
-      --sc-bubble-coach: rgba(255, 255, 255, 0.1);
-      color: var(--sc-text);
-      font-family: inherit;
-    }
-
-    #study-coach-root #study-coach-panel {
-      background: var(--sc-bg) !important;
-      border: 1px solid var(--sc-border) !important;
-    }
-
-    #study-coach-root #study-coach-messages,
-    #study-coach-root #study-coach-messages .study-coach-bubble,
-    #study-coach-root #study-coach-messages .study-coach-bubble div {
-      color: var(--sc-text) !important;
-    }
-
-    #study-coach-root #study-coach-messages .study-coach-bubble strong {
-      color: #ffffff !important;
-      display: block;
-      margin-bottom: 4px;
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      opacity: 0.9;
-    }
-
-    #study-coach-root .study-coach-header-title {
-      color: var(--sc-text) !important;
-    }
-
-    #study-coach-root .study-coach-disclaimer {
-      color: var(--sc-text-soft) !important;
-    }
-
-    #study-coach-root #study-coach-recs,
-    #study-coach-root #study-coach-recs * {
-      color: var(--sc-text-soft) !important;
-    }
-
-    #study-coach-root #study-coach-recs button {
-      color: #a8b4ff !important;
-    }
-
-    #study-coach-root #study-coach-input {
-      background: var(--sc-input-bg) !important;
-      color: var(--sc-text) !important;
-      border-color: var(--sc-border) !important;
-    }
-
-    #study-coach-root #study-coach-input::placeholder {
-      color: #7a7d90 !important;
-      opacity: 1;
-    }
-
+    /* Study coach typing animation; visual styling lives in stem-polish.css. */
     #study-coach-typing .study-coach-typing-dots {
       display: inline-flex;
       gap: 2px;
       align-items: center;
       min-height: 1.25em;
-      color: var(--sc-text-soft) !important;
+      color: var(--stem-muted) !important;
       font-size: 1.5rem;
       line-height: 1;
       padding: 4px 0;
@@ -1112,7 +1051,7 @@
       </div>
     </div>
     <button type="button" id="study-coach-fab" title="Study coach"
-      style="width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;font-size:20px;font-weight:700;box-shadow:0 4px 16px rgba(102,126,234,.5);">?</button>
+      style="width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;font-size:14px;font-weight:800;box-shadow:0 4px 16px rgba(102,126,234,.5);">AI</button>
   </div>
 
   <script src="block-templates-unified.js"></script>

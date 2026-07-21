@@ -1255,6 +1255,7 @@ function showStudyCoachTypingIndicator() {
     const wrap = document.createElement("div");
     wrap.id = "study-coach-typing";
     wrap.className = "study-coach-bubble";
+    wrap.classList.add("study-coach-coach");
     wrap.setAttribute("aria-busy", "true");
     wrap.setAttribute("aria-live", "polite");
     wrap.style.marginBottom = "10px";
@@ -1278,10 +1279,12 @@ function appendStudyCoachBubble(role, text) {
     wrap.style.borderRadius = "8px";
     wrap.style.whiteSpace = "pre-wrap";
     if (role === "user") {
+        wrap.classList.add("study-coach-user");
         wrap.style.background = "rgba(118, 139, 255, 0.35)";
         wrap.style.marginLeft = "12px";
         wrap.innerHTML = `<strong>You</strong><div>${escapeHtml(text)}</div>`;
     } else {
+        wrap.classList.add("study-coach-coach");
         wrap.style.background = "rgba(255,255,255,0.1)";
         wrap.style.marginRight = "12px";
         wrap.innerHTML = `<strong>Coach</strong><div>${escapeHtml(text)}</div>`;
