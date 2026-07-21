@@ -1431,11 +1431,10 @@ function setupMessageListeners() {
         if (e.data.type === "closeBlockSimulator") {
             showDashboard();
         } else if (e.data.type === "save-simulator") {
-            // Receive simulator data from popup (block-simulator.html sends this)
+            // Receive simulator data from popup (scratch-studio / legacy studio)
             const { data } = e.data;
             if (window.logger) {
                 window.logger.debug('💾 Received save-simulator message');
-                window.logger.debug('   blocks:', data?.blocks?.length, 'connections:', data?.connections?.length);
                 window.logger.debug('   currentEditingSimulatorBlockId:', currentEditingSimulatorBlockId);
             }
 
@@ -1443,10 +1442,20 @@ function setupMessageListeners() {
             if (currentEditingSimulatorBlockId && data) {
                 const blockIndex = courseBlocks.findIndex(b => b.id === currentEditingSimulatorBlockId);
                 if (blockIndex !== -1) {
-                    courseBlocks[blockIndex].data = {
-                        blocks: data.blocks || [],
-                        connections: data.connections || []
-                    };
+                    if (isScratchSimulatorData(data)) {
+                        courseBlocks[blockIndex].data = {
+                            format: 'veelearn-scratch-1',
+                            project: data.project || data.blocks || data,
+                            blocks: data.project || data.blocks || data,
+                            connections: [],
+                            sim_type: 'scratch'
+                        };
+                    } else {
+                        courseBlocks[blockIndex].data = {
+                            blocks: data.blocks || [],
+                            connections: data.connections || []
+                        };
+                    }
                     if (window.logger) window.logger.debug('✅ Saved to block:', currentEditingSimulatorBlockId, 'at index:', blockIndex);
                 } else {
                     console.warn('⚠️ Block not found:', currentEditingSimulatorBlockId);
@@ -2598,13 +2607,33 @@ function addVisualSimulator() {
     });
 }
 
+function isScratchSimulatorData(data) {
+    if (!data) return false;
+    if (data.format === 'veelearn-scratch-1' || data.sim_type === 'scratch') return true;
+    if (data.project && data.project.format === 'veelearn-scratch-1') return true;
+    if (data.blocks && !Array.isArray(data.blocks) && data.blocks.format === 'veelearn-scratch-1') return true;
+    return false;
+}
+
+function getScratchProjectFromData(data) {
+    if (!data) return null;
+    if (data.format === 'veelearn-scratch-1') return data;
+    if (data.project && data.project.format === 'veelearn-scratch-1') return data.project;
+    if (data.blocks && data.blocks.format === 'veelearn-scratch-1') return data.blocks;
+    return null;
+}
+
 function addBlockSimulator() {
     const blockId = Date.now();
     courseBlocks.push({
         id: blockId,
         type: "block-simulator",
         title: "Interactive Simulator",
-        data: { blocks: [], connections: [] },
+        data: {
+            format: 'veelearn-scratch-1',
+            connections: [],
+            sim_type: 'scratch'
+        },
     });
 
     startPlacementMode('block-simulator', {
@@ -4193,17 +4222,23 @@ function runEmbeddedBlockSimulator(blockId, title) {
     }
 
     if (block.type === 'block-simulator') {
-        // Create popup window for simulator studio
         const baseUrl = window.location.pathname.includes('github.io')
             ? 'https://virat-sisodiya.github.io/Veelearn/veelearn-frontend'
             : window.location.origin;
+
+        // New Scratch-format sims → player (stage + interactivity, no code editor)
+        if (isScratchSimulatorData(block.data) || !Array.isArray(block.data?.blocks)) {
+            openScratchPlayerEmbed(block, title, baseUrl);
+            return;
+        }
+
+        // Legacy node/wire sims → old studio viewer
         const popup = window.open(
             `${baseUrl}/simulator-studio.html?embedded=true&courseBlockId=${blockId}&t=${Date.now()}`,
             "simulator-studio",
             "width=1400,height=900"
         );
 
-        // Send the simulator's blocks and connections
         if (popup) {
             setTimeout(() => {
                 popup.postMessage(
@@ -4312,10 +4347,7 @@ function displayCourseSimulators(blocks) {
 }
 
 function viewSimulator(simulatorId) {
-    const baseUrl = window.location.pathname.includes('github.io')
-        ? 'https://virat-sisodiya.github.io/Veelearn/veelearn-frontend'
-        : window.location.origin;
-    window.open(`${baseUrl}/simulator-studio.html?viewOnly=true&simId=${simulatorId}`, '_blank');
+    viewSimulatorInStudio(simulatorId);
 }
 
 function deleteCourse(courseId) {
@@ -4372,6 +4404,36 @@ function enrollInCourse(courseId) {
         });
 }
 
+function openScratchPlayerEmbed(block, title, baseUrl) {
+    const existing = document.getElementById('scratch-player-modal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'scratch-player-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;';
+    modal.innerHTML = `
+      <div style="background:#09090b;border-radius:12px;padding:12px;max-width:520px;width:100%;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.5);">
+        <button id="scratch-player-close" style="position:absolute;top:8px;right:10px;background:transparent;border:none;color:#a1a1aa;font-size:22px;cursor:pointer;">&times;</button>
+        <h3 style="color:#fafafa;margin:0 0 10px 8px;font-size:16px;">${escapeHtml(title || 'Simulator')}</h3>
+        <iframe id="scratch-player-frame" src="${baseUrl}/scratch-player.html?embedded=true&t=${Date.now()}"
+          style="width:100%;height:440px;border:none;border-radius:8px;background:#111;" allowfullscreen></iframe>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.querySelector('#scratch-player-close').onclick = () => modal.remove();
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+
+    const frame = modal.querySelector('#scratch-player-frame');
+    const project = getScratchProjectFromData(block.data);
+    frame.onload = () => {
+        frame.contentWindow.postMessage({
+            type: 'load-simulator',
+            data: project || block.data,
+            blockTitle: title,
+            autoRun: true
+        }, '*');
+    };
+}
+
 function handleEditSimulator(event, blockId) {
     event.preventDefault();
     event.stopPropagation();
@@ -4389,21 +4451,26 @@ function handleEditSimulator(event, blockId) {
         const baseUrl = window.location.pathname.includes('github.io')
             ? 'https://virat-sisodiya.github.io/Veelearn/veelearn-frontend'
             : window.location.origin;
-        const popup = window.open(
-            `${baseUrl}/simulator-studio.html?edit=true&courseBlockId=${blockId}&t=${Date.now()}`,
-            "simulator-studio-editor",
-            "width=1400,height=900"
-        );
+
+        const useScratch = isScratchSimulatorData(block.data) || !Array.isArray(block.data?.blocks);
+        const studioUrl = useScratch
+            ? `${baseUrl}/scratch-studio.html?edit=true&courseBlockId=${blockId}&t=${Date.now()}`
+            : `${baseUrl}/simulator-studio.html?edit=true&courseBlockId=${blockId}&t=${Date.now()}`;
+
+        const popup = window.open(studioUrl, "simulator-studio-editor", "width=1400,height=900");
 
         if (popup) {
             setTimeout(() => {
+                const project = getScratchProjectFromData(block.data);
                 popup.postMessage(
                     {
                         type: "load-simulator",
-                        data: {
-                            blocks: block.data?.blocks || [],
-                            connections: block.data?.connections || []
-                        },
+                        data: useScratch
+                            ? (project || { format: 'veelearn-scratch-1' })
+                            : {
+                                blocks: block.data?.blocks || [],
+                                connections: block.data?.connections || []
+                            },
                         blockTitle: block.title,
                         courseBlockId: blockId,
                     },
@@ -7059,14 +7126,36 @@ function openSimulatorStudio() {
     const baseUrl = window.location.pathname.includes('github.io')
         ? 'https://virat-sisodiya.github.io/Veelearn/veelearn-frontend'
         : window.location.origin;
-    window.open(`${baseUrl}/simulator-studio.html`, 'simulator-studio', 'width=1400,height=900');
+    window.open(`${baseUrl}/scratch-studio.html`, 'simulator-studio', 'width=1400,height=900');
 }
 
 function viewSimulatorInStudio(simulatorId) {
     const baseUrl = window.location.pathname.includes('github.io')
         ? 'https://virat-sisodiya.github.io/Veelearn/veelearn-frontend'
         : window.location.origin;
-    window.open(`${baseUrl}/simulator-studio.html?viewOnly=true&simId=${simulatorId}`, 'simulator-studio', 'width=1400,height=900');
+    // Prefer player for running; fetch to detect type
+    fetch(`${API_BASE_URL}/api/simulators/${simulatorId}`, { credentials: 'include' })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) {
+                window.open(`${baseUrl}/scratch-player.html?simId=${simulatorId}`, 'simulator-player', 'width=560,height=520');
+                return;
+            }
+            const sim = data.data;
+            let blocks = sim.blocks;
+            if (typeof blocks === 'string') {
+                try { blocks = JSON.parse(blocks); } catch (_) {}
+            }
+            const isScratch = sim.sim_type === 'scratch' || (blocks && blocks.format === 'veelearn-scratch-1');
+            if (isScratch) {
+                window.open(`${baseUrl}/scratch-player.html?simId=${simulatorId}`, 'simulator-player', 'width=560,height=520');
+            } else {
+                window.open(`${baseUrl}/simulator-studio.html?viewOnly=true&simId=${simulatorId}`, 'simulator-studio', 'width=1400,height=900');
+            }
+        })
+        .catch(() => {
+            window.open(`${baseUrl}/scratch-player.html?simId=${simulatorId}`, 'simulator-player', 'width=560,height=520');
+        });
 }
 
 function viewSimulatorDetail(simulatorId) {
@@ -7116,7 +7205,7 @@ async function forkSimulator(simulatorId) {
             const baseUrl = window.location.pathname.includes('github.io')
                 ? 'https://virat-sisodiya.github.io/Veelearn/veelearn-frontend'
                 : window.location.origin;
-            window.open(`${baseUrl}/simulator-studio.html?simId=${data.data.simulatorId}`, 'simulator-studio', 'width=1400,height=900');
+            window.open(`${baseUrl}/scratch-studio.html?simId=${data.data.simulatorId}`, 'simulator-studio', 'width=1400,height=900');
         } else {
             alert('Fork failed: ' + data.message);
         }
