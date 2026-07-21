@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Veelearn Simulator Studio</title>
+  <script src="https://unpkg.com/blockly@11.1.1/blockly.min.js"></script>
+  <style>
+    :root {
+      --bg: #09090b;
+      --bg-panel: #18181b;
+      --bg-input: #27272a;
+      --border: #27272a;
+      --text: #fafafa;
+      --muted: #a1a1aa;
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --accent: #8b5cf6;
+      --success: #10b981;
+      --danger: #ef4444;
+      --radius: 0.5rem;
+      --stage-w: 480px;
+      --stage-h: 360px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); }
+
+    .topbar {
+      height: 48px; display: flex; align-items: center; gap: 12px;
+      padding: 0 14px; background: var(--bg-panel); border-bottom: 1px solid var(--border);
+    }
+    .brand { font-weight: 700; color: var(--primary); white-space: nowrap; }
+    .tabs { display: flex; gap: 4px; margin-left: 12px; }
+    .tab {
+      background: transparent; border: none; color: var(--muted); padding: 8px 14px;
+      cursor: pointer; font-size: 14px; font-weight: 600; border-bottom: 2px solid transparent;
+    }
+    .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .tab:hover { color: var(--text); }
+    .topbar-spacer { flex: 1; }
+    .btn {
+      border: none; border-radius: var(--radius); padding: 7px 12px; font-weight: 600;
+      cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-secondary { background: var(--bg-input); color: var(--text); }
+    .btn-secondary:hover { background: #3f3f46; }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-success { background: var(--success); color: white; }
+    .flag-btn { background: #22c55e; color: white; width: 36px; height: 32px; justify-content: center; font-size: 16px; }
+    .stop-btn { background: #ef4444; color: white; width: 36px; height: 32px; justify-content: center; font-size: 14px; }
+
+    .main { display: grid; grid-template-columns: 1fr var(--stage-w); height: calc(100% - 48px); }
+
+    .left-pane { display: flex; flex-direction: column; min-width: 0; border-right: 1px solid var(--border); }
+    .workspace-wrap { flex: 1; position: relative; min-height: 0; }
+    #blocklyDiv { position: absolute; inset: 0; }
+    .pane-hidden { display: none !important; }
+
+    .assets-pane, .sounds-pane {
+      flex: 1; overflow: auto; padding: 16px; background: #111113;
+    }
+    .asset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
+    .asset-card {
+      background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 10px; cursor: pointer; position: relative;
+    }
+    .asset-card.selected { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+    .asset-card img, .asset-card canvas {
+      width: 100%; height: 80px; object-fit: contain; background: repeating-conic-gradient(#333 0% 25%, #222 0% 50%) 50% / 12px 12px;
+      border-radius: 4px;
+    }
+    .asset-card .name { font-size: 12px; margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .asset-card .meta { font-size: 11px; color: var(--muted); }
+    .asset-card .del {
+      position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; border: none;
+      border-radius: 50%; background: rgba(0,0,0,.6); color: white; cursor: pointer; font-size: 12px;
+    }
+    .asset-actions { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+
+    .right-pane { display: flex; flex-direction: column; background: var(--bg-panel); min-height: 0; }
+    .stage-header {
+      display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .stage-wrap {
+      width: var(--stage-w); height: var(--stage-h); position: relative;
+      background: #fff; flex-shrink: 0;
+    }
+    #stageCanvas { width: 100%; height: 100%; display: block; cursor: crosshair; }
+    #monitors {
+      position: absolute; inset: 0; pointer-events: none; overflow: hidden;
+    }
+    #monitors .monitor {
+      pointer-events: auto; position: absolute; background: rgba(24,24,27,.92);
+      color: white; border-radius: 4px; padding: 4px 8px; font-size: 12px;
+      border: 1px solid #3f3f46; min-width: 90px;
+    }
+    #monitors .monitor.slider { min-width: 140px; }
+    #monitors .monitor label { display: block; font-size: 11px; color: #a1a1aa; margin-bottom: 2px; }
+    #monitors .monitor input[type=range] { width: 100%; }
+    #speech {
+      position: absolute; inset: 0; pointer-events: none; overflow: hidden;
+    }
+    .bubble {
+      position: absolute; background: white; color: #111; border: 2px solid #333;
+      border-radius: 12px; padding: 6px 10px; font-size: 13px; max-width: 160px;
+      transform: translate(-50%, -100%);
+    }
+    .bubble.think { border-style: dashed; }
+
+    .sprite-toolbar {
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+      padding: 8px 10px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      background: #111113; font-size: 12px;
+    }
+    .sprite-toolbar label { color: var(--muted); display: flex; align-items: center; gap: 4px; }
+    .sprite-toolbar input[type=text], .sprite-toolbar input[type=number] {
+      background: var(--bg-input); border: 1px solid var(--border); color: var(--text);
+      border-radius: 4px; padding: 4px 6px; width: 64px; font-size: 12px;
+    }
+    .sprite-toolbar input[type=text]#sprite-name { width: 100px; }
+    .icon-toggle {
+      width: 28px; height: 28px; border: 1px solid var(--border); background: var(--bg-input);
+      border-radius: 4px; color: var(--text); cursor: pointer;
+    }
+    .icon-toggle.active { background: var(--primary); border-color: var(--primary); }
+
+    .sprite-list-area {
+      flex: 1; display: grid; grid-template-columns: 1fr 88px; min-height: 0; overflow: hidden;
+    }
+    .sprites-grid {
+      display: flex; flex-wrap: wrap; gap: 8px; padding: 10px; overflow: auto; align-content: flex-start;
+    }
+    .sprite-card {
+      width: 88px; background: #111113; border: 2px solid transparent; border-radius: var(--radius);
+      padding: 6px; cursor: pointer; position: relative; text-align: center;
+    }
+    .sprite-card.selected { border-color: var(--primary); }
+    .sprite-card canvas, .sprite-card img {
+      width: 64px; height: 64px; object-fit: contain; background: #222; border-radius: 4px; margin: 0 auto; display: block;
+    }
+    .sprite-card .label { font-size: 11px; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sprite-card .trash {
+      position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; border: none;
+      border-radius: 50%; background: rgba(0,0,0,.55); color: #fff; font-size: 10px; cursor: pointer; display: none;
+    }
+    .sprite-card:hover .trash { display: block; }
+    .add-sprite-btn {
+      width: 44px; height: 44px; border-radius: 50%; border: none; background: var(--primary);
+      color: white; font-size: 22px; cursor: pointer; margin: 8px; align-self: flex-end;
+    }
+    .stage-card-col {
+      border-left: 1px solid var(--border); padding: 10px 8px; display: flex; flex-direction: column; align-items: center; gap: 8px;
+    }
+    .stage-thumb {
+      width: 72px; height: 54px; border-radius: 4px; border: 2px solid transparent; cursor: pointer;
+      background: #333; object-fit: cover;
+    }
+    .stage-thumb.selected { border-color: var(--primary); }
+    .add-backdrop-btn {
+      width: 36px; height: 36px; border-radius: 50%; border: none; background: var(--accent);
+      color: white; font-size: 18px; cursor: pointer;
+    }
+
+    .hidden-file { display: none; }
+    .toast {
+      position: fixed; bottom: 16px; right: 16px; background: var(--bg-panel); border: 1px solid var(--border);
+      padding: 10px 14px; border-radius: var(--radius); z-index: 1000; display: none;
+    }
+
+    /* Blockly dark theme overrides */
+    .blocklyMainBackground { fill: #111113 !important; }
+    .blocklyToolboxDiv { background: #18181b !important; color: var(--text) !important; }
+    .blocklyFlyoutBackground { fill: #1f1f23 !important; }
+    .blocklyScrollbarHandle { fill: #3f3f46 !important; }
+    .blocklyTreeRow { height: 28px !important; }
+    .blocklyTreeLabel { color: var(--text) !important; font-size: 13px !important; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <span class="brand">Veelearn Studio</span>
+    <nav class="tabs">
+      <button class="tab active" data-tab="code" id="tab-code">Code</button>
+      <button class="tab" data-tab="assets" id="tab-assets">Assets</button>
+      <button class="tab" data-tab="sounds" id="tab-sounds">Sounds</button>
+    </nav>
+    <div class="topbar-spacer"></div>
+    <button class="btn flag-btn" id="btn-flag" title="Green Flag">▶</button>
+    <button class="btn stop-btn" id="btn-stop" title="Stop">■</button>
+    <button class="btn btn-secondary" id="btn-save">Save</button>
+    <button class="btn btn-primary" id="btn-publish">Publish</button>
+    <button class="btn btn-danger" id="btn-exit">Exit</button>
+  </header>
+
+  <div class="main">
+    <section class="left-pane">
+      <div class="workspace-wrap" id="code-pane">
+        <div id="blocklyDiv"></div>
+      </div>
+      <div class="assets-pane pane-hidden" id="assets-pane">
+        <div class="asset-actions">
+          <button class="btn btn-primary" id="btn-upload-costume">Upload Image</button>
+          <button class="btn btn-secondary" id="btn-paint-costume">Paint Default</button>
+          <button class="btn btn-secondary" id="btn-library-costume">Starter Library</button>
+          <input type="file" id="costume-file" class="hidden-file" accept="image/png,image/jpeg,image/svg+xml,image/webp" />
+        </div>
+        <div class="asset-grid" id="costume-grid"></div>
+      </div>
+      <div class="sounds-pane pane-hidden" id="sounds-pane">
+        <div class="asset-actions">
+          <button class="btn btn-primary" id="btn-upload-sound">Upload Sound</button>
+          <input type="file" id="sound-file" class="hidden-file" accept="audio/*" />
+        </div>
+        <div class="asset-grid" id="sound-grid"></div>
+      </div>
+    </section>
+
+    <aside class="right-pane">
+      <div class="stage-header">
+        <button class="btn flag-btn" id="btn-flag-2" title="Green Flag">▶</button>
+        <button class="btn stop-btn" id="btn-stop-2" title="Stop">■</button>
+        <span style="flex:1"></span>
+        <button class="btn btn-secondary" id="btn-fullscreen" title="Fullscreen">⛶</button>
+      </div>
+      <div class="stage-wrap" id="stage-wrap">
+        <canvas id="stageCanvas" width="480" height="360"></canvas>
+        <div id="monitors"></div>
+        <div id="speech"></div>
+      </div>
+
+      <div class="sprite-toolbar" id="sprite-toolbar">
+        <label>Sprite <input type="text" id="sprite-name" /></label>
+        <label>x <input type="number" id="sprite-x" step="1" /></label>
+        <label>y <input type="number" id="sprite-y" step="1" /></label>
+        <button class="icon-toggle active" id="btn-show" title="Show">👁</button>
+        <button class="icon-toggle" id="btn-hide" title="Hide">🚫</button>
+        <label>Size <input type="number" id="sprite-size" min="1" max="500" /></label>
+        <label>Dir <input type="number" id="sprite-dir" step="1" /></label>
+      </div>
+
+      <div class="sprite-list-area">
+        <div>
+          <div class="sprites-grid" id="sprites-grid"></div>
+          <button class="add-sprite-btn" id="btn-add-sprite" title="New Sprite">+</button>
+        </div>
+        <div class="stage-card-col">
+          <div style="font-size:11px;color:var(--muted)">Stage</div>
+          <canvas class="stage-thumb" id="stage-thumb" width="72" height="54"></canvas>
+          <button class="add-backdrop-btn" id="btn-add-backdrop" title="Add Backdrop">+</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="scratch-blocks.js"></script>
+  <script src="scratch-stage.js"></script>
+  <script src="scratch-runtime.js"></script>
+  <script src="scratch-studio.js"></script>
+</body>
+</html>

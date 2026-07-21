@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Veelearn Simulator Player</title>
+  <style>
+    :root {
+      --bg: #09090b;
+      --panel: #18181b;
+      --border: #27272a;
+      --text: #fafafa;
+      --muted: #a1a1aa;
+      --primary: #6366f1;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .wrap {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 100%; padding: 16px; gap: 12px;
+    }
+    .toolbar {
+      display: flex; gap: 8px; align-items: center; width: 480px; max-width: 100%;
+    }
+    .title { flex: 1; font-weight: 600; font-size: 14px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .btn {
+      border: none; border-radius: 0.5rem; padding: 8px 12px; font-weight: 600; cursor: pointer; color: white;
+    }
+    .flag { background: #22c55e; }
+    .stop { background: #ef4444; }
+    .fs { background: var(--primary); }
+    .stage-wrap {
+      width: 480px; height: 360px; max-width: 100%; position: relative;
+      background: #fff; border-radius: 8px; overflow: hidden;
+      box-shadow: 0 0 0 1px var(--border);
+      aspect-ratio: 480 / 360;
+    }
+    #stageCanvas { width: 100%; height: 100%; display: block; cursor: crosshair; }
+    #monitors { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+    #monitors .monitor {
+      pointer-events: auto; position: absolute; background: rgba(24,24,27,.92);
+      color: white; border-radius: 4px; padding: 4px 8px; font-size: 12px;
+      border: 1px solid #3f3f46; min-width: 90px;
+    }
+    #monitors .monitor.slider { min-width: 140px; }
+    #monitors .monitor label { display: block; font-size: 11px; color: #a1a1aa; margin-bottom: 2px; }
+    #monitors .monitor input[type=range] { width: 100%; }
+    #speech { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+    .bubble {
+      position: absolute; background: white; color: #111; border: 2px solid #333;
+      border-radius: 12px; padding: 6px 10px; font-size: 13px; max-width: 160px;
+      transform: translate(-50%, -100%);
+    }
+    .bubble.think { border-style: dashed; }
+    .hint { font-size: 12px; color: var(--muted); width: 480px; max-width: 100%; }
+    .error { color: #f87171; padding: 20px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="toolbar">
+      <button class="btn flag" id="btn-flag" title="Green Flag">▶</button>
+      <button class="btn stop" id="btn-stop" title="Stop">■</button>
+      <span class="title" id="title">Simulator</span>
+      <button class="btn fs" id="btn-fs" title="Fullscreen">⛶</button>
+    </div>
+    <div class="stage-wrap" id="stage-wrap">
+      <canvas id="stageCanvas" width="480" height="360"></canvas>
+      <div id="monitors"></div>
+      <div id="speech"></div>
+    </div>
+    <p class="hint">Click the stage, then use arrow keys / WASD. Drag sliders to change variables.</p>
+  </div>
+
+  <script src="scratch-stage.js"></script>
+  <script src="scratch-runtime.js"></script>
+  <script>
+    const API_BASE_URL = (() => {
+      if (location.hostname.includes('github.io')) return 'https://veelearn-backend.onrender.com';
+      if (location.port === '5000' || location.port === '5500' || location.port === '8080') return 'http://localhost:3000';
+      return location.origin;
+    })();
+
+    let stage, runtime, project;
+
+    function emptyProject() {
+      const costume = ScratchStageUtils.makeDefaultCostume('costume1', '#6366f1');
+      const backdrop = ScratchStageUtils.makeDefaultBackdrop('backdrop1');
+      return {
+        format: 'veelearn-scratch-1',
+        stage: { backdrops: [backdrop], currentBackdrop: 0, workspace: {}, sounds: [] },
+        sprites: [{
+          id: 'sprite1', name: 'Sprite1', x: 0, y: 0, direction: 90, size: 100, visible: true,
+          costumes: [costume], currentCostume: 0, sounds: [], workspace: {}, variables: {}, lists: {}
+        }],
+        globals: { variables: {}, lists: {} }
+      };
+    }
+
+    function loadProject(data) {
+      if (data?.format === 'veelearn-scratch-1' && data.sprites) project = JSON.parse(JSON.stringify(data));
+      else if (data?.project?.format === 'veelearn-scratch-1') project = JSON.parse(JSON.stringify(data.project));
+      else if (data?.blocks?.format === 'veelearn-scratch-1' && data.blocks.sprites) project = JSON.parse(JSON.stringify(data.blocks));
+      else project = emptyProject();
+
+      const prepared = JSON.parse(JSON.stringify(project));
+      prepared.stage.workspace = { blocks: ScratchRuntime.workspaceToBlocksMap(prepared.stage.workspace) };
+      for (const s of prepared.sprites) {
+        s.workspace = { blocks: ScratchRuntime.workspaceToBlocksMap(s.workspace) };
+      }
+      runtime.loadProject(prepared);
+      for (let i = 0; i < runtime.targets.length; i++) {
+        runtime.targets[i].workspace = prepared.sprites[i].workspace;
+      }
+      runtime.project.stage.workspace = prepared.stage.workspace;
+
+      for (const [name, val] of Object.entries(project.globals?.variables || {})) {
+        stage.setMonitor(name, val, { mode: 'slider', visible: true, min: -100, max: 100 });
+      }
+      stage.draw(runtime.project, runtime.targets);
+    }
+
+    function greenFlag() {
+      document.getElementById('stageCanvas').focus();
+      loadProject(project);
+      runtime.greenFlag();
+    }
+
+    async function loadFromApi(id) {
+      const res = await fetch(`${API_BASE_URL}/api/simulators/${id}`, { credentials: 'include' });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.message || 'Load failed');
+      document.getElementById('title').textContent = json.data.title || 'Simulator';
+      let blocks = json.data.blocks;
+      if (typeof blocks === 'string') blocks = JSON.parse(blocks);
+      loadProject(blocks);
+    }
+
+    function init() {
+      stage = new ScratchStage(
+        document.getElementById('stageCanvas'),
+        document.getElementById('monitors'),
+        document.getElementById('speech')
+      );
+      runtime = new ScratchRuntime(stage);
+
+      document.getElementById('btn-flag').onclick = greenFlag;
+      document.getElementById('btn-stop').onclick = () => runtime.stop();
+      document.getElementById('btn-fs').onclick = () => {
+        const el = document.getElementById('stage-wrap');
+        if (!document.fullscreenElement) el.requestFullscreen?.();
+        else document.exitFullscreen?.();
+      };
+
+      window.addEventListener('message', (e) => {
+        if (!e.data) return;
+        if (e.data.type === 'load-simulator') {
+          const payload = e.data.data || e.data;
+          if (e.data.blockTitle) document.getElementById('title').textContent = e.data.blockTitle;
+          loadProject(payload.project || payload.blocks || payload);
+          if (e.data.autoRun !== false) setTimeout(greenFlag, 200);
+        }
+      });
+
+      const params = new URLSearchParams(location.search);
+      const simId = params.get('id') || params.get('simId');
+      if (simId) {
+        loadFromApi(simId).then(() => {
+          if (params.get('autoRun') !== 'false') setTimeout(greenFlag, 300);
+        }).catch(err => {
+          document.querySelector('.wrap').innerHTML = `<p class="error">Failed to load: ${err.message}</p>`;
+        });
+      } else {
+        // Wait for postMessage from course embed
+        setTimeout(() => {
+          if (!project) loadProject(emptyProject());
+        }, 500);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

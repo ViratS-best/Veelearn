@@ -1117,7 +1117,7 @@
         }
 
         function startCreatingSimulator() {
-            window.location.href = 'simulator-studio.html';
+            window.location.href = 'scratch-studio.html';
         }
 
         async function loadMySimulators() {
@@ -1137,7 +1137,7 @@
                 if (data.success && data.data) {
                     const container = document.getElementById('my-simulators-container');
                     if (data.data.length === 0) {
-                        container.innerHTML = '<p style="color: white; text-align: center; grid-column: 1/-1; padding: 2em;">No simulators created yet. <a href="simulator-studio.html" style="color: #667eea;">Create one now</a></p>';
+                        container.innerHTML = '<p style="color: white; text-align: center; grid-column: 1/-1; padding: 2em;">No simulators created yet. <a href="scratch-studio.html" style="color: #667eea;">Create one now</a></p>';
                     } else {
                         container.innerHTML = data.data.map(sim => `
                             <div class="simulator-card" onclick="viewSimulatorDetail(${sim.id})">
@@ -1189,9 +1189,22 @@
             return div.innerHTML;
         }
 
-        function runSimulator(simulatorId) {
-            // Open simulator in studio with full slider/interaction support
-            window.open(`simulator-studio.html?viewOnly=true&simId=${simulatorId}`, '_blank', 'width=1400,height=900');
+        async function runSimulator(simulatorId) {
+            // Scratch sims → player; legacy → old studio viewer
+            try {
+                const res = await fetch(`${API_BASE_URL}/simulators/${simulatorId}`);
+                const data = await res.json();
+                let blocks = data.data?.blocks;
+                if (typeof blocks === 'string') { try { blocks = JSON.parse(blocks); } catch (_) {} }
+                const isScratch = data.data?.sim_type === 'scratch' || blocks?.format === 'veelearn-scratch-1';
+                if (isScratch) {
+                    window.open(`scratch-player.html?simId=${simulatorId}`, '_blank', 'width=560,height=520');
+                } else {
+                    window.open(`simulator-studio.html?viewOnly=true&simId=${simulatorId}`, '_blank', 'width=1400,height=900');
+                }
+            } catch (_) {
+                window.open(`scratch-player.html?simId=${simulatorId}`, '_blank', 'width=560,height=520');
+            }
         }
 
         async function deleteSimulator(simId, simTitle, isBlock = false) {
