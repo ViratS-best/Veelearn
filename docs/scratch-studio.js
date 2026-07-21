@@ -588,7 +588,7 @@
       toolbox: ScratchBlocks.buildToolbox(),
       theme,
       renderer: 'zelos',
-      grid: { spacing: 20, length: 3, colour: '#2a2a2e', snap: true },
+      grid: { spacing: 20, length: 3, colour: '#d3dce8', snap: true },
       zoom: { controls: true, wheel: true, startScale: 0.85, maxScale: 2, minScale: 0.4 },
       trashcan: true,
       move: { scrollbars: true, drag: true, wheel: true },

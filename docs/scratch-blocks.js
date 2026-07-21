@@ -393,20 +393,20 @@
   }
 
   function createDarkTheme() {
-    return Blockly.Theme.defineTheme('veelearn_dark', {
+    return Blockly.Theme.defineTheme('veelearn_light', {
       base: Blockly.Themes.Classic,
       componentStyles: {
-        workspaceBackgroundColour: '#111113',
-        toolboxBackgroundColour: '#18181b',
-        toolboxForegroundColour: '#fafafa',
-        flyoutBackgroundColour: '#1f1f23',
-        flyoutForegroundColour: '#fafafa',
+        workspaceBackgroundColour: '#f8fafc',
+        toolboxBackgroundColour: '#ffffff',
+        toolboxForegroundColour: '#1e293b',
+        flyoutBackgroundColour: '#eef2f7',
+        flyoutForegroundColour: '#1e293b',
         flyoutOpacity: 1,
-        scrollbarColour: '#3f3f46',
-        insertionMarkerColour: '#6366f1',
+        scrollbarColour: '#cbd5e1',
+        insertionMarkerColour: '#2563eb',
         insertionMarkerOpacity: 0.5,
         scrollbarOpacity: 0.6,
-        cursorColour: '#6366f1'
+        cursorColour: '#2563eb'
       }
     });
   }
