@@ -2622,9 +2622,11 @@ function isScratchSimulatorData(data) {
 
 function getScratchProjectFromData(data) {
     if (!data) return null;
-    if (data.format === 'veelearn-scratch-1') return data;
+    // Prefer an actual project object (has sprites) over the save wrapper
+    if (data.format === 'veelearn-scratch-1' && data.sprites) return data;
     if (data.project && data.project.format === 'veelearn-scratch-1') return data.project;
-    if (data.blocks && data.blocks.format === 'veelearn-scratch-1') return data.blocks;
+    if (data.blocks && data.blocks.format === 'veelearn-scratch-1' && data.blocks.sprites) return data.blocks;
+    if (data.format === 'veelearn-scratch-1') return data;
     return null;
 }
 
@@ -4269,6 +4271,14 @@ function runEmbeddedBlockSimulator(blockId, title) {
                 );
             }, 500);
         }
+    } else if (block.type === 'marketplace-simulator') {
+        // Marketplace sims live on the server — run them by id via the shared viewer
+        const simulatorId = block.simulatorId || block.data?.simulatorId;
+        if (!simulatorId) {
+            alert("Simulator reference is missing");
+            return;
+        }
+        viewSimulatorInStudio(simulatorId);
     } else if (block.type === 'visual-simulator') {
         // Run visual/code-based simulator
         const baseUrl = window.location.pathname.includes('github.io')
@@ -4477,18 +4487,71 @@ function handleEditSimulator(event, blockId) {
 
         const popup = window.open(studioUrl, "simulator-studio-editor", "width=1400,height=900");
 
-        if (popup) {
+        if (popup && useScratch) {
+            // The scratch studio loads Blockly from a CDN, so its message listener may
+            // not exist yet when a fixed timeout fires. Use a ready-handshake
+            // (studio posts 'studio-ready') plus a retry-until-ack fallback so the
+            // project payload is never lost — losing it would make the studio open
+            // blank and overwrite the real project on exit.
+            const project = getScratchProjectFromData(block.data);
+            const payload = {
+                type: "load-simulator",
+                data: project || { format: 'veelearn-scratch-1' },
+                blockTitle: block.title,
+                courseBlockId: blockId,
+            };
+
+            let acked = false;
+            let retryTimer = null;
+
+            const sendLoad = () => {
+                if (acked || popup.closed) return;
+                try {
+                    popup.postMessage(payload, "*");
+                } catch (err) {
+                    console.warn("Failed to post load-simulator to studio:", err);
+                }
+            };
+
+            const cleanup = () => {
+                window.removeEventListener("message", onStudioMessage);
+                if (retryTimer) clearInterval(retryTimer);
+            };
+
+            const onStudioMessage = (e) => {
+                if (!e.data || !e.data.type) return;
+                const fromPopup = e.source === popup;
+                const sameBlock = String(e.data.courseBlockId) === String(blockId);
+                if (!fromPopup && !sameBlock) return;
+
+                if (e.data.type === "studio-ready") {
+                    sendLoad();
+                } else if (e.data.type === "load-simulator-ack") {
+                    acked = true;
+                    cleanup();
+                }
+            };
+            window.addEventListener("message", onStudioMessage);
+
+            // Fallback: retry every 400ms until acked, give up after ~10s
+            retryTimer = setInterval(() => {
+                if (acked || popup.closed) {
+                    cleanup();
+                    return;
+                }
+                sendLoad();
+            }, 400);
+            setTimeout(cleanup, 10000);
+        } else if (popup) {
+            // Legacy node/wire studio — original single-shot delivery
             setTimeout(() => {
-                const project = getScratchProjectFromData(block.data);
                 popup.postMessage(
                     {
                         type: "load-simulator",
-                        data: useScratch
-                            ? (project || { format: 'veelearn-scratch-1' })
-                            : {
-                                blocks: block.data?.blocks || [],
-                                connections: block.data?.connections || []
-                            },
+                        data: {
+                            blocks: block.data?.blocks || [],
+                            connections: block.data?.connections || []
+                        },
                         blockTitle: block.title,
                         courseBlockId: blockId,
                     },
@@ -4496,6 +4559,22 @@ function handleEditSimulator(event, blockId) {
                 );
             }, 500);
         }
+    } else if (block.type === "marketplace-simulator") {
+        // Marketplace sims are stored on the server; open the studio on the sim id.
+        // The studio loads it via ?simId= and saves back to the marketplace (PUT).
+        const simulatorId = block.simulatorId || block.data?.simulatorId;
+        if (!simulatorId) {
+            alert("Simulator reference is missing");
+            return;
+        }
+        const baseUrl = window.location.pathname.includes('github.io')
+            ? 'https://virat-sisodiya.github.io/Veelearn/veelearn-frontend'
+            : window.location.origin;
+        window.open(
+            `${baseUrl}/scratch-studio.html?simId=${simulatorId}&t=${Date.now()}`,
+            "simulator-studio-editor",
+            "width=1400,height=900"
+        );
     } else if (block.type === "visual-simulator") {
         const baseUrl = window.location.pathname.includes('github.io')
             ? 'https://virat-sisodiya.github.io/Veelearn/veelearn-frontend'
