@@ -729,6 +729,10 @@
         } else {
           loadProjectData(payload);
         }
+        // Acknowledge so the parent stops retrying delivery
+        if (e.source && typeof e.source.postMessage === 'function') {
+          try { e.source.postMessage({ type: 'load-simulator-ack', courseBlockId }, '*'); } catch (_) {}
+        }
       }
     });
 
@@ -756,10 +760,12 @@
       loadFromApi(simId);
     } else {
       loadProjectData(null);
-      // Wait for parent postMessage
-      setTimeout(() => {
-        if (!project) loadProjectData(null);
-      }, 600);
+      // Tell the opener we're fully initialized so it can post the project.
+      // A fixed timeout on the parent side loses the message when Blockly
+      // (loaded from a CDN) takes longer than expected to initialize.
+      if (window.opener) {
+        try { window.opener.postMessage({ type: 'studio-ready', courseBlockId }, '*'); } catch (_) {}
+      }
     }
   }
 
