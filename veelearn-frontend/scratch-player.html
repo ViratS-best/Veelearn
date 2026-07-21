@@ -76,8 +76,9 @@
   <script src="scratch-runtime.js"></script>
   <script>
     const API_BASE_URL = (() => {
-      if (location.hostname.includes('github.io')) return 'https://veelearn-backend.onrender.com';
-      if (location.port === '5000' || location.port === '5500' || location.port === '8080') return 'http://localhost:3000';
+      if (location.hostname.includes('veelearn.org')) return 'https://api.veelearn.org';
+      if (location.hostname.includes('github.io')) return 'https://veelearn.onrender.com';
+      if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') return 'http://localhost:3000';
       return location.origin;
     })();
 

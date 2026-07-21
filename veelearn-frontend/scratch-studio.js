@@ -5,14 +5,18 @@
   'use strict';
 
   const API_BASE_URL = (() => {
-    if (typeof location !== 'undefined' && location.hostname.includes('github.io')) {
-      return 'https://veelearn-backend.onrender.com';
-    }
-    if (typeof location !== 'undefined' && (location.port === '5000' || location.port === '5500' || location.port === '8080')) {
-      return 'http://localhost:3000';
-    }
+    if (location.hostname.includes('veelearn.org')) return 'https://api.veelearn.org';
+    if (location.hostname.includes('github.io')) return 'https://veelearn.onrender.com';
+    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') return 'http://localhost:3000';
     return location.origin;
   })();
+
+  function authHeaders() {
+    const headers = { 'Content-Type': 'application/json' };
+    const token = localStorage.getItem('token');
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return headers;
+  }
 
   let workspace = null;
   let stage = null;
@@ -21,6 +25,7 @@
   let selectedId = null; // sprite id or 'stage'
   let courseBlockId = null;
   let editingSimId = null;
+  let projectTitle = null;
   let dirty = false;
 
   function uid(prefix) {
@@ -382,9 +387,9 @@
     return JSON.parse(JSON.stringify(project));
   }
 
-  function saveToParent() {
+  async function saveToParent() {
     const data = buildSavePayload();
-    if (window.opener) {
+    if (window.opener && courseBlockId) {
       window.opener.postMessage({
         type: 'save-simulator',
         data: {
@@ -397,24 +402,62 @@
         },
         courseBlockId
       }, '*');
-      toast('Saved');
-    } else {
-      localStorage.setItem('veelearn-scratch-draft', JSON.stringify(data));
-      toast('Draft saved locally');
+      toast('Saved to course');
+      dirty = false;
+      return;
     }
+
+    // Standalone: update existing marketplace sim if we have one
+    if (editingSimId) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/simulators/${editingSimId}`, {
+          method: 'PUT',
+          headers: authHeaders(),
+          credentials: 'include',
+          body: JSON.stringify({
+            title: projectTitle || 'My Simulation',
+            blocks: data,
+            connections: [],
+            sim_type: 'scratch'
+          })
+        });
+        const json = await res.json();
+        if (json.success) {
+          toast('Saved to marketplace');
+          dirty = false;
+          return;
+        }
+        console.warn('Save failed:', json.message);
+      } catch (err) {
+        console.error('Save error:', err);
+      }
+    }
+
+    localStorage.setItem('veelearn-scratch-draft', JSON.stringify(data));
+    toast(editingSimId ? 'Save failed — draft kept locally' : 'Draft saved locally');
     dirty = false;
   }
 
   async function publishSimulator() {
-    const title = prompt('Simulator title:', 'My Simulation');
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Please log in on the main Veelearn site first, then reopen the studio to publish.');
+      return;
+    }
+    const title = prompt('Simulator title:', projectTitle || 'My Simulation');
     if (!title) return;
+    projectTitle = title;
     const description = prompt('Description (optional):', '') || '';
     const data = buildSavePayload();
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/simulators`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const isUpdate = !!editingSimId;
+      const url = isUpdate
+        ? `${API_BASE_URL}/api/simulators/${editingSimId}`
+        : `${API_BASE_URL}/api/simulators`;
+      const res = await fetch(url, {
+        method: isUpdate ? 'PUT' : 'POST',
+        headers: authHeaders(),
         credentials: 'include',
         body: JSON.stringify({
           title,
@@ -428,22 +471,32 @@
       });
       const json = await res.json();
       if (json.success) {
-        toast('Published!');
-        editingSimId = json.data?.simulatorId;
+        if (!isUpdate) editingSimId = json.data?.simulatorId;
+        // Ensure it's public
+        if (editingSimId) {
+          fetch(`${API_BASE_URL}/api/simulators/${editingSimId}/publish`, {
+            method: 'POST',
+            headers: authHeaders(),
+            credentials: 'include',
+            body: JSON.stringify({ is_public: true })
+          }).catch(() => {});
+        }
+        toast(isUpdate ? 'Updated on marketplace!' : 'Published to marketplace!');
+        dirty = false;
         if (window.opener) {
           window.opener.postMessage({ type: 'simulator-published', simulatorId: editingSimId }, '*');
         }
       } else {
-        alert('Publish failed: ' + (json.message || 'Unknown error'));
+        alert('Publish failed: ' + (json.message || 'Unknown error') + (res.status === 401 || res.status === 403 ? '\n\nYour session may have expired — log in again on the main site.' : ''));
       }
     } catch (err) {
       console.error(err);
-      alert('Publish failed — is the backend running? Are you logged in?');
+      alert('Publish failed — could not reach the backend. Check your connection and login.');
     }
   }
 
-  function exitStudio() {
-    saveToParent();
+  async function exitStudio() {
+    await saveToParent();
     if (window.opener) {
       window.opener.postMessage({ type: 'closeBlockSimulator' }, '*');
       window.close();
@@ -507,10 +560,14 @@
 
   async function loadFromApi(simId) {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/simulators/${simId}`, { credentials: 'include' });
+      const res = await fetch(`${API_BASE_URL}/api/simulators/${simId}`, {
+        headers: authHeaders(),
+        credentials: 'include'
+      });
       const json = await res.json();
       if (!json.success) throw new Error(json.message);
       const sim = json.data;
+      projectTitle = sim.title || null;
       let blocks = sim.blocks;
       if (typeof blocks === 'string') blocks = JSON.parse(blocks);
       if (blocks?.format === 'veelearn-scratch-1') loadProjectData(blocks);
