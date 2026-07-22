@@ -195,6 +195,13 @@ module.exports = function createAiTutorHandlers({ query, openRouterChatCompletio
                 if (e.code === 'OPENROUTER_NOT_CONFIGURED') {
                     return apiResponse(res, 503, 'Study coach is not configured on this server');
                 }
+                if (e.code === 'OPENROUTER_RATE_LIMITED' || e.status === 429) {
+                    return apiResponse(
+                        res,
+                        429,
+                        'Study coach is temporarily rate-limited. Please wait a minute and try again.'
+                    );
+                }
                 return apiResponse(res, 502, 'Study coach is temporarily unavailable. Please try again later.');
             }
 

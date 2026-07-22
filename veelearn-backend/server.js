@@ -186,14 +186,14 @@ app.use((req, res, next) => {
     next();
 });
 
-app.use(express.json({ limit: '50mb' }));
-app.use(cookieParser());
 app.use(cors({
     origin: [
         'https://veelearn.org',
         'https://www.veelearn.org',
         'http://localhost:5500',
         'http://127.0.0.1:5500',
+        'http://localhost:5000',
+        'http://127.0.0.1:5000',
         'https://virat-sisodiya.github.io',
         /\.github\.io$/
     ],
@@ -201,6 +201,8 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
 }));
+app.use(express.json({ limit: '50mb' }));
+app.use(cookieParser());
 
 // ===== DATABASE CONFIGURATION =====
 const dbConfig = {

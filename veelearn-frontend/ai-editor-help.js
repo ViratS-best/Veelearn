@@ -632,11 +632,27 @@
                     phetCatalogSummary: phetCatalogSummary()
                 })
             });
-            const data = await res.json();
-            if (!data.success) {
-                appendBubble('error', data.message || 'AI Help failed');
+
+            let data = null;
+            const rawText = await res.text();
+            try {
+                data = rawText ? JSON.parse(rawText) : null;
+            } catch (_) {
+                data = null;
+            }
+
+            if (!res.ok || !data || data.success === false) {
+                const msg =
+                    (data && data.message) ||
+                    (res.status === 429
+                        ? 'AI is temporarily rate-limited. Please wait about a minute and try again.'
+                        : res.status === 502 || res.status === 504
+                          ? 'AI service is busy or timed out. Please try again in a moment.'
+                          : `AI Help failed (${res.status})`);
+                appendBubble('error', msg);
                 return;
             }
+
             const reply = data.data?.reply || '';
             const actions = data.data?.actions || [];
             if (reply) appendBubble('assistant', reply);
@@ -644,7 +660,10 @@
             if (!actions.length && !reply) appendBubble('assistant', 'No changes suggested.');
         } catch (err) {
             console.error(err);
-            appendBubble('error', err.message || 'Network error talking to AI Help');
+            appendBubble(
+                'error',
+                'Could not reach AI Help (network or CORS). If this persists after a redeploy, try again in a minute.'
+            );
         } finally {
             aiHelpBusy = false;
             if (sendBtn) sendBtn.disabled = false;

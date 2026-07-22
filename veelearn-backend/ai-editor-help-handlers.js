@@ -265,14 +265,25 @@ module.exports = function createAiEditorHelpHandlers({ query, openRouterChatComp
             try {
                 raw = await openRouterChatCompletion(messages, {
                     temperature: 0.3,
-                    max_tokens: 2500
+                    max_tokens: 1800,
+                    budgetMs: 28000
                 });
             } catch (e) {
                 if (e.code === 'OPENROUTER_NOT_CONFIGURED') {
                     return apiResponse(res, 503, 'AI Help is not configured (missing OpenRouter keys)');
                 }
+                if (e.code === 'OPENROUTER_RATE_LIMITED' || e.status === 429) {
+                    return apiResponse(
+                        res,
+                        429,
+                        'AI is temporarily rate-limited. Please wait about a minute and try again.'
+                    );
+                }
+                if (e.code === 'OPENROUTER_TIMEOUT') {
+                    return apiResponse(res, 504, 'AI Help timed out. Please try a shorter request.');
+                }
                 console.error('AI editor help OpenRouter error:', e.message);
-                return apiResponse(res, 502, 'AI Help request failed');
+                return apiResponse(res, 502, 'AI Help request failed. Please try again.');
             }
 
             const { replyText, rawActions } = splitReplyAndActions(raw);
