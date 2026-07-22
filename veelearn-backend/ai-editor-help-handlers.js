@@ -16,18 +16,19 @@ const EDITOR_SYSTEM = `You are VeeLearn's content editor assistant for course au
 Help teachers build lessons by returning structured editor actions.
 
 Rules:
-- Be concise in the human-readable reply (under 120 words).
+- Be concise in the human-readable reply (under 80 words). Never ask clarifying questions when the user already gave a topic or outline — start generating immediately.
 - Prefer concrete teaching content over fluff.
 - When the user asks to add a quiz, PhET sim, LaTeX, marketplace sim, or a full lesson, emit actions.
-- For bulk lessons, return an ordered list of actions mixing insert_html, add_latex, add_phet, and add_question.
+- For bulk/section lessons, return an ordered list of actions mixing insert_html, add_latex, add_phet, and add_question.
 - For expand/simplify modes: rewrite the provided selection and emit insert_html with the result.
 - For check_question mode: emit add_question that checks understanding of the selection.
 - For topics or resource paste: emit suggest_sims and/or add_phet with a clear query/title.
 - Never invent marketplace simulator IDs; use suggest_sims with a search query instead.
-- PhET: use add_phet with payload.query or payload.title matching common PhET names.
-- LaTeX: use add_latex with payload.latex (raw TeX without $) and payload.display (true for $$).
-- Quiz: use add_question with question_text, question_type (multiple_choice|true_false|short_answer), options (string array for MC), correct_answer, explanation, points.
-- HTML: use insert_html with payload.html as simple safe markup (p, strong, em, ul, ol, li, br only). Prefer plain paragraphs.
+- PhET: use add_phet with payload.query or payload.title matching common PhET names (e.g. "Area Model Algebra", "Graphing Quadratics", "Proportion Playground").
+- LaTeX: use add_latex with payload.latex (raw TeX without $) and payload.display (true for $$). Do NOT use click-to-place; content is inserted inline automatically.
+- Quiz: use add_question with question_text, question_type (multiple_choice|true_false|short_answer), options (string array for MC), correct_answer, explanation (include step-by-step solution), points.
+- HTML: use insert_html with payload.html as simple safe markup (h2, h3, p, strong, em, ul, ol, li, br only).
+- SECTION mode: generate ONLY the requested section (theory + sim + practice). Do not generate other modules.
 - Always end your message with a line exactly:
 VEELEARN_EDITOR_ACTIONS_JSON:
 followed by a single JSON array of action objects: [{"type":"...","payload":{...}}]
@@ -228,7 +229,8 @@ module.exports = function createAiEditorHelpHandlers({ query, openRouterChatComp
             if (!message && mode !== 'validate' && !selection) {
                 return apiResponse(res, 400, 'Message is required');
             }
-            if (message.length > 8000) message = message.slice(0, 8000);
+            const maxMsg = mode === 'section' ? 14000 : 8000;
+            if (message.length > maxMsg) message = message.slice(0, maxMsg);
             if (selection.length > 6000) selection = selection.slice(0, 6000);
             if (editorSnippet.length > 4000) editorSnippet = editorSnippet.slice(0, 4000);
             if (phetCatalogSummary.length > 3000) phetCatalogSummary = phetCatalogSummary.slice(0, 3000);
@@ -244,7 +246,9 @@ module.exports = function createAiEditorHelpHandlers({ query, openRouterChatComp
                 simplify: 'MODE: simplify — rewrite the selection in simpler language; emit insert_html.',
                 check_question: 'MODE: check_question — create one review quiz about the selection; emit add_question.',
                 validate: 'MODE: validate — review the editor snippet for LaTeX/quiz issues; emit validate_report with findings.',
-                chat: 'MODE: chat — follow the user request and emit appropriate actions.'
+                section:
+                    'MODE: section — Generate ONLY the requested section now. Include: (1) Core Theory as insert_html + add_latex formulas, (2) add_phet for the recommended simulation, (3) exactly 3 add_question practice problems with step-by-step explanations. Do not ask questions. Do not generate other sections.',
+                chat: 'MODE: chat — follow the user request and emit appropriate actions. Never ask for more info if an outline/topic is already provided.'
             };
 
             const contextParts = [
@@ -261,12 +265,13 @@ module.exports = function createAiEditorHelpHandlers({ query, openRouterChatComp
                 { role: 'user', content: contextParts.join('\n\n') }
             ];
 
+            const isSection = mode === 'section';
             let raw;
             try {
                 raw = await openRouterChatCompletion(messages, {
                     temperature: 0.3,
-                    max_tokens: 1800,
-                    budgetMs: 28000
+                    max_tokens: isSection ? 3200 : 1800,
+                    budgetMs: isSection ? 50000 : 35000
                 });
             } catch (e) {
                 if (e.code === 'OPENROUTER_NOT_CONFIGURED') {

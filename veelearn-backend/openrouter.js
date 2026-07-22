@@ -4,9 +4,9 @@ const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 /** Retries on the same key when it is the only key left; otherwise rotate immediately on 429. */
 const MAX_RETRIES_SOLE_KEY = 2;
 const BASE_RETRY_DELAY_MS = 800;
-/** Stay under typical reverse-proxy idle timeouts (Render ~30–60s). */
-const DEFAULT_BUDGET_MS = 25000;
-const DEFAULT_TIMEOUT_MS = 20000;
+/** Stay under typical reverse-proxy idle timeouts when possible; section mode may use a higher budget. */
+const DEFAULT_BUDGET_MS = 35000;
+const DEFAULT_TIMEOUT_MS = 45000;
 
 /** Last-resort router that picks any available free model. */
 const FREE_ROUTER = 'openrouter/free';

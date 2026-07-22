@@ -390,7 +390,280 @@
     }
 
     async function skillAddLatex(payload) {
-        startLatexClickPlacement(payload.latex, payload.display);
+        const latex = String(payload.latex || '').trim();
+        if (!latex) return;
+        const display = !!payload.display;
+        // Click-to-place only when explicitly requested; bulk/section inserts inline
+        if (payload.place === 'click') {
+            startLatexClickPlacement(latex, display);
+            return;
+        }
+        const wrapped = display ? `$$${latex}$$` : `$${latex}$`;
+        const span = document.createElement('span');
+        span.className = 'latex-equation';
+        span.dataset.latex = 'true';
+        span.textContent = wrapped;
+        const wrap = document.createElement('p');
+        wrap.appendChild(span);
+        wrap.appendChild(document.createTextNode('\u200B'));
+        insertBelowAnchor(display ? wrap : span);
+        if (global.MathJax && typeof global.MathJax.typesetPromise === 'function') {
+            global.MathJax.typesetPromise([span]).catch(() => {});
+        }
+    }
+
+    function splitOutlineIntoSections(text) {
+        const src = String(text || '').trim();
+        if (!src) return [];
+
+        const headingRe = /^(#{2,3})\s+(.+)$/gm;
+        const matches = [...src.matchAll(headingRe)];
+        if (matches.length >= 2) {
+            const sections = [];
+            for (let i = 0; i < matches.length; i++) {
+                const start = matches[i].index;
+                const end = i + 1 < matches.length ? matches[i + 1].index : src.length;
+                const title = matches[i][2].trim();
+                const body = src.slice(start, end).trim();
+                // Prefer ### leaf sections; if only ## modules, use those
+                if (matches[i][1] === '###' || matches.every((m) => m[1] === '##')) {
+                    sections.push({ title, body });
+                }
+            }
+            if (sections.length >= 2) return sections;
+            // Mixed ##/### — use only ###
+            const leaf = [];
+            for (let i = 0; i < matches.length; i++) {
+                if (matches[i][1] !== '###') continue;
+                const start = matches[i].index;
+                const end = i + 1 < matches.length ? matches[i + 1].index : src.length;
+                leaf.push({
+                    title: matches[i][2].trim(),
+                    body: src.slice(start, end).trim()
+                });
+            }
+            if (leaf.length >= 2) return leaf;
+        }
+
+        // Fallback: Module N / numbered subsections
+        const modRe = /(?:^|\n)((?:Module\s+\d+|#{0,3}\s*\d+\.\d+)[^\n]*)([\s\S]*?)(?=(?:\n(?:Module\s+\d+|#{0,3}\s*\d+\.\d+))|$)/gi;
+        const modParts = [];
+        let m;
+        while ((m = modRe.exec(src)) !== null) {
+            const title = m[1].replace(/^#+\s*/, '').trim();
+            const body = (m[1] + m[2]).trim();
+            if (title && body.length > 40) modParts.push({ title, body });
+        }
+        return modParts.length >= 2 ? modParts : [];
+    }
+
+    function shouldChunkRequest(text, mode) {
+        if (mode && mode !== 'chat') return false;
+        const t = String(text || '');
+        if (t.length < 1200) return false;
+        const sections = splitOutlineIntoSections(t);
+        if (sections.length >= 2) return true;
+        return /full course|comprehensive|every sub-topic|module\s+\d+/i.test(t) && t.length > 2000;
+    }
+
+    async function callEditorHelpApi({ message, mode, selection, editorSnippet }) {
+        const apiBase = global.API_BASE_URL || '';
+        const token = global.authToken || localStorage.getItem('token');
+        const res = await fetch(`${apiBase}/api/ai/editor-help`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+                message,
+                mode: mode || 'chat',
+                selection: selection || undefined,
+                courseId: global.currentEditingCourseId || undefined,
+                editorSnippet: editorSnippet || undefined,
+                phetCatalogSummary: phetCatalogSummary()
+            })
+        });
+
+        const rawText = await res.text();
+        let data = null;
+        try {
+            data = rawText ? JSON.parse(rawText) : null;
+        } catch (_) {
+            data = null;
+        }
+        return { res, data };
+    }
+
+    function errorMessageFromResponse(res, data) {
+        return (
+            (data && data.message) ||
+            (res.status === 429
+                ? 'AI is temporarily rate-limited. Please wait about a minute and try again.'
+                : res.status === 502 || res.status === 504
+                  ? 'AI service is busy or timed out. Please try again in a moment.'
+                  : `AI Help failed (${res.status})`)
+        );
+    }
+
+    async function sendChunkedAiHelp(fullText, sections, selection, editorSnippet) {
+        appendBubble(
+            'system',
+            `Large lesson detected — generating ${sections.length} sections one at a time so it won’t time out…`
+        );
+
+        let okCount = 0;
+        for (let i = 0; i < sections.length; i++) {
+            const sec = sections[i];
+            appendBubble('system', `Generating “${sec.title}” (${i + 1}/${sections.length})…`);
+
+            const chunkMessage = [
+                'Generate ONLY this one section for the VeeLearn course editor right now.',
+                'Do not ask clarifying questions. Emit editor actions immediately.',
+                'Include: Core Theory (insert_html + add_latex), Recommended Simulation (add_phet), and Competition Practice Suite (exactly 3 add_question items with step-by-step explanations).',
+                '',
+                `SECTION TITLE: ${sec.title}`,
+                '',
+                'SECTION DETAILS:',
+                sec.body.slice(0, 4500),
+                '',
+                'OUTLINE CONTEXT (do not generate other sections):',
+                fullText.slice(0, 2500)
+            ].join('\n');
+
+            try {
+                const { res, data } = await callEditorHelpApi({
+                    message: chunkMessage,
+                    mode: 'section',
+                    selection,
+                    editorSnippet: i === 0 ? editorSnippet : undefined
+                });
+
+                if (!res.ok || !data || data.success === false) {
+                    appendBubble('error', `${sec.title}: ${errorMessageFromResponse(res, data)}`);
+                    // Brief pause then continue other sections
+                    await new Promise((r) => setTimeout(r, 800));
+                    continue;
+                }
+
+                const reply = data.data?.reply || '';
+                const actions = data.data?.actions || [];
+                if (reply) appendBubble('assistant', reply);
+                if (actions.length) {
+                    await executeEditorActions(actions);
+                    okCount += 1;
+                } else {
+                    appendBubble('system', `No actions returned for “${sec.title}”.`);
+                }
+            } catch (err) {
+                console.error(err);
+                appendBubble('error', `${sec.title}: network error — ${err.message || 'failed'}`);
+            }
+
+            // Small delay to reduce burst rate-limits across free keys
+            if (i < sections.length - 1) {
+                await new Promise((r) => setTimeout(r, 600));
+            }
+        }
+
+        appendBubble(
+            'assistant',
+            okCount
+                ? `Finished generating ${okCount} of ${sections.length} sections into the editor.`
+                : 'Could not generate sections. Wait a minute and try again, or generate one module at a time.'
+        );
+    }
+
+    async function sendAiHelp(message, mode) {
+        if (aiHelpBusy) return;
+        const input = document.getElementById('ai-help-input');
+        const sendBtn = document.getElementById('ai-help-send');
+        const text = (message != null ? message : input && input.value ? input.value : '').trim();
+        const activeMode = mode || 'chat';
+        const selection = getEditorSelectionText();
+
+        if (!text && activeMode === 'chat' && !selection) {
+            appendBubble('error', 'Enter a request or select text first.');
+            return;
+        }
+
+        aiHelpBusy = true;
+        if (sendBtn) sendBtn.disabled = true;
+        clearSuggestions();
+
+        const displayMsg =
+            text ||
+            (activeMode === 'expand'
+                ? 'Expand selection'
+                : activeMode === 'simplify'
+                  ? 'Simplify selection'
+                  : activeMode === 'check_question'
+                    ? 'Add check question for selection'
+                    : activeMode === 'validate'
+                      ? 'Validate page'
+                      : 'Help');
+        appendBubble('user', displayMsg.length > 500 ? displayMsg.slice(0, 500) + '…' : displayMsg);
+        if (input && message == null) input.value = '';
+
+        const editor = getEditor();
+        const snippet = editor ? (editor.innerText || '').slice(0, 4000) : '';
+
+        // Anchor near selection if present
+        if (selection) {
+            const sel = window.getSelection();
+            if (sel && sel.rangeCount) {
+                const a = resolveAnchorFromNode(sel.anchorNode);
+                if (a) setLastAnchor(a);
+            }
+        }
+
+        try {
+            if (shouldChunkRequest(text || displayMsg, activeMode)) {
+                let sections = splitOutlineIntoSections(text || displayMsg);
+                if (sections.length < 2) {
+                    // Force a single long job into 2–4 artificial chunks by paragraphs
+                    const paras = (text || displayMsg).split(/\n{2,}/).filter((p) => p.trim().length > 80);
+                    const chunkSize = Math.max(1, Math.ceil(paras.length / 4));
+                    sections = [];
+                    for (let i = 0; i < paras.length; i += chunkSize) {
+                        const body = paras.slice(i, i + chunkSize).join('\n\n');
+                        sections.push({ title: `Part ${sections.length + 1}`, body });
+                    }
+                }
+                if (sections.length >= 2) {
+                    await sendChunkedAiHelp(text || displayMsg, sections.slice(0, 12), selection, snippet);
+                    return;
+                }
+            }
+
+            const { res, data } = await callEditorHelpApi({
+                message: text || displayMsg,
+                mode: activeMode,
+                selection,
+                editorSnippet: snippet
+            });
+
+            if (!res.ok || !data || data.success === false) {
+                appendBubble('error', errorMessageFromResponse(res, data));
+                return;
+            }
+
+            const reply = data.data?.reply || '';
+            const actions = data.data?.actions || [];
+            if (reply) appendBubble('assistant', reply);
+            await executeEditorActions(actions);
+            if (!actions.length && !reply) appendBubble('assistant', 'No changes suggested.');
+        } catch (err) {
+            console.error(err);
+            appendBubble(
+                'error',
+                'Could not reach AI Help (network or CORS). If this persists after a redeploy, try again in a minute.'
+            );
+        } finally {
+            aiHelpBusy = false;
+            if (sendBtn) sendBtn.disabled = false;
+        }
     }
 
     async function skillAddMarketplaceSim(payload) {
@@ -567,106 +840,6 @@
                 console.error('AI skill failed:', type, err);
                 appendBubble('error', `Action “${type}” failed: ${err.message || err}`);
             }
-        }
-    }
-
-    async function sendAiHelp(message, mode) {
-        if (aiHelpBusy) return;
-        const input = document.getElementById('ai-help-input');
-        const sendBtn = document.getElementById('ai-help-send');
-        const text = (message != null ? message : input && input.value ? input.value : '').trim();
-        const activeMode = mode || 'chat';
-        const selection = getEditorSelectionText();
-
-        if (!text && activeMode === 'chat' && !selection) {
-            appendBubble('error', 'Enter a request or select text first.');
-            return;
-        }
-
-        aiHelpBusy = true;
-        if (sendBtn) sendBtn.disabled = true;
-        clearSuggestions();
-
-        const displayMsg =
-            text ||
-            (activeMode === 'expand'
-                ? 'Expand selection'
-                : activeMode === 'simplify'
-                  ? 'Simplify selection'
-                  : activeMode === 'check_question'
-                    ? 'Add check question for selection'
-                    : activeMode === 'validate'
-                      ? 'Validate page'
-                      : 'Help');
-        appendBubble('user', displayMsg);
-        if (input && message == null) input.value = '';
-
-        const editor = getEditor();
-        const snippet = editor ? (editor.innerText || '').slice(0, 4000) : '';
-        const apiBase = global.API_BASE_URL || '';
-        const token = global.authToken || localStorage.getItem('token');
-
-        // Anchor near selection if present
-        if (selection) {
-            const sel = window.getSelection();
-            if (sel && sel.rangeCount) {
-                const a = resolveAnchorFromNode(sel.anchorNode);
-                if (a) setLastAnchor(a);
-            }
-        }
-
-        try {
-            const res = await fetch(`${apiBase}/api/ai/editor-help`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`
-                },
-                credentials: 'include',
-                body: JSON.stringify({
-                    message: text || displayMsg,
-                    mode: activeMode,
-                    selection: selection || undefined,
-                    courseId: global.currentEditingCourseId || undefined,
-                    editorSnippet: snippet,
-                    phetCatalogSummary: phetCatalogSummary()
-                })
-            });
-
-            let data = null;
-            const rawText = await res.text();
-            try {
-                data = rawText ? JSON.parse(rawText) : null;
-            } catch (_) {
-                data = null;
-            }
-
-            if (!res.ok || !data || data.success === false) {
-                const msg =
-                    (data && data.message) ||
-                    (res.status === 429
-                        ? 'AI is temporarily rate-limited. Please wait about a minute and try again.'
-                        : res.status === 502 || res.status === 504
-                          ? 'AI service is busy or timed out. Please try again in a moment.'
-                          : `AI Help failed (${res.status})`);
-                appendBubble('error', msg);
-                return;
-            }
-
-            const reply = data.data?.reply || '';
-            const actions = data.data?.actions || [];
-            if (reply) appendBubble('assistant', reply);
-            await executeEditorActions(actions);
-            if (!actions.length && !reply) appendBubble('assistant', 'No changes suggested.');
-        } catch (err) {
-            console.error(err);
-            appendBubble(
-                'error',
-                'Could not reach AI Help (network or CORS). If this persists after a redeploy, try again in a minute.'
-            );
-        } finally {
-            aiHelpBusy = false;
-            if (sendBtn) sendBtn.disabled = false;
         }
     }
 

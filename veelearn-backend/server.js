@@ -199,7 +199,7 @@ app.use(cors({
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Cache-Control', 'Pragma']
 }));
 app.use(express.json({ limit: '50mb' }));
 app.use(cookieParser());
@@ -1122,7 +1122,7 @@ const aiTutorLimiter = rateLimit({
 
 const aiEditorHelpLimiter = rateLimit({
     windowMs: 60 * 1000,
-    max: 15,
+    max: 40,
     message: { success: false, message: 'Too many AI Help requests. Please wait a moment and try again.' }
 });
 
