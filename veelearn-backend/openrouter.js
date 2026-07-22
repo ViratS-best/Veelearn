@@ -8,6 +8,17 @@ const BASE_RETRY_DELAY_MS = 800;
 const DEFAULT_BUDGET_MS = 25000;
 const DEFAULT_TIMEOUT_MS = 20000;
 
+/** Last-resort router that picks any available free model. */
+const FREE_ROUTER = 'openrouter/free';
+
+function sanitizeModelId(m) {
+    if (typeof m !== 'string') return '';
+    return m
+        .trim()
+        .replace(/^["']+|["']+$/g, '')
+        .replace(/\s+/g, '');
+}
+
 function getOpenRouterKeys() {
     const raw = process.env.OPENROUTER_API_KEYS || '';
     const split = raw.split(',').map((k) => k.trim()).filter(Boolean);
@@ -23,19 +34,22 @@ function getOpenRouterKeys() {
 function getModelCandidates(opts = {}) {
     const list = [];
     const push = (m) => {
-        const v = typeof m === 'string' ? m.trim() : '';
+        const v = sanitizeModelId(m);
         if (v && !list.includes(v)) list.push(v);
     };
+
     push(opts.model);
     push(process.env.OPENROUTER_MODEL || 'google/gemma-4-31b-it:free');
+
     const fallbacks = (process.env.OPENROUTER_FALLBACK_MODELS || '').split(',');
     for (const m of fallbacks) push(m);
-    // Sensible free-tier fallbacks if env not set
-    if (!process.env.OPENROUTER_FALLBACK_MODELS) {
-        push('z-ai/glm-4.5-air:free');
-        push('meta-llama/llama-3.3-70b-instruct:free');
-        push('google/gemma-3-27b-it:free');
-    }
+
+    // Built-in fallbacks (always appended so a bad env list cannot leave us with zero options)
+    push('google/gemma-4-31b-it:free');
+    push('google/gemma-4-26b-a4b-it:free');
+    push('openai/gpt-oss-20b:free');
+    push(FREE_ROUTER);
+
     return list;
 }
 
@@ -43,6 +57,11 @@ function shouldTryNextKey(status, err) {
     if (status === 401 || status === 429 || status >= 500) return true;
     if (err && (err.code === 'ECONNABORTED' || err.code === 'ETIMEDOUT' || err.code === 'ECONNRESET')) return true;
     return false;
+}
+
+/** 404 = model/provider unavailable; 400 = bad request for this model — skip remaining keys for this model. */
+function shouldSkipModel(status) {
+    return status === 404 || status === 400;
 }
 
 function sleep(ms) {
@@ -72,8 +91,11 @@ async function openRouterChatCompletion(messages, opts = {}) {
 
     let lastError;
     let sawOnly429 = true;
+    let sawModelUnavailable = false;
 
-    for (const model of models) {
+    console.log(`[OpenRouter] Trying models: ${models.join(' → ')}`);
+
+    modelLoop: for (const model of models) {
         for (let i = 0; i < keys.length; i++) {
             if (Date.now() - started > budgetMs) {
                 const err = new Error('OpenRouter request budget exceeded');
@@ -84,10 +106,9 @@ async function openRouterChatCompletion(messages, opts = {}) {
 
             const key = keys[i];
             const remainingKeys = keys.length - i;
+            const isLastModel = models.indexOf(model) === models.length - 1;
             const maxAttempts =
-                remainingKeys === 1 && models.indexOf(model) === models.length - 1
-                    ? MAX_RETRIES_SOLE_KEY
-                    : 0; // rotate immediately when more keys/models remain
+                remainingKeys === 1 && isLastModel ? MAX_RETRIES_SOLE_KEY : 0;
 
             for (let attempt = 0; attempt <= maxAttempts; attempt++) {
                 try {
@@ -109,7 +130,7 @@ async function openRouterChatCompletion(messages, opts = {}) {
                     const status = res.status;
 
                     if (status === 429) {
-                        lastError = new Error(`OpenRouter HTTP 429 (rate limited)`);
+                        lastError = new Error(`OpenRouter HTTP 429 (rate limited) model=${model}`);
                         lastError.status = 429;
                         lastError.code = 'OPENROUTER_RATE_LIMITED';
                         if (attempt < maxAttempts) {
@@ -119,25 +140,27 @@ async function openRouterChatCompletion(messages, opts = {}) {
                         break; // next key
                     }
 
+                    if (shouldSkipModel(status)) {
+                        sawOnly429 = false;
+                        sawModelUnavailable = true;
+                        const detail = JSON.stringify(res.data || {}).slice(0, 240);
+                        lastError = new Error(`OpenRouter HTTP ${status} model=${model} ${detail}`);
+                        lastError.status = status;
+                        lastError.code = 'OPENROUTER_MODEL_UNAVAILABLE';
+                        console.warn(`[OpenRouter] Skipping model ${model}: HTTP ${status}`);
+                        continue modelLoop; // next model immediately
+                    }
+
                     sawOnly429 = false;
 
                     if (shouldTryNextKey(status)) {
-                        lastError = new Error(`OpenRouter HTTP ${status}`);
+                        lastError = new Error(`OpenRouter HTTP ${status} model=${model}`);
                         lastError.status = status;
                         break;
                     }
 
-                    if (status === 400) {
-                        // Bad request for this model — try next model
-                        lastError = new Error(
-                            `OpenRouter bad request: ${JSON.stringify(res.data).slice(0, 300)}`
-                        );
-                        lastError.status = 400;
-                        break;
-                    }
-
                     if (status !== 200) {
-                        lastError = new Error(`OpenRouter HTTP ${status}`);
+                        lastError = new Error(`OpenRouter HTTP ${status} model=${model}`);
                         lastError.status = status;
                         lastError.data = res.data;
                         break;
@@ -145,10 +168,11 @@ async function openRouterChatCompletion(messages, opts = {}) {
 
                     const content = res.data?.choices?.[0]?.message?.content;
                     if (typeof content !== 'string' || !content.trim()) {
-                        lastError = new Error('Empty OpenRouter response');
+                        lastError = new Error(`Empty OpenRouter response model=${model}`);
                         break;
                     }
 
+                    console.log(`[OpenRouter] Success with model=${model}`);
                     return content.trim();
                 } catch (e) {
                     sawOnly429 = false;
@@ -159,6 +183,12 @@ async function openRouterChatCompletion(messages, opts = {}) {
                         lastError.status = 429;
                         sawOnly429 = true;
                         break;
+                    }
+                    if (shouldSkipModel(st)) {
+                        sawModelUnavailable = true;
+                        lastError.code = 'OPENROUTER_MODEL_UNAVAILABLE';
+                        lastError.status = st;
+                        continue modelLoop;
                     }
                     if (st && shouldTryNextKey(st, e)) break;
                     if (!e.response && shouldTryNextKey(0, e)) break;
@@ -177,7 +207,11 @@ async function openRouterChatCompletion(messages, opts = {}) {
         err.code = 'OPENROUTER_RATE_LIMITED';
         err.status = 429;
     }
+    if (!err.code && (sawModelUnavailable || err.status === 404)) {
+        err.code = 'OPENROUTER_MODEL_UNAVAILABLE';
+        err.status = 404;
+    }
     throw err;
 }
 
-module.exports = { getOpenRouterKeys, openRouterChatCompletion, getModelCandidates };
+module.exports = { getOpenRouterKeys, openRouterChatCompletion, getModelCandidates, sanitizeModelId };

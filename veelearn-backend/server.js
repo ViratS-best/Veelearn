@@ -7436,12 +7436,11 @@ Post: ${content}
 
 If no dates are found, return {"events": []}.`;
 
-        // Try multiple models as fallbacks
+        // Try multiple models as fallbacks (openRouterChatCompletion also has built-in fallbacks)
         const models = [
-            'z-ai/glm-4.5-air:free',
-            'meta-llama/llama-3-8b-instruct:free',
-            'mistralai/mistral-7b-instruct:free',
-            'google/gemma-2-9b-it:free'
+            process.env.OPENROUTER_MODEL || 'google/gemma-4-31b-it:free',
+            'google/gemma-4-26b-a4b-it:free',
+            'openrouter/free'
         ];
 
         let response = null;

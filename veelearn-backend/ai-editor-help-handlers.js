@@ -279,6 +279,13 @@ module.exports = function createAiEditorHelpHandlers({ query, openRouterChatComp
                         'AI is temporarily rate-limited. Please wait about a minute and try again.'
                     );
                 }
+                if (e.code === 'OPENROUTER_MODEL_UNAVAILABLE' || e.status === 404) {
+                    return apiResponse(
+                        res,
+                        503,
+                        'AI model is temporarily unavailable on OpenRouter. Please try again shortly.'
+                    );
+                }
                 if (e.code === 'OPENROUTER_TIMEOUT') {
                     return apiResponse(res, 504, 'AI Help timed out. Please try a shorter request.');
                 }

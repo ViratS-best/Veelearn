@@ -202,6 +202,13 @@ module.exports = function createAiTutorHandlers({ query, openRouterChatCompletio
                         'Study coach is temporarily rate-limited. Please wait a minute and try again.'
                     );
                 }
+                if (e.code === 'OPENROUTER_MODEL_UNAVAILABLE' || e.status === 404) {
+                    return apiResponse(
+                        res,
+                        503,
+                        'Study coach model is temporarily unavailable. Please try again shortly.'
+                    );
+                }
                 return apiResponse(res, 502, 'Study coach is temporarily unavailable. Please try again later.');
             }
 
