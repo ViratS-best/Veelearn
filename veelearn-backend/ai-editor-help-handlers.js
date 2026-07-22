@@ -15,8 +15,14 @@ const ALLOWED_ACTION_TYPES = new Set([
 const EDITOR_SYSTEM = `You are VeeLearn's content editor assistant for course authors.
 Help teachers build lessons by returning structured editor actions.
 
+CRITICAL OUTPUT FORMAT (follow exactly):
+1) First line must be exactly: VEELEARN_EDITOR_ACTIONS_JSON:
+2) Immediately after that, a single JSON array of action objects (no markdown fences, no commentary inside the array).
+3) After the JSON array, optionally add a short human reply (under 60 words).
+Putting JSON FIRST is required so long lessons are not truncated before actions appear.
+
 Rules:
-- Be concise in the human-readable reply (under 80 words). Never ask clarifying questions when the user already gave a topic or outline — start generating immediately.
+- Never ask clarifying questions when the user already gave a topic or outline — start generating immediately.
 - Prefer concrete teaching content over fluff.
 - When the user asks to add a quiz, PhET sim, LaTeX, marketplace sim, or a full lesson, emit actions.
 - For bulk/section lessons, return an ordered list of actions mixing insert_html, add_latex, add_phet, and add_question.
@@ -24,15 +30,13 @@ Rules:
 - For check_question mode: emit add_question that checks understanding of the selection.
 - For topics or resource paste: emit suggest_sims and/or add_phet with a clear query/title.
 - Never invent marketplace simulator IDs; use suggest_sims with a search query instead.
-- PhET: use add_phet with payload.query or payload.title matching common PhET names (e.g. "Area Model Algebra", "Graphing Quadratics", "Proportion Playground").
-- LaTeX: use add_latex with payload.latex (raw TeX without $) and payload.display (true for $$). Do NOT use click-to-place; content is inserted inline automatically.
+- PhET: use add_phet with payload.query or payload.title matching common PhET names (e.g. "Area Model Algebra", "Graphing Quadratics", "Proportion Playground", "Equation Grapher").
+- LaTeX: use add_latex with payload.latex (raw TeX without $) and payload.display (true for $$). Content is inserted inline automatically.
 - Quiz: use add_question with question_text, question_type (multiple_choice|true_false|short_answer), options (string array for MC), correct_answer, explanation (include step-by-step solution), points.
 - HTML: use insert_html with payload.html as simple safe markup (h2, h3, p, strong, em, ul, ol, li, br only).
 - SECTION mode: generate ONLY the requested section (theory + sim + practice). Do not generate other modules.
-- Always end your message with a line exactly:
-VEELEARN_EDITOR_ACTIONS_JSON:
-followed by a single JSON array of action objects: [{"type":"...","payload":{...}}]
-- If no editor changes are needed, use an empty array [].`;
+- Keep the JSON array complete and valid. Prefer fewer complete actions over truncated JSON.
+- Example shape: [{"type":"insert_html","payload":{"html":"<h3>Title</h3><p>Theory...</p>"}},{"type":"add_latex","payload":{"latex":"a^2-b^2=(a-b)(a+b)","display":true}},{"type":"add_phet","payload":{"query":"Area Model Algebra"}},{"type":"add_question","payload":{"question_text":"...","question_type":"multiple_choice","options":["A","B","C","D"],"correct_answer":"A","explanation":"...","points":10}}]`;
 
 function stripUnsafeHtml(html) {
     if (typeof html !== 'string') return '';
@@ -46,36 +50,104 @@ function stripUnsafeHtml(html) {
     return s;
 }
 
-function splitReplyAndActions(raw) {
-    const marker = '\nVEELEARN_EDITOR_ACTIONS_JSON:';
-    const alt = 'VEELEARN_EDITOR_ACTIONS_JSON:';
-    let idx = raw.indexOf(marker);
-    let markerLen = marker.length;
-    if (idx < 0) {
-        idx = raw.indexOf(alt);
-        markerLen = alt.length;
+function tryParseActionsJson(jsonPart) {
+    if (!jsonPart || typeof jsonPart !== 'string') return [];
+    let s = jsonPart.trim();
+    // Strip markdown fences
+    s = s.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+
+    const attempts = [];
+    attempts.push(s);
+
+    const start = s.indexOf('[');
+    const end = s.lastIndexOf(']');
+    if (start >= 0 && end > start) {
+        attempts.push(s.slice(start, end + 1));
     }
-    if (idx < 0) {
-        return { replyText: raw.trim(), rawActions: [] };
+
+    // Object wrapper: {"actions":[...]} or {"type":...}
+    const objStart = s.indexOf('{');
+    if (objStart >= 0) {
+        const objEnd = s.lastIndexOf('}');
+        if (objEnd > objStart) attempts.push(s.slice(objStart, objEnd + 1));
     }
-    const replyText = raw.slice(0, idx).trim();
-    const jsonPart = raw.slice(idx + markerLen).trim();
-    let rawActions = [];
-    try {
-        const parsed = JSON.parse(jsonPart);
-        if (Array.isArray(parsed)) rawActions = parsed;
-    } catch (_) {
-        const start = jsonPart.indexOf('[');
-        const end = jsonPart.lastIndexOf(']');
-        if (start >= 0 && end > start) {
-            try {
-                const parsed = JSON.parse(jsonPart.slice(start, end + 1));
-                if (Array.isArray(parsed)) rawActions = parsed;
-            } catch (__) {
-                /* ignore */
+
+    // Truncation repair: close open brackets if JSON was cut mid-stream
+    if (start >= 0 && (end < 0 || end < start)) {
+        let fragment = s.slice(start);
+        // Drop trailing incomplete string/object piece after last complete element
+        const lastComplete = Math.max(fragment.lastIndexOf('},'), fragment.lastIndexOf('}]'));
+        if (lastComplete > 0) {
+            fragment = fragment.slice(0, lastComplete + 1);
+        }
+        const opens = (fragment.match(/\[/g) || []).length;
+        const closes = (fragment.match(/\]/g) || []).length;
+        const openBraces = (fragment.match(/\{/g) || []).length;
+        const closeBraces = (fragment.match(/\}/g) || []).length;
+        // Close dangling braces then arrays
+        fragment += '}'.repeat(Math.max(0, openBraces - closeBraces));
+        fragment += ']'.repeat(Math.max(0, opens - closes));
+        attempts.push(fragment);
+    }
+
+    for (const attempt of attempts) {
+        try {
+            const parsed = JSON.parse(attempt);
+            if (Array.isArray(parsed)) return parsed;
+            if (parsed && typeof parsed === 'object') {
+                if (Array.isArray(parsed.actions)) return parsed.actions;
+                if (parsed.type) return [parsed];
             }
+        } catch (_) {
+            /* try next */
         }
     }
+    return [];
+}
+
+function splitReplyAndActions(raw) {
+    const text = String(raw || '');
+    const markers = [
+        '\nVEELEARN_EDITOR_ACTIONS_JSON:',
+        'VEELEARN_EDITOR_ACTIONS_JSON:',
+        '\n```json',
+        '```json'
+    ];
+
+    let idx = -1;
+    let markerLen = 0;
+    for (const m of markers) {
+        const i = text.indexOf(m);
+        if (i >= 0 && (idx < 0 || i < idx)) {
+            idx = i;
+            markerLen = m.length;
+        }
+    }
+
+    // Prefer explicit marker; otherwise hunt for first JSON array of actions
+    if (idx < 0) {
+        const arrStart = text.search(/\[[\s\S]*?"type"\s*:/);
+        if (arrStart >= 0) {
+            const rawActions = tryParseActionsJson(text.slice(arrStart));
+            const replyText = text.slice(0, arrStart).trim();
+            return { replyText, rawActions };
+        }
+        return { replyText: text.trim(), rawActions: [] };
+    }
+
+    const before = text.slice(0, idx).trim();
+    const after = text.slice(idx + markerLen).trim();
+    const rawActions = tryParseActionsJson(after);
+
+    // If JSON came first, reply may be after the array
+    let replyText = before;
+    if (!replyText && rawActions.length) {
+        const endBracket = after.lastIndexOf(']');
+        if (endBracket >= 0) {
+            replyText = after.slice(endBracket + 1).replace(/^```\s*/i, '').trim();
+        }
+    }
+
     return { replyText, rawActions };
 }
 
@@ -117,8 +189,20 @@ function validateActions(rawActions) {
             out.push({ type, payload: { html } });
         } else if (type === 'add_question') {
             const q = normalizeQuestionPayload(payload);
-            if (!q.question_text.trim() || !q.correct_answer.trim()) continue;
-            if (q.question_type === 'multiple_choice' && (!q.options || q.options.length < 2)) continue;
+            if (!q.question_text.trim()) continue;
+            // Soften MC: if options missing/invalid, fall back to short_answer
+            if (q.question_type === 'multiple_choice' && (!q.options || q.options.length < 2)) {
+                q.question_type = 'short_answer';
+                q.options = null;
+            }
+            if (!q.correct_answer.trim()) {
+                // Last resort: use first option or placeholder so content still inserts
+                if (Array.isArray(q.options) && q.options.length) {
+                    q.correct_answer = String(q.options[0]);
+                } else {
+                    q.correct_answer = 'See explanation';
+                }
+            }
             out.push({ type, payload: q });
         } else if (type === 'add_phet') {
             const query = String(payload.query || payload.title || '').slice(0, 200).trim();
@@ -158,7 +242,7 @@ function validateActions(rawActions) {
             });
         }
 
-        if (out.length >= 40) break;
+        if (out.length >= 50) break;
     }
     return out;
 }
@@ -269,9 +353,9 @@ module.exports = function createAiEditorHelpHandlers({ query, openRouterChatComp
             let raw;
             try {
                 raw = await openRouterChatCompletion(messages, {
-                    temperature: 0.3,
-                    max_tokens: isSection ? 3200 : 1800,
-                    budgetMs: isSection ? 50000 : 35000
+                    temperature: 0.25,
+                    max_tokens: isSection ? 4500 : 2200,
+                    budgetMs: isSection ? 55000 : 40000
                 });
             } catch (e) {
                 if (e.code === 'OPENROUTER_NOT_CONFIGURED') {
@@ -300,10 +384,25 @@ module.exports = function createAiEditorHelpHandlers({ query, openRouterChatComp
 
             const { replyText, rawActions } = splitReplyAndActions(raw);
             let actions = validateActions(rawActions);
+
+            // If the model wrote prose but forgot/truncated JSON, still place content
+            if (!actions.length && replyText && replyText.length > 40) {
+                const paras = replyText
+                    .split(/\n{2,}/)
+                    .map((p) => p.trim())
+                    .filter(Boolean)
+                    .slice(0, 12)
+                    .map((p) => `<p>${String(p).replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`)
+                    .join('');
+                if (paras) {
+                    actions.push({ type: 'insert_html', payload: { html: paras } });
+                }
+            }
+
             actions = await enrichSuggestSims(actions, query);
 
             return apiResponse(res, 200, 'OK', {
-                reply: replyText || 'Done.',
+                reply: replyText || (actions.length ? 'Inserted content into the editor.' : 'Done.'),
                 actions
             });
         }
