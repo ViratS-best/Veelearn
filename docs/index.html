@@ -653,17 +653,42 @@
         <!-- RIGHT SIDEBAR (Inspector Prototype) -->
         <div class="editor-inspector">
           <h4>Editor Hints</h4>
-          <div class="inspector-item">
-            <strong style="font-size: 13px;">Text Formatting</strong>
-            <small>Highlight text and use the toolbar to make it bold, italic, or a list.</small>
+
+          <button type="button" id="ai-help-toggle" class="ai-help-toggle-btn" aria-expanded="false">
+            AI Help
+          </button>
+
+          <div id="ai-help-panel" class="ai-help-panel" hidden>
+            <div id="ai-help-modes" class="ai-help-modes" hidden>
+              <button type="button" class="ai-help-mode-chip" data-mode="expand">Expand</button>
+              <button type="button" class="ai-help-mode-chip" data-mode="simplify">Simplify</button>
+              <button type="button" class="ai-help-mode-chip" data-mode="check_question">Add check question</button>
+            </div>
+            <div class="ai-help-toolbar">
+              <button type="button" id="ai-help-validate" class="ai-help-secondary-btn">Validate page</button>
+            </div>
+            <div id="ai-help-messages" class="ai-help-messages" aria-live="polite"></div>
+            <div id="ai-help-suggestions" class="ai-help-suggestions"></div>
+            <div class="ai-help-input-row">
+              <textarea id="ai-help-input" rows="2" maxlength="8000"
+                placeholder="Ask AI to add questions, PhET sims, LaTeX, or a full lesson…"></textarea>
+              <button type="button" id="ai-help-send" class="ai-help-send-btn">Send</button>
+            </div>
           </div>
-          <div class="inspector-item">
-            <strong style="font-size: 13px;">Simulators</strong>
-            <small>Interactive content is isolated in blocks. Delete by selecting and backspacing.</small>
-          </div>
-          <div class="inspector-item">
-            <strong style="font-size: 13px;">LaTeX Support</strong>
-            <small>Click ∑ to see equations cheat sheet. MathJax processes them instantly.</small>
+
+          <div id="editor-hints-static">
+            <div class="inspector-item">
+              <strong style="font-size: 13px;">Text Formatting</strong>
+              <small>Highlight text and use the toolbar to make it bold, italic, or a list.</small>
+            </div>
+            <div class="inspector-item">
+              <strong style="font-size: 13px;">Simulators</strong>
+              <small>Interactive content is isolated in blocks. Delete by selecting and backspacing.</small>
+            </div>
+            <div class="inspector-item">
+              <strong style="font-size: 13px;">LaTeX Support</strong>
+              <small>Click ∑ to see equations cheat sheet. MathJax processes them instantly.</small>
+            </div>
           </div>
         </div>
       </form>
@@ -1071,6 +1096,7 @@
   <script src="image-optimization.js"></script>
   <script src="accessibility.js"></script>
   <script src="server-loading.js"></script>
+  <script src="ai-editor-help.js"></script>
   <script src="script.js?v=9"></script>
   <script>
     // Load redesign sections
