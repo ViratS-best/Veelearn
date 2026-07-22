@@ -296,7 +296,7 @@ body {
   font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.02em;
-  color: #fff;
+  color: #fff !important;
   background: linear-gradient(135deg, #0d9488, #0369a1);
   box-shadow: 0 2px 10px rgba(13, 148, 136, 0.35);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
@@ -305,10 +305,12 @@ body {
 .ai-help-toggle-btn:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 14px rgba(13, 148, 136, 0.45);
+  color: #fff !important;
 }
 
 .ai-help-toggle-btn[aria-expanded="true"] {
   background: linear-gradient(135deg, #0f766e, #075985);
+  color: #fff !important;
 }
 
 .ai-help-panel {
@@ -318,8 +320,9 @@ body {
   margin-bottom: 16px;
   padding: 12px;
   border-radius: 10px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border, #334155);
   background: rgba(15, 23, 42, 0.55);
+  color: #e2e8f0;
   max-height: min(58vh, 520px);
 }
 
@@ -340,9 +343,9 @@ body {
 .ai-help-mode-chip,
 .ai-help-secondary-btn,
 .ai-help-suggest-chip {
-  border: 1px solid var(--border);
+  border: 1px solid var(--border, #334155);
   background: #0f172a;
-  color: var(--text-primary, #e2e8f0);
+  color: #e2e8f0 !important;
   border-radius: 999px;
   padding: 5px 10px;
   font-size: 11px;
@@ -354,7 +357,8 @@ body {
 .ai-help-secondary-btn:hover,
 .ai-help-suggest-chip:hover {
   border-color: #0d9488;
-  background: rgba(13, 148, 136, 0.12);
+  background: rgba(13, 148, 136, 0.2);
+  color: #ecfeff !important;
 }
 
 .ai-help-toolbar {
@@ -372,6 +376,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  color: #e2e8f0;
 }
 
 .ai-help-bubble {
@@ -379,34 +384,37 @@ body {
   border-radius: 8px;
   white-space: pre-wrap;
   word-break: break-word;
+  color: #e2e8f0;
 }
 
 .ai-help-bubble.user {
   align-self: flex-end;
-  background: rgba(13, 148, 136, 0.22);
-  border: 1px solid rgba(13, 148, 136, 0.4);
+  background: rgba(13, 148, 136, 0.28);
+  border: 1px solid rgba(13, 148, 136, 0.45);
+  color: #ecfeff;
   max-width: 92%;
 }
 
 .ai-help-bubble.assistant {
   align-self: flex-start;
   background: #0f172a;
-  border: 1px solid var(--border);
+  border: 1px solid #334155;
+  color: #e2e8f0;
   max-width: 96%;
 }
 
 .ai-help-bubble.error {
   align-self: stretch;
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.18);
+  border: 1px solid rgba(239, 68, 68, 0.4);
   color: #fecaca;
 }
 
 .ai-help-bubble.system {
   align-self: stretch;
-  background: rgba(148, 163, 184, 0.1);
-  border: 1px dashed var(--border);
-  color: var(--text-muted);
+  background: rgba(148, 163, 184, 0.12);
+  border: 1px dashed #64748b;
+  color: #cbd5e1;
   font-size: 12px;
 }
 
@@ -429,11 +437,15 @@ body {
   max-height: 120px;
   padding: 8px 10px;
   border-radius: 8px;
-  border: 1px solid var(--border);
+  border: 1px solid #334155;
   background: #0f172a;
-  color: var(--text-primary, #e2e8f0);
+  color: #e2e8f0 !important;
   font-size: 13px;
   font-family: inherit;
+}
+
+.ai-help-input-row textarea::placeholder {
+  color: #94a3b8;
 }
 
 .ai-help-send-btn {
@@ -443,7 +455,7 @@ body {
   cursor: pointer;
   font-weight: 700;
   font-size: 13px;
-  color: #fff;
+  color: #fff !important;
   background: #0d9488;
   white-space: nowrap;
 }
@@ -457,6 +469,162 @@ body {
   cursor: crosshair;
   outline: 2px dashed #0d9488;
   outline-offset: 2px;
+}
+
+/* Light mode: light surfaces + dark readable text */
+[data-theme="light"] .ai-help-panel {
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .ai-help-messages {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .ai-help-mode-chip,
+[data-theme="light"] .ai-help-secondary-btn,
+[data-theme="light"] .ai-help-suggest-chip {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .ai-help-mode-chip:hover,
+[data-theme="light"] .ai-help-secondary-btn:hover,
+[data-theme="light"] .ai-help-suggest-chip:hover {
+  background: rgba(13, 148, 136, 0.12) !important;
+  border-color: #0d9488 !important;
+  color: #0f766e !important;
+}
+
+[data-theme="light"] .ai-help-bubble {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .ai-help-bubble.user {
+  background: rgba(13, 148, 136, 0.14) !important;
+  border-color: rgba(13, 148, 136, 0.35) !important;
+  color: #134e4a !important;
+}
+
+[data-theme="light"] .ai-help-bubble.assistant {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .ai-help-bubble.error {
+  background: rgba(239, 68, 68, 0.1) !important;
+  border-color: rgba(185, 28, 28, 0.35) !important;
+  color: #991b1b !important;
+}
+
+[data-theme="light"] .ai-help-bubble.system {
+  background: #e2e8f0 !important;
+  border-color: #94a3b8 !important;
+  color: #475569 !important;
+}
+
+[data-theme="light"] .ai-help-input-row textarea {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .ai-help-input-row textarea::placeholder {
+  color: #64748b !important;
+}
+
+[data-theme="light"] .ai-help-send-btn,
+[data-theme="light"] .ai-help-toggle-btn {
+  color: #ffffff !important;
+}
+
+/* Course editor humanized light surface still inherits ink — keep AI Help readable */
+#course-editor-section .ai-help-panel,
+#course-editor-section .ai-help-messages,
+#course-editor-section .ai-help-bubble,
+#course-editor-section .ai-help-mode-chip,
+#course-editor-section .ai-help-secondary-btn,
+#course-editor-section .ai-help-suggest-chip,
+#course-editor-section .ai-help-input-row textarea {
+  color: inherit;
+}
+
+[data-theme="light"] #course-editor-section .ai-help-panel {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+[data-theme="light"] #course-editor-section .ai-help-bubble.assistant,
+[data-theme="light"] #course-editor-section .ai-help-input-row textarea,
+[data-theme="light"] #course-editor-section .ai-help-mode-chip,
+[data-theme="light"] #course-editor-section .ai-help-secondary-btn,
+[data-theme="light"] #course-editor-section .ai-help-suggest-chip {
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+
+[data-theme="light"] #course-editor-section .ai-help-bubble.user {
+  color: #134e4a !important;
+}
+
+[data-theme="light"] #course-editor-section .ai-help-bubble.error {
+  color: #991b1b !important;
+}
+
+[data-theme="light"] #course-editor-section .ai-help-bubble.system {
+  color: #475569 !important;
+}
+
+[data-theme="light"] #course-editor-section .ai-help-toggle-btn,
+[data-theme="light"] #course-editor-section .ai-help-send-btn {
+  color: #ffffff !important;
+}
+
+/* Dark theme: keep high-contrast AI Help even if editor humanized styles force ink color */
+[data-theme="dark"] #course-editor-section .ai-help-panel {
+  background: rgba(15, 23, 42, 0.85) !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+[data-theme="dark"] #course-editor-section .ai-help-messages,
+[data-theme="dark"] #course-editor-section .ai-help-bubble,
+[data-theme="dark"] #course-editor-section .ai-help-bubble.assistant {
+  color: #e2e8f0 !important;
+}
+
+[data-theme="dark"] #course-editor-section .ai-help-bubble.assistant,
+[data-theme="dark"] #course-editor-section .ai-help-input-row textarea,
+[data-theme="dark"] #course-editor-section .ai-help-mode-chip,
+[data-theme="dark"] #course-editor-section .ai-help-secondary-btn,
+[data-theme="dark"] #course-editor-section .ai-help-suggest-chip {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+[data-theme="dark"] #course-editor-section .ai-help-bubble.user {
+  color: #ecfeff !important;
+}
+
+[data-theme="dark"] #course-editor-section .ai-help-bubble.error {
+  color: #fecaca !important;
+}
+
+[data-theme="dark"] #course-editor-section .ai-help-bubble.system {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] #course-editor-section .ai-help-input-row textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] #course-editor-section .ai-help-toggle-btn,
+[data-theme="dark"] #course-editor-section .ai-help-send-btn {
+  color: #ffffff !important;
 }
 
 /* DASHBOARD LAYOUT - EduFlow Style */
