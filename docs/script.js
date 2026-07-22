@@ -112,8 +112,7 @@ function startKeepAlive() {
         try {
             const response = await fetch(`${API_BASE_URL}/api/health`, {
                 method: 'GET',
-                cache: 'no-cache',
-                headers: { 'Cache-Control': 'no-cache' },
+                cache: 'no-store',
                 credentials: 'omit'
             });
             
@@ -178,11 +177,7 @@ async function checkServerHealth() {
         const response = await fetch(`${API_BASE_URL}/api/health`, {
             method: 'GET',
             signal: controller.signal,
-            cache: 'no-cache',
-            headers: {
-                'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache'
-            }
+            cache: 'no-store'
         });
         
         clearTimeout(timeoutId);
