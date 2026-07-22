@@ -2975,25 +2975,41 @@ app.post('/api/reset-password', authLimiter, async (req, res) => {
 // ===== GLOBAL SEARCH ROUTE =====
 app.get('/api/search', searchLimiter, async (req, res) => {
     try {
-        const queryStr = req.query.q || '';
+        const queryStr = String(req.query.q || '').trim();
+        if (!queryStr) {
+            return apiResponse(res, 200, 'Search results fetched successfully', {
+                courses: [],
+                simulators: []
+            });
+        }
         const searchPhrase = `%${queryStr}%`;
         const courses = await query(`
-            SELECT c.id, c.title, c.description, u.email as creator_email, c.creator_id as user_id 
+            SELECT c.id, c.title, c.description, c.course_type, c.grade_level, c.like_count,
+                   c.status, c.created_at, u.email as creator_email, c.creator_id as user_id,
+                   (SELECT COUNT(*) FROM course_units WHERE parent_course_id = c.id AND is_draft = FALSE) as units_count
             FROM courses c
             LEFT JOIN users u ON c.creator_id = u.id
-            WHERE c.status = 'approved' AND (c.title LIKE ? OR c.description LIKE ?) 
-            LIMIT 20
+            WHERE c.status = 'approved' AND (c.title LIKE ? OR c.description LIKE ?)
+            ORDER BY
+              CASE WHEN c.course_type = 'master' THEN 0 ELSE 1 END,
+              c.like_count DESC,
+              c.created_at DESC
+            LIMIT 40
         `, [searchPhrase, searchPhrase]);
 
         const simulators = await query(`
-            SELECT s.id, s.title, s.description, u.email as creator_email, s.is_public 
+            SELECT s.id, s.title, s.description, s.tags, s.downloads, s.rating, s.created_at,
+                   s.is_public, u.email as creator_email,
+                   (SELECT COUNT(*) FROM simulator_ratings sr WHERE sr.simulator_id = s.id) as like_count
             FROM simulators s
             LEFT JOIN users u ON s.creator_id = u.id
-            WHERE s.is_public = TRUE AND (s.title LIKE ? OR s.description LIKE ? OR s.tags LIKE ?) 
-            LIMIT 20
+            WHERE (s.is_blocked IS NULL OR s.is_blocked = FALSE)
+              AND (s.is_public = TRUE OR s.is_public IS NULL)
+              AND (s.title LIKE ? OR s.description LIKE ? OR s.tags LIKE ?)
+            ORDER BY s.downloads DESC, s.created_at DESC
+            LIMIT 40
         `, [searchPhrase, searchPhrase, searchPhrase]);
 
-        // Ensure returning arrays (some MySQL wrappers return arrays, some return objects)
         const coursesArr = Array.isArray(courses) ? courses : [];
         const simulatorsArr = Array.isArray(simulators) ? simulators : [];
 
@@ -7272,35 +7288,7 @@ app.post('/api/student/update-status', authenticateToken, (req, res) => {
 });
 
 // ===== SEARCH ROUTE =====
-app.get('/api/search', async (req, res) => {
-    const queryStr = req.query.q;
-    if (!queryStr || queryStr.trim().length === 0) {
-        return apiResponse(res, 200, 'Search results', { courses: [], simulators: [] });
-    }
-
-    const searchTerm = `%${queryStr.trim()}%`;
-
-    try {
-        const courses = await query(
-            `SELECT id, title, description, status, course_type FROM courses 
-             WHERE status = 'approved' AND (title LIKE ? OR description LIKE ?)
-             LIMIT 20`,
-            [searchTerm, searchTerm]
-        );
-
-        const simulators = await query(
-            `SELECT id, title, description, tags, downloads, rating FROM simulators 
-             WHERE is_public = TRUE AND (title LIKE ? OR description LIKE ? OR tags LIKE ?)
-             LIMIT 20`,
-            [searchTerm, searchTerm, searchTerm]
-        );
-
-        apiResponse(res, 200, 'Search results fetched', { courses, simulators });
-    } catch (error) {
-        console.error('Search error:', error);
-        apiResponse(res, 500, 'Server error during search');
-    }
-});
+// Note: GET /api/search is defined earlier (with course_type, units_count, richer sim fields).
 
 // ===== AI STUDY COACH (OpenRouter, Socratic) =====
 app.post('/api/ai/tutor/chat', aiTutorLimiter, authenticateToken, (req, res) => {
