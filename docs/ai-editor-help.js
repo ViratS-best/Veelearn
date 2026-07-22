@@ -520,8 +520,10 @@
 
             const chunkMessage = [
                 'Generate ONLY this one section for the VeeLearn course editor right now.',
-                'Do not ask clarifying questions. Emit editor actions immediately.',
-                'Include: Core Theory (insert_html + add_latex), Recommended Simulation (add_phet), and Competition Practice Suite (exactly 3 add_question items with step-by-step explanations).',
+                'Do not ask clarifying questions.',
+                'OUTPUT RULE: Start with VEELEARN_EDITOR_ACTIONS_JSON: then a complete JSON array FIRST (before any prose).',
+                'Include actions: Core Theory (insert_html + add_latex), Recommended Simulation (add_phet), and exactly 3 add_question practice items with explanations.',
+                'Keep JSON complete and valid. Prefer fewer complete actions over truncated JSON.',
                 '',
                 `SECTION TITLE: ${sec.title}`,
                 '',
@@ -533,7 +535,7 @@
             ].join('\n');
 
             try {
-                const { res, data } = await callEditorHelpApi({
+                let { res, data } = await callEditorHelpApi({
                     message: chunkMessage,
                     mode: 'section',
                     selection,
@@ -542,28 +544,62 @@
 
                 if (!res.ok || !data || data.success === false) {
                     appendBubble('error', `${sec.title}: ${errorMessageFromResponse(res, data)}`);
-                    // Brief pause then continue other sections
                     await new Promise((r) => setTimeout(r, 800));
                     continue;
                 }
 
-                const reply = data.data?.reply || '';
-                const actions = data.data?.actions || [];
+                let reply = data.data?.reply || '';
+                let actions = data.data?.actions || [];
+
+                // One retry if model returned prose without actions
+                if (!actions.length) {
+                    appendBubble('system', `Retrying “${sec.title}” with stricter JSON-only instructions…`);
+                    const retryMsg = [
+                        'CRITICAL RETRY: Your previous answer had no editor actions.',
+                        'Respond with ONLY this format (JSON array must be complete):',
+                        'VEELEARN_EDITOR_ACTIONS_JSON:',
+                        '[{"type":"insert_html","payload":{"html":"<h3>' +
+                            sec.title.replace(/"/g, '') +
+                            '</h3><p>Core theory here</p>"}},{"type":"add_latex","payload":{"latex":"E=mc^2","display":true}},{"type":"add_phet","payload":{"query":"Area Model Algebra"}},{"type":"add_question","payload":{"question_text":"Q1?","question_type":"multiple_choice","options":["A","B","C","D"],"correct_answer":"A","explanation":"steps","points":10}},{"type":"add_question","payload":{"question_text":"Q2?","question_type":"multiple_choice","options":["A","B","C","D"],"correct_answer":"B","explanation":"steps","points":10}},{"type":"add_question","payload":{"question_text":"Q3?","question_type":"multiple_choice","options":["A","B","C","D"],"correct_answer":"C","explanation":"steps","points":10}}]',
+                        '',
+                        'Fill that template with real content for this section:',
+                        sec.title,
+                        sec.body.slice(0, 3500)
+                    ].join('\n');
+
+                    const retry = await callEditorHelpApi({
+                        message: retryMsg,
+                        mode: 'section',
+                        selection
+                    });
+                    if (retry.res.ok && retry.data && retry.data.success !== false) {
+                        res = retry.res;
+                        data = retry.data;
+                        reply = data.data?.reply || reply;
+                        actions = data.data?.actions || [];
+                    }
+                }
+
+                // Last resort: place the prose reply as HTML so the section is not lost
+                if (!actions.length && reply && reply.length > 40) {
+                    actions = [{ type: 'insert_html', payload: { html: `<h3>${esc(sec.title)}</h3><p>${esc(reply)}</p>` } }];
+                    appendBubble('system', `Placed written summary for “${sec.title}” (actions were incomplete).`);
+                }
+
                 if (reply) appendBubble('assistant', reply);
                 if (actions.length) {
                     await executeEditorActions(actions);
                     okCount += 1;
                 } else {
-                    appendBubble('system', `No actions returned for “${sec.title}”.`);
+                    appendBubble('system', `No content placed for “${sec.title}”.`);
                 }
             } catch (err) {
                 console.error(err);
                 appendBubble('error', `${sec.title}: network error — ${err.message || 'failed'}`);
             }
 
-            // Small delay to reduce burst rate-limits across free keys
             if (i < sections.length - 1) {
-                await new Promise((r) => setTimeout(r, 600));
+                await new Promise((r) => setTimeout(r, 900));
             }
         }
 
