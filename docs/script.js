@@ -31,6 +31,8 @@ let isPlacementMode = false; // Flag for cursor-based placement
 let placementType = null; // 'visual-simulator', 'block-simulator', 'quiz'
 let placementData = null; // Data to pass to insertion function
 let availableCourses = [];
+/** All approved courses (incl. own) — used when searching so units/masters appear */
+let allApprovedCourses = [];
 let allUsers = [];
 let courseQuestions = [];
 let pendingCourses = [];
@@ -3499,10 +3501,12 @@ function loadAvailableCourses() {
                     }))
                 );
 
-                availableCourses = allCoursesFromServer.filter(
-                    (c) => c.status === "approved" && c.creator_id !== currentUser.id
+                allApprovedCourses = sortCoursesForDisplay(
+                    allCoursesFromServer.filter((c) => c.status === "approved")
                 );
-                availableCourses = sortCoursesForDisplay(availableCourses);
+                availableCourses = allApprovedCourses.filter(
+                    (c) => Number(c.creator_id) !== Number(currentUser.id)
+                );
                 if (window.logger) window.logger.debug("Filtered available courses:", availableCourses.length);
                 // Clear search box
                 const availableCoursesSearch = document.getElementById('availableCoursesSearch');
@@ -3595,7 +3599,7 @@ function filterCourseList(courseArray, searchText) {
 
     const search = searchText.toLowerCase();
     return courseArray.filter((course) => {
-        const titleMatch = course.title.toLowerCase().includes(search);
+        const titleMatch = (course.title || "").toLowerCase().includes(search);
         const descriptionMatch = (course.description || "").toLowerCase().includes(search);
         const creatorMatch = (course.creator_email || "").toLowerCase().includes(search);
 
@@ -3704,15 +3708,15 @@ function renderAvailableCourses(searchText) {
     }
     availableCoursesCurrentSearch = normalizedSearch;
 
-    const filteredCourses = filterCourseList(availableCourses, normalizedSearch);
-
-    // Split into master and single/unit courses
-    const masterCourses = filteredCourses.filter(c => c.course_type === 'master');
-    const singleCourses = filteredCourses.filter(c => c.course_type !== 'master');
-
-    // When NOT searching, only show master courses
-    // When searching, show both master and single/unit courses
+    // Browse: others' courses only. Search: all approved (incl. own) so units + masters match.
     const isSearching = normalizedSearch.length > 0;
+    const searchPool = isSearching
+        ? (allApprovedCourses.length ? allApprovedCourses : availableCourses)
+        : availableCourses;
+    const filteredCourses = filterCourseList(searchPool, normalizedSearch);
+
+    const masterCourses = filteredCourses.filter((c) => c.course_type === "master");
+    const singleCourses = filteredCourses.filter((c) => c.course_type !== "master");
 
     // --- Render Master Courses ---
     const masterPageData = paginateItems(masterCourses, availableCoursesCurrentPage, COURSE_LIST_PAGE_SIZE);
@@ -3743,15 +3747,19 @@ function renderAvailableCourses(searchText) {
         );
     });
 
-    // --- Render Single/Unit Courses (only when searching) ---
+    // --- Units / single courses: visible whenever searching ---
     if (singleSection) {
-        if (isSearching && singleCourses.length > 0) {
+        if (isSearching) {
             singleSection.style.display = "block";
             if (singleList) {
                 singleList.innerHTML = "";
-                singleCourses.forEach((course) => {
-                    singleList.appendChild(renderCourseCard(course));
-                });
+                if (singleCourses.length === 0) {
+                    singleList.innerHTML = `<li><em>No units / single courses matching "${escapeHtml(normalizedSearch)}"</em></li>`;
+                } else {
+                    singleCourses.forEach((course) => {
+                        singleList.appendChild(renderCourseCard(course));
+                    });
+                }
             }
         } else {
             singleSection.style.display = "none";
@@ -8690,33 +8698,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('global-search-input');
 
     if (searchBtn && searchModal && closeSearchBtn && executeSearchBtn && searchInput) {
-        // Open modal
-        searchBtn.addEventListener('click', (e) => {
-            e.preventDefault();
+        const openSearch = (e) => {
+            if (e) e.preventDefault();
             searchModal.style.display = 'flex';
+            searchModal.classList.add('is-open');
+            searchModal.setAttribute('aria-hidden', 'false');
+            const hint = document.getElementById('search-empty-hint');
+            if (hint) hint.style.display = 'block';
             searchInput.focus();
-        });
-
-        // Close modal
-        closeSearchBtn.addEventListener('click', () => {
+        };
+        const closeSearch = () => {
             searchModal.style.display = 'none';
-        });
+            searchModal.classList.remove('is-open');
+            searchModal.setAttribute('aria-hidden', 'true');
+        };
 
-        // Close on clicking outside
+        searchBtn.addEventListener('click', openSearch);
+        closeSearchBtn.addEventListener('click', closeSearch);
         window.addEventListener('click', (e) => {
-            if (e.target === searchModal) {
-                searchModal.style.display = 'none';
-            }
+            if (e.target === searchModal) closeSearch();
+        });
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && searchModal.style.display === 'flex') closeSearch();
         });
 
-        // Execute search on button click
         executeSearchBtn.addEventListener('click', performGlobalSearch);
-
-        // Execute search on Enter key
         searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                performGlobalSearch();
-            }
+            if (e.key === 'Enter') performGlobalSearch();
         });
     }
 
@@ -8725,14 +8733,8 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.sim-sort-btn').forEach(b => {
                 b.classList.remove('active');
-                b.style.background = 'transparent';
-                b.style.borderColor = '#555';
-                b.style.color = '#ccc';
             });
             btn.classList.add('active');
-            btn.style.background = '#667eea';
-            btn.style.borderColor = '#667eea';
-            btn.style.color = 'white';
             sortSearchSimulators(btn.dataset.sort);
         });
     });
@@ -8743,21 +8745,30 @@ let _cachedSearchSimulators = []; // cached for re-sorting without re-fetch
 async function performGlobalSearch() {
     const searchInput = document.getElementById('global-search-input');
     const query = searchInput.value.trim();
-    if (!query) return;
+    if (!query) {
+        const hint = document.getElementById('search-empty-hint');
+        if (hint) {
+            hint.style.display = 'block';
+            hint.textContent = 'Type a query and press Search or Enter.';
+        }
+        return;
+    }
 
     const executeBtn = document.getElementById('execute-search-btn');
     const originalText = executeBtn.textContent;
     executeBtn.textContent = 'Searching...';
     executeBtn.disabled = true;
 
+    const hint = document.getElementById('search-empty-hint');
+    if (hint) hint.style.display = 'none';
+
     let courses = [];
     let simulators = [];
 
     try {
-        // Try the /api/search endpoint first
         const response = await fetch(`${API_BASE_URL}/api/search?q=${encodeURIComponent(query)}`, {
             headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {},
-            credentials: 'omit'
+            credentials: 'include'
         });
         const result = await response.json();
         if (result.success) {
@@ -8768,11 +8779,23 @@ async function performGlobalSearch() {
         console.warn('Search API failed, falling back to direct fetch:', err);
     }
 
-    // Also fetch simulators directly if search returned none
+    // Fallback: client-filter approved courses already loaded (incl. own units/masters)
+    const localPool = (allApprovedCourses && allApprovedCourses.length)
+        ? allApprovedCourses
+        : availableCourses;
+    if (courses.length === 0 && Array.isArray(localPool) && localPool.length) {
+        const q = query.toLowerCase();
+        courses = localPool.filter((c) =>
+            (c.title || '').toLowerCase().includes(q) ||
+            (c.description || '').toLowerCase().includes(q) ||
+            (c.creator_email || '').toLowerCase().includes(q)
+        );
+    }
+
     if (simulators.length === 0) {
         try {
-            const simRes = await fetch(`${API_BASE_URL}/api/simulators?limit=50`, {
-                credentials: 'omit'
+            const simRes = await fetch(`${API_BASE_URL}/api/simulators?limit=50&search=${encodeURIComponent(query)}`, {
+                credentials: 'include'
             });
             const simData = await simRes.json();
             if (simData.success) {
@@ -8780,7 +8803,8 @@ async function performGlobalSearch() {
                 const q = query.toLowerCase();
                 simulators = allSims.filter(s =>
                     (s.title || '').toLowerCase().includes(q) ||
-                    (s.description || '').toLowerCase().includes(q)
+                    (s.description || '').toLowerCase().includes(q) ||
+                    (s.tags || '').toLowerCase().includes(q)
                 );
             }
         } catch (err2) {
@@ -8799,112 +8823,107 @@ function sortSearchSimulators(sortBy) {
     const sorted = [..._cachedSearchSimulators];
     switch (sortBy) {
         case 'most_liked':
-            sorted.sort((a, b) => (b.like_count || b.likes || 0) - (a.like_count || a.likes || 0));
+            sorted.sort((a, b) => (b.like_count || b.likes || b.rating || 0) - (a.like_count || a.likes || a.rating || 0));
             break;
         case 'most_viewed':
-            sorted.sort((a, b) => (b.download_count || b.views || 0) - (a.download_count || a.views || 0));
+            sorted.sort((a, b) => (b.downloads || b.download_count || b.views || 0) - (a.downloads || a.download_count || a.views || 0));
             break;
         case 'newest':
             sorted.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
             break;
         case 'relevance':
         default:
-            break; // keep original order
+            break;
     }
     renderSimulatorSearchList(sorted);
+}
+
+function renderSearchCourseCard(c, kind) {
+    const grade = c.grade_level
+        ? (c.grade_level === 13 ? 'College' : `Grade ${c.grade_level}`)
+        : '';
+    const badge =
+        kind === 'master'
+            ? '<span class="search-result-badge">Master</span>'
+            : '<span class="search-result-badge unit-badge">Unit / Single</span>';
+    const gradeBadge = grade ? `<span class="search-result-badge">${escapeHtml(grade)}</span>` : '';
+    return `
+        <div class="search-result-card ${kind}" onclick="viewCourseFromSearch(${c.id})" role="button" tabindex="0">
+            <strong>${escapeHtml(c.title)}</strong>
+            ${badge}${gradeBadge}
+            <p>${escapeHtml(c.description || 'No description available.')}</p>
+            <small>By ${escapeHtml(c.creator_email || 'Unknown')}${c.units_count ? ` · ${c.units_count} units` : ''}</small>
+        </div>
+    `;
 }
 
 function renderSearchResults(courses, simulators) {
     const coursesHeader = document.getElementById('search-courses-header');
     const coursesList = document.getElementById('search-courses-list');
     const simulatorsSection = document.getElementById('search-simulators-section');
+    const hint = document.getElementById('search-empty-hint');
+    if (hint) hint.style.display = 'none';
 
-    // Render Courses
-    if (courses && courses.length > 0) {
-        coursesHeader.style.display = 'block';
-        
-        const masterCourses = courses.filter(c => c.course_type === 'master');
-        const singleCourses = courses.filter(c => c.course_type !== 'master');
-        
-        let html = '';
-        if (masterCourses.length > 0) {
-            html += '<h4 style="color: #fff; margin: 10px 0 5px 0;">Master Courses</h4>';
-            html += masterCourses.map(c => `
-                <div style="background: #333; padding: 10px; border-radius: 4px; border-left: 4px solid #667eea; cursor: pointer; margin-bottom: 8px;"
-                     onclick="viewCourseFromSearch(${c.id})">
-                    <strong style="color: #fff; font-size: 16px;">${escapeHtml(c.title)}</strong>
-                    <p style="color: #ccc; font-size: 14px; margin: 5px 0 0 0;">${escapeHtml(c.description || 'No description available.')}</p>
-                    <small style="color: #999;">By ${escapeHtml(c.creator_email || 'Unknown')}</small>
-                </div>
-            `).join('');
-        }
-        
-        if (singleCourses.length > 0) {
-            html += '<h4 style="color: #fff; margin: 15px 0 5px 0;">Units / Single Courses</h4>';
-            html += singleCourses.map(c => `
-                <div style="background: #333; padding: 10px; border-radius: 4px; border-left: 4px solid #4ade80; cursor: pointer; margin-bottom: 8px;"
-                     onclick="viewCourseFromSearch(${c.id})">
-                    <strong style="color: #fff; font-size: 16px;">${escapeHtml(c.title)}</strong>
-                    <p style="color: #ccc; font-size: 14px; margin: 5px 0 0 0;">${escapeHtml(c.description || 'No description available.')}</p>
-                    <small style="color: #999;">By ${escapeHtml(c.creator_email || 'Unknown')}</small>
-                </div>
-            `).join('');
-        }
-        
-        coursesList.innerHTML = html;
-    } else {
-        coursesHeader.style.display = 'block';
-        coursesList.innerHTML = '<p style="color: #999; font-style: italic;">No courses found for this query.</p>';
+    const list = Array.isArray(courses) ? courses : [];
+    const masterCourses = list.filter((c) => c.course_type === 'master');
+    const singleCourses = list.filter((c) => c.course_type !== 'master');
+
+    coursesHeader.style.display = 'block';
+    let html = '';
+    if (masterCourses.length > 0) {
+        html += '<h4 class="search-section-title" style="font-size:0.95rem;border:none;margin:4px 0;">Master Courses</h4>';
+        html += masterCourses.map((c) => renderSearchCourseCard(c, 'master')).join('');
     }
+    if (singleCourses.length > 0) {
+        html += '<h4 class="search-section-title" style="font-size:0.95rem;border:none;margin:12px 0 4px;">Units / Single Courses</h4>';
+        html += singleCourses.map((c) => renderSearchCourseCard(c, 'unit')).join('');
+    }
+    if (!masterCourses.length && !singleCourses.length) {
+        html = '<p class="search-empty-msg">No courses or units found for this query.</p>';
+    }
+    coursesList.innerHTML = html;
 
-    // Render Simulators
     if (simulators && simulators.length > 0) {
         simulatorsSection.style.display = 'block';
         renderSimulatorSearchList(simulators);
-        // Reset sort buttons to relevance
-        document.querySelectorAll('.sim-sort-btn').forEach(btn => {
-            const isActive = btn.dataset.sort === 'relevance';
-            btn.classList.toggle('active', isActive);
-            btn.style.background = isActive ? '#667eea' : 'transparent';
-            btn.style.borderColor = isActive ? '#667eea' : '#555';
-            btn.style.color = isActive ? 'white' : '#ccc';
+        document.querySelectorAll('.sim-sort-btn').forEach((btn) => {
+            btn.classList.toggle('active', btn.dataset.sort === 'relevance');
         });
     } else {
         simulatorsSection.style.display = 'block';
-        document.getElementById('search-simulators-list').innerHTML = '<p style="color: #999; font-style: italic;">No simulators found for this query.</p>';
+        document.getElementById('search-simulators-list').innerHTML =
+            '<p class="search-empty-msg">No simulators found for this query.</p>';
     }
 }
 
 function renderSimulatorSearchList(simulators) {
     const simulatorsList = document.getElementById('search-simulators-list');
     if (!simulators || simulators.length === 0) {
-        simulatorsList.innerHTML = '<p style="color: #999; font-style: italic;">No simulators found.</p>';
+        simulatorsList.innerHTML = '<p class="search-empty-msg">No simulators found.</p>';
         return;
     }
-    simulatorsList.innerHTML = simulators.map(s => {
-        const likes = s.like_count || s.likes || 0;
-        const views = s.download_count || s.views || 0;
+    simulatorsList.innerHTML = simulators.map((s) => {
+        const likes = s.like_count || s.likes || s.rating || 0;
+        const views = s.downloads || s.download_count || s.views || 0;
         const viewUrl = s.url || `simulator-view.html?id=${s.id}`;
         return `
-            <div style="background: #333; padding: 10px; border-radius: 4px; border-left: 4px solid #4ade80; cursor: pointer;"
-                 onclick="window.open('${escapeHtml(viewUrl)}', '_blank')">
-                <strong style="color: #fff; font-size: 16px;">${escapeHtml(s.title)}</strong>
-                <p style="color: #ccc; font-size: 14px; margin: 5px 0 0 0;">${escapeHtml(s.description || 'No description available.')}</p>
-                <div style="display: flex; gap: 12px; margin-top: 6px;">
-                    <small style="color: #f87171;">❤️ ${likes}</small>
-                    <small style="color: #60a5fa;">👁️ ${views}</small>
-                    <small style="color: #999;">By ${escapeHtml(s.creator_email || s.creator || 'Unknown')}</small>
-                </div>
+            <div class="search-result-card unit" onclick="window.open('${escapeHtml(viewUrl)}', '_blank')" role="button" tabindex="0">
+                <strong>${escapeHtml(s.title)}</strong>
+                <p>${escapeHtml(s.description || 'No description available.')}</p>
+                <small>❤️ ${likes} · 👁 ${views} · By ${escapeHtml(s.creator_email || s.creator || 'Unknown')}</small>
             </div>
         `;
     }).join('');
 }
 
 function viewCourseFromSearch(courseId) {
-    // Close modal and view course
-    document.getElementById('search-modal').style.display = 'none';
+    const modal = document.getElementById('search-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        modal.classList.remove('is-open');
+        modal.setAttribute('aria-hidden', 'true');
+    }
 
-    // We already have viewCourse(courseId) available globally
     if (typeof viewCourse === 'function') {
         viewCourse(courseId);
     } else {
@@ -8989,23 +9008,23 @@ async function toggleCourseLike(courseId, buttonElement) {
  */
 function loadCoursesWithSort(sortBy = 'newest') {
     // Sort available courses locally (no API call needed — avoids 401 errors)
-    const sorted = [...availableCourses];
-    switch (sortBy) {
-        case 'most_liked':
-            sorted.sort((a, b) => (b.like_count || 0) - (a.like_count || 0));
-            break;
-        case 'trending':
-            sorted.sort((a, b) => ((b.like_count || 0) + (b.view_count || 0)) - ((a.like_count || 0) + (a.view_count || 0)));
-            break;
-        case 'popular':
-            sorted.sort((a, b) => (b.view_count || 0) - (a.view_count || 0));
-            break;
-        case 'newest':
-        default:
-            sorted.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-            break;
+    const sorter = (a, b) => {
+        switch (sortBy) {
+            case 'most_liked':
+                return (b.like_count || 0) - (a.like_count || 0);
+            case 'trending':
+                return ((b.like_count || 0) + (b.view_count || 0)) - ((a.like_count || 0) + (a.view_count || 0));
+            case 'popular':
+                return (b.view_count || 0) - (a.view_count || 0);
+            case 'newest':
+            default:
+                return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+        }
+    };
+    availableCourses = [...availableCourses].sort(sorter);
+    if (allApprovedCourses.length) {
+        allApprovedCourses = [...allApprovedCourses].sort(sorter);
     }
-    availableCourses = sorted;
 
     const searchBox = document.getElementById('availableCoursesSearch');
     renderAvailableCourses(searchBox ? searchBox.value : '');

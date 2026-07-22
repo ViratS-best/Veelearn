@@ -13,7 +13,7 @@
   <link rel="preload" href="styles.css" as="style">
   <link rel="preload" href="styles-redesign.css" as="style">
   <link rel="preload" href="styles-humanized.css" as="style">
-  <link rel="preload" href="script.js?v=9" as="script">
+  <link rel="preload" href="script.js?v=10" as="script">
   <link rel="prefetch" href="physics.html">
   <link rel="prefetch" href="chemistry.html">
   <link rel="prefetch" href="math.html">
@@ -145,73 +145,67 @@
       <button id="animation-pref-btn" title="Toggle animation mode (Short/Long with epic battle scenes!)">⚙️
         Animations</button>
     </nav>
+  </header>
 
-    <!-- ANIMATION PREFERENCE MODAL -->
-    <div id="animation-pref-modal" class="modal" style="display: none;">
-      <div class="modal-content" style="max-width: 500px;">
-        <span class="close-modal" onclick="closeAnimationPrefModal()">&times;</span>
-        <h2>Animation Preference</h2>
-        <div
-          style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(6, 182, 212, 0.15)); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 12px 16px; margin: 15px 0;">
-          <p style="margin: 0; font-size: 0.9em; color: #cbd5e1;">
-            <strong>⚠️ WARNING - Long Animations:</strong> Contains flashing lights, can get annoying, bright colors,
-            and rapid visual
-            effects. May trigger photosensitive epilepsy or cause discomfort. If you have concerns, use Short
-            Animations.
-          </p>
-        </div>
-        <div style="margin: 20px 0; display: flex; gap: 10px;">
-          <button onclick="setAnimationMode('short')" class="animation-mode-btn" id="short-anim-btn"
-            style="flex: 1; padding: 12px; border: 2px solid transparent; border-radius: 6px; background: #1e293b; color: #cbd5e1; cursor: pointer; font-weight: 600;">
-            ⚡ Short Animations
-          </button>
-          <button onclick="setAnimationMode('long')" class="animation-mode-btn" id="long-anim-btn"
-            style="flex: 1; padding: 12px; border: 2px solid transparent; border-radius: 6px; background: #1e293b; color: #cbd5e1; cursor: pointer; font-weight: 600;">
-            🎬 Long Animations (Epic!)
-          </button>
-        </div>
-        <p style="text-align: center; color: #cbd5e1; font-size: 0.85em; margin-top: 15px;">
-          Every page transition will feature a unique story. Some animations are common, some are extremely rare!
+  <!-- ANIMATION PREFERENCE MODAL (outside sticky header for correct overlay) -->
+  <div id="animation-pref-modal" class="modal" style="display: none;" aria-hidden="true">
+    <div class="modal-content" style="max-width: 500px;">
+      <span class="close-modal" onclick="closeAnimationPrefModal()">&times;</span>
+      <h2>Animation Preference</h2>
+      <div
+        style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(6, 182, 212, 0.15)); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 12px 16px; margin: 15px 0;">
+        <p style="margin: 0; font-size: 0.9em; color: var(--text-muted, #64748b);">
+          <strong>⚠️ WARNING - Long Animations:</strong> Contains flashing lights, can get annoying, bright colors,
+          and rapid visual
+          effects. May trigger photosensitive epilepsy or cause discomfort. If you have concerns, use Short
+          Animations.
         </p>
       </div>
+      <div style="margin: 20px 0; display: flex; gap: 10px;">
+        <button onclick="setAnimationMode('short')" class="animation-mode-btn" id="short-anim-btn"
+          style="flex: 1; padding: 12px; border: 2px solid transparent; border-radius: 6px; cursor: pointer; font-weight: 600;">
+          ⚡ Short Animations
+        </button>
+        <button onclick="setAnimationMode('long')" class="animation-mode-btn" id="long-anim-btn"
+          style="flex: 1; padding: 12px; border: 2px solid transparent; border-radius: 6px; cursor: pointer; font-weight: 600;">
+          🎬 Long Animations (Epic!)
+        </button>
+      </div>
+      <p style="text-align: center; color: var(--text-muted, #64748b); font-size: 0.85em; margin-top: 15px;">
+        Every page transition will feature a unique story. Some animations are common, some are extremely rare!
+      </p>
     </div>
+  </div>
 
-    <!-- GLOBAL SEARCH MODAL -->
-    <div id="search-modal" class="modal" style="display: none;">
-      <div class="modal-content" style="max-width: 600px; max-height: 80vh; display: flex; flex-direction: column;">
-        <span class="close-modal" id="close-search-modal" style="cursor:pointer;">&times;</span>
-        <h2>Search Veelearn</h2>
-        <input type="text" id="global-search-input" placeholder="Search courses and simulators..."
-          style="margin-bottom: 15px; padding: 12px; font-size: 16px; width: 100%; border: 1px solid #667eea; border-radius: 4px; background: #222; color: white;" />
-        <button id="execute-search-btn" class="primary-btn" style="width: 100%; margin-bottom: 20px;">Search</button>
+  <!-- GLOBAL SEARCH MODAL (outside sticky header for correct overlay) -->
+  <div id="search-modal" class="modal search-modal" style="display: none;" aria-hidden="true">
+    <div class="modal-content search-modal-content">
+      <button type="button" class="close-modal" id="close-search-modal" aria-label="Close search">&times;</button>
+      <h2>Search Veelearn</h2>
+      <div class="search-modal-form">
+        <input type="text" id="global-search-input" placeholder="Search courses, units, and simulators..."
+          autocomplete="off" maxlength="200" />
+        <button type="button" id="execute-search-btn" class="primary-btn search-modal-submit">Search</button>
+      </div>
 
-        <div id="search-results-container" style="flex: 1; overflow-y: auto;">
-          <h3 id="search-courses-header" style="display: none; border-bottom: 1px solid #444; padding-bottom: 5px;">
-            Courses</h3>
-          <div id="search-courses-list" style="display: grid; gap: 10px; margin-bottom: 20px;"></div>
+      <div id="search-results-container" class="search-results-container">
+        <p id="search-empty-hint" class="search-empty-hint">Type a query and press Search or Enter.</p>
+        <h3 id="search-courses-header" class="search-section-title" style="display: none;">Courses</h3>
+        <div id="search-courses-list" class="search-results-list"></div>
 
-          <div id="search-simulators-section" style="display: none;">
-            <h3 style="border-bottom: 1px solid #444; padding-bottom: 5px;">Simulators</h3>
-            <div id="simulator-sort-btns" style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
-              <button class="sim-sort-btn active" data-sort="relevance"
-                style="padding: 6px 14px; border-radius: 20px; border: 1px solid #667eea; background: #667eea; color: white; cursor: pointer; font-size: 13px;">🔍
-                Relevance</button>
-              <button class="sim-sort-btn" data-sort="most_liked"
-                style="padding: 6px 14px; border-radius: 20px; border: 1px solid #555; background: transparent; color: #ccc; cursor: pointer; font-size: 13px;">❤️
-                Most Liked</button>
-              <button class="sim-sort-btn" data-sort="most_viewed"
-                style="padding: 6px 14px; border-radius: 20px; border: 1px solid #555; background: transparent; color: #ccc; cursor: pointer; font-size: 13px;">👁️
-                Most Viewed</button>
-              <button class="sim-sort-btn" data-sort="newest"
-                style="padding: 6px 14px; border-radius: 20px; border: 1px solid #555; background: transparent; color: #ccc; cursor: pointer; font-size: 13px;">📅
-                Newest</button>
-            </div>
-            <div id="search-simulators-list" style="display: grid; gap: 10px;"></div>
+        <div id="search-simulators-section" style="display: none;">
+          <h3 class="search-section-title">Simulators</h3>
+          <div id="simulator-sort-btns" class="sim-sort-btns">
+            <button type="button" class="sim-sort-btn active" data-sort="relevance">Relevance</button>
+            <button type="button" class="sim-sort-btn" data-sort="most_liked">Most Liked</button>
+            <button type="button" class="sim-sort-btn" data-sort="most_viewed">Most Viewed</button>
+            <button type="button" class="sim-sort-btn" data-sort="newest">Newest</button>
           </div>
+          <div id="search-simulators-list" class="search-results-list"></div>
         </div>
       </div>
     </div>
-  </header>
+  </div>
 
   <main>
     <!-- LANDING PAGE SECTION -->
@@ -511,10 +505,8 @@
 
         <h4>🎓 Master Courses</h4>
         <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px; flex-wrap: wrap;">
-          <input type="text" id="availableCoursesSearch" placeholder="Search all courses (master courses & units)..."
-            style="flex: 1 1 300px; min-width: 250px; padding: 12px; font-size: 16px; border: 1px solid #667eea; border-radius: 4px; background: #222; color: #fff;" />
-          <select id="courseSortDropdown"
-            style="padding: 8px 12px; border: 1px solid #555; border-radius: 4px; background: #222; color: #fff; min-width: 140px;">
+          <input type="text" id="availableCoursesSearch" class="dashboard-course-search" placeholder="Search all courses (master courses & units)..." />
+          <select id="courseSortDropdown" class="dashboard-course-sort">
             <option value="newest">📅 Newest</option>
             <option value="most_liked">❤️ Most Liked</option>
             <option value="trending">🔥 Trending</option>
@@ -1097,7 +1089,7 @@
   <script src="accessibility.js"></script>
   <script src="server-loading.js"></script>
   <script src="ai-editor-help.js"></script>
-  <script src="script.js?v=9"></script>
+  <script src="script.js?v=10"></script>
   <script>
     // Load redesign sections
     fetch('redesign-sections.html')

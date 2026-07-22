@@ -490,11 +490,22 @@ textarea::placeholder {
 #search-modal .modal-content,
 #animation-pref-modal .modal-content,
 #search-modal input,
-#search-modal .sim-sort-btn,
 #animation-pref-modal .animation-mode-btn {
   background: var(--k12-surface) !important;
   color: var(--k12-ink) !important;
   border-color: var(--k12-border) !important;
+}
+
+#search-modal .sim-sort-btn {
+  background: transparent !important;
+  color: var(--k12-ink) !important;
+  border-color: var(--k12-border) !important;
+}
+
+#search-modal .sim-sort-btn.active {
+  background: #0d9488 !important;
+  border-color: #0d9488 !important;
+  color: #fff !important;
 }
 
 #global-search-btn {
