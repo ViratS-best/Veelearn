@@ -1174,11 +1174,63 @@ function initializeApp() {
     setupAnimationPreference();
     setupCourseNestingListeners();
     setupStudyCoachListeners();
+    exposeAiEditorHelpBridge();
+    if (typeof setupAiEditorHelp === "function") {
+        setupAiEditorHelp();
+    }
 
     if (document.cookie.includes('token=') || authToken) {
         fetchUserProfile();
     } else {
         showLandingPage();
+    }
+}
+
+/**
+ * Bridge script.js locals to window for ai-editor-help.js skills.
+ */
+function exposeAiEditorHelpBridge() {
+    window.API_BASE_URL = API_BASE_URL;
+    window.escapeHtml = escapeHtml;
+    window.insertSimulatorBlock = insertSimulatorBlock;
+    window.insertQuizPlaceholder = insertQuizPlaceholder;
+    window.loadCourseQuestions = loadCourseQuestions;
+    window.saveCurrentPageContent = saveCurrentPageContent;
+    window.openQuizModal = openQuizModal;
+
+    try {
+        Object.defineProperty(window, "authToken", {
+            get() { return authToken; },
+            set(v) { authToken = v; },
+            configurable: true
+        });
+        Object.defineProperty(window, "currentEditingCourseId", {
+            get() { return currentEditingCourseId; },
+            set(v) { currentEditingCourseId = v; },
+            configurable: true
+        });
+        Object.defineProperty(window, "courseBlocks", {
+            get() { return courseBlocks; },
+            set(v) { courseBlocks = v; },
+            configurable: true
+        });
+        Object.defineProperty(window, "courseQuestions", {
+            get() { return courseQuestions; },
+            set(v) { courseQuestions = v; },
+            configurable: true
+        });
+        Object.defineProperty(window, "coursePages", {
+            get() { return coursePages; },
+            set(v) { coursePages = v; },
+            configurable: true
+        });
+    } catch (e) {
+        // Fallbacks if properties already defined non-configurable
+        window.authToken = authToken;
+        window.currentEditingCourseId = currentEditingCourseId;
+        window.courseBlocks = courseBlocks;
+        window.courseQuestions = courseQuestions;
+        window.coursePages = coursePages;
     }
 }
 
@@ -6908,6 +6960,7 @@ const PHET_SIMS = [
     { title: "Natural Selection", url: "https://phet.colorado.edu/sims/html/natural-selection/latest/natural-selection_all.html", description: "Watch evolution in action" },
     { title: "Neuron", url: "https://phet.colorado.edu/sims/html/neuron/latest/neuron_all.html", description: "Stimulate a neuron" }
 ];
+window.PHET_SIMS = PHET_SIMS;
 
 function setupPhetModalListeners() {
     const modal = document.getElementById("phet-modal");

@@ -284,6 +284,181 @@ body {
   margin-top: 4px;
 }
 
+/* ===== AI Help (Editor Hints) ===== */
+.ai-help-toggle-btn {
+  display: block;
+  width: 100%;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #fff;
+  background: linear-gradient(135deg, #0d9488, #0369a1);
+  box-shadow: 0 2px 10px rgba(13, 148, 136, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ai-help-toggle-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(13, 148, 136, 0.45);
+}
+
+.ai-help-toggle-btn[aria-expanded="true"] {
+  background: linear-gradient(135deg, #0f766e, #075985);
+}
+
+.ai-help-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(15, 23, 42, 0.55);
+  max-height: min(58vh, 520px);
+}
+
+.ai-help-panel[hidden] {
+  display: none !important;
+}
+
+.ai-help-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ai-help-modes[hidden] {
+  display: none !important;
+}
+
+.ai-help-mode-chip,
+.ai-help-secondary-btn,
+.ai-help-suggest-chip {
+  border: 1px solid var(--border);
+  background: #0f172a;
+  color: var(--text-primary, #e2e8f0);
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.ai-help-mode-chip:hover,
+.ai-help-secondary-btn:hover,
+.ai-help-suggest-chip:hover {
+  border-color: #0d9488;
+  background: rgba(13, 148, 136, 0.12);
+}
+
+.ai-help-toolbar {
+  display: flex;
+  gap: 8px;
+}
+
+.ai-help-messages {
+  flex: 1;
+  min-height: 120px;
+  max-height: 240px;
+  overflow-y: auto;
+  font-size: 13px;
+  line-height: 1.45;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ai-help-bubble {
+  padding: 8px 10px;
+  border-radius: 8px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.ai-help-bubble.user {
+  align-self: flex-end;
+  background: rgba(13, 148, 136, 0.22);
+  border: 1px solid rgba(13, 148, 136, 0.4);
+  max-width: 92%;
+}
+
+.ai-help-bubble.assistant {
+  align-self: flex-start;
+  background: #0f172a;
+  border: 1px solid var(--border);
+  max-width: 96%;
+}
+
+.ai-help-bubble.error {
+  align-self: stretch;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fecaca;
+}
+
+.ai-help-bubble.system {
+  align-self: stretch;
+  background: rgba(148, 163, 184, 0.1);
+  border: 1px dashed var(--border);
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.ai-help-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ai-help-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.ai-help-input-row textarea {
+  flex: 1;
+  resize: vertical;
+  min-height: 52px;
+  max-height: 120px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #0f172a;
+  color: var(--text-primary, #e2e8f0);
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.ai-help-send-btn {
+  padding: 10px 14px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 13px;
+  color: #fff;
+  background: #0d9488;
+  white-space: nowrap;
+}
+
+.ai-help-send-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.editor-content.ai-latex-placement {
+  cursor: crosshair;
+  outline: 2px dashed #0d9488;
+  outline-offset: 2px;
+}
+
 /* DASHBOARD LAYOUT - EduFlow Style */
 .dashboard-header {
   display: flex;

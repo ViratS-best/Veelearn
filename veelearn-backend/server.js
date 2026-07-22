@@ -1118,8 +1118,22 @@ const aiTutorLimiter = rateLimit({
     message: { success: false, message: 'Too many study coach requests. Please wait a moment and try again.' }
 });
 
+const aiEditorHelpLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 15,
+    message: { success: false, message: 'Too many AI Help requests. Please wait a moment and try again.' }
+});
+
 const createAiTutorHandlers = require('./ai-tutor-handlers');
 const aiTutorHandlers = createAiTutorHandlers({ query, openRouterChatCompletion, apiResponse });
+
+const createAiEditorHelpHandlers = require('./ai-editor-help-handlers');
+const aiEditorHelpHandlers = createAiEditorHelpHandlers({
+    query,
+    openRouterChatCompletion,
+    apiResponse,
+    getOpenRouterKeys
+});
 
 // ===== SMART RATE LIMITING FOR SERVER WAKE-UP =====
 
@@ -7298,6 +7312,14 @@ app.get('/api/ai/tutor/history', aiTutorLimiter, authenticateToken, (req, res) =
     aiTutorHandlers.history(req, res).catch((e) => {
         console.error('ai tutor history:', e);
         apiResponse(res, 500, 'Study coach error');
+    });
+});
+
+// ===== AI EDITOR HELP (OpenRouter, structured actions) =====
+app.post('/api/ai/editor-help', aiEditorHelpLimiter, authenticateToken, (req, res) => {
+    aiEditorHelpHandlers.help(req, res).catch((e) => {
+        console.error('ai editor help:', e);
+        apiResponse(res, 500, 'AI Help error');
     });
 });
 
