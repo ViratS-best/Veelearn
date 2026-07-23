@@ -916,6 +916,46 @@ body {
   box-shadow: 0 12px 24px rgba(102, 126, 234, 0.1);
 }
 
+.course-card-context-menu {
+  position: fixed;
+  z-index: 10050;
+  min-width: 160px;
+  background: #1e293b;
+  border: 1px solid var(--border, #334155);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+}
+
+.course-card-context-menu[hidden] {
+  display: none !important;
+}
+
+.course-context-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: #f1f5f9;
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.course-context-item:hover {
+  background: rgba(102, 126, 234, 0.2);
+}
+
+.course-context-danger {
+  color: #f87171;
+}
+
+.course-context-danger:hover {
+  background: rgba(239, 68, 68, 0.15);
+}
+
 .course-card-image {
   width: 100%;
   height: 160px;
