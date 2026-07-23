@@ -167,6 +167,101 @@ body.learner-shell-active #learner-shell {
   color: var(--ls-active-text);
 }
 
+.ls-nav-flyout {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.ls-flyout-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.22s ease;
+  margin: 0 4px 2px 10px;
+}
+
+.ls-nav-flyout:hover .ls-flyout-panel,
+.ls-nav-flyout.is-open .ls-flyout-panel,
+.ls-nav-flyout:focus-within .ls-flyout-panel {
+  grid-template-rows: 1fr;
+}
+
+.ls-flyout-panel-inner {
+  overflow: hidden;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 0 6px 0;
+}
+
+.ls-flyout-action,
+.ls-flyout-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  border: none;
+  background: var(--ls-input-bg, rgba(0, 0, 0, 0.03));
+  color: var(--ls-text);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 8px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  border: 1px solid transparent;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.ls-flyout-action {
+  background: var(--ls-accent-soft);
+  color: var(--ls-active-text, var(--ls-accent));
+}
+
+.ls-flyout-action:hover,
+.ls-flyout-item:hover {
+  border-color: var(--ls-border);
+  background: var(--ls-accent-soft);
+  color: var(--ls-accent);
+}
+
+.ls-flyout-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.ls-flyout-meta {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--ls-muted);
+  opacity: 0.9;
+}
+
+.ls-flyout-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.ls-flyout-empty {
+  font-size: 0.8rem;
+  color: var(--ls-muted);
+  padding: 6px 8px;
+  font-weight: 600;
+}
+
 .ls-nav-icon {
   width: 22px;
   height: 22px;
@@ -1114,9 +1209,25 @@ body.learner-shell-active #learner-shell .ls-settings-card input {
   border-color: var(--ls-border) !important;
 }
 
-body.learner-shell-active #learner-shell .ls-nav-icon svg {
-  stroke: currentColor !important;
-  color: inherit !important;
+body.learner-shell-active #learner-shell .ls-flyout-action,
+body.learner-shell-active #learner-shell .ls-flyout-item,
+body.learner-shell-active #learner-shell .ls-flyout-title,
+body.learner-shell-active #learner-shell .ls-flyout-meta,
+body.learner-shell-active #learner-shell .ls-flyout-empty {
+  color: inherit;
+}
+
+body.learner-shell-active #learner-shell .ls-flyout-action {
+  color: var(--ls-active-text, var(--ls-accent)) !important;
+}
+
+body.learner-shell-active #learner-shell .ls-flyout-item {
+  color: var(--ls-text) !important;
+}
+
+body.learner-shell-active #learner-shell .ls-flyout-meta,
+body.learner-shell-active #learner-shell .ls-flyout-empty {
+  color: var(--ls-muted) !important;
 }
 
 /* ===== Course viewer: hide site navbar + apply store theme ===== */

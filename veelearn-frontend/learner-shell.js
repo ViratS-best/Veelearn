@@ -46,8 +46,24 @@
           <button type="button" class="ls-nav-btn active" data-ls-nav="dashboard"><span class="ls-nav-icon">${NAV_ICONS.dashboard}</span>Dashboard</button>
           <button type="button" class="ls-nav-btn" data-ls-nav="achievements"><span class="ls-nav-icon">${NAV_ICONS.achievements}</span>Achievements</button>
           <button type="button" class="ls-nav-btn" data-ls-nav="enrolled"><span class="ls-nav-icon">${NAV_ICONS.enrolled}</span>Enrolled Courses</button>
-          <button type="button" class="ls-nav-btn" data-ls-nav="create"><span class="ls-nav-icon">${NAV_ICONS.create}</span>Course Creation</button>
-          <button type="button" class="ls-nav-btn" data-ls-nav="studio"><span class="ls-nav-icon">${NAV_ICONS.studio}</span>Simulator Studio</button>
+          <div class="ls-nav-flyout" data-flyout="create">
+            <button type="button" class="ls-nav-btn" data-ls-nav="create"><span class="ls-nav-icon">${NAV_ICONS.create}</span>Course Creation</button>
+            <div class="ls-flyout-panel" aria-label="Your courses">
+              <div class="ls-flyout-panel-inner">
+                <button type="button" class="ls-flyout-action" data-flyout-new="course">+ New course</button>
+                <div class="ls-flyout-list" id="ls-flyout-courses"><div class="ls-flyout-empty">Hover to load…</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="ls-nav-flyout" data-flyout="studio">
+            <button type="button" class="ls-nav-btn" data-ls-nav="studio"><span class="ls-nav-icon">${NAV_ICONS.studio}</span>Simulator Studio</button>
+            <div class="ls-flyout-panel" aria-label="Your simulators">
+              <div class="ls-flyout-panel-inner">
+                <button type="button" class="ls-flyout-action" data-flyout-new="sim">+ New simulator</button>
+                <div class="ls-flyout-list" id="ls-flyout-sims"><div class="ls-flyout-empty">Hover to load…</div></div>
+              </div>
+            </div>
+          </div>
           <button type="button" class="ls-nav-btn" data-ls-nav="store"><span class="ls-nav-icon">${NAV_ICONS.store}</span>Gem Store</button>
         </nav>
         <div class="ls-nav-bottom">
@@ -115,6 +131,8 @@
       });
     });
 
+    setupNavFlyouts(shell);
+
     document.getElementById('ls-profile-logout')?.addEventListener('click', (e) => {
       e.stopPropagation();
       if (typeof window.logout === 'function') window.logout();
@@ -181,6 +199,189 @@
     document.body.style.background = '';
     const shell = document.getElementById('learner-shell');
     if (shell) shell.style.display = 'none';
+  }
+
+  function apiBase() {
+    return typeof window.API_BASE_URL === 'string' ? window.API_BASE_URL : '';
+  }
+
+  function authHeaders() {
+    const token = localStorage.getItem('token') || (typeof window.authToken === 'string' ? window.authToken : '');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+
+  async function fetchJson(path) {
+    const res = await fetch(`${apiBase()}${path}`, {
+      headers: authHeaders(),
+      credentials: 'include'
+    });
+    return res.json().catch(() => ({}));
+  }
+
+  function setupNavFlyouts(shell) {
+    const createFlyout = shell.querySelector('[data-flyout="create"]');
+    const studioFlyout = shell.querySelector('[data-flyout="studio"]');
+
+    const bindHoverLoad = (el, loader) => {
+      if (!el) return;
+      let collapseTimer = null;
+      let lastFetch = 0;
+      let busy = false;
+      const open = () => {
+        clearTimeout(collapseTimer);
+        el.classList.add('is-open');
+        const now = Date.now();
+        if (busy || now - lastFetch < 4000) return;
+        busy = true;
+        lastFetch = now;
+        Promise.resolve(loader()).finally(() => {
+          busy = false;
+        });
+      };
+      const scheduleClose = () => {
+        clearTimeout(collapseTimer);
+        collapseTimer = setTimeout(() => el.classList.remove('is-open'), 180);
+      };
+      el.addEventListener('mouseenter', open);
+      el.addEventListener('mouseleave', scheduleClose);
+      el.addEventListener('focusin', open);
+      el.addEventListener('focusout', (e) => {
+        if (!el.contains(e.relatedTarget)) scheduleClose();
+      });
+      // Touch / click toggle when hover isn't available
+      el.querySelector('.ls-nav-btn')?.addEventListener('pointerdown', (e) => {
+        if (window.matchMedia('(hover: hover)').matches) return;
+        // First tap expands; second tap on the label navigates via click handler
+        if (!el.classList.contains('is-open')) {
+          e.preventDefault();
+          e.stopPropagation();
+          open();
+        }
+      }, true);
+    };
+
+    bindHoverLoad(createFlyout, loadCourseFlyout);
+    bindHoverLoad(studioFlyout, loadSimFlyout);
+
+    shell.querySelector('[data-flyout-new="course"]')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      window.LearnerShell.navigate('create');
+      document.body.classList.remove('ls-sidebar-open');
+    });
+    shell.querySelector('[data-flyout-new="sim"]')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      window.location.href = 'scratch-studio.html';
+    });
+  }
+
+  function currentUserId() {
+    if (window.currentUser?.id != null) return Number(window.currentUser.id);
+    try {
+      const token = localStorage.getItem('token') || '';
+      const parts = token.split('.');
+      if (parts.length === 3) {
+        const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+        if (payload.id != null) return Number(payload.id);
+        if (payload.userId != null) return Number(payload.userId);
+      }
+    } catch (_) { /* ignore */ }
+    const profile = window.LearnerGamification?.getProfile?.();
+    return profile?.id != null ? Number(profile.id) : null;
+  }
+
+  async function loadCourseFlyout() {
+    const list = document.getElementById('ls-flyout-courses');
+    if (!list) return;
+    list.innerHTML = '<div class="ls-flyout-empty">Loading…</div>';
+    try {
+      const uid = currentUserId();
+      let courses = [];
+      if (uid) {
+        const owned = await fetchJson(`/api/users/${uid}/courses`);
+        if (owned.success && Array.isArray(owned.data)) {
+          courses = owned.data;
+        }
+      }
+      if (!courses.length) {
+        const data = await fetchJson('/api/courses');
+        courses = (data.success ? data.data || [] : []).filter(
+          (c) => uid != null && Number(c.creator_id) === uid
+        );
+      }
+      courses = [...courses].sort(
+        (a, b) =>
+          new Date(b.created_at || b.creation_time || 0) -
+          new Date(a.created_at || a.creation_time || 0)
+      );
+
+      if (!courses.length) {
+        list.innerHTML = '<div class="ls-flyout-empty">No courses yet — create one!</div>';
+        return;
+      }
+
+      list.innerHTML = courses
+        .map((c) => {
+          const status = c.status ? `<span class="ls-flyout-meta">${esc(c.status)}</span>` : '';
+          return `<button type="button" class="ls-flyout-item" data-edit-course="${c.id}">
+            <span class="ls-flyout-title">${esc(c.title || 'Untitled')}</span>${status}
+          </button>`;
+        })
+        .join('');
+
+      list.querySelectorAll('[data-edit-course]').forEach((btn) => {
+        btn.addEventListener('click', async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const id = parseInt(btn.getAttribute('data-edit-course'), 10);
+          const course = courses.find((c) => Number(c.id) === id);
+          if (course && typeof window.__veelearnPushCourse === 'function') {
+            window.__veelearnPushCourse(course);
+          }
+          document.body.classList.remove('ls-sidebar-open');
+          if (typeof window.editCourse === 'function') {
+            window.LearnerShell.hideLearnerShell();
+            await window.editCourse(id);
+          }
+        });
+      });
+    } catch (err) {
+      list.innerHTML = '<div class="ls-flyout-empty">Could not load courses.</div>';
+    }
+  }
+
+  async function loadSimFlyout() {
+    const list = document.getElementById('ls-flyout-sims');
+    if (!list) return;
+    list.innerHTML = '<div class="ls-flyout-empty">Loading…</div>';
+    try {
+      const data = await fetchJson('/api/my-simulators');
+      const sims = data.success ? data.data || [] : [];
+      if (!sims.length) {
+        list.innerHTML = '<div class="ls-flyout-empty">No simulators yet — create one!</div>';
+        return;
+      }
+      list.innerHTML = sims
+        .map((s) => {
+          const vis = s.is_public ? 'public' : 'draft';
+          return `<button type="button" class="ls-flyout-item" data-edit-sim="${s.id}">
+            <span class="ls-flyout-title">${esc(s.title || 'Untitled')}</span>
+            <span class="ls-flyout-meta">${esc(vis)}</span>
+          </button>`;
+        })
+        .join('');
+      list.querySelectorAll('[data-edit-sim]').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const id = btn.getAttribute('data-edit-sim');
+          window.location.href = `scratch-studio.html?simId=${encodeURIComponent(id)}`;
+        });
+      });
+    } catch (err) {
+      list.innerHTML = '<div class="ls-flyout-empty">Could not load simulators.</div>';
+    }
   }
 
   function navigate(name) {

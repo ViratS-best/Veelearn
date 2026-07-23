@@ -152,6 +152,7 @@ function createLearnerGamificationHandlers({ query, apiResponse, sendEmail }) {
             const inv = await getInventory(userId);
             const stats = await quizStats(userId);
             return apiResponse(res, 200, 'OK', {
+                id: row.id,
                 displayName: displayNameFromUser(row),
                 email: row.email,
                 gems: row.gems || 0,
