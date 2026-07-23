@@ -333,7 +333,7 @@
       list.innerHTML = courses
         .map((c) => {
           const status = c.status ? `<span class="ls-flyout-meta">${esc(c.status)}</span>` : '';
-          return `<button type="button" class="ls-flyout-item" data-edit-course="${c.id}">
+          return `<button type="button" class="ls-flyout-item" data-edit-course="${c.id}" data-my-course="1">
             <span class="ls-flyout-title">${esc(c.title || 'Untitled')}</span>${status}
           </button>`;
         })
@@ -352,6 +352,21 @@
           if (typeof window.editCourse === 'function') {
             window.LearnerShell.hideLearnerShell();
             await window.editCourse(id);
+          }
+        });
+        btn.addEventListener('contextmenu', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+          const id = parseInt(btn.getAttribute('data-edit-course'), 10);
+          if (!id) return;
+          // Keep flyout open while the menu is used
+          const flyout = btn.closest('[data-flyout="create"]');
+          if (flyout) flyout.classList.add('is-open');
+          if (typeof window.showCourseContextMenu === 'function') {
+            window.showCourseContextMenu(e.clientX, e.clientY, id);
+          } else if (typeof window.deleteCourse === 'function') {
+            window.deleteCourse(id);
           }
         });
       });
@@ -455,6 +470,8 @@
     hideLearnerShell,
     navigate,
     updateProfileUI,
+    refreshCourseFlyout: () => loadCourseFlyout(),
+    refreshSimFlyout: () => loadSimFlyout(),
     isActive: () => document.body.classList.contains('learner-shell-active')
   };
 })();
