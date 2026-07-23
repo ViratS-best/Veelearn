@@ -3761,13 +3761,16 @@ function ensureCourseContextMenu() {
     menu = document.createElement('div');
     menu.id = 'course-card-context-menu';
     menu.className = 'course-card-context-menu';
-    menu.hidden = true;
-    menu.innerHTML = `<button type="button" class="course-context-item course-context-danger" data-action="delete">Delete course</button>`;
+    menu.setAttribute('role', 'menu');
+    menu.style.display = 'none';
+    menu.innerHTML = `<button type="button" class="course-context-item course-context-danger" data-action="delete" role="menuitem">Delete course</button>`;
     document.body.appendChild(menu);
 
     menu.addEventListener('click', (e) => {
         const btn = e.target.closest('[data-action]');
         if (!btn) return;
+        e.preventDefault();
+        e.stopPropagation();
         const courseId = parseInt(menu.dataset.courseId, 10);
         hideCourseContextMenu();
         if (btn.dataset.action === 'delete' && courseId) {
@@ -3775,28 +3778,23 @@ function ensureCourseContextMenu() {
         }
     });
 
-    if (!document.body.dataset.courseContextDismissBound) {
-        document.body.dataset.courseContextDismissBound = '1';
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('#course-card-context-menu')) hideCourseContextMenu();
-        });
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') hideCourseContextMenu();
-        });
-        window.addEventListener('scroll', hideCourseContextMenu, true);
-    }
     return menu;
 }
 
 function hideCourseContextMenu() {
     const menu = document.getElementById('course-card-context-menu');
-    if (menu) menu.hidden = true;
+    if (menu) {
+        menu.style.display = 'none';
+        menu.hidden = true;
+    }
 }
 
 function showCourseContextMenu(clientX, clientY, courseId) {
     const menu = ensureCourseContextMenu();
     menu.dataset.courseId = String(courseId);
     menu.hidden = false;
+    menu.style.display = 'block';
+    menu.style.visibility = 'hidden';
     menu.style.left = '0px';
     menu.style.top = '0px';
     const rect = menu.getBoundingClientRect();
@@ -3806,10 +3804,28 @@ function showCourseContextMenu(clientX, clientY, courseId) {
     if (top + rect.height > window.innerHeight - 8) top = window.innerHeight - rect.height - 8;
     menu.style.left = `${Math.max(8, left)}px`;
     menu.style.top = `${Math.max(8, top)}px`;
+    menu.style.visibility = 'visible';
+}
+
+function resolveMyCourseCardFromEvent(target) {
+    if (!target || !target.closest) return null;
+    const card = target.closest('.course-card[data-my-course="1"], .course-card[data-course-id]');
+    if (!card) return null;
+    // Only My Courses lists (not Available Courses)
+    const inMyList = card.closest(
+        '#my-courses-list-user, #my-courses-list-admin, #my-courses-list-superadmin'
+    );
+    if (!inMyList && card.getAttribute('data-my-course') !== '1') return null;
+    if (inMyList || card.getAttribute('data-my-course') === '1') return card;
+    return null;
 }
 
 function bindMyCourseContextMenu(cardEl, courseId) {
-    if (!cardEl || cardEl.dataset.contextBound === '1') return;
+    if (!cardEl) return;
+    cardEl.dataset.courseId = String(courseId);
+    cardEl.setAttribute('data-my-course', '1');
+    // Per-card bind kept as backup; primary handler is document capture below
+    if (cardEl.dataset.contextBound === '1') return;
     cardEl.dataset.contextBound = '1';
     cardEl.addEventListener('contextmenu', (e) => {
         e.preventDefault();
@@ -3817,6 +3833,45 @@ function bindMyCourseContextMenu(cardEl, courseId) {
         showCourseContextMenu(e.clientX, e.clientY, courseId);
     });
 }
+
+function setupMyCourseContextMenuDelegation() {
+    if (document.documentElement.dataset.courseContextDelegation === '1') return;
+    document.documentElement.dataset.courseContextDelegation = '1';
+
+    // Capture phase so we beat Chrome's default menu even if something else listens later
+    document.addEventListener(
+        'contextmenu',
+        (e) => {
+            const card = resolveMyCourseCardFromEvent(e.target);
+            if (!card) return;
+            const courseId = parseInt(card.dataset.courseId || card.getAttribute('data-course-id'), 10);
+            if (!courseId) return;
+            e.preventDefault();
+            e.stopPropagation();
+            if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+            showCourseContextMenu(e.clientX, e.clientY, courseId);
+        },
+        true
+    );
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('#course-card-context-menu')) hideCourseContextMenu();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') hideCourseContextMenu();
+    });
+    window.addEventListener('scroll', hideCourseContextMenu, true);
+    window.addEventListener('blur', hideCourseContextMenu);
+}
+
+// Install immediately + on DOM ready
+setupMyCourseContextMenuDelegation();
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupMyCourseContextMenuDelegation);
+}
+window.setupMyCourseContextMenuDelegation = setupMyCourseContextMenuDelegation;
+window.showCourseContextMenu = showCourseContextMenu;
+window.hideCourseContextMenu = hideCourseContextMenu;
 
 function renderAvailableCourses(searchText) {
     const masterList = document.getElementById("available-courses-list-user");
