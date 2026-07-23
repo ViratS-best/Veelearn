@@ -3709,6 +3709,8 @@ function renderUserCourses(searchText) {
             li.className = "course-card";
             li.style.display = "block";
             li.style.listStyle = "none";
+            li.dataset.courseId = String(course.id);
+            li.setAttribute("data-my-course", "1");
 
             li.innerHTML = `
         <div class="course-card-image" style="font-size: 40px; height: 120px;">🎓</div>
@@ -3740,6 +3742,7 @@ function renderUserCourses(searchText) {
         </div>
       `;
             list.appendChild(li);
+            bindMyCourseContextMenu(li, course.id);
         });
 
         renderCoursePagination(
@@ -3749,6 +3752,69 @@ function renderUserCourses(searchText) {
             myCoursesCurrentPage,
             COURSE_LIST_PAGE_SIZE
         );
+    });
+}
+
+function ensureCourseContextMenu() {
+    let menu = document.getElementById('course-card-context-menu');
+    if (menu) return menu;
+    menu = document.createElement('div');
+    menu.id = 'course-card-context-menu';
+    menu.className = 'course-card-context-menu';
+    menu.hidden = true;
+    menu.innerHTML = `<button type="button" class="course-context-item course-context-danger" data-action="delete">Delete course</button>`;
+    document.body.appendChild(menu);
+
+    menu.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        const courseId = parseInt(menu.dataset.courseId, 10);
+        hideCourseContextMenu();
+        if (btn.dataset.action === 'delete' && courseId) {
+            deleteCourse(courseId);
+        }
+    });
+
+    if (!document.body.dataset.courseContextDismissBound) {
+        document.body.dataset.courseContextDismissBound = '1';
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#course-card-context-menu')) hideCourseContextMenu();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') hideCourseContextMenu();
+        });
+        window.addEventListener('scroll', hideCourseContextMenu, true);
+    }
+    return menu;
+}
+
+function hideCourseContextMenu() {
+    const menu = document.getElementById('course-card-context-menu');
+    if (menu) menu.hidden = true;
+}
+
+function showCourseContextMenu(clientX, clientY, courseId) {
+    const menu = ensureCourseContextMenu();
+    menu.dataset.courseId = String(courseId);
+    menu.hidden = false;
+    menu.style.left = '0px';
+    menu.style.top = '0px';
+    const rect = menu.getBoundingClientRect();
+    let left = clientX;
+    let top = clientY;
+    if (left + rect.width > window.innerWidth - 8) left = window.innerWidth - rect.width - 8;
+    if (top + rect.height > window.innerHeight - 8) top = window.innerHeight - rect.height - 8;
+    menu.style.left = `${Math.max(8, left)}px`;
+    menu.style.top = `${Math.max(8, top)}px`;
+}
+
+function bindMyCourseContextMenu(cardEl, courseId) {
+    if (!cardEl || cardEl.dataset.contextBound === '1') return;
+    cardEl.dataset.contextBound = '1';
+    cardEl.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        showCourseContextMenu(e.clientX, e.clientY, courseId);
     });
 }
 

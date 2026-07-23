@@ -226,12 +226,21 @@
       if (!el) return;
       let collapseTimer = null;
       let lastFetch = 0;
+      let lastBumpSeen = 0;
       let busy = false;
       const open = () => {
         clearTimeout(collapseTimer);
         el.classList.add('is-open');
         const now = Date.now();
-        if (busy || now - lastFetch < 4000) return;
+        let bump = 0;
+        try {
+          bump = Number(localStorage.getItem('veelearn-sims-updated') || 0);
+        } catch (e) {
+          bump = 0;
+        }
+        const forceRefresh = bump > lastBumpSeen;
+        if (busy || (!forceRefresh && now - lastFetch < 4000)) return;
+        if (forceRefresh) lastBumpSeen = bump;
         busy = true;
         lastFetch = now;
         Promise.resolve(loader()).finally(() => {

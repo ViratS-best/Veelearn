@@ -407,15 +407,33 @@
       return;
     }
 
-    // Standalone: update existing marketplace sim if we have one
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Please log in on the main Veelearn site first, then reopen the studio to save.');
+      localStorage.setItem('veelearn-scratch-draft', JSON.stringify(data));
+      toast('Draft saved locally — log in to save to server');
+      dirty = false;
+      return;
+    }
+
+    // Standalone: update existing sim, or create a new one with a name prompt
     if (editingSimId) {
       try {
+        let title = projectTitle || 'My Simulation';
+        if (!projectTitle || projectTitle === 'My Simulation' || projectTitle === 'Untitled') {
+          const renamed = prompt('Simulator title:', title);
+          if (renamed === null) return;
+          if (renamed.trim()) {
+            title = renamed.trim();
+            projectTitle = title;
+          }
+        }
         const res = await fetch(`${API_BASE_URL}/api/simulators/${editingSimId}`, {
           method: 'PUT',
           headers: authHeaders(),
           credentials: 'include',
           body: JSON.stringify({
-            title: projectTitle || 'My Simulation',
+            title,
             blocks: data,
             connections: [],
             sim_type: 'scratch'
@@ -423,18 +441,61 @@
         });
         const json = await res.json();
         if (json.success) {
-          toast('Saved to marketplace');
+          localStorage.setItem('veelearn-scratch-draft', JSON.stringify(data));
+          try { localStorage.setItem('veelearn-sims-updated', String(Date.now())); } catch (e) { /* ignore */ }
+          toast('Saved to server');
           dirty = false;
           return;
         }
         console.warn('Save failed:', json.message);
+        alert('Save failed: ' + (json.message || 'Unknown error'));
       } catch (err) {
         console.error('Save error:', err);
+        alert('Save failed — could not reach the backend.');
       }
+      localStorage.setItem('veelearn-scratch-draft', JSON.stringify(data));
+      toast('Save failed — draft kept locally');
+      dirty = false;
+      return;
+    }
+
+    // New simulator: ask for a name and POST to server
+    const title = prompt('Simulator title:', projectTitle || 'My Simulation');
+    if (!title) return;
+    projectTitle = title.trim() || 'My Simulation';
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/simulators`, {
+        method: 'POST',
+        headers: authHeaders(),
+        credentials: 'include',
+        body: JSON.stringify({
+          title: projectTitle,
+          description: '',
+          blocks: data,
+          connections: [],
+          is_public: false,
+          sim_type: 'scratch',
+          preview_image: data.sprites?.[0]?.costumes?.[0]?.dataUrl || null
+        })
+      });
+      const json = await res.json();
+      if (json.success) {
+        editingSimId = json.data?.simulatorId || json.data?.id || editingSimId;
+        localStorage.setItem('veelearn-scratch-draft', JSON.stringify(data));
+        try { localStorage.setItem('veelearn-sims-updated', String(Date.now())); } catch (e) { /* ignore */ }
+        toast('Saved to server — it will show under Simulator Studio');
+        dirty = false;
+        return;
+      }
+      alert('Save failed: ' + (json.message || 'Unknown error') + (res.status === 401 || res.status === 403 ? '\n\nYour session may have expired — log in again on the main site.' : ''));
+    } catch (err) {
+      console.error(err);
+      alert('Save failed — could not reach the backend. Check your connection and login.');
     }
 
     localStorage.setItem('veelearn-scratch-draft', JSON.stringify(data));
-    toast(editingSimId ? 'Save failed — draft kept locally' : 'Draft saved locally');
+    toast('Draft saved locally');
     dirty = false;
   }
 
@@ -481,6 +542,7 @@
             body: JSON.stringify({ is_public: true })
           }).catch(() => {});
         }
+        try { localStorage.setItem('veelearn-sims-updated', String(Date.now())); } catch (e) { /* ignore */ }
         toast(isUpdate ? 'Updated on marketplace!' : 'Published to marketplace!');
         dirty = false;
         if (window.opener) {
