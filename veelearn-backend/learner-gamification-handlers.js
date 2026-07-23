@@ -321,11 +321,10 @@ function createLearnerGamificationHandlers({ query, apiResponse, sendEmail }) {
             const userId = req.user.id;
             const displayName = String(req.body?.displayName || '').trim().slice(0, 80);
             if (!displayName) return apiResponse(res, 400, 'displayName required');
-            await query('UPDATE users SET display_name = ?, name = COALESCE(NULLIF(name, ""), ?) WHERE id = ?', [
-                displayName,
-                displayName,
-                userId
-            ]);
+            await query(
+                "UPDATE users SET display_name = ?, name = COALESCE(NULLIF(name, ''), ?) WHERE id = ?",
+                [displayName, displayName, userId]
+            );
             return apiResponse(res, 200, 'Saved', { displayName });
         },
 

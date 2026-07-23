@@ -4106,9 +4106,37 @@ let currentAssignmentId = null;
 async function viewCourse(courseId, assignmentId = null, forceRegular = false) {
     if (window.LearnerShell?.hideLearnerShell) window.LearnerShell.hideLearnerShell();
     currentAssignmentId = assignmentId;
-    const course = myCourses.find((c) => c.id === courseId) ||
-        availableCourses.find((c) => c.id === courseId) ||
-        pendingCourses.find((c) => c.id === courseId);
+    const idNum = parseInt(courseId, 10);
+
+    let course =
+        myCourses.find((c) => Number(c.id) === idNum) ||
+        availableCourses.find((c) => Number(c.id) === idNum) ||
+        pendingCourses.find((c) => Number(c.id) === idNum);
+
+    // Learner shell often has empty local lists — hydrate from API
+    if (!course || course.content == null || course.content === undefined) {
+        try {
+            const token = authToken || localStorage.getItem("token") || "";
+            const res = await fetch(`${API_BASE_URL}/api/courses/${idNum}`, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+                credentials: "include"
+            });
+            const data = await res.json();
+            if (data.success && data.data) {
+                const full = { ...data.data, id: Number(data.data.id) };
+                if (course) {
+                    Object.assign(course, full);
+                } else {
+                    course = full;
+                    if (!availableCourses.some((c) => Number(c.id) === idNum)) {
+                        availableCourses.push(course);
+                    }
+                }
+            }
+        } catch (err) {
+            console.error("Failed to fetch course for view:", err);
+        }
+    }
 
     if (assignmentId && course) {
         localStorage.setItem('activeAssignmentId', assignmentId);
@@ -4124,17 +4152,18 @@ async function viewCourse(courseId, assignmentId = null, forceRegular = false) {
         return;
     }
 
-    currentViewingCourseId = courseId;
+    currentViewingCourseId = idNum;
+    courseId = idNum;
 
     // Creator of a master course: use creator preview (loads units without enrollment)
-    const isCreator = course.creator_id === currentUser?.id;
+    const isCreator = Number(course.creator_id) === Number(currentUser?.id);
     const isMaster = course.course_type === 'master';
     if (isCreator && isMaster && !forceRegular) {
         return viewCreatorMasterCoursePreview(courseId);
     }
 
     // Check if user is enrolled in this course (but NOT the creator - creators aren't "enrolled")
-    const isEnrolledStudent = !isCreator && myCourses.some(c => c.id === courseId);
+    const isEnrolledStudent = !isCreator && myCourses.some(c => Number(c.id) === idNum);
     
     if (isEnrolledStudent && !forceRegular) {
         // Use enhanced navigation for enrolled students (supports master courses)
