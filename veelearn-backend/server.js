@@ -834,6 +834,21 @@ const initializeDatabase = async () => {
         `);
         info('✓ AI tutor tables ready');
 
+        await query(`
+            CREATE TABLE IF NOT EXISTS ai_editor_help_messages (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                course_id INT NOT NULL,
+                role ENUM('user', 'assistant') NOT NULL,
+                content TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_user_course_created (user_id, course_id, created_at),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
+            )
+        `);
+        info('✓ AI editor help history table ready');
+
         // Course likes table
         await query(`
             CREATE TABLE IF NOT EXISTS course_likes (
@@ -7454,6 +7469,20 @@ app.post('/api/ai/editor-help', aiEditorHelpLimiter, authenticateToken, (req, re
     aiEditorHelpHandlers.help(req, res).catch((e) => {
         console.error('ai editor help:', e);
         apiResponse(res, 500, 'AI Help error');
+    });
+});
+
+app.get('/api/ai/editor-help/history', aiEditorHelpLimiter, authenticateToken, (req, res) => {
+    aiEditorHelpHandlers.history(req, res).catch((e) => {
+        console.error('ai editor help history:', e);
+        apiResponse(res, 500, 'AI Help history error');
+    });
+});
+
+app.delete('/api/ai/editor-help/history', aiEditorHelpLimiter, authenticateToken, (req, res) => {
+    aiEditorHelpHandlers.clearHistory(req, res).catch((e) => {
+        console.error('ai editor help clear:', e);
+        apiResponse(res, 500, 'AI Help history error');
     });
 });
 

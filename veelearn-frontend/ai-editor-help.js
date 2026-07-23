@@ -116,6 +116,48 @@
         box.scrollTop = box.scrollHeight;
     }
 
+    function clearAiHelpMessages() {
+        const box = document.getElementById('ai-help-messages');
+        if (box) box.innerHTML = '';
+        clearSuggestions();
+    }
+
+    async function loadAiHelpHistory(courseId) {
+        clearAiHelpMessages();
+        if (!courseId) return;
+        const apiBase = global.API_BASE_URL || '';
+        const token = global.authToken || localStorage.getItem('token');
+        try {
+            const res = await fetch(`${apiBase}/api/ai/editor-help/history?courseId=${encodeURIComponent(courseId)}`, {
+                headers: { Authorization: `Bearer ${token}` },
+                credentials: 'include'
+            });
+            const data = await res.json();
+            if (!data.success || !Array.isArray(data.data)) return;
+            data.data.forEach((row) => {
+                if (row.role === 'user' || row.role === 'assistant') {
+                    appendBubble(row.role, row.content);
+                }
+            });
+        } catch (err) {
+            console.warn('AI help history load failed:', err);
+        }
+    }
+
+    function onAiEditorCourseChanged(info) {
+        if (info && info.isNew) {
+            clearAiHelpMessages();
+            return;
+        }
+        const id = (info && info.courseId) || global.currentEditingCourseId;
+        if (id) loadAiHelpHistory(id);
+        else clearAiHelpMessages();
+    }
+
+    global.onAiEditorCourseChanged = onAiEditorCourseChanged;
+    global.clearAiHelpMessages = clearAiHelpMessages;
+    global.loadAiHelpHistory = loadAiHelpHistory;
+
     function clearSuggestions() {
         const el = document.getElementById('ai-help-suggestions');
         if (el) el.innerHTML = '';
@@ -467,6 +509,13 @@
     }
 
     async function callEditorHelpApi({ message, mode, selection, editorSnippet }) {
+        // Persist chat per course: ensure draft exists before first message
+        try {
+            await ensureDraftCourseSaved();
+        } catch (err) {
+            console.warn('Could not ensure draft before AI help:', err);
+        }
+
         const apiBase = global.API_BASE_URL || '';
         const token = global.authToken || localStorage.getItem('token');
         const res = await fetch(`${apiBase}/api/ai/editor-help`, {
@@ -959,4 +1008,10 @@
     global.executeEditorActions = executeEditorActions;
     global.insertBelowAnchor = insertBelowAnchor;
     global.setAiEditorLastAnchor = setLastAnchor;
+    global.onCourseDraftIdAssigned = function (courseId) {
+        // After first autosave/AI draft create, history is empty for new courses — keep current bubbles
+        if (courseId && !document.getElementById('ai-help-messages')?.childElementCount) {
+            loadAiHelpHistory(courseId);
+        }
+    };
 })(typeof window !== 'undefined' ? window : globalThis);

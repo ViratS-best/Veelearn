@@ -11,7 +11,7 @@
   <title>Veelearn - Free Interactive STEM Learning | Physics, Chemistry, Math Simulations | K-12 & College Education</title>
   <!-- Resource Hints for Performance -->
   <link rel="preload" href="styles.css" as="style">
-  <link rel="preload" href="script.js?v=14" as="script">
+  <link rel="preload" href="script.js?v=15" as="script">
   <!-- Heavy marketing pages are loaded on demand (no prefetch storm) -->
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="styles-redesign.css" />
@@ -534,7 +534,12 @@
       <form id="course-form" class="course-editor-layout">
 
         <!-- LEFT SIDEBAR -->
-        <div class="editor-sidebar">
+        <div class="editor-sidebar" id="editor-sidebar">
+          <button type="button" class="sidebar-collapse-btn" id="toggle-editor-sidebar" title="Collapse sidebar" aria-label="Collapse course details">«</button>
+          <div class="sidebar-collapse-rail" id="editor-sidebar-rail" hidden>
+            <button type="button" class="sidebar-expand-btn" id="expand-editor-sidebar" title="Show course details">Details</button>
+          </div>
+          <div class="sidebar-panel-body" id="editor-sidebar-body">
           <h3>Course Details</h3>
           <input type="text" id="course-title" placeholder="Course Title" maxlength="255" required />
           <textarea id="course-description" placeholder="Course Description (optional)" rows="3"></textarea>
@@ -589,6 +594,7 @@
               style="color: #4ade80; font-size: 1.1em; font-weight: bold; margin-left: auto;">00:00:00</span>
             <span id="course-timer-status" style="display: none;"></span>
           </div>
+          </div>
         </div>
 
         <!-- CENTER EDITOR -->
@@ -596,10 +602,13 @@
           <div class="editor-header">
             <div>
               <h1 style="margin: 0; font-size: 24px;">Content Editor</h1>
-              <p class="info-text" style="color: var(--text-muted); font-size: 13px; margin: 5px 0 0 0;">Auto-saved
-                every 30s. Auto-tracking time.</p>
+              <p class="info-text" style="color: var(--text-muted); font-size: 13px; margin: 5px 0 0 0;">
+                <span id="editor-autosave-status">Drafts auto-save every 30s</span>
+              </p>
             </div>
             <div class="editor-actions form-actions" style="margin: 0;">
+              <button type="button" id="editor-undo-btn" class="secondary-btn" title="Undo (Ctrl+Z)" style="padding: 8px 12px; border-radius: 8px;">Undo</button>
+              <button type="button" id="editor-redo-btn" class="secondary-btn" title="Redo (Ctrl+Y)" style="padding: 8px 12px; border-radius: 8px;">Redo</button>
               <button type="submit" id="save-draft-btn" class="btn-save" data-action="draft" style="color: #1e293b !important;">💾 Draft</button>
               <button type="submit" id="submit-approval-btn" class="btn-publish" data-action="pending" style="color: #1e293b !important;">✅ Submit</button>
               <button type="button" id="cancel-course-edit" class="secondary-btn"
@@ -634,13 +643,20 @@
               style="background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">Delete</button>
           </div>
 
+          <div id="page-strip" class="page-strip" aria-label="Page order"></div>
+
           <div id="course-content-editor" contenteditable="true"
             placeholder="Start typing your course content here... Use the toolbar above to format text and add simulators."
             class="editor-content" spellcheck="true"></div>
         </div>
 
         <!-- RIGHT SIDEBAR (Inspector Prototype) -->
-        <div class="editor-inspector">
+        <div class="editor-inspector" id="editor-inspector">
+          <button type="button" class="sidebar-collapse-btn" id="toggle-editor-inspector" title="Collapse inspector" aria-label="Collapse inspector">»</button>
+          <div class="sidebar-collapse-rail" id="editor-inspector-rail" hidden>
+            <button type="button" class="sidebar-expand-btn" id="expand-editor-inspector" title="Show inspector">AI / Hints</button>
+          </div>
+          <div class="sidebar-panel-body" id="editor-inspector-body">
           <h4>Editor Hints</h4>
 
           <button type="button" id="ai-help-toggle" class="ai-help-toggle-btn" aria-expanded="false">
@@ -672,12 +688,17 @@
             </div>
             <div class="inspector-item">
               <strong style="font-size: 13px;">Simulators</strong>
-              <small>Interactive content is isolated in blocks. Delete by selecting and backspacing.</small>
+              <small>Click a toolbar button, then click between paragraphs to place. Sims sit in the document flow.</small>
+            </div>
+            <div class="inspector-item">
+              <strong style="font-size: 13px;">Shortcuts</strong>
+              <small>Ctrl+S save · Alt+←/→ pages · Ctrl+Z/Y undo · Esc cancel placement</small>
             </div>
             <div class="inspector-item">
               <strong style="font-size: 13px;">LaTeX Support</strong>
               <small>Click ∑ to see equations cheat sheet. MathJax processes them instantly.</small>
             </div>
+          </div>
           </div>
         </div>
       </form>
@@ -1092,7 +1113,8 @@
   <script src="accessibility.js" defer></script>
   <script src="learner-shell.js" defer></script>
   <script src="learner-gamification.js" defer></script>
-  <script src="script.js?v=14" defer></script>
+  <script src="script.js?v=15" defer></script>
+  <script src="course-editor-ux.js?v=1" defer></script>
   <script>
     function loadScriptOnce(src) {
       if (document.querySelector('script[data-lazy="' + src + '"]') || document.querySelector('script[src="' + src + '"]')) {

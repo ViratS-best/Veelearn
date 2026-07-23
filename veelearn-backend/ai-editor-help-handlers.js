@@ -296,7 +296,81 @@ async function enrichSuggestSims(actions, queryFn) {
 }
 
 module.exports = function createAiEditorHelpHandlers({ query, openRouterChatCompletion, apiResponse, getOpenRouterKeys }) {
+    async function loadHistoryMessages(userId, courseId, limit = 20) {
+        if (!userId || !courseId) return [];
+        try {
+            const rows = await query(
+                `SELECT role, content FROM ai_editor_help_messages
+                 WHERE user_id = ? AND course_id = ?
+                 ORDER BY created_at DESC LIMIT ?`,
+                [userId, courseId, limit]
+            );
+            return (rows || []).reverse();
+        } catch (e) {
+            console.error('ai editor help load history:', e.message);
+            return [];
+        }
+    }
+
+    async function persistTurn(userId, courseId, userText, assistantText) {
+        if (!userId || !courseId) return;
+        try {
+            if (userText) {
+                await query(
+                    'INSERT INTO ai_editor_help_messages (user_id, course_id, role, content) VALUES (?, ?, ?, ?)',
+                    [userId, courseId, 'user', String(userText).slice(0, 16000)]
+                );
+            }
+            if (assistantText) {
+                await query(
+                    'INSERT INTO ai_editor_help_messages (user_id, course_id, role, content) VALUES (?, ?, ?, ?)',
+                    [userId, courseId, 'assistant', String(assistantText).slice(0, 16000)]
+                );
+            }
+        } catch (e) {
+            console.error('ai editor help persist:', e.message);
+        }
+    }
+
     return {
+        async history(req, res) {
+            const userId = req.user?.id;
+            const courseId = parseInt(req.query?.courseId, 10);
+            if (!userId) return apiResponse(res, 401, 'Unauthorized');
+            if (!courseId || Number.isNaN(courseId)) return apiResponse(res, 400, 'courseId is required');
+
+            try {
+                const rows = await query(
+                    `SELECT id, role, content, course_id, created_at FROM ai_editor_help_messages
+                     WHERE user_id = ? AND course_id = ?
+                     ORDER BY created_at ASC LIMIT 100`,
+                    [userId, courseId]
+                );
+                return apiResponse(res, 200, 'OK', rows || []);
+            } catch (e) {
+                console.error('ai editor help history:', e);
+                return apiResponse(res, 500, 'Could not load history');
+            }
+        },
+
+        async clearHistory(req, res) {
+            const userId = req.user?.id;
+            const courseId = parseInt(req.query?.courseId || req.body?.courseId, 10);
+            if (!userId) return apiResponse(res, 401, 'Unauthorized');
+            if (!courseId || Number.isNaN(courseId)) return apiResponse(res, 400, 'courseId is required');
+
+            try {
+                await query(
+                    'DELETE FROM ai_editor_help_messages WHERE user_id = ? AND course_id = ?',
+                    [userId, courseId]
+                );
+                return apiResponse(res, 200, 'History cleared');
+            } catch (e) {
+                console.error('ai editor help clear:', e);
+                return apiResponse(res, 500, 'Could not clear history');
+            }
+        },
+
         async help(req, res) {
             const keys = typeof getOpenRouterKeys === 'function' ? getOpenRouterKeys() : [];
             if (!keys.length) {
@@ -325,6 +399,9 @@ module.exports = function createAiEditorHelpHandlers({ query, openRouterChatComp
                 if (!Number.isNaN(cid)) courseId = cid;
             }
 
+            const userId = req.user?.id;
+            const prior = courseId && userId ? await loadHistoryMessages(userId, courseId, 20) : [];
+
             const modeHints = {
                 expand: 'MODE: expand — rewrite the selection to be richer and clearer; emit insert_html.',
                 simplify: 'MODE: simplify — rewrite the selection in simpler language; emit insert_html.',
@@ -344,10 +421,13 @@ module.exports = function createAiEditorHelpHandlers({ query, openRouterChatComp
                 `USER_REQUEST:\n${message || '(use mode instructions on selection/snippet)'}`
             ].filter(Boolean);
 
-            const messages = [
-                { role: 'system', content: EDITOR_SYSTEM },
-                { role: 'user', content: contextParts.join('\n\n') }
-            ];
+            const messages = [{ role: 'system', content: EDITOR_SYSTEM }];
+            for (const row of prior) {
+                if (row.role === 'user' || row.role === 'assistant') {
+                    messages.push({ role: row.role, content: String(row.content || '').slice(0, 8000) });
+                }
+            }
+            messages.push({ role: 'user', content: contextParts.join('\n\n') });
 
             const isSection = mode === 'section';
             let raw;
@@ -401,8 +481,25 @@ module.exports = function createAiEditorHelpHandlers({ query, openRouterChatComp
 
             actions = await enrichSuggestSims(actions, query);
 
+            const reply =
+                replyText || (actions.length ? 'Inserted content into the editor.' : 'Done.');
+
+            const userPersist =
+                message ||
+                (mode === 'expand'
+                    ? 'Expand selection'
+                    : mode === 'simplify'
+                      ? 'Simplify selection'
+                      : mode === 'check_question'
+                        ? 'Add check question'
+                        : mode === 'validate'
+                          ? 'Validate page'
+                          : mode);
+
+            await persistTurn(userId, courseId, userPersist, reply);
+
             return apiResponse(res, 200, 'OK', {
-                reply: replyText || (actions.length ? 'Inserted content into the editor.' : 'Done.'),
+                reply,
                 actions
             });
         }

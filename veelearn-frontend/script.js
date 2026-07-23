@@ -3880,6 +3880,7 @@ function createNewCourse() {
     updatePageControls();
 
     startCourseTimer(0);
+    if (typeof window.onCourseEditorOpened === 'function') window.onCourseEditorOpened({ isNew: true });
 }
 
 function editCourse(courseId) {
@@ -3981,14 +3982,19 @@ function editCourse(courseId) {
 
             document.getElementById("dashboard-section").style.display = "none";
             document.getElementById("course-editor-section").style.display = "block";
+            if (typeof normalizeAbsoluteEmbeds === 'function') normalizeAbsoluteEmbeds(editor);
             updatePageControls();
 
             startCourseTimer(course.creation_time || 0);
+            if (typeof window.onCourseEditorOpened === 'function') {
+                window.onCourseEditorOpened({ isNew: false, courseId });
+            }
         });
     }
 }
 
-function saveCourse(action = "draft") {
+function saveCourse(action = "draft", options = {}) {
+    const quiet = !!(options && options.quiet);
     const title = document.getElementById("course-title").value;
     const description = document.getElementById("course-description").value;
     const gradeLevel = document.getElementById("course-grade-level").value;
@@ -4015,8 +4021,11 @@ function saveCourse(action = "draft") {
     const content = fullContent;
 
     if (!title.trim()) {
-        alert("Please enter a course title");
-        return;
+        if (!quiet) alert("Please enter a course title");
+        if (typeof window.setEditorAutosaveStatus === 'function') {
+            window.setEditorAutosaveStatus('Add a title to auto-save');
+        }
+        return Promise.resolve(false);
     }
 
     // Set course status based on action
@@ -4057,7 +4066,11 @@ function saveCourse(action = "draft") {
     // Already replaced above
     if (window.logger) window.logger.debug(`Payload:`, courseData);
 
-    fetch(url, {
+    if (quiet && typeof window.setEditorAutosaveStatus === 'function') {
+        window.setEditorAutosaveStatus('Saving…');
+    }
+
+    return fetch(url, {
         method: method,
         headers: {
             "Content-Type": "application/json",
@@ -4074,13 +4087,23 @@ function saveCourse(action = "draft") {
                 if (!currentEditingCourseId) {
                     currentEditingCourseId = data.data?.id || data.data;
                     if (window.logger) window.logger.debug("✅ New course saved, currentEditingCourseId set to:", currentEditingCourseId);
+                    if (typeof window.onCourseDraftIdAssigned === 'function') {
+                        window.onCourseDraftIdAssigned(currentEditingCourseId);
+                    }
                 }
 
-                const message =
-                    action === "pending"
-                        ? "Course submitted for approval!"
-                        : "Course saved as draft!";
-                alert(message);
+                if (!quiet) {
+                    const message =
+                        action === "pending"
+                            ? "Course submitted for approval!"
+                            : "Course saved as draft!";
+                    alert(message);
+                } else if (typeof window.setEditorAutosaveStatus === 'function') {
+                    const t = new Date();
+                    window.setEditorAutosaveStatus(
+                        `Saved ${t.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
+                    );
+                }
 
                 // INSTANT: Stay in editor, just reload course data in background
                 loadUserCourses();
@@ -4090,13 +4113,22 @@ function saveCourse(action = "draft") {
 
                 // DON'T navigate away - stay in editor for seamless quiz editing
                 // showDashboard(); // REMOVED - user wants to stay in editor
+                return true;
             } else {
-                alert(`Error: ${data.message || "Failed to save course"}`);
+                if (!quiet) alert(`Error: ${data.message || "Failed to save course"}`);
+                else if (typeof window.setEditorAutosaveStatus === 'function') {
+                    window.setEditorAutosaveStatus('Auto-save failed');
+                }
+                return false;
             }
         })
         .catch((err) => {
             console.error("Error saving course:", err);
-            alert("Error saving course. Check console for details.");
+            if (!quiet) alert("Error saving course. Check console for details.");
+            else if (typeof window.setEditorAutosaveStatus === 'function') {
+                window.setEditorAutosaveStatus('Auto-save failed');
+            }
+            return false;
         });
 }
 
@@ -7614,10 +7646,9 @@ function renderCurrentPage() {
     if (currentPageIndex >= coursePages.length) currentPageIndex = coursePages.length - 1;
 
     editor.innerHTML = coursePages[currentPageIndex] || "";
+    if (typeof normalizeAbsoluteEmbeds === 'function') normalizeAbsoluteEmbeds(editor);
     updatePageControls();
-
-    // Re-attach listeners to new elements if needed
-    // For example, simulator buttons
+    if (typeof window.onCoursePageRendered === 'function') window.onCoursePageRendered();
 }
 
 function addNewPage() {
@@ -7668,6 +7699,7 @@ function updatePageControls() {
 
     if (prevBtn) prevBtn.disabled = currentPageIndex === 0;
     if (nextBtn) nextBtn.disabled = currentPageIndex === coursePages.length - 1;
+    if (typeof window.renderPageStrip === 'function') window.renderPageStrip();
 }
 
 let currentViewerPageIndex = 0;
@@ -7763,240 +7795,350 @@ function attachEditorTypingListeners() {
 
 // ===== COURSE MANAGEMENT VARIABLES =====
 
-// ===== PLACEMENT LOGIC =====
+// ===== PLACEMENT LOGIC (inline document flow) =====
+
+const EDITOR_EMBED_FLOW_CSS =
+    'position:relative; width:100%; max-width:720px; margin:1em 0; display:block; box-sizing:border-box;';
+
+let placementDropAnchor = null;
+let placementMoveHandler = null;
+let placementKeyHandler = null;
+
+function applyFlowEmbedStyles(el, extraCss) {
+    if (!el) return;
+    el.style.cssText = EDITOR_EMBED_FLOW_CSS + (extraCss || '');
+    el.classList.add('editor-embed-flow');
+}
+
+function normalizeAbsoluteEmbeds(editor) {
+    if (!editor) return;
+    editor.querySelectorAll('.simulator-block, .phet-sim-wrapper, .quiz-question-placeholder').forEach((el) => {
+        const styleAttr = el.getAttribute('style') || '';
+        const computedPos = (el.style.position || '').toLowerCase();
+        const looksAbsolute =
+            computedPos === 'absolute' ||
+            /position\s*:\s*absolute/i.test(styleAttr) ||
+            (/left\s*:/i.test(styleAttr) && /top\s*:/i.test(styleAttr));
+        if (!looksAbsolute && el.classList.contains('editor-embed-flow')) return;
+
+        let keep = '';
+        if (el.classList.contains('simulator-block')) {
+            keep = 'background:#f0f0f0; padding:15px; border-left:4px solid #667eea; border-radius:4px; box-shadow:0 2px 8px rgba(0,0,0,0.08);';
+        } else if (el.classList.contains('phet-sim-wrapper')) {
+            keep = 'border:1px solid #ddd; border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,0.1);';
+        } else if (el.classList.contains('quiz-question-placeholder')) {
+            keep = 'background:rgba(102,126,234,0.15); border:2px dashed var(--primary,#667eea); padding:1em; border-radius:8px; cursor:pointer; user-select:none;';
+        }
+        applyFlowEmbedStyles(el, keep);
+    });
+}
+
+function ensurePlacementDropIndicator() {
+    let ind = document.getElementById('editor-drop-indicator');
+    if (!ind) {
+        ind = document.createElement('div');
+        ind.id = 'editor-drop-indicator';
+        ind.className = 'editor-drop-indicator';
+        ind.setAttribute('aria-hidden', 'true');
+        document.body.appendChild(ind);
+    }
+    return ind;
+}
+
+function hidePlacementDropIndicator() {
+    const ind = document.getElementById('editor-drop-indicator');
+    if (ind) ind.style.display = 'none';
+}
+
+function resolveEditorBlockAnchor(editor, node) {
+    if (!editor || !node) return null;
+    let el = node.nodeType === Node.TEXT_NODE ? node.parentElement : node;
+    const blockSel =
+        '.quiz-question-placeholder, .simulator-block, .phet-sim-wrapper, p, h1, h2, h3, h4, h5, h6, li, blockquote, pre, table, hr, div';
+    while (el && el !== editor) {
+        if (el.matches && el.matches(blockSel)) {
+            let top = el;
+            while (top.parentElement && top.parentElement !== editor) top = top.parentElement;
+            return top.parentElement === editor ? top : el;
+        }
+        el = el.parentElement;
+    }
+    return null;
+}
+
+function updatePlacementDropFromPoint(clientX, clientY) {
+    const editor = document.getElementById('course-content-editor');
+    if (!editor || !isPlacementMode) return;
+
+    const ind = ensurePlacementDropIndicator();
+    const editorRect = editor.getBoundingClientRect();
+    if (
+        clientX < editorRect.left ||
+        clientX > editorRect.right ||
+        clientY < editorRect.top ||
+        clientY > editorRect.bottom
+    ) {
+        hidePlacementDropIndicator();
+        placementDropAnchor = null;
+        return;
+    }
+
+    let range = null;
+    if (document.caretRangeFromPoint) {
+        range = document.caretRangeFromPoint(clientX, clientY);
+    } else if (document.caretPositionFromPoint) {
+        const pos = document.caretPositionFromPoint(clientX, clientY);
+        if (pos) {
+            range = document.createRange();
+            range.setStart(pos.offsetNode, pos.offset);
+            range.collapse(true);
+        }
+    }
+
+    let anchorEl = null;
+    if (range && editor.contains(range.startContainer)) {
+        anchorEl = resolveEditorBlockAnchor(editor, range.startContainer);
+    }
+    if (!anchorEl) {
+        const under = document.elementFromPoint(clientX, clientY);
+        if (under && editor.contains(under)) anchorEl = resolveEditorBlockAnchor(editor, under);
+    }
+
+    let insertBefore = null;
+    let parent = editor;
+    if (anchorEl && editor.contains(anchorEl)) {
+        const rect = anchorEl.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        insertBefore = clientY < midY ? anchorEl : anchorEl.nextSibling;
+        parent = anchorEl.parentNode || editor;
+    }
+    placementDropAnchor = { before: insertBefore, parent };
+
+    let lineY = clientY;
+    if (insertBefore && insertBefore.getBoundingClientRect) {
+        lineY = insertBefore.getBoundingClientRect().top;
+    } else if (anchorEl) {
+        lineY = anchorEl.getBoundingClientRect().bottom;
+    }
+
+    ind.style.display = 'block';
+    ind.style.left = `${editorRect.left + 8}px`;
+    ind.style.width = `${Math.max(40, editorRect.width - 16)}px`;
+    ind.style.top = `${lineY - 1}px`;
+}
+
+function insertNodeInDocumentFlow(node) {
+    const editor = document.getElementById('course-content-editor');
+    if (!editor || !node) return;
+
+    if (placementDropAnchor && placementDropAnchor.parent && editor.contains(placementDropAnchor.parent)) {
+        const { parent, before } = placementDropAnchor;
+        if (before && parent.contains(before)) parent.insertBefore(node, before);
+        else parent.appendChild(node);
+    } else {
+        editor.appendChild(node);
+    }
+
+    if (
+        node.nextSibling == null ||
+        (node.nextSibling.nodeType === Node.ELEMENT_NODE && node.nextSibling.tagName !== 'P')
+    ) {
+        const p = document.createElement('p');
+        p.innerHTML = '<br>';
+        if (node.nextSibling) node.parentNode.insertBefore(p, node.nextSibling);
+        else node.parentNode.appendChild(p);
+    }
+
+    if (typeof window.pushEditorUndoSnapshot === 'function') window.pushEditorUndoSnapshot();
+}
+
+function cancelPlacementMode() {
+    if (!isPlacementMode && !placementType) {
+        hidePlacementDropIndicator();
+        return;
+    }
+    isPlacementMode = false;
+    placementType = null;
+    placementData = null;
+    placementDropAnchor = null;
+
+    const editor = document.getElementById('course-content-editor');
+    if (editor) {
+        editor.style.cursor = 'text';
+        editor.classList.remove('placement-mode');
+    }
+    hidePlacementDropIndicator();
+
+    if (placementMoveHandler) {
+        document.removeEventListener('mousemove', placementMoveHandler);
+        placementMoveHandler = null;
+    }
+    if (placementKeyHandler) {
+        document.removeEventListener('keydown', placementKeyHandler);
+        placementKeyHandler = null;
+    }
+
+    const banner = document.getElementById('placement-mode-banner');
+    if (banner) banner.remove();
+}
+
+function showPlacementBanner(message) {
+    let banner = document.getElementById('placement-mode-banner');
+    if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'placement-mode-banner';
+        banner.className = 'placement-mode-banner';
+        document.body.appendChild(banner);
+    }
+    banner.innerHTML = `${escapeHtml(message)} <kbd>Esc</kbd> to cancel`;
+}
 
 function startPlacementMode(type, data) {
-    console.log("Starting placement mode for:", type);
+    cancelPlacementMode();
     isPlacementMode = true;
     placementType = type;
     placementData = data;
 
-    const editor = document.getElementById("course-content-editor");
-    // FORCE position relative to ensure absolute children work
-    editor.style.position = "relative";
-    editor.style.cursor = "crosshair";
-    editor.classList.add("placement-mode");
+    const editor = document.getElementById('course-content-editor');
+    if (!editor) return;
+    editor.style.position = 'relative';
+    editor.style.cursor = 'crosshair';
+    editor.classList.add('placement-mode');
+    editor.focus();
 
-    // Show a toast or message
-    alert("Click anywhere in the editor to place the element.");
+    showPlacementBanner('Click between paragraphs to place the element.');
+
+    placementMoveHandler = (e) => updatePlacementDropFromPoint(e.clientX, e.clientY);
+    document.addEventListener('mousemove', placementMoveHandler);
+
+    placementKeyHandler = (e) => {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            cancelPlacementMode();
+        }
+    };
+    document.addEventListener('keydown', placementKeyHandler);
 }
 
 function handleEditorClick(e) {
     if (!isPlacementMode) return;
 
-    const editor = document.getElementById("course-content-editor");
+    const editor = document.getElementById('course-content-editor');
+    if (!editor || (!editor.contains(e.target) && e.target !== editor)) return;
 
-    // Ensure click is inside editor
-    if (!editor.contains(e.target) && e.target !== editor) return;
+    e.preventDefault();
+    e.stopPropagation();
 
-    const rect = editor.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top + editor.scrollTop;
-
-    console.log(`Placement click at: ${x}, ${y}`);
-    console.log(`Rect: top=${rect.top}, left=${rect.left}, scrollTop=${editor.scrollTop}`);
+    updatePlacementDropFromPoint(e.clientX, e.clientY);
 
     if (placementType === 'visual-simulator' || placementType === 'block-simulator') {
-        insertSimulatorAtPosition(placementData.id, placementData.title, placementData.type, x, y);
+        insertSimulatorAtPosition(placementData.id, placementData.title, placementData.type);
     } else if (placementType === 'quiz') {
-        insertQuizPlaceholderAtPosition(placementData.id, placementData.text, x, y);
+        insertQuizPlaceholderAtPosition(placementData.id, placementData.text);
     } else if (placementType === 'phet-simulator') {
-        insertPhetSimAtPosition(placementData, x, y);
+        insertPhetSimAtPosition(placementData);
     }
 
-    // Reset mode
-    isPlacementMode = false;
-    placementType = null;
-    placementData = null;
-    editor.style.cursor = "text";
-    editor.classList.remove("placement-mode");
+    cancelPlacementMode();
 }
 
-function insertSimulatorAtPosition(blockId, title, type, x, y) {
-    console.log(`Inserting simulator at ${x}, ${y}`);
-
-    // Ensure coordinates are numbers
-    const safeX = Number.isFinite(x) ? x : 0;
-    const safeY = Number.isFinite(y) ? y : 0;
-
-    const contentEditor = document.getElementById("course-content-editor");
-    const simulatorDiv = document.createElement("div");
-    simulatorDiv.className = "simulator-block";
+function insertSimulatorAtPosition(blockId, title, type) {
+    const simulatorDiv = document.createElement('div');
+    simulatorDiv.className = 'simulator-block editor-embed-flow';
     simulatorDiv.dataset.blockId = blockId;
     simulatorDiv.contentEditable = 'false';
-
-    // Use direct style properties for reliability
-    simulatorDiv.style.position = 'absolute';
-    simulatorDiv.style.left = `${safeX}px`;
-    simulatorDiv.style.top = `${safeY}px`;
-    simulatorDiv.style.width = '300px';
-    simulatorDiv.style.background = '#f0f0f0';
-    simulatorDiv.style.padding = '15px';
-    simulatorDiv.style.borderLeft = '4px solid #667eea';
-    simulatorDiv.style.borderRadius = '4px';
-    simulatorDiv.style.zIndex = '10';
-    simulatorDiv.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
-
-    // Force !important via cssText for critical properties
-    simulatorDiv.style.cssText += `position: absolute !important; left: ${safeX}px !important; top: ${safeY}px !important;`;
+    applyFlowEmbedStyles(
+        simulatorDiv,
+        'background:#f0f0f0; padding:15px; border-left:4px solid #667eea; border-radius:4px; box-shadow:0 2px 8px rgba(0,0,0,0.08);'
+    );
 
     simulatorDiv.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
             <div>
                 <strong>${escapeHtml(type)}</strong>
                 <p style="margin: 5px 0; color: #666;">${escapeHtml(title)}</p>
             </div>
             <div style="display: flex; gap: 10px;">
                 <button type="button" onclick="openSliderConfigModal(${blockId})" style="padding: 5px 10px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer;">⚙️</button>
-                <button type="button" onclick="handleEditSimulator(event, ${blockId})" style="padding: 5px 10px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">✏️</button>
-                <button type="button" onclick="handleRemoveSimulator(event, ${blockId})" style="padding: 5px 10px; background: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer;">🗑️</button>
+                <button type="button" onclick="handleEditSimulator(event, ${blockId})" style="padding: 5px 10px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">Edit</button>
+                <button type="button" onclick="handleRemoveSimulator(event, ${blockId})" style="padding: 5px 10px; background: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer;">Remove</button>
             </div>
         </div>
     `;
 
-    contentEditor.appendChild(simulatorDiv);
-
-    // Make it draggable (basic implementation)
-    makeElementDraggable(simulatorDiv);
+    insertNodeInDocumentFlow(simulatorDiv);
 }
 
-function makeElementDraggable(elmnt) {
-    let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-
-    elmnt.onmousedown = dragMouseDown;
-
-    function dragMouseDown(e) {
-        // Don't drag if clicking buttons
-        if (e.target.tagName === 'BUTTON') return;
-
-        e = e || window.event;
-        e.preventDefault();
-        // get the mouse cursor position at startup:
-        pos3 = e.clientX;
-        pos4 = e.clientY;
-        document.onmouseup = closeDragElement;
-        // call a function whenever the cursor moves:
-        document.onmousemove = elementDrag;
-    }
-
-    function elementDrag(e) {
-        e = e || window.event;
-        e.preventDefault();
-        // calculate the new cursor position:
-        pos1 = pos3 - e.clientX;
-        pos2 = pos4 - e.clientY;
-        pos3 = e.clientX;
-        pos4 = e.clientY;
-        // set the element's new position:
-        elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
-        elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
-    }
-
-    function closeDragElement() {
-        // stop moving when mouse button is released:
-        document.onmouseup = null;
-        document.onmousemove = null;
-    }
+/** Absolute overlays removed — embeds stay in document flow */
+function makeElementDraggable() {
+    /* no-op */
 }
 
-function insertQuizPlaceholderAtPosition(questionId, questionText, x, y) {
-    const safeX = Number.isFinite(x) ? x : 0;
-    const safeY = Number.isFinite(y) ? y : 0;
-
-    const editor = document.getElementById('course-content-editor');
+function insertQuizPlaceholderAtPosition(questionId, questionText) {
     const placeholder = document.createElement('div');
-    placeholder.className = 'quiz-question-placeholder';
+    placeholder.className = 'quiz-question-placeholder editor-embed-flow';
     placeholder.dataset.questionId = questionId;
     placeholder.contentEditable = 'false';
+    applyFlowEmbedStyles(
+        placeholder,
+        'background:rgba(102,126,234,0.15); border:2px dashed var(--primary,#667eea); padding:1em; border-radius:8px; cursor:pointer; user-select:none;'
+    );
 
-    // Explicit styles with !important
-    placeholder.style.cssText = `
-    position: absolute !important;
-    left: ${safeX}px !important;
-    top: ${safeY}px !important;
-    width: 300px;
-    background: rgba(102, 126, 234, 0.2); 
-    border: 2px dashed var(--primary); 
-    padding: 1em; 
-    border-radius: 4px; 
-    cursor: pointer; 
-    user-select: none;
-    z-index: 10;
-  `;
-
+    const preview = String(questionText || '');
     placeholder.innerHTML = `
-    <strong>❓ Quiz Question:</strong> ${escapeHtml(questionText.substring(0, 100))}${questionText.length > 100 ? '...' : ''}
-    <button type="button" class="quiz-placeholder-delete-btn" data-question-id="${questionId}" style="position: absolute; top: 5px; right: 5px; background: #e53e3e; color: white; border: none; border-radius: 4px; padding: 2px 6px; cursor: pointer; font-size: 0.8em; z-index: 10;">🗑️ Delete</button>
-    <div style="font-size: 0.85em; color: #999; margin-top: 0.5em;">Click to edit</div>
+    <strong>Quiz Question:</strong> ${escapeHtml(preview.substring(0, 100))}${preview.length > 100 ? '...' : ''}
+    <button type="button" class="quiz-placeholder-delete-btn" data-question-id="${questionId}" style="float:right; background: #e53e3e; color: white; border: none; border-radius: 4px; padding: 2px 6px; cursor: pointer; font-size: 0.8em;">Delete</button>
+    <div style="font-size: 0.85em; color: #999; margin-top: 0.5em; clear: both;">Click to edit</div>
   `;
 
-    // Click handler for editing
     placeholder.addEventListener('click', (e) => {
         if (e.target.closest('button')) return;
         const qId = placeholder.dataset.questionId;
-        if (qId) {
-            openQuizModal(parseInt(qId));
-        }
+        if (qId) openQuizModal(parseInt(qId, 10));
     });
 
-    // Delete handler
     const deleteBtn = placeholder.querySelector('.quiz-placeholder-delete-btn');
     if (deleteBtn) {
         deleteBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const qId = parseInt(placeholder.dataset.questionId);
+            const qId = parseInt(placeholder.dataset.questionId, 10);
             if (qId && !isNaN(qId) && confirm('Delete this question?')) {
                 deleteQuizQuestion(qId);
             }
         });
     }
 
-    editor.appendChild(placeholder);
-    makeElementDraggable(placeholder);
+    insertNodeInDocumentFlow(placeholder);
 }
 
-function insertPhetSimAtPosition(sim, x, y) {
-    const safeX = Number.isFinite(x) ? x : 0;
-    const safeY = Number.isFinite(y) ? y : 0;
-
-    const contentEditor = document.getElementById("course-content-editor");
-    const wrapper = document.createElement("div");
-    wrapper.className = "phet-sim-wrapper";
-    wrapper.contentEditable = "false";
-
-    wrapper.style.cssText = `
-    position: absolute !important;
-    left: ${safeX}px !important;
-    top: ${safeY}px !important;
-    width: 600px; /* Fixed width for absolute positioning */
-    border: 1px solid #ddd; 
-    border-radius: 8px; 
-    overflow: hidden; 
-    background: #fff;
-    z-index: 10;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  `;
+function insertPhetSimAtPosition(sim) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'phet-sim-wrapper editor-embed-flow';
+    wrapper.contentEditable = 'false';
+    applyFlowEmbedStyles(
+        wrapper,
+        'border:1px solid #ddd; border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,0.1);'
+    );
 
     wrapper.innerHTML = `
-        <div style="background: #f0f0f0; padding: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; cursor: move;">
+        <div style="background: #f0f0f0; padding: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd;">
             <strong>⚛️ ${escapeHtml(sim.title)}</strong>
-            <button class="phet-remove-btn" style="background: #ff4444; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Remove</button>
+            <button type="button" class="phet-remove-btn" style="background: #ff4444; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Remove</button>
         </div>
         <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
-            <iframe src="${sim.url}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; pointer-events: auto;" allowfullscreen></iframe>
+            <iframe src="${escapeHtml(sim.url)}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;" allowfullscreen></iframe>
         </div>
     `;
 
-    // Remove handler
-    wrapper.querySelector('.phet-remove-btn').addEventListener('click', (e) => {
-        e.stopPropagation(); // Prevent drag start
-        if (confirm('Remove this simulator?')) {
-            wrapper.remove();
-        }
-    });
+    const removeBtn = wrapper.querySelector('.phet-remove-btn');
+    if (removeBtn) {
+        removeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (confirm('Remove this simulator?')) wrapper.remove();
+        });
+    }
 
-    contentEditor.appendChild(wrapper);
-    makeElementDraggable(wrapper);
+    insertNodeInDocumentFlow(wrapper);
 }
 
 // ===== VOLUNTEER HOURS, CERTIFICATES & SPONSORSHIPS =====
@@ -9299,6 +9441,23 @@ window.API_BASE_URL = API_BASE_URL;
 window.createNewCourse = createNewCourse;
 window.viewCourse = viewCourse;
 window.logout = logout;
+window.saveCourse = saveCourse;
+window.editCourse = editCourse;
+window.renderCurrentPage = renderCurrentPage;
+window.saveCurrentPageContent = saveCurrentPageContent;
+window.changePage = changePage;
+window.updatePageControls = updatePageControls;
+window.cancelPlacementMode = cancelPlacementMode;
+window.normalizeAbsoluteEmbeds = normalizeAbsoluteEmbeds;
+Object.defineProperty(window, 'currentPageIndex', {
+    get() { return currentPageIndex; },
+    set(v) { currentPageIndex = v; },
+    configurable: true
+});
+Object.defineProperty(window, 'isPlacementMode', {
+    get() { return isPlacementMode; },
+    configurable: true
+});
 window.__veelearnPushCourse = function (course) {
     if (!course || !course.id) return;
     if (!myCourses.some((c) => c.id === course.id)) myCourses.push(course);
