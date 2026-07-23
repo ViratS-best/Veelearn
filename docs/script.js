@@ -23,7 +23,7 @@ let courseBlocks = [];
 let currentEditingCourseId = null;
 let currentEditingSimulatorBlockId = null;
 let simulatorCache = [];
-let authToken = null; // No longer stored in localStorage for security
+let authToken = localStorage.getItem("token") || null; // Restore session on refresh
 let myCourses = [];
 let coursePages = [""]; // Array to store content for each page
 let currentPageIndex = 0;
@@ -443,7 +443,21 @@ function playEpicBattleAnimation(fromSection, toSection) {
  * Create professional anime-style battle animation
  * Uses canvas-rendered characters, no HUD elements, 5s backstory + 15-20s epic fight
  */
-function createAnimeStyleBattle(onComplete) {
+async function createAnimeStyleBattle(onComplete) {
+    if (typeof AnimeBattleSystem === "undefined" && typeof window.__veelearnLoadHeavy === "function") {
+        try {
+            await window.__veelearnLoadHeavy("battle");
+        } catch (e) {
+            console.warn("Battle system failed to load; skipping animation", e);
+            if (typeof onComplete === "function") onComplete();
+            return;
+        }
+    }
+    if (typeof AnimeBattleSystem === "undefined") {
+        if (typeof onComplete === "function") onComplete();
+        return;
+    }
+
     const setup = getRandomCharacterSetup();
 
     // Create container
@@ -1176,7 +1190,12 @@ function initializeApp() {
         setupAiEditorHelp();
     }
 
-    if (document.cookie.includes('token=') || authToken) {
+    // Prefer restored localStorage token; cookie also keeps httpOnly sessions alive
+    if (!authToken) {
+        const saved = localStorage.getItem("token");
+        if (saved) authToken = saved;
+    }
+    if (document.cookie.includes("token=") || authToken || (typeof validateAuthToken === "function" && validateAuthToken())) {
         fetchUserProfile();
     } else {
         showLandingPage();
@@ -1853,7 +1872,13 @@ function fetchUserProfile() {
             if (data.success) {
                 currentUser = data.data;
                 // Sync authToken from cookie/response if available
-                if (data.data.token) authToken = data.data.token;
+                if (data.data.token) {
+                    authToken = data.data.token;
+                    localStorage.setItem("token", authToken);
+                } else if (!authToken) {
+                    const saved = localStorage.getItem("token");
+                    if (saved) authToken = saved;
+                }
                 showDashboard();
                 // Setup teacher/student UI after currentUser is loaded
                 setupTeacherStudentListeners();
@@ -2920,6 +2945,7 @@ function showAuthSection(type = "login") {
 function showDashboard() {
     stopCourseTimer();
     currentViewingCourseId = null;
+    exitCourseViewerMode();
 
     // Redirect EMS roles to their specific dashboards
     if (currentUser?.role === 'school_admin') {
@@ -4128,6 +4154,7 @@ async function viewCourse(courseId, assignmentId = null, forceRegular = false) {
     document.getElementById("dashboard-section").style.display = "none";
     document.getElementById("course-editor-section").style.display = "none";
     document.getElementById("course-viewer-section").style.display = "block";
+    enterCourseViewerMode(courseId);
 
     // Handle Video Logic
     const videoContainer = document.getElementById("viewer-video-container");
@@ -6014,6 +6041,7 @@ async function viewCreatorMasterCoursePreview(courseId) {
         document.getElementById('dashboard-section').style.display = 'none';
         document.getElementById('course-editor-section').style.display = 'none';
         document.getElementById('course-viewer-section').style.display = 'block';
+        enterCourseViewerMode(courseId);
         
         if (courseUnits.length === 0) {
             // No units added yet — show a helpful message
@@ -6107,6 +6135,7 @@ async function loadMasterCourseView(courseId) {
         document.getElementById("dashboard-section").style.display = "none";
         document.getElementById("course-editor-section").style.display = "none";
         document.getElementById("course-viewer-section").style.display = "block";
+        enterCourseViewerMode(courseId);
         
     } catch (err) {
         console.error("Error loading master course:", err);
@@ -9002,6 +9031,81 @@ function viewCourseFromSearch(courseId) {
 // ===== COURSE LIKES FUNCTIONALITY =====
 
 /**
+ * Hide site navbar and apply the learner store theme while viewing a course.
+ */
+function enterCourseViewerMode(courseId) {
+    document.body.classList.add("course-viewer-active");
+    const profile = window.LearnerGamification?.getProfile?.();
+    const shell = document.getElementById("learner-shell");
+    const theme =
+        shell?.getAttribute("data-learner-theme") ||
+        profile?.dashboardTheme ||
+        localStorage.getItem("learnerDashboardTheme") ||
+        "warm";
+    document.body.setAttribute("data-learner-theme", theme);
+    requestAnimationFrame(() => {
+        const bg = getComputedStyle(document.body).getPropertyValue("--ls-bg").trim();
+        if (bg) document.body.style.background = bg;
+    });
+    if (courseId != null) syncViewerLikeButton(courseId);
+}
+
+function exitCourseViewerMode() {
+    document.body.classList.remove("course-viewer-active");
+    // Keep data-learner-theme on shell; clear body attr used only for viewer
+    if (!document.body.classList.contains("learner-shell-active")) {
+        document.body.removeAttribute("data-learner-theme");
+    }
+}
+
+/**
+ * Wire / refresh the like button in the course viewer header.
+ */
+async function syncViewerLikeButton(courseId) {
+    const btn = document.getElementById("viewer-like-btn");
+    if (!btn || courseId == null) return;
+
+    btn.dataset.courseId = String(courseId);
+    btn.onclick = () => toggleCourseLike(courseId, btn);
+
+    const course =
+        myCourses.find((c) => c.id === courseId) ||
+        availableCourses.find((c) => c.id === courseId) ||
+        pendingCourses.find((c) => c.id === courseId);
+
+    let liked = !!(course && (course.is_liked || course.liked));
+    let count = course?.like_count ?? course?.likes ?? null;
+
+    const token = localStorage.getItem("token") || authToken;
+    try {
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const [countRes, likedRes] = await Promise.all([
+            fetch(`${API_BASE_URL}/api/courses/${courseId}/likes`, { headers, credentials: "include" }),
+            fetch(`${API_BASE_URL}/api/courses/${courseId}/liked`, { headers, credentials: "include" })
+        ]);
+        const countData = await countRes.json().catch(() => ({}));
+        const likedData = await likedRes.json().catch(() => ({}));
+        if (countData?.success && countData.data && typeof countData.data.like_count === "number") {
+            count = countData.data.like_count;
+        }
+        if (likedData?.success && likedData.data) {
+            if (typeof likedData.data.liked === "boolean") liked = likedData.data.liked;
+            else if (typeof likedData.data.is_liked === "boolean") liked = likedData.data.is_liked;
+        }
+    } catch (e) {
+        /* keep local fallbacks */
+    }
+
+    btn.dataset.liked = liked ? "true" : "false";
+    btn.classList.toggle("course-action-like-active", liked);
+    btn.classList.toggle("course-action-like", !liked);
+    const labelCount = typeof count === "number" ? count : "";
+    btn.textContent = liked
+        ? `❤️ ${labelCount !== "" ? labelCount : "Liked"}`
+        : `🤍 ${labelCount !== "" ? labelCount : "Like"}`;
+}
+
+/**
  * Toggle like/unlike a course
  */
 async function toggleCourseLike(courseId, buttonElement) {
@@ -9050,7 +9154,21 @@ async function toggleCourseLike(courseId, buttonElement) {
         // Update button appearance
         const likeButtonText = isNowLiked ? `❤️ ${newLikeCount}` : `🤍 ${newLikeCount}`;
         buttonElement.textContent = likeButtonText;
-        buttonElement.style.background = isNowLiked ? '#ec4899' : '#475569';
+        buttonElement.dataset.liked = isNowLiked ? "true" : "false";
+        buttonElement.classList.toggle("course-action-like-active", isNowLiked);
+        buttonElement.classList.toggle("course-action-like", !isNowLiked);
+        if (!buttonElement.id || buttonElement.id !== "viewer-like-btn") {
+            buttonElement.style.background = isNowLiked ? '#ec4899' : '#475569';
+        }
+
+        // Keep viewer header button in sync when liking from a list card
+        const viewerBtn = document.getElementById("viewer-like-btn");
+        if (viewerBtn && String(viewerBtn.dataset.courseId) === String(courseId) && viewerBtn !== buttonElement) {
+            viewerBtn.dataset.liked = isNowLiked ? "true" : "false";
+            viewerBtn.classList.toggle("course-action-like-active", isNowLiked);
+            viewerBtn.classList.toggle("course-action-like", !isNowLiked);
+            viewerBtn.textContent = likeButtonText;
+        }
 
         // Update course data in arrays
         const courseInAvailable = availableCourses.find(c => c.id === courseId);

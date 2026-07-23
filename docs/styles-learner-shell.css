@@ -1118,3 +1118,140 @@ body.learner-shell-active #learner-shell .ls-nav-icon svg {
   stroke: currentColor !important;
   color: inherit !important;
 }
+
+/* ===== Course viewer: hide site navbar + apply store theme ===== */
+body.course-viewer-active > header {
+  display: none !important;
+}
+
+body.course-viewer-active {
+  --primary: var(--ls-accent, #2563eb);
+  --primary-dark: var(--ls-active-text, #1d4ed8);
+  --bg-card: var(--ls-card, #ffffff);
+  --border: var(--ls-border, #dbeafe);
+  --text-muted: var(--ls-muted, #64748b);
+  --text-light: var(--ls-text, #0f172a);
+  --k12-bg: var(--ls-bg, #f0f7ff);
+  --k12-bg-alt: var(--ls-bg, #f8fbff);
+  --k12-surface: var(--ls-card, #ffffff);
+  --k12-ink: var(--ls-text, #0f172a);
+  --k12-ink-soft: var(--ls-muted, #39546e);
+  --k12-primary: var(--ls-accent, #1f7a5a);
+  --k12-accent: var(--ls-accent, #128c6a);
+  --k12-border: var(--ls-border, #c9def4);
+  --k12-shadow: var(--ls-shadow, 0 10px 26px rgba(22, 56, 97, 0.12));
+  background: var(--ls-bg, #edf6ff) !important;
+  color: var(--ls-text) !important;
+}
+
+body.course-viewer-active::before {
+  opacity: 0.12;
+  filter: none;
+}
+
+body.course-viewer-active[data-learner-theme="hacker"]::before {
+  display: none;
+}
+
+body.course-viewer-active[data-learner-theme="warm"] {
+  --ls-bg: #FFF8F1; --ls-sidebar: #FFFFFF; --ls-text: #1A1A1A; --ls-muted: #6B7280;
+  --ls-accent: #EA580C; --ls-accent-soft: #FFEDD5; --ls-btn: #1A1A1A; --ls-btn-hover: #EA580C;
+  --ls-active-bg: #FFEDD5; --ls-active-text: #9A3412; --ls-border: #F3E8DE; --ls-card: #FFFFFF;
+  --ls-input-bg: #FFFCF8; --ls-shadow: 0 8px 24px rgba(234, 88, 12, 0.08);
+}
+body.course-viewer-active[data-learner-theme="blue"] {
+  --ls-bg: #F0F7FF; --ls-sidebar: #FFFFFF; --ls-text: #0F172A; --ls-muted: #64748B;
+  --ls-accent: #2563EB; --ls-accent-soft: #DBEAFE; --ls-btn: #0F172A; --ls-btn-hover: #2563EB;
+  --ls-active-bg: #DBEAFE; --ls-active-text: #1D4ED8; --ls-border: #DBEAFE; --ls-card: #FFFFFF;
+  --ls-input-bg: #F8FAFF; --ls-shadow: 0 8px 24px rgba(37, 99, 235, 0.08);
+}
+body.course-viewer-active[data-learner-theme="red"] {
+  --ls-bg: #FFF5F5; --ls-sidebar: #FFFFFF; --ls-text: #1A1A1A; --ls-muted: #7F1D1D;
+  --ls-accent: #DC2626; --ls-accent-soft: #FEE2E2; --ls-btn: #1A1A1A; --ls-btn-hover: #DC2626;
+  --ls-active-bg: #FEE2E2; --ls-active-text: #B91C1C; --ls-border: #FECACA; --ls-card: #FFFFFF;
+  --ls-input-bg: #FFFBFB; --ls-shadow: 0 8px 24px rgba(220, 38, 38, 0.08);
+}
+body.course-viewer-active[data-learner-theme="cool"] {
+  --ls-bg: #F0FDFA; --ls-sidebar: #FFFFFF; --ls-text: #134E4A; --ls-muted: #0F766E;
+  --ls-accent: #0D9488; --ls-accent-soft: #CCFBF1; --ls-btn: #134E4A; --ls-btn-hover: #0D9488;
+  --ls-active-bg: #CCFBF1; --ls-active-text: #0F766E; --ls-border: #99F6E4; --ls-card: #FFFFFF;
+  --ls-input-bg: #F7FFFE; --ls-shadow: 0 8px 24px rgba(13, 148, 136, 0.08);
+}
+body.course-viewer-active[data-learner-theme="happy"] {
+  --ls-bg: #FFFBEB; --ls-sidebar: #FFFFFF; --ls-text: #1A1A1A; --ls-muted: #A16207;
+  --ls-accent: #EAB308; --ls-accent-soft: #FEF9C3; --ls-btn: #1A1A1A; --ls-btn-hover: #CA8A04;
+  --ls-active-bg: #FEF9C3; --ls-active-text: #A16207; --ls-border: #FDE68A; --ls-card: #FFFFFF;
+  --ls-input-bg: #FFFDF5; --ls-shadow: 0 8px 24px rgba(234, 179, 8, 0.12);
+}
+body.course-viewer-active[data-learner-theme="hacker"] {
+  --ls-bg: #0B1220; --ls-sidebar: #0F172A; --ls-text: #F8FAFC; --ls-muted: #A7F3D0;
+  --ls-accent: #4ADE80; --ls-accent-soft: rgba(74, 222, 128, 0.18); --ls-btn: #020617;
+  --ls-btn-hover: #22C55E; --ls-active-bg: rgba(74, 222, 128, 0.22); --ls-active-text: #86EFAC;
+  --ls-border: #334155; --ls-card: #111827; --ls-input-bg: #0B1220;
+  --ls-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+body.course-viewer-active[data-learner-theme="superhero"] {
+  --ls-bg: #F5F3FF; --ls-sidebar: #FFFFFF; --ls-text: #1E1B4B; --ls-muted: #6D28D9;
+  --ls-accent: #7C3AED; --ls-accent-soft: #EDE9FE; --ls-btn: #1E1B4B; --ls-btn-hover: #EF4444;
+  --ls-active-bg: #EDE9FE; --ls-active-text: #5B21B6; --ls-border: #DDD6FE; --ls-card: #FFFFFF;
+  --ls-input-bg: #FAFAFF; --ls-shadow: 0 8px 24px rgba(124, 58, 237, 0.1);
+}
+
+body.course-viewer-active #course-viewer-section {
+  background: transparent;
+}
+
+body.course-viewer-active .viewer-content,
+body.course-viewer-active #viewer-regular-sidebar,
+body.course-viewer-active #unit-navigation-sidebar,
+body.course-viewer-active .related-courses {
+  background: var(--ls-card) !important;
+  border-color: var(--ls-border) !important;
+  box-shadow: var(--ls-shadow);
+  color: var(--ls-text) !important;
+}
+
+body.course-viewer-active #course-viewer-title,
+body.course-viewer-active #course-viewer-description,
+body.course-viewer-active #viewer-page-indicator {
+  color: var(--ls-text) !important;
+}
+
+body.course-viewer-active #course-viewer-content,
+body.course-viewer-active #course-viewer-content * {
+  color: var(--ls-muted) !important;
+}
+
+body.course-viewer-active #course-viewer-content h1,
+body.course-viewer-active #course-viewer-content h2,
+body.course-viewer-active #course-viewer-content h3,
+body.course-viewer-active #course-viewer-content h4,
+body.course-viewer-active #course-viewer-content strong,
+body.course-viewer-active #course-viewer-content b {
+  color: var(--ls-text) !important;
+}
+
+body.course-viewer-active #viewer-like-btn {
+  background: var(--ls-accent-soft) !important;
+  color: var(--ls-active-text, var(--ls-accent)) !important;
+}
+
+body.course-viewer-active #viewer-like-btn.course-action-like-active,
+body.course-viewer-active #viewer-like-btn[data-liked="true"] {
+  background: var(--ls-accent) !important;
+  color: #fff !important;
+}
+
+body.course-viewer-active #back-to-dashboard,
+body.course-viewer-active #viewer-prev-btn,
+body.course-viewer-active #viewer-next-btn {
+  background: var(--ls-btn, #1a1a1a) !important;
+  color: #fff !important;
+  border: none !important;
+}
+
+body.course-viewer-active #back-to-dashboard:hover,
+body.course-viewer-active #viewer-prev-btn:hover,
+body.course-viewer-active #viewer-next-btn:hover {
+  background: var(--ls-btn-hover) !important;
+}

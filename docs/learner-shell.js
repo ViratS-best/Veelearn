@@ -225,6 +225,7 @@
     const shell = document.getElementById('learner-shell');
     if (shell && profile.dashboardTheme) {
       shell.setAttribute('data-learner-theme', profile.dashboardTheme);
+      try { localStorage.setItem('learnerDashboardTheme', profile.dashboardTheme); } catch (e) { /* ignore */ }
       requestAnimationFrame(() => {
         const bg = getComputedStyle(shell).getPropertyValue('--ls-bg').trim();
         if (bg) document.body.style.background = bg;
