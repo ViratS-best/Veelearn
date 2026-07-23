@@ -3112,12 +3112,13 @@ function renderUserList() {
                 return `
         <li>
             <strong>${escapeHtml(user.email)}</strong>
-            <p>Role: ${escapeHtml(user.role)} ${user.class_code ? `| Class Code: ${escapeHtml(user.class_code)}` : ''} | ${user.teacher_approved ? '✅ Approved' : user.role === 'teacher' ? '⏳ Pending Approval' : ''} | Shells: ${user.shells} | Volunteer: ${(user.total_volunteer_hours || 0).toFixed(1)}h ${user.is_verified_creator ? '✅' : ''}</p>
+            <p>Role: ${escapeHtml(user.role)} ${user.class_code ? `| Class Code: ${escapeHtml(user.class_code)}` : ''} | ${user.teacher_approved ? '✅ Approved' : user.role === 'teacher' ? '⏳ Pending Approval' : ''} | Shells: ${user.shells} | Gems: ${user.gems || 0} | Volunteer: ${(user.total_volunteer_hours || 0).toFixed(1)}h ${user.is_verified_creator ? '✅' : ''}</p>
             ${approveBtn}
             <button onclick="changeUserRole('${escapeHtml(user.email)}', 'admin')">Make Admin</button>
             <button onclick="changeUserRole('${escapeHtml(user.email)}', 'teacher')">Make Teacher</button>
             <button onclick="changeUserRole('${escapeHtml(user.email)}', 'user')">Make User</button>
             <button onclick="grantVolunteerHours(${user.id}, '${escapeHtml(user.email)}')" style="background: #4ade80; color: #000;">Grant Hours</button>
+            <button onclick="grantGems(${user.id}, '${escapeHtml(user.email)}')" style="background: #fbbf24; color: #000;">Grant Gems</button>
         </li>
     `;
             }
@@ -8057,6 +8058,35 @@ async function grantVolunteerHours(userId, email) {
     }
 }
 window.grantVolunteerHours = grantVolunteerHours;
+
+async function grantGems(userId, email) {
+    const gems = prompt(`Grant gems to ${email}:\n(Use a negative number to remove gems)`, '50');
+    if (gems === null || gems === '' || isNaN(gems) || parseInt(gems, 10) === 0) return;
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/users/grant-gems`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            credentials: 'include',
+            body: JSON.stringify({ user_id: userId, gems_to_add: parseInt(gems, 10) })
+        });
+        const result = await response.json();
+        if (result.success) {
+            const total = result.data?.new_total ?? '?';
+            alert(`Updated gems for ${email}. New total: ${total}`);
+            loadAllUsers();
+        } else {
+            alert('Error: ' + result.message);
+        }
+    } catch (err) {
+        console.error('Error granting gems:', err);
+        alert('Error granting gems');
+    }
+}
+window.grantGems = grantGems;
 
 // ===== TEACHER/STUDENT SYSTEM =====
 
