@@ -384,6 +384,51 @@ const initializeDatabase = async () => {
         await addColumn('users', 'is_approved', 'BOOLEAN DEFAULT FALSE');
         info('✓ EMS columns verified/added to users table');
 
+        // ===== LEARNER SHELL GAMIFICATION =====
+        await addColumn('users', 'display_name', 'VARCHAR(80) NULL');
+        await addColumn('users', 'gems', 'INT DEFAULT 0');
+        await addColumn('users', 'current_streak', 'INT DEFAULT 0');
+        await addColumn('users', 'longest_streak', 'INT DEFAULT 0');
+        await addColumn('users', 'last_active_date', 'DATE NULL');
+        await addColumn('users', 'avatar_config', 'JSON NULL');
+        await addColumn('users', 'dashboard_theme', "VARCHAR(40) DEFAULT 'warm'");
+        info('✓ Learner gamification columns verified/added to users table');
+
+        await query(`
+            CREATE TABLE IF NOT EXISTS store_items (
+                item_id VARCHAR(64) PRIMARY KEY,
+                item_type VARCHAR(32) NOT NULL,
+                name VARCHAR(120) NOT NULL,
+                description VARCHAR(255),
+                gem_cost INT DEFAULT 0,
+                asset_key VARCHAR(64) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        await query(`
+            CREATE TABLE IF NOT EXISTS user_inventory (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                item_id VARCHAR(64) NOT NULL,
+                acquired_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY uniq_user_item (user_id, item_id),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                INDEX idx_inventory_user (user_id)
+            )
+        `);
+        await query(`
+            CREATE TABLE IF NOT EXISTS user_feedback (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                message TEXT NOT NULL,
+                emailed TINYINT(1) DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                INDEX idx_feedback_created (created_at)
+            )
+        `);
+        info('✓ Learner store/inventory/feedback tables ready');
+
         // ===== COURSE NESTING SYSTEM MIGRATIONS =====
         
         // Migration: Add course_type column to courses table
@@ -920,6 +965,8 @@ const initializeDatabase = async () => {
                 UNIQUE KEY unique_attempt (user_id, question_id)
             )
         `);
+        await addColumn('user_quiz_attempts', 'gems_awarded', 'TINYINT(1) DEFAULT 0');
+        info('✓ user_quiz_attempts gems_awarded column ready');
 
         await query(`
             CREATE TABLE IF NOT EXISTS simulator_interactive_params (
@@ -1136,6 +1183,14 @@ const aiEditorHelpHandlers = createAiEditorHelpHandlers({
     apiResponse,
     getOpenRouterKeys
 });
+
+const { createLearnerGamificationHandlers } = require('./learner-gamification-handlers');
+const learnerGamification = createLearnerGamificationHandlers({
+    query,
+    apiResponse,
+    sendEmail: (to, subject, html) => sendEmail({ to, subject, html })
+});
+learnerGamification.ensureReady().catch((e) => console.error('Learner store seed error:', e.message));
 
 // ===== SMART RATE LIMITING FOR SERVER WAKE-UP =====
 
@@ -7291,6 +7346,62 @@ app.post('/api/student/update-status', authenticateToken, (req, res) => {
 // Note: GET /api/search is defined earlier (with course_type, units_count, richer sim fields).
 
 // ===== AI STUDY COACH (OpenRouter, Socratic) =====
+// ===== LEARNER SHELL / GAMIFICATION =====
+app.get('/api/learner/profile', authenticateToken, (req, res) => {
+    learnerGamification.profile(req, res).catch((e) => {
+        console.error('learner profile:', e);
+        return apiResponse(res, 500, 'Failed to load profile');
+    });
+});
+app.post('/api/learner/checkin', authenticateToken, writeLimiter, (req, res) => {
+    learnerGamification.checkin(req, res).catch((e) => {
+        console.error('learner checkin:', e);
+        return apiResponse(res, 500, 'Check-in failed');
+    });
+});
+app.post('/api/learner/reward-quiz', authenticateToken, writeLimiter, (req, res) => {
+    learnerGamification.rewardQuiz(req, res).catch((e) => {
+        console.error('learner reward-quiz:', e);
+        return apiResponse(res, 500, 'Reward failed');
+    });
+});
+app.get('/api/learner/store', authenticateToken, (req, res) => {
+    learnerGamification.storeCatalog(req, res).catch((e) => {
+        console.error('learner store:', e);
+        return apiResponse(res, 500, 'Store failed');
+    });
+});
+app.post('/api/learner/store/purchase', authenticateToken, writeLimiter, (req, res) => {
+    learnerGamification.purchase(req, res).catch((e) => {
+        console.error('learner purchase:', e);
+        return apiResponse(res, 500, 'Purchase failed');
+    });
+});
+app.post('/api/learner/equip', authenticateToken, writeLimiter, (req, res) => {
+    learnerGamification.equip(req, res).catch((e) => {
+        console.error('learner equip:', e);
+        return apiResponse(res, 500, 'Equip failed');
+    });
+});
+app.put('/api/learner/settings', authenticateToken, writeLimiter, (req, res) => {
+    learnerGamification.updateSettings(req, res).catch((e) => {
+        console.error('learner settings:', e);
+        return apiResponse(res, 500, 'Settings failed');
+    });
+});
+app.post('/api/learner/feedback', authenticateToken, writeLimiter, (req, res) => {
+    learnerGamification.feedback(req, res).catch((e) => {
+        console.error('learner feedback:', e);
+        return apiResponse(res, 500, 'Feedback failed');
+    });
+});
+app.get('/api/learner/feedback', authenticateToken, (req, res) => {
+    learnerGamification.listFeedback(req, res).catch((e) => {
+        console.error('learner feedback list:', e);
+        return apiResponse(res, 500, 'Failed to load feedback');
+    });
+});
+
 app.post('/api/ai/tutor/chat', aiTutorLimiter, authenticateToken, (req, res) => {
     aiTutorHandlers.chat(req, res).catch((e) => {
         console.error('ai tutor chat:', e);

@@ -10,9 +10,10 @@ Rules (strict):
 - Give at most ONE clear next step: a question to ask themselves, a hint about which concept to review, or how to set up the problem (e.g. "label what is known/unknown").
 - If they demand the answer, briefly refuse and offer a learning step instead.
 - Keep responses concise (under 200 words unless they ask for more detail on the method).
-- After your coaching reply, you MAY suggest up to 3 courses from the AVAILABLE_COURSES list the user is not enrolled in. If you do, add a new line exactly:
+- After your coaching reply, you MAY suggest up to 3 courses from the AVAILABLE_COURSES list the user is not enrolled in. Prefer the highest like_count when several fit. Mix single and master courses when both fit. Remind the learner they can like a course if it helps them.
+- If you suggest courses, add a new line exactly:
 VEELEARN_RECOMMEND_JSON:
-followed by a single JSON array like [{"courseId":123,"title":"Exact title from list","reason":"one short sentence"}]. Use only courseIds that appear in AVAILABLE_COURSES. If you have no recommendation, omit the VEELEARN_RECOMMEND_JSON line entirely.`;
+followed by a single JSON array like [{"courseId":123,"title":"Exact title from list","reason":"one short sentence"}]. Use only courseIds that appear in AVAILABLE_COURSES. Suggest 2–3 best matches when multiple fit. If you have no recommendation, omit the VEELEARN_RECOMMEND_JSON line entirely.`;
 
 function guardSocraticReply(text) {
     if (!text || typeof text !== 'string') return text;
@@ -130,11 +131,12 @@ module.exports = function createAiTutorHandlers({ query, openRouterChatCompletio
             );
 
             const catalog = await query(
-                `SELECT c.id, c.title, LEFT(IFNULL(c.description,''), 200) AS desc_preview
+                `SELECT c.id, c.title, c.course_type, IFNULL(c.like_count, 0) AS like_count,
+                        LEFT(IFNULL(c.description,''), 200) AS desc_preview
                  FROM courses c
                  WHERE c.status = 'approved'
                  AND c.id NOT IN (SELECT course_id FROM enrollments WHERE user_id = ?)
-                 ORDER BY c.title ASC LIMIT 40`,
+                 ORDER BY IFNULL(c.like_count, 0) DESC, c.title ASC LIMIT 60`,
                 [userId]
             );
 
@@ -158,7 +160,9 @@ module.exports = function createAiTutorHandlers({ query, openRouterChatCompletio
             );
             historyRows.reverse();
 
-            const availableLines = catalog.map((c) => `${c.id}: ${c.title}`).join('\n');
+            const availableLines = catalog
+                .map((c) => `${c.id}: ${c.title} [${c.course_type || 'single'}, likes=${c.like_count || 0}]`)
+                .join('\n');
             const enrolledLines = enrolled.map((c) => `${c.id}: ${c.title}`).join('\n') || '(none)';
 
             const contextBlock = [

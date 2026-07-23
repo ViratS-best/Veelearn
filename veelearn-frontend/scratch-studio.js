@@ -632,6 +632,21 @@
     document.getElementById('btn-stop-2').onclick = stopAll;
     document.getElementById('btn-save').onclick = saveToParent;
     document.getElementById('btn-publish').onclick = publishSimulator;
+    const mktBtn = document.getElementById('btn-marketplace');
+    if (mktBtn) {
+      mktBtn.onclick = async () => {
+        if (dirty) {
+          const saveFirst = confirm('Save your work before opening the Marketplace?');
+          if (saveFirst) {
+            try { await saveToParent(); } catch (e) { console.warn(e); }
+          } else {
+            const leave = confirm('Leave without saving and open Marketplace anyway?');
+            if (!leave) return;
+          }
+        }
+        window.location.href = 'simulator-marketplace.html';
+      };
+    }
     document.getElementById('btn-exit').onclick = exitStudio;
     document.getElementById('btn-add-sprite').onclick = addSprite;
     document.getElementById('stage-thumb').onclick = () => selectTarget('stage');

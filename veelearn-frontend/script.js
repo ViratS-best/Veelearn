@@ -1881,6 +1881,7 @@ function logout() {
     authToken = null;
     currentUser = null;
     localStorage.removeItem("token"); // Clear from localStorage on logout
+    if (window.LearnerShell?.hideLearnerShell) window.LearnerShell.hideLearnerShell();
     showAuthSection();
 }
 
@@ -2792,6 +2793,7 @@ function insertSimulatorBlock(blockId, title, type) {
 
 // ===== UI RENDERING =====
 function showLandingPage() {
+    if (window.LearnerShell?.hideLearnerShell) window.LearnerShell.hideLearnerShell();
     const landing = document.getElementById("landing-page");
     const auth = document.getElementById("auth-section");
     const dashboard = document.getElementById("dashboard-section");
@@ -2867,6 +2869,8 @@ function initializeAuroraBall() {
 }
 
 function showAuthSection(type = "login") {
+    if (window.LearnerShell?.hideLearnerShell) window.LearnerShell.hideLearnerShell();
+
     const auth = document.getElementById("auth-section");
     const landing = document.getElementById("landing-page");
     const dashboard = document.getElementById("dashboard-section");
@@ -2931,6 +2935,34 @@ function showDashboard() {
         window.location.href = 'parent-dashboard.html';
         return;
     }
+
+    // Khan-style learner shell for everyone except superadmin
+    if (currentUser?.role !== 'superadmin' && window.LearnerShell?.showLearnerShell) {
+        const landing = document.getElementById("landing-page");
+        const auth = document.getElementById("auth-section");
+        const editor = document.getElementById("course-editor-section");
+        const viewer = document.getElementById("course-viewer-section");
+        const dashboard = document.getElementById("dashboard-section");
+        if (landing) landing.style.display = "none";
+        if (auth) auth.style.display = "none";
+        if (editor) editor.style.display = "none";
+        if (viewer) viewer.style.display = "none";
+        if (dashboard) dashboard.style.display = "none";
+        window.LearnerShell.showLearnerShell();
+
+        if (!window.__pendingAddSimHandled) {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('action') === 'addSimulator' && urlParams.get('simulatorId')) {
+                window.__pendingAddSimHandled = true;
+                const pendingSimId = parseInt(urlParams.get('simulatorId'));
+                history.replaceState({}, '', window.location.pathname);
+                setTimeout(() => showCoursePickerForSimulator(pendingSimId, null), 400);
+            }
+        }
+        return;
+    }
+
+    if (window.LearnerShell?.hideLearnerShell) window.LearnerShell.hideLearnerShell();
 
     const dashboard = document.getElementById("dashboard-section");
     const landing = document.getElementById("landing-page");
@@ -3805,6 +3837,7 @@ function renderCourseCard(course) {
 }
 
 function createNewCourse() {
+    if (window.LearnerShell?.hideLearnerShell) window.LearnerShell.hideLearnerShell();
     currentEditingCourseId = null;
     courseBlocks = [];
     document.getElementById("course-title").value = "";
@@ -3823,6 +3856,7 @@ function createNewCourse() {
 }
 
 function editCourse(courseId) {
+    if (window.LearnerShell?.hideLearnerShell) window.LearnerShell.hideLearnerShell();
     currentEditingCourseId = courseId;
     const course = myCourses.find((c) => c.id === courseId);
 
@@ -4043,6 +4077,7 @@ function saveCourse(action = "draft") {
 let currentAssignmentId = null;
 
 async function viewCourse(courseId, assignmentId = null, forceRegular = false) {
+    if (window.LearnerShell?.hideLearnerShell) window.LearnerShell.hideLearnerShell();
     currentAssignmentId = assignmentId;
     const course = myCourses.find((c) => c.id === courseId) ||
         availableCourses.find((c) => c.id === courseId) ||
@@ -6553,6 +6588,9 @@ async function submitQuizAnswer(questionId) {
           <div>✅ Correct!</div>
           ${result.data.explanation ? `<div class="quiz-explanation">${escapeHtml(result.data.explanation)}</div>` : ''}
         `;
+                if (window.LearnerGamification?.onQuizCorrect) {
+                    window.LearnerGamification.onQuizCorrect(questionId);
+                }
             } else {
                 feedbackDiv.className = 'quiz-feedback incorrect';
                 feedbackDiv.innerHTML = `
@@ -9078,3 +9116,14 @@ async function updateStudentActiveStatus(status) {
     }
 }
 window.updateStudentActiveStatus = updateStudentActiveStatus;
+
+// Expose for learner shell / gamification modules
+window.API_BASE_URL = API_BASE_URL;
+window.createNewCourse = createNewCourse;
+window.viewCourse = viewCourse;
+window.logout = logout;
+window.__veelearnPushCourse = function (course) {
+    if (!course || !course.id) return;
+    if (!myCourses.some((c) => c.id === course.id)) myCourses.push(course);
+    if (!availableCourses.some((c) => c.id === course.id)) availableCourses.push(course);
+};
