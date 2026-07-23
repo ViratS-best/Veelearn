@@ -59,7 +59,7 @@
   function renderAvatarInto(container, cfg) {
     if (!container) return;
     const c = cfg || {};
-    const layers = ['cape', 'base', 'shirt', 'glasses', 'hat', 'accessory'];
+    const layers = ['cape', 'base', 'shirt', 'hat', 'glasses', 'accessory'];
     const html = [];
     layers.forEach((slot) => {
       if (slot === 'base') {

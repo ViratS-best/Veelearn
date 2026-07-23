@@ -1,5 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 120" width="96" height="120">
-  <path d="M28 22h40l-6 14H34z" fill="#FBBF24"/>
-  <rect x="34" y="22" width="28" height="16" rx="2" fill="#F59E0B"/>
-  <circle cx="48" cy="18" r="4" fill="#FDE68A"/>
+  <!-- Head top ~y=8; glasses top ~y=24 — keep crown above both -->
+  <path d="M24 0 L32 9 L40 1 L48 11 L56 1 L64 9 L72 0 L67 12 H29 Z" fill="#FBBF24" stroke="#D97706" stroke-width="1.5" stroke-linejoin="round"/>
+  <rect x="29" y="10" width="38" height="5" rx="2" fill="#F59E0B"/>
+  <circle cx="32" cy="2" r="2.5" fill="#FDE68A"/>
+  <circle cx="48" cy="1" r="3" fill="#FEF3C7"/>
+  <circle cx="64" cy="2" r="2.5" fill="#FDE68A"/>
 </svg>
