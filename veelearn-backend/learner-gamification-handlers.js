@@ -23,14 +23,49 @@ const BASE_QUIZ_GEMS = 5;
 const STREAK_CHECKIN_GEMS = 10;
 const MAX_STREAK_MULT = 3;
 
+/** Calendar day as YYYY-MM-DD (UTC — Render servers run UTC). */
+function calendarDayUTC(offsetDays = 0) {
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() + offsetDays);
+    return d.toISOString().slice(0, 10);
+}
+
 function todayUTC() {
-    return new Date().toISOString().slice(0, 10);
+    return calendarDayUTC(0);
 }
 
 function yesterdayUTC() {
-    const d = new Date();
-    d.setUTCDate(d.getUTCDate() - 1);
-    return d.toISOString().slice(0, 10);
+    return calendarDayUTC(-1);
+}
+
+/**
+ * Normalize mysql2 DATE / DATETIME / string into YYYY-MM-DD.
+ * Without dateStrings, mysql2 returns DATE as a Date object and
+ * String(date).slice(0,10) becomes "Wed Jul 23" — breaking same-day checks.
+ */
+function normalizeSqlDate(value) {
+    if (value == null || value === '') return null;
+    if (typeof value === 'string') {
+        const m = value.match(/^(\d{4}-\d{2}-\d{2})/);
+        return m ? m[1] : null;
+    }
+    if (value instanceof Date && !Number.isNaN(value.getTime())) {
+        // Prefer UTC ISO (matches todayUTC). Also try local Y-M-D if they differ
+        // by timezone — for DATE-only values at local midnight in US zones,
+        // local components match the stored calendar day more reliably.
+        const pad = (n) => String(n).padStart(2, '0');
+        const local = `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
+        const utc = value.toISOString().slice(0, 10);
+        // If either equals today/yesterday we'll compare against todayUTC later;
+        // prefer local calendar day for DATE columns (mysql2 default mapping).
+        return local;
+    }
+    try {
+        const s = String(value);
+        const m = s.match(/^(\d{4}-\d{2}-\d{2})/);
+        if (m) return m[1];
+    } catch (_) { /* ignore */ }
+    return null;
 }
 
 function streakMultiplier(currentStreak) {
@@ -138,9 +173,7 @@ function createLearnerGamificationHandlers({ query, apiResponse, sendEmail }) {
             if (!row) return apiResponse(res, 404, 'User not found');
 
             const today = todayUTC();
-            const last = row.last_active_date
-                ? String(row.last_active_date).slice(0, 10)
-                : null;
+            const last = normalizeSqlDate(row.last_active_date);
 
             if (last === today) {
                 return apiResponse(res, 200, 'Already checked in today', {
@@ -162,11 +195,25 @@ function createLearnerGamificationHandlers({ query, apiResponse, sendEmail }) {
             const gemsAwarded = STREAK_CHECKIN_GEMS * streakMultiplier(current);
             const newGems = (row.gems || 0) + gemsAwarded;
 
-            await query(
+            // Atomic guard: only award if still not checked in today (stops refresh races)
+            const result = await query(
                 `UPDATE users SET gems = ?, current_streak = ?, longest_streak = ?, last_active_date = ?
-                 WHERE id = ?`,
-                [newGems, current, longest, today, userId]
+                 WHERE id = ? AND (last_active_date IS NULL OR last_active_date < ?)`,
+                [newGems, current, longest, today, userId, today]
             );
+
+            const header = Array.isArray(result) ? result[0] : result;
+            const affected = header?.affectedRows ?? 0;
+            if (!affected) {
+                const fresh = await getProfileRow(userId);
+                return apiResponse(res, 200, 'Already checked in today', {
+                    gems: fresh?.gems || 0,
+                    currentStreak: fresh?.current_streak || 0,
+                    longestStreak: fresh?.longest_streak || 0,
+                    gemsAwarded: 0,
+                    alreadyCheckedIn: true
+                });
+            }
 
             return apiResponse(res, 200, 'Streak updated', {
                 gems: newGems,

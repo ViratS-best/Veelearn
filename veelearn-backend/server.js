@@ -222,7 +222,9 @@ const db = mysql.createPool({
     ...dbConfig,
     connectionLimit: 10,
     waitForConnections: true,
-    queueLimit: 0
+    queueLimit: 0,
+    // DATE/DATETIME as 'YYYY-MM-DD...' strings (fixes daily check-in same-day compare)
+    dateStrings: true
 });
 
 // Promisify for async/await
