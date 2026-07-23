@@ -1,0 +1,16 @@
+---
+description: Always commit, push, and publish frontend after changes
+alwaysApply: true
+---
+
+# Deploy After Every Change
+
+Whenever you finish making code changes in this repo (frontend and/or backend):
+
+1. **Commit** the relevant changes (follow the repo git commit protocol).
+2. **Push** to `origin` (`git push -u origin HEAD`).
+3. **Publish frontend** by running `./publish-frontend.ps1` from the repo root.
+
+Do this automatically — do not wait for the user to ask. Backend changes still need the push so Render can redeploy; frontend also needs `./publish-frontend.ps1` for GitHub Pages / veelearn.org.
+
+Skip only if there were truly no file changes, or if the user explicitly says not to deploy.
