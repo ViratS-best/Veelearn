@@ -178,6 +178,7 @@
 
   function hideLearnerShell() {
     document.body.classList.remove('learner-shell-active', 'ls-sidebar-open');
+    document.body.style.background = '';
     const shell = document.getElementById('learner-shell');
     if (shell) shell.style.display = 'none';
   }
@@ -224,6 +225,10 @@
     const shell = document.getElementById('learner-shell');
     if (shell && profile.dashboardTheme) {
       shell.setAttribute('data-learner-theme', profile.dashboardTheme);
+      requestAnimationFrame(() => {
+        const bg = getComputedStyle(shell).getPropertyValue('--ls-bg').trim();
+        if (bg) document.body.style.background = bg;
+      });
     }
     window.LearnerGamification?.renderAvatarInto?.(
       document.getElementById('ls-sidebar-avatar'),

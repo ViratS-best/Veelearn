@@ -1,44 +1,45 @@
-/* Khan-style learner shell — warm & friendly light default */
+/* Khan-style learner shell — warm & theme-aware */
 
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&display=swap');
 
 :root {
   --ls-bg: #FFF8F1;
   --ls-sidebar: #FFFFFF;
-  --ls-text: #1F2937;
+  --ls-text: #1A1A1A;
   --ls-muted: #6B7280;
-  --ls-accent: #F97316;
+  --ls-accent: #EA580C;
   --ls-accent-soft: #FFEDD5;
-  --ls-blue: #3B82F6;
-  --ls-blue-soft: #DBEAFE;
+  --ls-btn: #1A1A1A;
+  --ls-btn-text: #FFFFFF;
+  --ls-btn-hover: #EA580C;
+  --ls-btn-hover-text: #FFFFFF;
+  --ls-active-bg: #FFEDD5;
+  --ls-active-text: #9A3412;
+  --ls-user-bubble: #FFF1E6;
+  --ls-coach-bubble: #FFF7ED;
   --ls-border: #F3E8DE;
   --ls-card: #FFFFFF;
-  --ls-shadow: 0 8px 24px rgba(249, 115, 22, 0.08);
+  --ls-input-bg: #FFFCF8;
+  --ls-shadow: 0 8px 24px rgba(234, 88, 12, 0.08);
   --ls-radius: 16px;
   --ls-sidebar-w: 260px;
 }
 
-html[data-theme="dark"] {
-  --ls-bg: #0f1117;
-  --ls-sidebar: #161b22;
-  --ls-text: #F3F4F6;
-  --ls-muted: #9CA3AF;
-  --ls-accent: #FB923C;
-  --ls-accent-soft: rgba(251, 146, 60, 0.15);
-  --ls-blue: #60A5FA;
-  --ls-blue-soft: rgba(96, 165, 250, 0.15);
-  --ls-border: #2a3140;
-  --ls-card: #1a2030;
-  --ls-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-}
-
-body.learner-shell-active > header {
-  display: none !important;
-}
-
+/* Hide site chrome while learner shell is open */
+body.learner-shell-active > header,
+body.learner-shell-active > footer,
+body.learner-shell-active #auto-save-indicator,
 body.learner-shell-active #landing-page,
-body.learner-shell-active #auth-section {
+body.learner-shell-active #auth-section,
+body.learner-shell-active #dashboard-section,
+body.learner-shell-active #redesign-container,
+body.learner-shell-active > main:not(#learner-main) {
   display: none !important;
+}
+
+body.learner-shell-active {
+  background: var(--ls-bg, #FFF8F1) !important;
+  overflow: hidden;
 }
 
 #learner-shell {
@@ -51,6 +52,42 @@ body.learner-shell-active #auth-section {
 
 body.learner-shell-active #learner-shell {
   display: flex;
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+}
+
+/* Kill global section/card styles leaking into the shell */
+#learner-shell section,
+#learner-shell .ls-pane {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  color: var(--ls-text);
+}
+
+#learner-shell h1,
+#learner-shell h2,
+#learner-shell h3,
+#learner-shell h4,
+#learner-shell p,
+#learner-shell strong,
+#learner-shell label,
+#learner-shell li,
+#learner-shell span {
+  color: inherit;
+  border: none;
+  padding-bottom: 0;
+}
+
+#learner-shell h2,
+#learner-shell h3,
+#learner-shell h4 {
+  color: var(--ls-text) !important;
+  border-bottom: none !important;
 }
 
 #learner-sidebar {
@@ -65,6 +102,7 @@ body.learner-shell-active #learner-shell {
   top: 0;
   height: 100vh;
   z-index: 40;
+  color: var(--ls-text);
 }
 
 .ls-brand {
@@ -116,16 +154,17 @@ body.learner-shell-active #learner-shell {
   border-radius: 12px;
   cursor: pointer;
   text-align: left;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .ls-nav-btn:hover {
   background: var(--ls-accent-soft);
+  color: var(--ls-accent);
 }
 
 .ls-nav-btn.active {
-  background: var(--ls-blue-soft);
-  color: var(--ls-blue);
+  background: var(--ls-active-bg);
+  color: var(--ls-active-text);
 }
 
 .ls-nav-icon {
@@ -133,6 +172,7 @@ body.learner-shell-active #learner-shell {
   height: 22px;
   flex-shrink: 0;
   opacity: 0.9;
+  color: inherit;
 }
 
 .ls-nav-bottom {
@@ -151,6 +191,7 @@ body.learner-shell-active #learner-shell {
   margin: 8px 8px 4px;
   padding: 8px 10px;
   background: var(--ls-accent-soft);
+  color: var(--ls-text);
   border-radius: 999px;
   font-weight: 800;
   font-size: 0.9rem;
@@ -170,6 +211,7 @@ body.learner-shell-active #learner-shell {
   align-items: center;
   gap: 10px;
   cursor: pointer;
+  color: var(--ls-text);
 }
 
 .ls-profile:hover,
@@ -200,6 +242,7 @@ body.learner-shell-active #learner-shell {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--ls-text);
 }
 
 .ls-profile-menu {
@@ -232,10 +275,12 @@ body.learner-shell-active #learner-shell {
   font-weight: 700;
   cursor: pointer;
   color: var(--ls-text);
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .ls-profile-menu button:hover {
-  background: var(--ls-blue-soft);
+  background: var(--ls-accent-soft);
+  color: var(--ls-accent);
 }
 
 #learner-main {
@@ -243,6 +288,8 @@ body.learner-shell-active #learner-shell {
   min-width: 0;
   padding: 28px 32px 48px;
   overflow-y: auto;
+  background: var(--ls-bg);
+  color: var(--ls-text);
 }
 
 .ls-pane {
@@ -250,6 +297,7 @@ body.learner-shell-active #learner-shell {
   max-width: 920px;
   margin: 0 auto;
   animation: lsFade 0.25s ease;
+  color: var(--ls-text);
 }
 
 .ls-pane.active {
@@ -276,6 +324,8 @@ body.learner-shell-active #learner-shell {
   font-weight: 800;
   margin: 0;
   letter-spacing: -0.03em;
+  color: var(--ls-text) !important;
+  border: none !important;
 }
 
 .ls-home-hero img {
@@ -292,6 +342,7 @@ body.learner-shell-active #learner-shell {
   display: flex;
   flex-direction: column;
   min-height: 320px;
+  color: var(--ls-text);
 }
 
 #ls-ai-messages {
@@ -301,6 +352,17 @@ body.learner-shell-active #learner-shell {
   padding: 8px 4px 12px;
   font-size: 0.95rem;
   line-height: 1.45;
+  color: var(--ls-text);
+}
+
+.ls-bubble-user {
+  background: var(--ls-user-bubble) !important;
+  color: var(--ls-text);
+}
+
+.ls-bubble-coach {
+  background: var(--ls-coach-bubble) !important;
+  color: var(--ls-text);
 }
 
 .ls-ai-composer {
@@ -320,19 +382,29 @@ body.learner-shell-active #learner-shell {
   border-radius: 14px;
   padding: 12px 14px;
   font: inherit;
-  background: var(--ls-bg);
+  background: var(--ls-input-bg);
   color: var(--ls-text);
+}
+
+.ls-ai-composer textarea::placeholder {
+  color: var(--ls-muted);
 }
 
 .ls-ai-composer button {
   border: none;
-  background: var(--ls-blue);
-  color: #fff;
+  background: var(--ls-btn);
+  color: var(--ls-btn-text);
   font: inherit;
   font-weight: 800;
   padding: 12px 18px;
   border-radius: 12px;
   cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+
+.ls-ai-composer button:hover {
+  background: var(--ls-btn-hover);
+  color: var(--ls-btn-hover-text);
 }
 
 .ls-ai-hint {
@@ -354,11 +426,13 @@ body.learner-shell-active #learner-shell {
   border-radius: 14px;
   padding: 14px 16px;
   box-shadow: var(--ls-shadow);
+  color: var(--ls-text);
 }
 
 .ls-rec-card strong {
   display: block;
   margin-bottom: 4px;
+  color: var(--ls-text);
 }
 
 .ls-rec-actions {
@@ -375,16 +449,27 @@ body.learner-shell-active #learner-shell {
   font: inherit;
   font-weight: 700;
   cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .ls-btn-primary {
-  background: var(--ls-blue);
-  color: #fff;
+  background: var(--ls-btn);
+  color: var(--ls-btn-text);
+}
+
+.ls-btn-primary:hover {
+  background: var(--ls-btn-hover);
+  color: var(--ls-btn-hover-text);
 }
 
 .ls-btn-soft {
   background: var(--ls-accent-soft);
   color: var(--ls-accent);
+}
+
+.ls-btn-soft:hover {
+  background: var(--ls-btn-hover);
+  color: var(--ls-btn-hover-text);
 }
 
 /* Achievements */
@@ -400,6 +485,7 @@ body.learner-shell-active #learner-shell {
   margin: 0 0 4px;
   font-size: 2rem;
   font-weight: 800;
+  color: var(--ls-text) !important;
 }
 
 .ls-ach-header p {
@@ -425,6 +511,7 @@ body.learner-shell-active #learner-shell {
   text-align: center;
   border: 1px solid var(--ls-border);
   box-shadow: var(--ls-shadow);
+  color: var(--ls-text);
 }
 
 .ls-metric img {
@@ -436,6 +523,7 @@ body.learner-shell-active #learner-shell {
 .ls-metric .val {
   font-size: 1.35rem;
   font-weight: 800;
+  color: var(--ls-text);
 }
 
 .ls-metric .label {
@@ -458,6 +546,7 @@ body.learner-shell-active #learner-shell {
   padding: 8px 14px;
   font-weight: 700;
   font-size: 0.85rem;
+  color: var(--ls-text);
 }
 
 .ls-badge.locked {
@@ -469,6 +558,8 @@ body.learner-shell-active #learner-shell {
   font-size: 1.75rem;
   font-weight: 800;
   margin: 0 0 6px;
+  color: var(--ls-text) !important;
+  border: none !important;
 }
 
 .ls-section-sub {
@@ -488,11 +579,13 @@ body.learner-shell-active #learner-shell {
   border-radius: 14px;
   padding: 14px;
   box-shadow: var(--ls-shadow);
+  color: var(--ls-text);
 }
 
 .ls-store-card h4 {
   margin: 8px 0 4px;
   font-size: 1rem;
+  color: var(--ls-text) !important;
 }
 
 .ls-store-card p {
@@ -505,6 +598,11 @@ body.learner-shell-active #learner-shell {
   width: 56px;
   height: 56px;
   object-fit: contain;
+}
+
+.ls-store-card .ls-btn-primary,
+.ls-store-card .ls-btn-soft {
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .ls-enrolled-list {
@@ -525,6 +623,7 @@ body.learner-shell-active #learner-shell {
   align-items: center;
   gap: 12px;
   box-shadow: var(--ls-shadow);
+  color: var(--ls-text);
 }
 
 .ls-settings-card,
@@ -535,12 +634,14 @@ body.learner-shell-active #learner-shell {
   padding: 20px;
   box-shadow: var(--ls-shadow);
   max-width: 520px;
+  color: var(--ls-text);
 }
 
 .ls-settings-card label {
   display: block;
   font-weight: 700;
   margin-bottom: 6px;
+  color: var(--ls-text);
 }
 
 .ls-settings-card input,
@@ -551,59 +652,166 @@ body.learner-shell-active #learner-shell {
   border-radius: 12px;
   padding: 10px 12px;
   font: inherit;
-  background: var(--ls-bg);
+  background: var(--ls-input-bg);
   color: var(--ls-text);
 }
 
 .ls-settings-card button,
-.ls-feedback-modal button {
+.ls-feedback-modal button.ls-btn-primary,
+.ls-feedback-modal #ls-feedback-send {
   margin-top: 12px;
   border: none;
-  background: var(--ls-blue);
-  color: #fff;
+  background: var(--ls-btn);
+  color: var(--ls-btn-text);
   font: inherit;
   font-weight: 800;
   padding: 10px 16px;
   border-radius: 10px;
   cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
-/* Theme packs on shell */
+.ls-settings-card button:hover,
+.ls-feedback-modal #ls-feedback-send:hover {
+  background: var(--ls-btn-hover);
+  color: var(--ls-btn-hover-text);
+}
+
+/* ===== Store theme packs (full surfaces) ===== */
+#learner-shell[data-learner-theme="warm"] {
+  --ls-bg: #FFF8F1;
+  --ls-sidebar: #FFFFFF;
+  --ls-text: #1A1A1A;
+  --ls-muted: #6B7280;
+  --ls-accent: #EA580C;
+  --ls-accent-soft: #FFEDD5;
+  --ls-btn: #1A1A1A;
+  --ls-btn-hover: #EA580C;
+  --ls-active-bg: #FFEDD5;
+  --ls-active-text: #9A3412;
+  --ls-user-bubble: #FFF1E6;
+  --ls-coach-bubble: #FFF7ED;
+  --ls-border: #F3E8DE;
+  --ls-card: #FFFFFF;
+  --ls-input-bg: #FFFCF8;
+  --ls-shadow: 0 8px 24px rgba(234, 88, 12, 0.08);
+}
+
 #learner-shell[data-learner-theme="blue"] {
+  --ls-bg: #F0F7FF;
+  --ls-sidebar: #FFFFFF;
+  --ls-text: #0F172A;
+  --ls-muted: #64748B;
   --ls-accent: #2563EB;
   --ls-accent-soft: #DBEAFE;
-  --ls-bg: #F0F7FF;
+  --ls-btn: #0F172A;
+  --ls-btn-hover: #2563EB;
+  --ls-active-bg: #DBEAFE;
+  --ls-active-text: #1D4ED8;
+  --ls-user-bubble: #EFF6FF;
+  --ls-coach-bubble: #F8FAFC;
+  --ls-border: #DBeafe;
+  --ls-card: #FFFFFF;
+  --ls-input-bg: #F8FAFF;
+  --ls-shadow: 0 8px 24px rgba(37, 99, 235, 0.08);
 }
+
 #learner-shell[data-learner-theme="red"] {
+  --ls-bg: #FFF5F5;
+  --ls-sidebar: #FFFFFF;
+  --ls-text: #1A1A1A;
+  --ls-muted: #7F1D1D;
   --ls-accent: #DC2626;
   --ls-accent-soft: #FEE2E2;
-  --ls-bg: #FFF5F5;
+  --ls-btn: #1A1A1A;
+  --ls-btn-hover: #DC2626;
+  --ls-active-bg: #FEE2E2;
+  --ls-active-text: #B91C1C;
+  --ls-user-bubble: #FEF2F2;
+  --ls-coach-bubble: #FFF7F7;
+  --ls-border: #FECACA;
+  --ls-card: #FFFFFF;
+  --ls-input-bg: #FFFBFB;
+  --ls-shadow: 0 8px 24px rgba(220, 38, 38, 0.08);
 }
+
 #learner-shell[data-learner-theme="cool"] {
+  --ls-bg: #F0FDFA;
+  --ls-sidebar: #FFFFFF;
+  --ls-text: #134E4A;
+  --ls-muted: #0F766E;
   --ls-accent: #0D9488;
   --ls-accent-soft: #CCFBF1;
-  --ls-bg: #F0FDFA;
+  --ls-btn: #134E4A;
+  --ls-btn-hover: #0D9488;
+  --ls-active-bg: #CCFBF1;
+  --ls-active-text: #0F766E;
+  --ls-user-bubble: #ECFDF5;
+  --ls-coach-bubble: #F0FDFA;
+  --ls-border: #99F6E4;
+  --ls-card: #FFFFFF;
+  --ls-input-bg: #F7FFFE;
+  --ls-shadow: 0 8px 24px rgba(13, 148, 136, 0.08);
 }
+
 #learner-shell[data-learner-theme="happy"] {
+  --ls-bg: #FFFBEB;
+  --ls-sidebar: #FFFFFF;
+  --ls-text: #1A1A1A;
+  --ls-muted: #A16207;
   --ls-accent: #EAB308;
   --ls-accent-soft: #FEF9C3;
-  --ls-bg: #FFFBEB;
+  --ls-btn: #1A1A1A;
+  --ls-btn-hover: #CA8A04;
+  --ls-btn-hover-text: #FFFFFF;
+  --ls-active-bg: #FEF9C3;
+  --ls-active-text: #A16207;
+  --ls-user-bubble: #FEFCE8;
+  --ls-coach-bubble: #FFFBEB;
+  --ls-border: #FDE68A;
+  --ls-card: #FFFFFF;
+  --ls-input-bg: #FFFDF5;
+  --ls-shadow: 0 8px 24px rgba(234, 179, 8, 0.12);
 }
+
 #learner-shell[data-learner-theme="hacker"] {
-  --ls-accent: #22C55E;
-  --ls-accent-soft: rgba(34, 197, 94, 0.15);
   --ls-bg: #0B1220;
   --ls-sidebar: #0F172A;
   --ls-text: #E2E8F0;
   --ls-muted: #94A3B8;
-  --ls-card: #111827;
+  --ls-accent: #22C55E;
+  --ls-accent-soft: rgba(34, 197, 94, 0.18);
+  --ls-btn: #020617;
+  --ls-btn-text: #E2E8F0;
+  --ls-btn-hover: #22C55E;
+  --ls-btn-hover-text: #052E16;
+  --ls-active-bg: rgba(34, 197, 94, 0.2);
+  --ls-active-text: #4ADE80;
+  --ls-user-bubble: #12261a;
+  --ls-coach-bubble: #111827;
   --ls-border: #1F2937;
+  --ls-card: #111827;
+  --ls-input-bg: #0B1220;
+  --ls-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
 }
+
 #learner-shell[data-learner-theme="superhero"] {
+  --ls-bg: #F5F3FF;
+  --ls-sidebar: #FFFFFF;
+  --ls-text: #1E1B4B;
+  --ls-muted: #6D28D9;
   --ls-accent: #7C3AED;
   --ls-accent-soft: #EDE9FE;
-  --ls-blue: #EF4444;
-  --ls-bg: #F5F3FF;
+  --ls-btn: #1E1B4B;
+  --ls-btn-hover: #EF4444;
+  --ls-active-bg: #EDE9FE;
+  --ls-active-text: #5B21B6;
+  --ls-user-bubble: #EEF2FF;
+  --ls-coach-bubble: #FAF5FF;
+  --ls-border: #DDD6FE;
+  --ls-card: #FFFFFF;
+  --ls-input-bg: #FAFAFF;
+  --ls-shadow: 0 8px 24px rgba(124, 58, 237, 0.1);
 }
 
 /* Celebration overlay */
@@ -632,6 +840,7 @@ body.learner-shell-active #learner-shell {
   left: 50%;
   transform: translateX(-50%);
   background: var(--ls-card);
+  color: var(--ls-text);
   border: 1px solid var(--ls-border);
   box-shadow: var(--ls-shadow);
   border-radius: 999px;
@@ -672,6 +881,7 @@ body.learner-shell-active #learner-shell {
 
 .ls-feedback-modal h3 {
   margin: 0 0 10px;
+  color: var(--ls-text) !important;
 }
 
 .ls-mobile-toggle {
@@ -682,6 +892,7 @@ body.learner-shell-active #learner-shell {
   z-index: 45;
   border: none;
   background: var(--ls-card);
+  color: var(--ls-text);
   border-radius: 10px;
   padding: 8px 12px;
   font-weight: 800;
