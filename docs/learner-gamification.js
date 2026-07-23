@@ -350,9 +350,15 @@
         })
         .join('');
       list.querySelectorAll('[data-open]').forEach((btn) => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
           const id = parseInt(btn.getAttribute('data-open'), 10);
           window.LearnerShell?.hideLearnerShell?.();
+          try {
+            const detail = await api(`/api/courses/${id}`);
+            if (detail.success && detail.data && typeof window.__veelearnPushCourse === 'function') {
+              window.__veelearnPushCourse(detail.data);
+            }
+          } catch (_) { /* ignore */ }
           if (typeof window.viewCourse === 'function') window.viewCourse(id);
         });
       });
