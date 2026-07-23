@@ -1871,6 +1871,7 @@ function fetchUserProfile() {
         .then((data) => {
             if (data.success) {
                 currentUser = data.data;
+                try { window.currentUser = currentUser; } catch (_) { /* ignore */ }
                 // Sync authToken from cookie/response if available
                 if (data.data.token) {
                     authToken = data.data.token;
@@ -3885,18 +3886,22 @@ function createNewCourse() {
 
 function editCourse(courseId) {
     if (window.LearnerShell?.hideLearnerShell) window.LearnerShell.hideLearnerShell();
-    currentEditingCourseId = courseId;
-    const course = myCourses.find((c) => c.id === courseId);
+    const idNum = parseInt(courseId, 10);
+    currentEditingCourseId = idNum;
 
-    if (course) {
+    const openEditor = (course) => {
+        if (!course) {
+            alert("Course not found");
+            return;
+        }
         document.getElementById("course-title").value = course.title;
         document.getElementById("course-description").value =
             course.description || "";
-        document.getElementById("course-video-url").value =
-            course.video_url || "";
+        const videoEl = document.getElementById("course-video-url");
+        if (videoEl) videoEl.value = course.video_url || "";
 
         // Load course type (Master vs Single)
-        loadCourseTypeForEdit(courseId);
+        loadCourseTypeForEdit(idNum);
 
         // Split content into pages
         const rawContent = course.content || "";
@@ -3917,7 +3922,7 @@ function editCourse(courseId) {
         if (window.logger) window.logger.debug("  Blocks:", courseBlocks);
 
         // Load quiz questions for this course and re-render placeholders
-        loadCourseQuestions(courseId).then(() => {
+        loadCourseQuestions(idNum).then(() => {
             const editor = document.getElementById('course-content-editor');
 
             // Check which question IDs already have placeholders in the saved content
@@ -3987,10 +3992,36 @@ function editCourse(courseId) {
 
             startCourseTimer(course.creation_time || 0);
             if (typeof window.onCourseEditorOpened === 'function') {
-                window.onCourseEditorOpened({ isNew: false, courseId });
+                window.onCourseEditorOpened({ isNew: false, courseId: idNum });
             }
         });
+    };
+
+    let course = myCourses.find((c) => Number(c.id) === idNum);
+    if (course && course.content != null) {
+        openEditor(course);
+        return Promise.resolve();
     }
+
+    const token = authToken || localStorage.getItem("token") || "";
+    return fetch(`${API_BASE_URL}/api/courses/${idNum}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: "include"
+    })
+        .then((res) => res.json())
+        .then((data) => {
+            if (data.success && data.data) {
+                course = { ...data.data, id: Number(data.data.id) };
+                if (!myCourses.some((c) => Number(c.id) === idNum)) myCourses.push(course);
+                openEditor(course);
+            } else {
+                alert("Course not found");
+            }
+        })
+        .catch((err) => {
+            console.error("Failed to load course for edit:", err);
+            alert("Course not found");
+        });
 }
 
 function saveCourse(action = "draft", options = {}) {
