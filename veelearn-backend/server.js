@@ -3101,7 +3101,7 @@ app.get('/api/users/profile', authenticateToken, (req, res) => {
 // Get all users (admin/superadmin only)
 // ===== SUPERADMIN ROUTES =====
 app.get('/api/users', authenticateToken, authorize('superadmin', 'admin'), (req, res) => {
-    db.query('SELECT id, email, role, is_admin_approved, shells, total_volunteer_hours, is_verified_creator, created_at FROM users', (err, results) => {
+    db.query('SELECT id, email, role, is_admin_approved, shells, gems, total_volunteer_hours, is_verified_creator, created_at FROM users', (err, results) => {
         if (err) {
             console.error('Error fetching users:', err);
             return apiResponse(res, 500, 'Server error fetching users');
@@ -3111,7 +3111,7 @@ app.get('/api/users', authenticateToken, authorize('superadmin', 'admin'), (req,
 });
 
 app.get('/api/superadmin/users', authenticateToken, authorize('superadmin', 'admin'), (req, res) => {
-    db.query('SELECT id, email, role, is_admin_approved, shells, total_volunteer_hours, is_verified_creator, created_at FROM users', (err, results) => {
+    db.query('SELECT id, email, role, is_admin_approved, shells, gems, total_volunteer_hours, is_verified_creator, created_at FROM users', (err, results) => {
         if (err) {
             console.error('Error fetching users:', err);
             return apiResponse(res, 500, 'Server error fetching users');
@@ -6609,6 +6609,37 @@ app.post('/api/users/update-volunteer-hours', authenticateToken, authorize('admi
                 }
 
                 apiResponse(res, 200, 'Volunteer hours updated', { new_total: totalHours });
+            });
+        }
+    );
+});
+
+// Grant gems to a user (admin/superadmin) — mirrors volunteer hours grant
+app.post('/api/users/grant-gems', authenticateToken, authorize('admin', 'superadmin'), (req, res) => {
+    const userId = parseInt(req.body?.user_id, 10);
+    const gemsToAdd = parseInt(req.body?.gems_to_add, 10);
+    if (!userId || Number.isNaN(userId) || Number.isNaN(gemsToAdd) || gemsToAdd === 0) {
+        return apiResponse(res, 400, 'user_id and non-zero gems_to_add required');
+    }
+
+    db.query(
+        'UPDATE users SET gems = GREATEST(0, IFNULL(gems, 0) + ?) WHERE id = ?',
+        [gemsToAdd, userId],
+        (err, result) => {
+            if (err) {
+                console.error('grant-gems update error:', err);
+                return apiResponse(res, 500, 'Server error');
+            }
+            if (result.affectedRows === 0) return apiResponse(res, 404, 'User not found');
+
+            db.query('SELECT gems, email FROM users WHERE id = ?', [userId], (err2, users) => {
+                if (err2 || !users.length) {
+                    return apiResponse(res, 200, 'Gems updated');
+                }
+                return apiResponse(res, 200, 'Gems updated', {
+                    new_total: users[0].gems || 0,
+                    email: users[0].email
+                });
             });
         }
     );
