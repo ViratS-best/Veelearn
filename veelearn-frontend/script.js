@@ -3809,6 +3809,10 @@ function showCourseContextMenu(clientX, clientY, courseId) {
 
 function resolveMyCourseCardFromEvent(target) {
     if (!target || !target.closest) return null;
+    // Learner shell Course Creation flyout items
+    const flyoutItem = target.closest('#ls-flyout-courses [data-edit-course], .ls-flyout-item[data-edit-course]');
+    if (flyoutItem) return flyoutItem;
+
     const card = target.closest('.course-card[data-my-course="1"], .course-card[data-course-id]');
     if (!card) return null;
     // Only My Courses lists (not Available Courses)
@@ -3844,11 +3848,18 @@ function setupMyCourseContextMenuDelegation() {
         (e) => {
             const card = resolveMyCourseCardFromEvent(e.target);
             if (!card) return;
-            const courseId = parseInt(card.dataset.courseId || card.getAttribute('data-course-id'), 10);
+            const courseId = parseInt(
+                card.dataset.courseId ||
+                    card.getAttribute('data-course-id') ||
+                    card.getAttribute('data-edit-course'),
+                10
+            );
             if (!courseId) return;
             e.preventDefault();
             e.stopPropagation();
             if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+            const flyout = card.closest('[data-flyout="create"]');
+            if (flyout) flyout.classList.add('is-open');
             showCourseContextMenu(e.clientX, e.clientY, courseId);
         },
         true
@@ -4726,6 +4737,9 @@ function deleteCourse(courseId) {
                 myCourses = myCourses.filter((c) => c.id !== courseId);
                 // INSTANT: Render immediately without reload
                 renderUserCourses();
+                if (typeof window.LearnerShell?.refreshCourseFlyout === 'function') {
+                    window.LearnerShell.refreshCourseFlyout();
+                }
             } else {
                 alert("Error: " + data.message);
             }
