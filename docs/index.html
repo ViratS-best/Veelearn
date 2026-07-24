@@ -1112,8 +1112,8 @@
   <script src="image-optimization.js" defer></script>
   <script src="accessibility.js" defer></script>
   <script src="learner-shell.js?v=3" defer></script>
-  <script src="learner-gamification.js?v=3" defer></script>
-  <script src="script.js?v=19" defer></script>
+  <script src="learner-gamification.js?v=4" defer></script>
+  <script src="script.js?v=20" defer></script>
   <script src="course-editor-ux.js?v=1" defer></script>
   <script>
     function loadScriptOnce(src) {
@@ -1138,7 +1138,7 @@
         if (typeof setupAiEditorHelp === 'function') setupAiEditorHelp();
       }
       if (kind === 'server' || kind === 'all') await loadScriptOnce('server-loading.js');
-      if (kind === 'widgets' || kind === 'all') await loadScriptOnce('widget-engine.js?v=1');
+      if (kind === 'widgets' || kind === 'all') await loadScriptOnce('widget-engine.js?v=2');
     };
     // Idle-load server status + AI editor help after first paint
     const idleLoad = () => {
