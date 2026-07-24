@@ -105,6 +105,8 @@ followed by a JSON array of widgetSpec objects.
   {"id":"string","title":"string","objective":"string","view":{"type":"desmos|function|geometry|sim3d|scene3d|particles2d|canvas2d","width":520,"height":320},"state":{},"inputs":[{"key":"k","type":"slider|select|toggle|button|number","label":"...","min":0,"max":10,"step":0.1,"options":["a"]}],"outputs":[{"key":"k","type":"stat|sparkline|text","label":"..."}],"behavior":{"preset":"PRESET","params":{},"bindings":[{"from":"key","to":"target"}]}}
 - Allowed presets: function_plot, desmos_graph, geometry_board, coordinate_plane, number_line, unit_circle, triangle_lab, area_shade, parametric_plot, inequality_region, transformation_lab, counting_grid, spinning_box, orbit_mesh, scene3d, particles2d, fusion_dt, projectile, gravity_orbit, pendulum, spring_mass, collision_1d, wave_1d
 - Contest math: use geometry_board / desmos_graph / function_plot / coordinate_plane / triangle_lab / area_shade. Put figure elements in behavior.params.elements (points, segments, circles, polygons, functions). Put graph expressions in behavior.params.expressions as strings.
+- Geometry points MUST include numeric "x" and "y" (never omit coords — missing coords collapse to the origin). Example: {"type":"point","name":"A","x":0,"y":4,"label":"A","fixed":true}. Diagram points should be fixed:true (not draggable). Segments use "from"/"to" point names. Intersection: {"type":"intersection","name":"G","from":"AF","to":"DE","label":"G"}.
+- Set params.boundingbox to fit the figure, e.g. [-1,6,6,-1] for a 5×4 rectangle.
 - 3D toys: spinning_box or orbit_mesh with size/color/rotationSpeed in state + slider inputs.
 - Physics: fusion_dt, projectile, gravity_orbit, pendulum, spring_mass, collision_1d, wave_1d, particles2d.
 - Never emit executable JavaScript. Only declarative JSON.`;
@@ -285,8 +287,24 @@ function sanitizeElements(elements) {
         if (el.center != null) out.center = String(el.center).slice(0, 24);
         if (el.through != null) out.through = String(el.through).slice(0, 24);
         if (el.radius != null) out.radius = clampNum(el.radius, 0, 1000, 1);
-        if (el.x != null) out.x = clampNum(el.x, -1000, 1000, 0);
-        if (el.y != null) out.y = clampNum(el.y, -1000, 1000, 0);
+        // Accept x/y or coords/pos/[x,y]
+        let x = el.x;
+        let y = el.y;
+        if ((x == null || y == null) && Array.isArray(el.coords) && el.coords.length >= 2) {
+            x = el.coords[0];
+            y = el.coords[1];
+        }
+        if ((x == null || y == null) && Array.isArray(el.pos) && el.pos.length >= 2) {
+            x = el.pos[0];
+            y = el.pos[1];
+        }
+        if ((x == null || y == null) && Array.isArray(el.position) && el.position.length >= 2) {
+            x = el.position[0];
+            y = el.position[1];
+        }
+        if (x != null) out.x = clampNum(x, -1000, 1000, 0);
+        if (y != null) out.y = clampNum(y, -1000, 1000, 0);
+        out.fixed = el.fixed === false ? false : true;
         if (el.x2 != null) out.x2 = clampNum(el.x2, -1000, 1000, 0);
         if (el.y2 != null) out.y2 = clampNum(el.y2, -1000, 1000, 0);
         if (Array.isArray(el.points)) {
@@ -682,13 +700,51 @@ function autoFunctionWidget(message) {
     ]);
 }
 
+/** True when geometry widget has no usable plotted points (often all stuck at origin). */
+function isBrokenGeometryWidget(widget) {
+    if (!widget?.behavior) return true;
+    const preset = widget.behavior.preset;
+    if (!['geometry_board', 'coordinate_plane'].includes(preset)) return false;
+    const els = widget.behavior.params?.elements || [];
+    const pts = els.filter((e) => e && e.type === 'point');
+    if (pts.length < 2) return true;
+    const withCoords = pts.filter((p) => p.x != null && p.y != null && Number.isFinite(Number(p.x)) && Number.isFinite(Number(p.y)));
+    if (withCoords.length < 2) return true;
+    const allSame =
+        withCoords.every((p) => Number(p.x) === Number(withCoords[0].x) && Number(p.y) === Number(withCoords[0].y));
+    return allSame;
+}
+
+function isGeometryIntent(text) {
+    const t = String(text || '').toLowerCase();
+    return (
+        /\b(amc|mathcounts|geometry|rectangle|triangle|circle|inscribed|segment|intersect|quadrilateral|coordinate|inradius|circum)\b/.test(
+            t
+        ) || /\b[A-G]\s*=\s*\(/.test(text || '')
+    );
+}
+
 /** Deterministic widgets when the model forgets JSON. historyBlob = recent chat text. */
 function autoFallbackWidgets(message, historyBlob) {
-    const msg = String(message || '').toLowerCase();
+    const msg = String(message || '');
+    const msgLower = msg.toLowerCase();
     const combined = `${message}\n${historyBlob || ''}`;
     const combinedLower = combined.toLowerCase();
 
-    if (/\b(spinning\s*)?(cube|box)\b|\b3d\s*cube\b|\bspinning\s*box\b/.test(combinedLower)) {
+    // Current-message intent wins over stale history (avoids fusion leftover → AMC diagram)
+    const msgGeo = isGeometryIntent(msg);
+    const msgCube = /\b(spinning\s*)?(cube|box)\b|\b3d\s*cube\b/.test(msgLower);
+    const msgFusion = /\bfusion\b|\bplasma\b|\bdeuterium\b|\btritium\b/.test(msgLower);
+    const msgWave = /\bwave\b|\bsine\b|\bstanding wave\b|\btraveling wave\b/.test(msgLower);
+    const msgQuad = /\bquadratic\b|\bparabola\b|\ba\s*\*\s*x\s*\^\s*2\b|\by\s*=\s*a/.test(msgLower);
+    const vizAsk = /\b(visuali[sz]e|draw|diagram|figure|sketch|plot|graph)\b/.test(msgLower);
+
+    if (msgGeo || (vizAsk && isGeometryIntent(combined) && !msgFusion && !msgCube && !msgWave)) {
+        const geo = buildGeometryFallback(combined);
+        if (geo.length) return geo;
+    }
+
+    if (msgCube) {
         return validateWidgetSpecs([
             {
                 id: 'auto-cube',
@@ -712,7 +768,7 @@ function autoFallbackWidgets(message, historyBlob) {
         ]);
     }
 
-    if (/\bfusion\b|\bplasma\b|\bdeuterium\b|\btritium\b/.test(combinedLower)) {
+    if (msgFusion) {
         return validateWidgetSpecs([
             {
                 id: 'auto-fusion',
@@ -743,7 +799,7 @@ function autoFallbackWidgets(message, historyBlob) {
         ]);
     }
 
-    if (/\bwave\b|\bsine\b|\bstanding wave\b|\btraveling wave\b/.test(combinedLower)) {
+    if (msgWave) {
         return validateWidgetSpecs([
             {
                 id: 'auto-wave',
@@ -762,7 +818,7 @@ function autoFallbackWidgets(message, historyBlob) {
         ]);
     }
 
-    if (/\bquadratic\b|\bparabola\b|\ba\s*\*\s*x\s*\^\s*2\b|\by\s*=\s*a/.test(combinedLower)) {
+    if (msgQuad) {
         return validateWidgetSpecs([
             {
                 id: 'auto-quad',
@@ -780,14 +836,8 @@ function autoFallbackWidgets(message, historyBlob) {
         ]);
     }
 
-    if (
-        /\b(amc|mathcounts|geometry|rectangle|triangle|circle|inscribed|segment|intersect|quadrilateral|coordinate)\b/.test(
-            combinedLower
-        ) ||
-        /\b[A-G]\s*=\s*\(/.test(combined) ||
-        (/\b(visuali[sz]e|draw|diagram|figure|sketch)\b/.test(msg) &&
-            /\b(point|line|angle|rectangle|triangle|circle|geometry|amc|coordinate)\b/.test(combinedLower))
-    ) {
+    // History-assisted geometry (e.g. "visualize it" after an AMC problem)
+    if (vizAsk && isGeometryIntent(combined)) {
         const geo = buildGeometryFallback(combined);
         if (geo.length) return geo;
     }
@@ -795,8 +845,12 @@ function autoFallbackWidgets(message, historyBlob) {
     const fn = autoFunctionWidget(message);
     if (fn.length) return fn;
 
-    // Last resort for any visualize/draw request: empty coordinate plane so something always appears
-    if (/\b(visuali[sz]e|draw|diagram|figure|graph|plot|sketch)\b/.test(msg)) {
+    if (vizAsk) {
+        // Last resort blank plane only if nothing else matched
+        if (isGeometryIntent(combined)) {
+            const geo = buildGeometryFallback(combined);
+            if (geo.length) return geo;
+        }
         return validateWidgetSpecs([
             {
                 id: 'auto-plane',
@@ -808,7 +862,7 @@ function autoFallbackWidgets(message, historyBlob) {
                 outputs: [],
                 behavior: {
                     preset: 'coordinate_plane',
-                    params: { boundingbox: [-6, 6, 6, -6], elements: [] }
+                    params: { boundingbox: [-1, 6, 6, -1], elements: [] }
                 }
             }
         ]);
@@ -1110,6 +1164,20 @@ function createAiTutorHandlers({ query, openRouterChatCompletion, apiResponse })
                 );
             if (!widgets.length && (forceViz || claimsDiagram)) {
                 widgets = autoFallbackWidgets(message, `${historyBlob}\n${safeReply}`);
+            }
+
+            // Geometry problems: replace missing, origin-stacked, or wrong-type widgets (e.g. fusion leftover)
+            const geoContext = `${historyBlob}\n${safeReply}\n${message}`;
+            if (isGeometryIntent(message) || (forceViz && isGeometryIntent(geoContext))) {
+                const hasGoodGeo = widgets.some(
+                    (w) =>
+                        ['geometry_board', 'coordinate_plane'].includes(w.behavior?.preset) &&
+                        !isBrokenGeometryWidget(w)
+                );
+                if (!hasGoodGeo) {
+                    const geo = buildGeometryFallback(geoContext);
+                    if (geo.length) widgets = geo;
+                }
             }
 
             if (!recommendations.length && catalog.length && wantsCourseRecommendation(message) && !forceViz) {
