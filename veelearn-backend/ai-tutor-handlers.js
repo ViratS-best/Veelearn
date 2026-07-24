@@ -104,9 +104,10 @@ followed by a JSON array of widgetSpec objects.
 - Each widgetSpec shape:
   {"id":"string","title":"string","objective":"string","view":{"type":"desmos|function|geometry|sim3d|scene3d|particles2d|canvas2d","width":520,"height":320},"state":{},"inputs":[{"key":"k","type":"slider|select|toggle|button|number","label":"...","min":0,"max":10,"step":0.1,"options":["a"]}],"outputs":[{"key":"k","type":"stat|sparkline|text","label":"..."}],"behavior":{"preset":"PRESET","params":{},"bindings":[{"from":"key","to":"target"}]}}
 - Allowed presets: function_plot, desmos_graph, geometry_board, coordinate_plane, number_line, unit_circle, triangle_lab, area_shade, parametric_plot, inequality_region, transformation_lab, counting_grid, spinning_box, orbit_mesh, scene3d, particles2d, fusion_dt, projectile, gravity_orbit, pendulum, spring_mass, collision_1d, wave_1d
-- Contest math: use geometry_board / desmos_graph / function_plot / coordinate_plane / triangle_lab / area_shade. Put figure elements in behavior.params.elements (points, segments, circles, polygons, functions). Put graph expressions in behavior.params.expressions as strings.
-- Geometry points MUST include numeric "x" and "y" (never omit coords — missing coords collapse to the origin). Example: {"type":"point","name":"A","x":0,"y":4,"label":"A","fixed":true}. Diagram points should be fixed:true (not draggable). Segments use "from"/"to" point names. Intersection: {"type":"intersection","name":"G","from":"AF","to":"DE","label":"G"}.
-- Set params.boundingbox to fit the figure, e.g. [-1,6,6,-1] for a 5×4 rectangle.
+- Contest math: use geometry_board / desmos_graph / function_plot / coordinate_plane / triangle_lab / area_shade. Put figure elements in behavior.params.elements (points, segments, circles, polygons, functions, incircle). Put graph expressions in behavior.params.expressions as strings.
+- Geometry MUST match the learner's CURRENT problem only. Never reuse a figure from an earlier chat turn or a different contest problem. Invent a clean coordinate system for THIS problem, then emit points/segments/circles that actually appear in it.
+- Geometry points MUST include numeric "x" and "y" (never omit coords). Example: {"type":"point","name":"A","x":0,"y":12,"label":"A","fixed":true}. Diagram points should be fixed:true (not draggable). Segments use "from"/"to" point names. Intersection: {"type":"intersection","name":"G","from":"AF","to":"DE","label":"G"}. Incircle: {"type":"incircle","name":"ω","points":["E","G","F"],"label":"I"}.
+- Set params.boundingbox to fit THIS figure (e.g. [-1,13,13,-1] for a side-12 square). Include midpoints, creases, folds, or other construction lines when the problem involves them — computed for this problem, not copied from templates.
 - 3D toys: spinning_box or orbit_mesh with size/color/rotationSpeed in state + slider inputs.
 - Physics: fusion_dt, projectile, gravity_orbit, pendulum, spring_mass, collision_1d, wave_1d, particles2d.
 - Never emit executable JavaScript. Only declarative JSON.`;
@@ -571,176 +572,106 @@ function wantsVisualization(message, historyBlob) {
         /\$\$[\s\S]+\$\$/.test(message);
 
     const mathFigureContext =
-        /\b(amc|mathcounts|geometry|rectangle|triangle|circle|quadrilateral|polygon|inscribed|tangent|intersect|segment|parabola|quadratic|polynomial|coordinate|unit circle|number line|wave|fusion|plasma|projectile|orbit|pendulum|spring)\b/.test(
+        /\b(amc|mathcounts|geometry|rectangle|triangle|circle|quadrilateral|polygon|inscribed|tangent|intersect|segment|parabola|quadratic|polynomial|coordinate|unit circle|number line|wave|fusion|plasma|projectile|orbit|pendulum|spring|square|fold|crease|midpoint)\b/.test(
             blob
         );
 
     // Vague follow-ups like "visualize it?" still force when recent chat is geometry/physics
     if (vizIntent) return true;
-    if (mathFigureContext && /\b(help|how|what|find|radius|length|area)\b/.test(msg) && msg.length > 40) {
-        // Long problem statements that are clearly contest geometry
-        return /\b(amc|mathcounts|rectangle|triangle|circle|inscribed)\b/.test(msg);
+    // Long contest / construction problems usually need a figure even without "draw"
+    if (
+        msg.length > 80 &&
+        /\b(amc|mathcounts|rectangle|triangle|circle|inscribed|square|fold|crease|midpoint|intersect|quadrilateral|polygon)\b/.test(
+            msg
+        ) &&
+        /\b(find|what is|length|radius|area|crease|fold)\b/.test(msg)
+    ) {
+        return true;
+    }
+    if (mathFigureContext && /\b(help|how|what|find|radius|length|area|crease)\b/.test(msg) && msg.length > 40) {
+        return /\b(amc|mathcounts|rectangle|triangle|circle|inscribed|square|fold|crease)\b/.test(msg);
     }
     return false;
 }
 
-/** Build a geometry_board for common AMC rectangle / AF–DE intersection problems. */
-function areNearlyCollinear(p1, p2, p3, eps) {
-    if (!p1 || !p2 || !p3) return true;
-    const area2 = Math.abs((p2.x - p1.x) * (p3.y - p1.y) - (p3.x - p1.x) * (p2.y - p1.y));
-    return area2 < (eps == null ? 1e-6 : eps);
-}
-
-function pickIncircleTriangle(requested, pointMap) {
-    const tryNames = (names) => {
-        if (!names || names.length !== 3) return null;
-        if (!names.every((n) => pointMap[n])) return null;
-        if (areNearlyCollinear(pointMap[names[0]], pointMap[names[1]], pointMap[names[2]])) return null;
-        return names;
-    };
-    const direct = tryNames(requested);
-    if (direct) return direct;
-    const alts = [
-        ['E', 'G', 'F'],
-        ['A', 'G', 'D'],
-        ['C', 'G', 'F'],
-        ['B', 'G', 'E'],
-        ['A', 'G', 'E'],
-        ['D', 'G', 'F'],
-        ['A', 'B', 'C']
-    ];
-    for (const alt of alts) {
-        const ok = tryNames(alt);
-        if (ok) return ok;
+/** Detect leftover canned AF/DE rectangle figure so we can discard it for unrelated problems. */
+function isLegacyAmcRectWidget(widget) {
+    if (!widget?.behavior || !['geometry_board', 'coordinate_plane'].includes(widget.behavior.preset)) {
+        return false;
     }
-    return null;
+    const pts = (widget.behavior.params?.elements || []).filter((e) => e && e.type === 'point');
+    const by = {};
+    pts.forEach((p) => {
+        if (p.name) by[String(p.name).toUpperCase()] = p;
+    });
+    const near = (p, x, y) => p && Math.abs(Number(p.x) - x) < 0.05 && Math.abs(Number(p.y) - y) < 0.05;
+    // Old hardcoded template always placed E≈(3,4) and F≈(2,0)
+    return near(by.E, 3, 4) && near(by.F, 2, 0);
 }
 
-function buildGeometryFallback(text) {
-    const src = String(text || '');
-    const ab = src.match(/\bAB\s*=\s*(\d+(?:\.\d+)?)/i);
-    const bc = src.match(/\bBC\s*=\s*(\d+(?:\.\d+)?)/i);
-    const ae = src.match(/\bAE\s*=\s*(\d+(?:\.\d+)?)/i);
-    const df = src.match(/\bDF\s*=\s*(\d+(?:\.\d+)?)/i);
+function messageIsLegacyAmcRectProblem(message) {
+    const m = String(message || '');
+    return /\bAE\s*=\s*3\b/i.test(m) && /\bDF\s*=\s*2\b/i.test(m);
+}
 
-    // Prefer explicit coordinates from coach/history if present
-    const coordRe = /\b([A-G])\s*=\s*\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)/gi;
+/**
+ * Build a geometry_board ONLY from coordinates explicitly stated in text
+ * (e.g. A = (0, 12)). Never invent a canned contest figure.
+ */
+function buildGeometryFromExplicitCoords(text) {
+    const src = String(text || '');
+    const coordRe = /\b([A-Z])\s*=\s*\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)/gi;
     const coords = {};
     let m;
     while ((m = coordRe.exec(src)) !== null) {
         coords[m[1].toUpperCase()] = { x: Number(m[2]), y: Number(m[3]) };
     }
+    const names = Object.keys(coords);
+    if (names.length < 2) return [];
 
-    let A;
-    let B;
-    let C;
-    let D;
-    let E;
-    let F;
-    if (coords.A && coords.B && coords.C && coords.D) {
-        A = coords.A;
-        B = coords.B;
-        C = coords.C;
-        D = coords.D;
-        E = coords.E || null;
-        F = coords.F || null;
-    } else {
-        const width = ab ? Number(ab[1]) : 5;
-        const height = bc ? Number(bc[1]) : 4;
-        const aeVal = ae ? Number(ae[1]) : Math.min(3, width);
-        const dfVal = df ? Number(df[1]) : Math.min(2, width);
-        // A top-left, B top-right, C bottom-right, D bottom-left
-        A = { x: 0, y: height };
-        B = { x: width, y: height };
-        C = { x: width, y: 0 };
-        D = { x: 0, y: 0 };
-        E = { x: aeVal, y: height }; // on AB
-        F = { x: dfVal, y: 0 }; // on DC from D
+    const elements = names.map((n) => ({
+        type: 'point',
+        name: n,
+        x: coords[n].x,
+        y: coords[n].y,
+        label: n,
+        fixed: true
+    }));
+
+    const seenSeg = new Set();
+    const addSeg = (a, b, color) => {
+        if (!coords[a] || !coords[b]) return;
+        const key = [a, b].sort().join('');
+        if (seenSeg.has(key)) return;
+        seenSeg.add(key);
+        elements.push({ type: 'segment', name: `${a}${b}`, from: a, to: b, color: color || 'blue' });
+    };
+
+    // If ABCD (or similar) all exist, outline the quadrilateral in order
+    const quad = ['A', 'B', 'C', 'D'].filter((n) => coords[n]);
+    if (quad.length === 4) {
+        for (let i = 0; i < 4; i += 1) addSeg(quad[i], quad[(i + 1) % 4], 'blue');
     }
 
-    if (!E) E = { x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 };
-    if (!F) F = { x: (D.x + C.x) / 2, y: (D.y + C.y) / 2 };
+    // Segments / creases named in prose: "segment PQ", "crease MN", "side AB"
+    const segRe = /\b(?:segments?|creases?|folds?|sides?|lines?)\s+([A-Z])([A-Z])\b/gi;
+    while ((m = segRe.exec(src)) !== null) {
+        addSeg(m[1].toUpperCase(), m[2].toUpperCase(), /crease|fold/i.test(m[0]) ? 'red' : 'blue');
+    }
 
-    const xs = [A.x, B.x, C.x, D.x, E.x, F.x];
-    const ys = [A.y, B.y, C.y, D.y, E.y, F.y];
+    const xs = names.map((n) => coords[n].x);
+    const ys = names.map((n) => coords[n].y);
     const pad = 1.2;
     const minX = Math.min(...xs) - pad;
     const maxX = Math.max(...xs) + pad;
     const minY = Math.min(...ys) - pad;
     const maxY = Math.max(...ys) + pad;
 
-    const elements = [
-        { type: 'point', name: 'A', x: A.x, y: A.y, label: 'A' },
-        { type: 'point', name: 'B', x: B.x, y: B.y, label: 'B' },
-        { type: 'point', name: 'C', x: C.x, y: C.y, label: 'C' },
-        { type: 'point', name: 'D', x: D.x, y: D.y, label: 'D' },
-        { type: 'point', name: 'E', x: E.x, y: E.y, label: 'E', color: 'orange' },
-        { type: 'point', name: 'F', x: F.x, y: F.y, label: 'F', color: 'orange' },
-        { type: 'segment', name: 'AB', from: 'A', to: 'B', color: 'blue' },
-        { type: 'segment', name: 'BC', from: 'B', to: 'C', color: 'blue' },
-        { type: 'segment', name: 'CD', from: 'C', to: 'D', color: 'blue' },
-        { type: 'segment', name: 'DA', from: 'D', to: 'A', color: 'blue' },
-        { type: 'segment', name: 'AF', from: 'A', to: 'F', color: 'red' },
-        { type: 'segment', name: 'DE', from: 'D', to: 'E', color: 'red' },
-        { type: 'intersection', name: 'G', from: 'AF', to: 'DE', label: 'G', color: 'green' }
-    ];
-
-    const wantsIncircle = /\b(inscribed|incircle|inradius|inscribe)\b/i.test(src);
-    if (wantsIncircle) {
-        const triMatch =
-            src.match(/inscribed in (?:triangle\s*)?([A-Z]{3})\b/i) ||
-            src.match(/\btriangle\s+([A-Z]{3})\b[^.]{0,60}\b(inscribed|incircle|inradius)\b/i) ||
-            src.match(/\b(inscribed|incircle|inradius)\b[^.]{0,60}\btriangle\s+([A-Z]{3})\b/i);
-        let requested = null;
-        if (triMatch) {
-            const letters = (triMatch[1] && /^[A-Z]{3}$/i.test(triMatch[1]) ? triMatch[1] : triMatch[2] || '')
-                .toUpperCase()
-                .split('');
-            if (letters.length === 3) requested = letters;
-        }
-        // G is on DE, so △EGD is degenerate — pick a non-collinear triangle (often EGF)
-        const pointMap = { A, B, C, D, E, F, G: { x: (A.x + F.x) / 2, y: (A.y + F.y) / 2 } };
-        // Better G estimate: AF∩DE parametric
-        // AF: A + t(F-A), DE: D + s(E-D)
-        const afx = F.x - A.x;
-        const afy = F.y - A.y;
-        const dex = E.x - D.x;
-        const dey = E.y - D.y;
-        const den = afx * dey - afy * dex;
-        if (Math.abs(den) > 1e-9) {
-            const t = ((D.x - A.x) * dey - (D.y - A.y) * dex) / den;
-            pointMap.G = { x: A.x + t * afx, y: A.y + t * afy };
-        }
-        const tri = pickIncircleTriangle(requested, pointMap);
-        if (tri) {
-            elements.push(
-                { type: 'segment', name: `s_${tri[0]}${tri[1]}`, from: tri[0], to: tri[1], color: 'purple' },
-                { type: 'segment', name: `s_${tri[1]}${tri[2]}`, from: tri[1], to: tri[2], color: 'purple' },
-                { type: 'segment', name: `s_${tri[2]}${tri[0]}`, from: tri[2], to: tri[0], color: 'purple' }
-            );
-            elements.push({
-                type: 'polygon',
-                name: `tri_${tri.join('')}`,
-                points: tri,
-                color: 'purple'
-            });
-            elements.push({
-                type: 'incircle',
-                name: 'incircle',
-                points: tri,
-                label: 'I',
-                color: 'cyan'
-            });
-        }
-    }
-
     return validateWidgetSpecs([
         {
-            id: 'auto-geo-rect',
+            id: 'auto-geo-coords',
             title: 'Geometry Diagram',
-            objective: wantsIncircle
-                ? 'Rectangle ABCD with AF ∩ DE = G and inscribed circle'
-                : 'Rectangle ABCD with AF, DE, and intersection G',
+            objective: 'Figure from stated coordinates',
             view: { type: 'geometry', width: 520, height: 360 },
             state: {},
             inputs: [],
@@ -751,6 +682,31 @@ function buildGeometryFallback(text) {
                     boundingbox: [minX, maxY, maxX, minY],
                     elements
                 }
+            }
+        }
+    ]);
+}
+
+/** Last-resort empty plane sized from a mentioned side length, if any. */
+function blankCoordinatePlane(text) {
+    const src = String(text || '');
+    const side =
+        src.match(/\bside(?:\s+length)?(?:\s+of)?\s*(?:\$)?(\d+(?:\.\d+)?)/i) ||
+        src.match(/\b(?:length|width|height)\s*(?:=|of|:)?\s*\$?(\d+(?:\.\d+)?)/i);
+    const n = side ? Math.max(2, Number(side[1])) : 6;
+    const pad = Math.max(1, n * 0.15);
+    return validateWidgetSpecs([
+        {
+            id: 'auto-plane',
+            title: 'Coordinate Plane',
+            objective: 'Blank plane — describe what to add next',
+            view: { type: 'geometry', width: 520, height: 360 },
+            state: {},
+            inputs: [],
+            outputs: [],
+            behavior: {
+                preset: 'coordinate_plane',
+                params: { boundingbox: [-pad, n + pad, n + pad, -pad], elements: [] }
             }
         }
     ]);
@@ -789,19 +745,29 @@ function isBrokenGeometryWidget(widget) {
     const els = widget.behavior.params?.elements || [];
     const pts = els.filter((e) => e && e.type === 'point');
     if (pts.length < 2) return true;
-    const withCoords = pts.filter((p) => p.x != null && p.y != null && Number.isFinite(Number(p.x)) && Number.isFinite(Number(p.y)));
+    const withCoords = pts.filter(
+        (p) => p.x != null && p.y != null && Number.isFinite(Number(p.x)) && Number.isFinite(Number(p.y))
+    );
     if (withCoords.length < 2) return true;
-    const allSame =
-        withCoords.every((p) => Number(p.x) === Number(withCoords[0].x) && Number(p.y) === Number(withCoords[0].y));
+    const allSame = withCoords.every(
+        (p) => Number(p.x) === Number(withCoords[0].x) && Number(p.y) === Number(withCoords[0].y)
+    );
     return allSame;
 }
 
 function isGeometryIntent(text) {
     const t = String(text || '').toLowerCase();
     return (
-        /\b(amc|mathcounts|geometry|rectangle|triangle|circle|inscribed|segment|intersect|quadrilateral|coordinate|inradius|circum)\b/.test(
+        /\b(amc|mathcounts|geometry|rectangle|triangle|circle|inscribed|segment|intersect|quadrilateral|coordinate|inradius|circum|square|fold|crease|midpoint|paper|polygon|perpendicular|bisector)\b/.test(
             t
-        ) || /\b[A-G]\s*=\s*\(/.test(text || '')
+        ) || /\b[A-Z]\s*=\s*\(/.test(text || '')
+    );
+}
+
+function hasGoodGeometryWidget(widgets) {
+    return (widgets || []).some(
+        (w) =>
+            ['geometry_board', 'coordinate_plane'].includes(w.behavior?.preset) && !isBrokenGeometryWidget(w)
     );
 }
 
@@ -810,9 +776,8 @@ function autoFallbackWidgets(message, historyBlob) {
     const msg = String(message || '');
     const msgLower = msg.toLowerCase();
     const combined = `${message}\n${historyBlob || ''}`;
-    const combinedLower = combined.toLowerCase();
 
-    // Current-message intent wins over stale history (avoids fusion leftover → AMC diagram)
+    // Current-message intent wins over stale history
     const msgGeo = isGeometryIntent(msg);
     const msgCube = /\b(spinning\s*)?(cube|box)\b|\b3d\s*cube\b/.test(msgLower);
     const msgFusion = /\bfusion\b|\bplasma\b|\bdeuterium\b|\btritium\b/.test(msgLower);
@@ -820,9 +785,11 @@ function autoFallbackWidgets(message, historyBlob) {
     const msgQuad = /\bquadratic\b|\bparabola\b|\ba\s*\*\s*x\s*\^\s*2\b|\by\s*=\s*a/.test(msgLower);
     const vizAsk = /\b(visuali[sz]e|draw|diagram|figure|sketch|plot|graph)\b/.test(msgLower);
 
-    if (msgGeo || (vizAsk && isGeometryIntent(combined) && !msgFusion && !msgCube && !msgWave)) {
-        const geo = buildGeometryFallback(combined);
-        if (geo.length) return geo;
+    // Geometry: only reconstruct from explicit coords in THIS message/reply — never a canned figure
+    if (msgGeo || (vizAsk && isGeometryIntent(msg) && !msgFusion && !msgCube && !msgWave)) {
+        const fromCoords = buildGeometryFromExplicitCoords(combined);
+        if (fromCoords.length) return fromCoords;
+        return blankCoordinatePlane(msg);
     }
 
     if (msgCube) {
@@ -917,36 +884,18 @@ function autoFallbackWidgets(message, historyBlob) {
         ]);
     }
 
-    // History-assisted geometry (e.g. "visualize it" after an AMC problem)
+    // History-assisted geometry follow-up ("visualize it") — still no canned figure
     if (vizAsk && isGeometryIntent(combined)) {
-        const geo = buildGeometryFallback(combined);
-        if (geo.length) return geo;
+        const fromCoords = buildGeometryFromExplicitCoords(combined);
+        if (fromCoords.length) return fromCoords;
+        return blankCoordinatePlane(msg || combined);
     }
 
     const fn = autoFunctionWidget(message);
     if (fn.length) return fn;
 
     if (vizAsk) {
-        // Last resort blank plane only if nothing else matched
-        if (isGeometryIntent(combined)) {
-            const geo = buildGeometryFallback(combined);
-            if (geo.length) return geo;
-        }
-        return validateWidgetSpecs([
-            {
-                id: 'auto-plane',
-                title: 'Coordinate Plane',
-                objective: 'Blank plane — describe what to add next',
-                view: { type: 'function', width: 520, height: 320 },
-                state: {},
-                inputs: [],
-                outputs: [],
-                behavior: {
-                    preset: 'coordinate_plane',
-                    params: { boundingbox: [-1, 6, 6, -1], elements: [] }
-                }
-            }
-        ]);
+        return blankCoordinatePlane(msg);
     }
 
     return [];
@@ -1154,7 +1103,7 @@ function createAiTutorHandlers({ query, openRouterChatCompletion, apiResponse })
                 {
                     role: 'system',
                     content: forceViz
-                        ? `${contextBlock}\n\nIMPORTANT: The learner needs a visualization or interactive widget NOW. You MUST include VEELEARN_WIDGET_JSON with at least one valid widgetSpec (geometry_board for contest geometry with params.elements points/segments; desmos_graph/function_plot for graphs; spinning_box for cubes; fusion_dt/wave_1d for those sims). Do not only describe a diagram in words.`
+                        ? `${contextBlock}\n\nIMPORTANT: The learner needs a visualization NOW. You MUST include VEELEARN_WIDGET_JSON with at least one valid widgetSpec for the CURRENT user message only (ignore unrelated earlier problems). Geometry → geometry_board with params.elements whose points have numeric x,y for THIS problem. Graphs → desmos_graph/function_plot. Cube → spinning_box. Fusion → fusion_dt. Wave → wave_1d. Do not only describe a diagram in words.`
                         : `Personalization context:\n${contextBlock}`
                 },
                 ...historyMessages,
@@ -1203,14 +1152,14 @@ function createAiTutorHandlers({ query, openRouterChatCompletion, apiResponse })
                             {
                                 role: 'system',
                                 content:
-                                    'Emit ONLY VEELEARN_WIDGET_JSON: then a JSON array of 1 widgetSpec. No prose. Geometry/AMC → geometry_board with params.elements (points A,B,C… and segments). Graphs → desmos_graph or function_plot. Cube → spinning_box. Fusion → fusion_dt. Wave → wave_1d. Use recent problem context if the user said "visualize it".'
+                                    'Emit ONLY VEELEARN_WIDGET_JSON: then a JSON array of 1 widgetSpec. No prose. Draw the CURRENT problem only — never reuse an earlier unrelated figure. Geometry → geometry_board with numeric x,y on every point and segments/circles for this construction. Graphs → desmos_graph or function_plot. Cube → spinning_box. Fusion → fusion_dt. Wave → wave_1d.'
                             },
                             {
                                 role: 'user',
-                                content: `Recent context:\n${historyBlob.slice(0, 3500)}\n\nLatest request:\n${message}`
+                                content: `CURRENT problem to visualize (ignore earlier different problems):\n${message}`
                             }
                         ],
-                        { max_tokens: 1800, temperature: 0.15 }
+                        { max_tokens: 2200, temperature: 0.1 }
                     );
                     const retryParts = splitReplyAndPayloads(
                         /VEELEARN_WIDGET_JSON:/i.test(retryReply)
@@ -1231,7 +1180,7 @@ function createAiTutorHandlers({ query, openRouterChatCompletion, apiResponse })
             }
 
             if (forceViz && !widgets.length) {
-                widgets = autoFallbackWidgets(message, historyBlob);
+                widgets = autoFallbackWidgets(message, `${safeReply}\n${message}`);
                 if (widgets.length && !/interactive|simulator|figure|graph|slider|diagram/i.test(safeReply)) {
                     safeReply =
                         `${safeReply}\n\nUse the interactive below — try the controls and tell me what you notice.`.trim();
@@ -1244,20 +1193,50 @@ function createAiTutorHandlers({ query, openRouterChatCompletion, apiResponse })
                     safeReply
                 );
             if (!widgets.length && (forceViz || claimsDiagram)) {
-                widgets = autoFallbackWidgets(message, `${historyBlob}\n${safeReply}`);
+                widgets = autoFallbackWidgets(message, `${safeReply}\n${message}`);
             }
 
-            // Geometry problems: replace missing, origin-stacked, or wrong-type widgets (e.g. fusion leftover)
-            const geoContext = `${historyBlob}\n${safeReply}\n${message}`;
-            if (isGeometryIntent(message) || (forceViz && isGeometryIntent(geoContext))) {
-                const hasGoodGeo = widgets.some(
-                    (w) =>
-                        ['geometry_board', 'coordinate_plane'].includes(w.behavior?.preset) &&
-                        !isBrokenGeometryWidget(w)
-                );
-                if (!hasGoodGeo) {
-                    const geo = buildGeometryFallback(geoContext);
-                    if (geo.length) widgets = geo;
+            // Geometry: prefer a dedicated model redraw for THIS problem; never inject a canned figure
+            if (isGeometryIntent(message)) {
+                // Drop leftover AE=3/DF=2 template when the user asked something else
+                if (!messageIsLegacyAmcRectProblem(message)) {
+                    widgets = widgets.filter((w) => !isLegacyAmcRectWidget(w));
+                }
+                if (!hasGoodGeometryWidget(widgets)) {
+                    try {
+                        const geoRetryReply = await openRouterChatCompletion(
+                            [
+                                {
+                                    role: 'system',
+                                    content:
+                                        'You output ONLY widget JSON for one geometry_board that matches the given problem. No coaching text. Choose coordinates yourself. Every point needs numeric x and y. Include the key construction lines for THIS problem (square/rectangle sides, midpoints, crease, fold, intersections, incircle, etc. as relevant). fixed:true on diagram points. Ignore any other problems.'
+                                },
+                                {
+                                    role: 'user',
+                                    content: `Emit VEELEARN_WIDGET_JSON: then a JSON array with one geometry_board widgetSpec for ONLY this problem:\n\n${message}`
+                                }
+                            ],
+                            { max_tokens: 2200, temperature: 0.1 }
+                        );
+                        const geoParts = splitReplyAndPayloads(
+                            /VEELEARN_WIDGET_JSON:/i.test(geoRetryReply)
+                                ? geoRetryReply
+                                : `VEELEARN_WIDGET_JSON:\n${geoRetryReply}`
+                        );
+                        const geoWidgets = validateWidgetSpecs(geoParts.rawWidgets).filter(
+                            (w) => messageIsLegacyAmcRectProblem(message) || !isLegacyAmcRectWidget(w)
+                        );
+                        if (hasGoodGeometryWidget(geoWidgets)) {
+                            widgets = geoWidgets;
+                        }
+                    } catch (geoErr) {
+                        console.warn('Geometry widget retry skipped:', geoErr.message);
+                    }
+                    if (!hasGoodGeometryWidget(widgets)) {
+                        const fromCoords = buildGeometryFromExplicitCoords(`${safeReply}\n${message}`);
+                        if (fromCoords.length) widgets = fromCoords;
+                        else if (!widgets.length) widgets = blankCoordinatePlane(message);
+                    }
                 }
             }
 
