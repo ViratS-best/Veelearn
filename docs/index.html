@@ -1134,7 +1134,7 @@
       if (kind === 'battle' || kind === 'all') await loadScriptOnce('anime-battle-system.js');
       if (kind === 'blocks' || kind === 'all') await loadScriptOnce('block-templates-unified.js');
       if (kind === 'editor' || kind === 'all') {
-        await loadScriptOnce('ai-editor-help.js');
+        await loadScriptOnce('ai-editor-help.js?v=11');
         if (typeof setupAiEditorHelp === 'function') setupAiEditorHelp();
       }
       if (kind === 'server' || kind === 'all') await loadScriptOnce('server-loading.js');
