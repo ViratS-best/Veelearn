@@ -174,17 +174,25 @@
       return;
     }
     el.innerHTML = recs
-      .map(
-        (r) => `
+      .map((r) => {
+        const meta = [
+          r.courseType ? String(r.courseType) : null,
+          r.gradeLevel != null ? `Grade ${r.gradeLevel}` : null,
+          typeof r.likeCount === 'number' ? `${r.likeCount} likes` : null
+        ]
+          .filter(Boolean)
+          .join(' · ');
+        return `
       <div class="ls-rec-card">
         <strong>${esc(r.title)}</strong>
+        ${meta ? `<div style="color:var(--ls-muted);font-size:0.8rem;margin-top:2px;">${esc(meta)}</div>` : ''}
         <div style="color:var(--ls-muted);font-size:0.9rem;">${esc(r.reason || '')}</div>
         <div class="ls-rec-actions">
           <button type="button" class="ls-btn-primary" data-enroll="${r.courseId}">View / Enroll</button>
           <button type="button" class="ls-btn-soft" data-like="${r.courseId}">Like this course</button>
         </div>
-      </div>`
-      )
+      </div>`;
+      })
       .join('');
 
     el.querySelectorAll('[data-enroll]').forEach((btn) => {
