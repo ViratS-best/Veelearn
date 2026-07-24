@@ -619,6 +619,97 @@
     });
   }
 
+  async function renderVolunteer() {
+    const pane = document.getElementById('ls-pane-volunteer');
+    if (!pane) return;
+    pane.innerHTML = `
+      <h2 class="ls-section-title">Volunteer Hours</h2>
+      <p class="ls-section-sub">Hours earned creating courses, plus certificates you can download.</p>
+      <div class="ls-volunteer-stats"><p class="ls-section-sub">Loading…</p></div>
+    `;
+    try {
+      const result = await api('/api/users/volunteer-stats');
+      const container = pane.querySelector('.ls-volunteer-stats');
+      if (!container) return;
+      if (!result.success || !result.data) {
+        container.innerHTML = `<p class="ls-section-sub">${esc(result.message || 'Could not load volunteer hours.')}</p>`;
+        return;
+      }
+
+      const data = result.data;
+      const hours = Number(data.total_volunteer_hours) || 0;
+      const verified = !!data.is_verified_creator;
+      const certs = Array.isArray(data.certificates) ? data.certificates : [];
+      const nextMilestone = getNextVolunteerMilestone(hours);
+      const base = apiBase();
+
+      let certsHtml = '';
+      if (certs.length > 0) {
+        certsHtml = `
+          <div class="ls-cert-list">
+            <h3 class="ls-volunteer-certs-title">Your certificates</h3>
+            ${certs
+              .map((cert) => {
+                const code = esc(cert.verification_code || '');
+                const issued = cert.issued_at ? new Date(cert.issued_at).toLocaleDateString() : '';
+                const hrs = Number(cert.hours_certified) || 0;
+                return `
+                  <div class="ls-cert-row">
+                    <div class="ls-cert-info">
+                      <strong>${hrs} Hours Volunteer Certificate</strong>
+                      <span class="ls-cert-meta">Issued: ${esc(issued)}</span>
+                    </div>
+                    <div class="ls-cert-actions">
+                      <a class="ls-btn-primary" href="${base}/api/certificates/verify/${code}?format=pdf" target="_blank" rel="noopener">Download PDF</a>
+                      <a class="ls-btn-soft" href="${base}/api/certificates/verify/${code}" target="_blank" rel="noopener">Verify</a>
+                    </div>
+                  </div>`;
+              })
+              .join('')}
+          </div>`;
+      } else if (hours > 0) {
+        certsHtml = `
+          <div class="ls-cert-list">
+            <p class="ls-section-sub">Certificates unlock every 5 hours. Refresh this page if a new milestone should appear.</p>
+          </div>`;
+      } else {
+        certsHtml = `
+          <div class="ls-cert-list">
+            <p class="ls-section-sub">No hours yet. Time spent actively creating courses counts toward volunteer hours and certificates.</p>
+          </div>`;
+      }
+
+      container.innerHTML = `
+        <div class="ls-metrics ls-volunteer-metrics">
+          <div class="ls-metric ls-volunteer-metric">
+            <div class="val">${hours.toFixed(1)}h</div>
+            <div class="label">Total hours</div>
+          </div>
+          <div class="ls-metric ls-volunteer-metric">
+            <div class="val">${verified ? 'Verified Creator' : 'Not yet verified'}</div>
+            <div class="label">${verified ? 'Status' : 'Need 20h for verification'}</div>
+          </div>
+          <div class="ls-metric ls-volunteer-metric">
+            <div class="val">${esc(String(nextMilestone))}${nextMilestone === 'All achieved!' ? '' : 'h'}</div>
+            <div class="label">Next milestone</div>
+          </div>
+        </div>
+        ${certsHtml}
+      `;
+    } catch (e) {
+      const container = pane.querySelector('.ls-volunteer-stats');
+      if (container) container.innerHTML = '<p class="ls-section-sub">Could not load volunteer hours.</p>';
+    }
+  }
+
+  function getNextVolunteerMilestone(currentHours) {
+    const milestones = [5, 10, 20, 50, 100];
+    for (const m of milestones) {
+      if (currentHours < m) return m;
+    }
+    return 'All achieved!';
+  }
+
   async function onShellShown() {
     aiHistoryLoaded = false;
     await refreshProfile();
@@ -636,6 +727,7 @@
     renderAchievements,
     renderEnrolled,
     renderStore,
+    renderVolunteer,
     renderSettings,
     openFeedbackModal,
     renderAvatarInto,

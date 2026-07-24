@@ -12,6 +12,7 @@
     create: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg>`,
     studio: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8M12 18v3"/></svg>`,
     store: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 9h12l-1 11H7L6 9z"/><path d="M9 9V7a3 3 0 0 1 6 0v2"/></svg>`,
+    volunteer: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`,
     settings: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>`,
     help: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.6 2.2c-.7.4-1.1.9-1.1 1.8V14"/><circle cx="12" cy="17" r="0.8" fill="currentColor"/></svg>`,
     feedback: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10v8l4-3h8a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v4z"/></svg>`
@@ -65,6 +66,7 @@
             </div>
           </div>
           <button type="button" class="ls-nav-btn" data-ls-nav="store"><span class="ls-nav-icon">${NAV_ICONS.store}</span>Gem Store</button>
+          <button type="button" class="ls-nav-btn" data-ls-nav="volunteer"><span class="ls-nav-icon">${NAV_ICONS.volunteer}</span>Volunteer Hrs</button>
         </nav>
         <div class="ls-nav-bottom">
           <button type="button" class="ls-nav-btn" data-ls-nav="settings"><span class="ls-nav-icon">${NAV_ICONS.settings}</span>Settings</button>
@@ -100,6 +102,7 @@
         <section class="ls-pane" id="ls-pane-achievements" data-pane="achievements"></section>
         <section class="ls-pane" id="ls-pane-enrolled" data-pane="enrolled"></section>
         <section class="ls-pane" id="ls-pane-store" data-pane="store"></section>
+        <section class="ls-pane" id="ls-pane-volunteer" data-pane="volunteer"></section>
         <section class="ls-pane" id="ls-pane-settings" data-pane="settings"></section>
         <section class="ls-pane" id="ls-pane-help" data-pane="help">
           <h2 class="ls-section-title">Help</h2>
@@ -108,6 +111,7 @@
             <p><strong>Dashboard</strong> — Ask the study coach anything, or describe what you want to learn for course ideas.</p>
             <p><strong>Achievements</strong> — Visit daily to grow your streak and earn gems.</p>
             <p><strong>Gem Store</strong> — Spend gems on avatar looks and dashboard themes.</p>
+            <p><strong>Volunteer Hrs</strong> — See hours earned creating courses and download certificates.</p>
             <p><strong>Course Creation / Simulator Studio</strong> — Build courses and sims like before.</p>
             <p><strong>Marketplace</strong> — Open it from Simulator Studio (you'll be asked to save first).</p>
           </div>
@@ -480,7 +484,7 @@
       return;
     }
 
-    const paneName = ['dashboard', 'achievements', 'enrolled', 'store', 'settings', 'help'].includes(name)
+    const paneName = ['dashboard', 'achievements', 'enrolled', 'store', 'volunteer', 'settings', 'help'].includes(name)
       ? name
       : 'dashboard';
     setActiveNav(paneName === 'help' ? 'help' : paneName === 'settings' ? 'settings' : paneName);
@@ -490,6 +494,7 @@
     if (paneName === 'achievements') window.LearnerGamification?.renderAchievements?.();
     if (paneName === 'enrolled') window.LearnerGamification?.renderEnrolled?.();
     if (paneName === 'store') window.LearnerGamification?.renderStore?.();
+    if (paneName === 'volunteer') window.LearnerGamification?.renderVolunteer?.();
     if (paneName === 'settings') window.LearnerGamification?.renderSettings?.();
   }
 
