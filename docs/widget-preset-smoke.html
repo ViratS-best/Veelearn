@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Widget Preset Smoke Test</title>
+  <link rel="stylesheet" href="styles-learner-shell.css?v=7" />
+  <style>
+    body { margin: 0; font-family: Segoe UI, sans-serif; background: #0b0d14; color: #e8ecf4; }
+    h1 { margin: 16px; font-size: 1.2rem; }
+    #summary { margin: 0 16px 16px; padding: 12px; border-radius: 8px; background: #151a28; }
+    #root { display: grid; gap: 16px; padding: 0 16px 40px; }
+    .preset-block { border: 1px solid #2a3348; border-radius: 12px; padding: 10px; background: #121622; }
+    .preset-block h2 { margin: 0 0 8px; font-size: 0.95rem; }
+    .status { font-size: 0.85rem; margin-bottom: 8px; }
+    .ok { color: #4ade80; }
+    .fail { color: #f87171; }
+    .view { min-height: 280px; height: 320px; }
+  </style>
+</head>
+<body>
+  <h1>Veelearn Widget Preset Smoke Test</h1>
+  <div id="summary">Running…</div>
+  <div id="root"></div>
+  <script src="widget-engine.js?v=7"></script>
+  <script>
+    const PRESETS = [
+      {
+        id: 'function_plot',
+        title: 'function_plot',
+        view: { type: 'function', width: 520, height: 300 },
+        state: { a: 1 },
+        inputs: [{ key: 'a', type: 'slider', label: 'a', min: -3, max: 3, step: 0.1 }],
+        outputs: [],
+        behavior: { preset: 'function_plot', params: { expressions: ['a * x^2'], boundingbox: [-5, 5, 5, -5] } }
+      },
+      {
+        id: 'desmos_graph',
+        title: 'desmos_graph',
+        view: { type: 'desmos', width: 520, height: 300 },
+        state: {},
+        inputs: [],
+        outputs: [],
+        behavior: { preset: 'desmos_graph', params: { expressions: ['y=x^2'] } }
+      },
+      {
+        id: 'geometry_board',
+        title: 'geometry_board',
+        view: { type: 'geometry', width: 520, height: 300 },
+        state: {},
+        inputs: [],
+        outputs: [],
+        behavior: {
+          preset: 'geometry_board',
+          params: {
+            boundingbox: [-1, 6, 6, -1],
+            elements: [
+              { type: 'point', name: 'A', x: 0, y: 4, label: 'A' },
+              { type: 'point', name: 'B', x: 5, y: 4, label: 'B' },
+              { type: 'point', name: 'C', x: 5, y: 0, label: 'C' },
+              { type: 'point', name: 'D', x: 0, y: 0, label: 'D' },
+              { type: 'point', name: 'E', x: 3, y: 4, label: 'E', color: 'orange' },
+              { type: 'point', name: 'F', x: 2, y: 0, label: 'F', color: 'orange' },
+              { type: 'segment', name: 'AB', from: 'A', to: 'B', color: 'blue' },
+              { type: 'segment', name: 'BC', from: 'B', to: 'C', color: 'blue' },
+              { type: 'segment', name: 'CD', from: 'C', to: 'D', color: 'blue' },
+              { type: 'segment', name: 'DA', from: 'D', to: 'A', color: 'blue' },
+              { type: 'segment', name: 'AF', from: 'A', to: 'F', color: 'red' },
+              { type: 'segment', name: 'DE', from: 'D', to: 'E', color: 'red' },
+              { type: 'intersection', name: 'G', from: 'AF', to: 'DE', label: 'G', color: 'green' },
+              { type: 'polygon', name: 'EGF', points: ['E', 'G', 'F'], color: 'purple' },
+              { type: 'incircle', name: 'inc', points: ['E', 'G', 'F'], label: 'I', color: 'cyan' }
+            ]
+          }
+        }
+      },
+      {
+        id: 'coordinate_plane',
+        title: 'coordinate_plane',
+        view: { type: 'function', width: 520, height: 300 },
+        state: {},
+        inputs: [],
+        outputs: [],
+        behavior: {
+          preset: 'coordinate_plane',
+          params: {
+            boundingbox: [-1, 5, 5, -1],
+            elements: [
+              { type: 'point', name: 'P', x: 2, y: 3, label: 'P' },
+              { type: 'point', name: 'Q', x: 4, y: 1, label: 'Q' },
+              { type: 'segment', name: 'PQ', from: 'P', to: 'Q', color: 'blue' }
+            ]
+          }
+        }
+      },
+      {
+        id: 'number_line',
+        title: 'number_line',
+        view: { type: 'function', width: 520, height: 220 },
+        state: { point: 2 },
+        inputs: [{ key: 'point', type: 'slider', label: 'Point', min: -8, max: 8, step: 0.5 }],
+        outputs: [],
+        behavior: { preset: 'number_line', params: { elements: [{ type: 'point', name: 'A', x: -3, label: 'A' }] } }
+      },
+      {
+        id: 'unit_circle',
+        title: 'unit_circle',
+        view: { type: 'geometry', width: 520, height: 300 },
+        state: { angle: 45 },
+        inputs: [{ key: 'angle', type: 'slider', label: 'Angle', min: 0, max: 360, step: 1 }],
+        outputs: [],
+        behavior: { preset: 'unit_circle', params: {} }
+      },
+      {
+        id: 'triangle_lab',
+        title: 'triangle_lab',
+        view: { type: 'geometry', width: 520, height: 300 },
+        state: { a: 3, b: 4, c: 5 },
+        inputs: [
+          { key: 'a', type: 'slider', label: 'a', min: 1, max: 8, step: 0.1 },
+          { key: 'b', type: 'slider', label: 'b', min: 1, max: 8, step: 0.1 },
+          { key: 'c', type: 'slider', label: 'c', min: 1, max: 8, step: 0.1 }
+        ],
+        outputs: [{ key: 'sideSummary', type: 'text', label: 'Sides' }],
+        behavior: { preset: 'triangle_lab', params: {} }
+      },
+      {
+        id: 'area_shade',
+        title: 'area_shade',
+        view: { type: 'function', width: 520, height: 300 },
+        state: {},
+        inputs: [],
+        outputs: [],
+        behavior: {
+          preset: 'area_shade',
+          params: {
+            boundingbox: [-1, 5, 5, -1],
+            expressions: ['x'],
+            elements: [
+              { type: 'point', name: 'A', x: 0, y: 0 },
+              { type: 'point', name: 'B', x: 3, y: 0 },
+              { type: 'point', name: 'C', x: 3, y: 3 },
+              { type: 'polygon', name: 'R', points: ['A', 'B', 'C'], color: 'blue' }
+            ]
+          }
+        }
+      },
+      {
+        id: 'parametric_plot',
+        title: 'parametric_plot',
+        view: { type: 'function', width: 520, height: 300 },
+        state: {},
+        inputs: [],
+        outputs: [],
+        behavior: {
+          preset: 'parametric_plot',
+          params: {
+            boundingbox: [-2, 2, 2, -2],
+            elements: [{ type: 'point', name: 'O', x: 0, y: 0, label: 'O' }]
+          }
+        }
+      },
+      {
+        id: 'inequality_region',
+        title: 'inequality_region',
+        view: { type: 'function', width: 520, height: 300 },
+        state: {},
+        inputs: [],
+        outputs: [],
+        behavior: {
+          preset: 'inequality_region',
+          params: {
+            boundingbox: [-5, 5, 5, -5],
+            expressions: ['x+y'],
+            elements: [{ type: 'point', name: 'P', x: 1, y: 1, label: 'P' }]
+          }
+        }
+      },
+      {
+        id: 'transformation_lab',
+        title: 'transformation_lab',
+        view: { type: 'geometry', width: 520, height: 300 },
+        state: { dx: 1, dy: 0.5, rotate: 20 },
+        inputs: [
+          { key: 'dx', type: 'slider', label: 'dx', min: -3, max: 3, step: 0.1 },
+          { key: 'dy', type: 'slider', label: 'dy', min: -3, max: 3, step: 0.1 },
+          { key: 'rotate', type: 'slider', label: 'rotate', min: 0, max: 180, step: 1 }
+        ],
+        outputs: [],
+        behavior: { preset: 'transformation_lab', params: {} }
+      },
+      {
+        id: 'counting_grid',
+        title: 'counting_grid',
+        view: { type: 'geometry', width: 520, height: 300 },
+        state: { rows: 4, cols: 5 },
+        inputs: [
+          { key: 'rows', type: 'slider', label: 'Rows', min: 2, max: 10, step: 1 },
+          { key: 'cols', type: 'slider', label: 'Cols', min: 2, max: 10, step: 1 }
+        ],
+        outputs: [],
+        behavior: { preset: 'counting_grid', params: {} }
+      },
+      {
+        id: 'spinning_box',
+        title: 'spinning_box',
+        view: { type: 'sim3d', width: 520, height: 300 },
+        state: { size: 160, color: 'red', rotationSpeed: 1, rotating: true },
+        inputs: [
+          { key: 'rotationSpeed', type: 'slider', label: 'Speed', min: 0, max: 5, step: 0.1 },
+          { key: 'size', type: 'slider', label: 'Size', min: 50, max: 300, step: 5 }
+        ],
+        outputs: [],
+        behavior: { preset: 'spinning_box', params: {} }
+      },
+      {
+        id: 'orbit_mesh',
+        title: 'orbit_mesh',
+        view: { type: 'sim3d', width: 520, height: 300 },
+        state: { size: 120, color: 'cyan', rotationSpeed: 0.8 },
+        inputs: [{ key: 'rotationSpeed', type: 'slider', label: 'Speed', min: 0, max: 5, step: 0.1 }],
+        outputs: [],
+        behavior: { preset: 'orbit_mesh', params: {} }
+      },
+      {
+        id: 'scene3d',
+        title: 'scene3d',
+        view: { type: 'scene3d', width: 520, height: 300 },
+        state: {},
+        inputs: [],
+        outputs: [],
+        behavior: {
+          preset: 'scene3d',
+          params: { objects: [{ type: 'box', x: 0, y: 0, z: 0, size: 1, color: 'blue' }] }
+        }
+      },
+      {
+        id: 'particles2d',
+        title: 'particles2d',
+        view: { type: 'particles2d', width: 520, height: 280 },
+        state: { density: 40, paused: false },
+        inputs: [
+          { key: 'density', type: 'slider', label: 'Density', min: 10, max: 100 },
+          { key: 'paused', type: 'toggle', label: 'Pause' }
+        ],
+        outputs: [],
+        behavior: { preset: 'particles2d', params: {} }
+      },
+      {
+        id: 'fusion_dt',
+        title: 'fusion_dt',
+        view: { type: 'particles2d', width: 520, height: 280 },
+        state: { temperature: 12, density: 40, magneticField: 50, energyMeV: 0, paused: false },
+        inputs: [
+          { key: 'temperature', type: 'slider', label: 'Temp', min: 1, max: 40, step: 1 },
+          { key: 'density', type: 'slider', label: 'Density', min: 10, max: 100 },
+          { key: 'magneticField', type: 'slider', label: 'Field', min: 10, max: 100 }
+        ],
+        outputs: [{ key: 'energyMeV', type: 'stat', label: 'Energy' }],
+        behavior: { preset: 'fusion_dt', params: { energyPerFusionMeV: 17.6 } }
+      },
+      {
+        id: 'projectile',
+        title: 'projectile',
+        view: { type: 'canvas2d', width: 520, height: 280 },
+        state: { angle: 45, speed: 40 },
+        inputs: [
+          { key: 'angle', type: 'slider', label: 'Angle', min: 5, max: 85, step: 1 },
+          { key: 'speed', type: 'slider', label: 'Speed', min: 10, max: 80, step: 1 }
+        ],
+        outputs: [],
+        behavior: { preset: 'projectile', params: {} }
+      },
+      {
+        id: 'gravity_orbit',
+        title: 'gravity_orbit',
+        view: { type: 'canvas2d', width: 520, height: 280 },
+        state: { mass: 40, speed: 1 },
+        inputs: [
+          { key: 'mass', type: 'slider', label: 'Mass', min: 10, max: 100 },
+          { key: 'speed', type: 'slider', label: 'Speed', min: 0.2, max: 3, step: 0.1 }
+        ],
+        outputs: [],
+        behavior: { preset: 'gravity_orbit', params: {} }
+      },
+      {
+        id: 'pendulum',
+        title: 'pendulum',
+        view: { type: 'canvas2d', width: 520, height: 280 },
+        state: { angle: 40, length: 120 },
+        inputs: [
+          { key: 'angle', type: 'slider', label: 'Angle', min: 5, max: 80 },
+          { key: 'length', type: 'slider', label: 'Length', min: 60, max: 180 }
+        ],
+        outputs: [],
+        behavior: { preset: 'pendulum', params: {} }
+      },
+      {
+        id: 'spring_mass',
+        title: 'spring_mass',
+        view: { type: 'canvas2d', width: 520, height: 280 },
+        state: { k: 1, mass: 1, amplitude: 40 },
+        inputs: [
+          { key: 'k', type: 'slider', label: 'k', min: 0.2, max: 3, step: 0.1 },
+          { key: 'amplitude', type: 'slider', label: 'Amp', min: 10, max: 80 }
+        ],
+        outputs: [],
+        behavior: { preset: 'spring_mass', params: {} }
+      },
+      {
+        id: 'collision_1d',
+        title: 'collision_1d',
+        view: { type: 'canvas2d', width: 520, height: 280 },
+        state: { m1: 2, m2: 1, v1: 2, v2: -1 },
+        inputs: [
+          { key: 'm1', type: 'slider', label: 'm1', min: 0.5, max: 5, step: 0.1 },
+          { key: 'm2', type: 'slider', label: 'm2', min: 0.5, max: 5, step: 0.1 }
+        ],
+        outputs: [],
+        behavior: { preset: 'collision_1d', params: {} }
+      },
+      {
+        id: 'wave_1d',
+        title: 'wave_1d',
+        view: { type: 'canvas2d', width: 520, height: 280 },
+        state: { amplitude: 40, frequency: 1, speed: 1 },
+        inputs: [
+          { key: 'amplitude', type: 'slider', label: 'Amp', min: 0, max: 80 },
+          { key: 'frequency', type: 'slider', label: 'Freq', min: 0.2, max: 4, step: 0.1 },
+          { key: 'speed', type: 'slider', label: 'Speed', min: 0, max: 4, step: 0.1 }
+        ],
+        outputs: [],
+        behavior: { preset: 'wave_1d', params: {} }
+      }
+    ];
+
+    async function run() {
+      const root = document.getElementById('root');
+      const summary = document.getElementById('summary');
+      const engine = window.VeelearnWidgetEngine;
+      if (!engine || typeof engine.mountWidget !== 'function') {
+        summary.textContent = 'FAIL: VeelearnWidgetEngine not loaded';
+        summary.className = 'fail';
+        window.__PRESET_RESULTS__ = { ok: 0, fail: PRESETS.length, results: [] };
+        return;
+      }
+
+      const results = [];
+      for (const spec of PRESETS) {
+        const block = document.createElement('div');
+        block.className = 'preset-block';
+        block.dataset.preset = spec.id;
+        block.innerHTML = `<h2>${spec.id}</h2><div class="status">mounting…</div><div class="view vl-widget-view"></div>`;
+        root.appendChild(block);
+        const status = block.querySelector('.status');
+        const view = block.querySelector('.view');
+        try {
+          const handle = await engine.mountWidget(view, spec, { skipDrawing: true });
+          await new Promise((r) => setTimeout(r, 350));
+          const err = view.querySelector('.vl-widget-error');
+          const hasCanvas = !!view.querySelector('canvas');
+          const hasSvg = !!view.querySelector('svg');
+          const hasDesmos = !!view.querySelector('.dcg-container, .dcg-graph-outer');
+          const hasJxg = !!view.querySelector('.JXGtext, svg');
+          const rendered = !err && (hasCanvas || hasSvg || hasDesmos || hasJxg || view.children.length > 0);
+          if (!rendered) throw new Error(err ? err.textContent : 'empty view');
+          status.textContent = 'OK';
+          status.className = 'status ok';
+          results.push({ id: spec.id, ok: true });
+          if (handle && typeof handle.destroy === 'function') {
+            /* keep mounted for visual review */
+          }
+        } catch (e) {
+          status.textContent = 'FAIL: ' + (e && e.message ? e.message : String(e));
+          status.className = 'status fail';
+          results.push({ id: spec.id, ok: false, error: String(e && e.message ? e.message : e) });
+        }
+      }
+
+      const ok = results.filter((r) => r.ok).length;
+      const fail = results.length - ok;
+      summary.innerHTML = `<strong>${ok}/${results.length} passed</strong>${fail ? ` — ${fail} failed: ${results.filter(r=>!r.ok).map(r=>r.id).join(', ')}` : ' — all presets mounted'}`;
+      summary.className = fail ? 'fail' : 'ok';
+      window.__PRESET_RESULTS__ = { ok, fail, results };
+      document.title = fail ? `FAIL ${ok}/${results.length}` : `PASS ${ok}/${results.length}`;
+    }
+
+    run();
+  </script>
+</body>
+</html>

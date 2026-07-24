@@ -349,6 +349,25 @@
     host.style.minHeight = host.style.minHeight || '320px';
     host.style.width = '100%';
     host.style.background = '#0f1220';
+
+    // Force light text on dark boards (JSXGraph defaults are near-black)
+    try {
+      JXG.Options.text.strokeColor = '#f8fafc';
+      JXG.Options.text.highlightStrokeColor = '#ffffff';
+      JXG.Options.text.cssDefaultStyle = 'color:#f8fafc;fill:#f8fafc;font-family:Arial,sans-serif;font-weight:700;';
+      JXG.Options.text.highlightCssDefaultStyle =
+        'color:#ffffff;fill:#ffffff;font-family:Arial,sans-serif;font-weight:700;';
+      JXG.Options.point.label = JXG.Options.point.label || {};
+      JXG.Options.point.label.strokeColor = '#f8fafc';
+      JXG.Options.point.label.highlightStrokeColor = '#ffffff';
+      JXG.Options.point.label.cssDefaultStyle =
+        'color:#f8fafc !important;fill:#f8fafc !important;font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,.95);';
+      JXG.Options.point.label.highlightCssDefaultStyle =
+        'color:#ffffff !important;fill:#ffffff !important;font-weight:700;';
+    } catch (_) {
+      /* ignore */
+    }
+
     const board = JXG.JSXGraph.initBoard(id, {
       boundingbox: Array.isArray(bb) && bb.length === 4 ? bb : [-1, 6, 6, -1],
       axis: true,
@@ -364,7 +383,13 @@
           highlight: false,
           ticks: {
             strokeColor: '#8b93a7',
-            label: { strokeColor: '#e8ecf4', highlightStrokeColor: '#e8ecf4', cssClass: 'vl-jxg-label', highlightCssClass: 'vl-jxg-label' }
+            label: {
+              strokeColor: '#f8fafc',
+              highlightStrokeColor: '#ffffff',
+              cssClass: 'vl-jxg-label',
+              highlightCssClass: 'vl-jxg-label',
+              cssDefaultStyle: 'color:#f8fafc !important;font-weight:700;'
+            }
           }
         },
         y: {
@@ -372,7 +397,13 @@
           highlight: false,
           ticks: {
             strokeColor: '#8b93a7',
-            label: { strokeColor: '#e8ecf4', highlightStrokeColor: '#e8ecf4', cssClass: 'vl-jxg-label', highlightCssClass: 'vl-jxg-label' }
+            label: {
+              strokeColor: '#f8fafc',
+              highlightStrokeColor: '#ffffff',
+              cssClass: 'vl-jxg-label',
+              highlightCssClass: 'vl-jxg-label',
+              cssDefaultStyle: 'color:#f8fafc !important;font-weight:700;'
+            }
           }
         }
       }
@@ -382,6 +413,17 @@
       try {
         if (typeof board.resize === 'function') board.resize();
         board.fullUpdate();
+        // Force label contrast — JSXGraph/HTML labels often ignore strokeColor on dark themes
+        host.querySelectorAll('.JXGtext, .vl-jxg-label, text').forEach((node) => {
+          node.style.setProperty('color', '#ffffff', 'important');
+          node.style.setProperty('fill', '#ffffff', 'important');
+          node.style.setProperty('font-weight', '800', 'important');
+          node.style.setProperty('text-shadow', '0 0 4px #000, 0 1px 3px #000', 'important');
+          if (node.setAttribute && node.tagName === 'text') {
+            node.setAttribute('fill', '#ffffff');
+            node.setAttribute('stroke', 'none');
+          }
+        });
       } catch (_) {
         /* ignore */
       }
@@ -415,16 +457,94 @@
       strokeColor: '#ffffff',
       strokeWidth: 1,
       label: {
-        strokeColor: '#f2f5ff',
+        strokeColor: '#ffffff',
         highlightStrokeColor: '#ffffff',
-        fontSize: 14,
+        fontSize: 16,
         cssClass: 'vl-jxg-label',
         highlightCssClass: 'vl-jxg-label',
-        offset: [8, 8]
+        cssDefaultStyle:
+          'color:#ffffff !important;fill:#ffffff !important;font-weight:800;text-shadow:0 0 4px #000,0 1px 3px #000;',
+        highlightCssDefaultStyle: 'color:#ffffff !important;fill:#ffffff !important;font-weight:800;',
+        offset: [10, 10]
       },
       highlight: false,
       showInfobox: false
     };
+  }
+
+  function restyleBoardLabels(host) {
+    if (!host) return;
+    host.querySelectorAll('.JXGtext, .vl-jxg-label, text').forEach((node) => {
+      try {
+        node.style.setProperty('color', '#ffffff', 'important');
+        node.style.setProperty('fill', '#ffffff', 'important');
+        node.style.setProperty('font-weight', '800', 'important');
+        node.style.setProperty('text-shadow', '0 0 4px #000, 0 1px 3px #000', 'important');
+        if (node.tagName === 'text') {
+          node.setAttribute('fill', '#ffffff');
+          node.setAttribute('stroke', 'none');
+        }
+      } catch (_) {
+        /* ignore */
+      }
+    });
+  }
+
+  function sideLen(ax, ay, bx, by) {
+    const dx = bx - ax;
+    const dy = by - ay;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  function createIncircle(board, p1, p2, p3, el) {
+    const stroke = resolveColor(el.color, '#22d3ee');
+    try {
+      const circle = board.create('incircle', [p1, p2, p3], {
+        strokeColor: stroke,
+        strokeWidth: 2.5,
+        fillColor: stroke,
+        fillOpacity: 0.14,
+        fixed: true,
+        highlight: false
+      });
+      const incenter = board.create(
+        'incenter',
+        [p1, p2, p3],
+        pointOpts({ name: el.label || 'I', label: el.label || 'I', color: el.color || '#22d3ee' }, '#22d3ee')
+      );
+      return { circle, incenter };
+    } catch (_) {
+      /* fall through to manual */
+    }
+    const x1 = p1.X();
+    const y1 = p1.Y();
+    const x2 = p2.X();
+    const y2 = p2.Y();
+    const x3 = p3.X();
+    const y3 = p3.Y();
+    const a = sideLen(x2, y2, x3, y3);
+    const b = sideLen(x1, y1, x3, y3);
+    const c = sideLen(x1, y1, x2, y2);
+    const peri = a + b + c;
+    if (!(peri > 0)) throw new Error('degenerate triangle');
+    const ix = (a * x1 + b * x2 + c * x3) / peri;
+    const iy = (a * y1 + b * y2 + c * y3) / peri;
+    const area2 = Math.abs((x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2)) / 2);
+    const r = area2 / (peri / 2);
+    const incenter = board.create(
+      'point',
+      [ix, iy],
+      pointOpts({ name: el.label || 'I', label: el.label || 'I', color: el.color || '#22d3ee' }, '#22d3ee')
+    );
+    const circle = board.create('circle', [incenter, r], {
+      strokeColor: stroke,
+      strokeWidth: 2.5,
+      fillColor: stroke,
+      fillOpacity: 0.14,
+      fixed: true,
+      highlight: false
+    });
+    return { circle, incenter };
   }
 
   function applyGeometryElements(board, JXG, elements, named) {
@@ -507,6 +627,22 @@
           map[el.name] = board.create('midpoint', [map[el.from], map[el.to]], pointOpts(el, '#fbbf24'));
         } else if (el.type === 'intersection' && map[el.from] && map[el.to]) {
           map[el.name] = board.create('intersection', [map[el.from], map[el.to], 0], pointOpts(el, '#4ade80'));
+        } else if (el.type === 'incircle' && Array.isArray(el.points)) {
+          const pts = el.points.map((n) => map[n]).filter(Boolean);
+          if (pts.length >= 3) {
+            const made = createIncircle(board, pts[0], pts[1], pts[2], el);
+            map[el.name] = made.circle;
+            map[`${el.name}_I`] = made.incenter;
+          }
+        } else if (el.type === 'incenter' && Array.isArray(el.points)) {
+          const pts = el.points.map((n) => map[n]).filter(Boolean);
+          if (pts.length >= 3) {
+            map[el.name] = board.create(
+              'incenter',
+              [pts[0], pts[1], pts[2]],
+              pointOpts(el, '#22d3ee')
+            );
+          }
         } else if (el.type === 'function' && el.expr) {
           const fn = compileExpr(el.expr, ['x']);
           map[el.name] = board.create('functiongraph', [(x) => fn(x, {})], {
@@ -516,9 +652,10 @@
         } else if (el.type === 'text') {
           board.create('text', [readCoord(el, 'x', 0), readCoord(el, 'y', 0), el.text || ''], {
             fontSize: 14,
-            strokeColor: '#e8ecf4',
+            strokeColor: '#ffffff',
             cssClass: 'vl-jxg-label',
-            highlightCssClass: 'vl-jxg-label'
+            highlightCssClass: 'vl-jxg-label',
+            cssDefaultStyle: 'color:#ffffff !important;fill:#ffffff !important;font-weight:800;'
           });
         } else if (el.type === 'vector' && map[el.from] && map[el.to]) {
           map[el.name] = board.create('arrow', [map[el.from], map[el.to]], {
@@ -532,6 +669,13 @@
         console.warn('geometry element failed', el, err);
       }
     });
+    try {
+      const host = board.containerObj || (board.container && document.getElementById(board.container));
+      restyleBoardLabels(host);
+      requestAnimationFrame(() => restyleBoardLabels(host));
+    } catch (_) {
+      /* ignore */
+    }
     return map;
   }
 
@@ -572,7 +716,7 @@
       const tip = board.create(
         'point',
         [() => Math.cos(ang()), () => Math.sin(ang())],
-        { name: 'P', size: 4, color: '#e74c3c' }
+        pointOpts({ name: 'P', label: 'P', color: '#e74c3c', fixed: false })
       );
       board.create('segment', [[0, 0], tip], { strokeColor: '#e74c3c' });
       opts._update = () => board.update();
@@ -735,34 +879,51 @@
   }
 
   async function mountDesmos(host, spec) {
-    const Desmos = await ensureDesmos();
-    host.innerHTML = '';
-    const el = document.createElement('div');
-    el.style.width = '100%';
-    el.style.height = '100%';
-    host.appendChild(el);
-    const calc = Desmos.GraphingCalculator(el, {
-      expressions: true,
-      settingsMenu: false,
-      zoomButtons: true,
-      expressionsCollapsed: true
-    });
-    const params = (spec.behavior && spec.behavior.params) || {};
-    const exprs = params.expressions || [];
-    exprs.forEach((latex, i) => {
-      let s = String(latex).trim();
-      if (!/=/.test(s) && !/y/i.test(s)) s = `y=${s}`;
-      calc.setExpression({ id: `e${i}`, latex: s.replace(/\*\*/g, '^') });
-    });
-    return {
-      destroy() {
-        try {
-          calc.destroy();
-        } catch (_) {
-          /* ignore */
-        }
+    try {
+      const Desmos = await ensureDesmos();
+      if (!Desmos || typeof Desmos.GraphingCalculator !== 'function') {
+        throw new Error('Desmos API unavailable');
       }
-    };
+      host.innerHTML = '';
+      const el = document.createElement('div');
+      el.style.width = '100%';
+      el.style.height = '100%';
+      el.style.minHeight = '280px';
+      host.appendChild(el);
+      const calc = Desmos.GraphingCalculator(el, {
+        expressions: true,
+        settingsMenu: false,
+        zoomButtons: true,
+        expressionsCollapsed: true
+      });
+      const params = (spec.behavior && spec.behavior.params) || {};
+      const exprs = params.expressions || [];
+      exprs.forEach((latex, i) => {
+        let s = String(latex).trim();
+        if (!/=/.test(s) && !/y/i.test(s)) s = `y=${s}`;
+        calc.setExpression({ id: `e${i}`, latex: s.replace(/\*\*/g, '^') });
+      });
+      return {
+        destroy() {
+          try {
+            calc.destroy();
+          } catch (_) {
+            /* ignore */
+          }
+        }
+      };
+    } catch (err) {
+      console.warn('Desmos unavailable, falling back to function_plot', err);
+      const fallback = Object.assign({}, spec, {
+        behavior: Object.assign({}, spec.behavior, {
+          preset: 'function_plot',
+          params: Object.assign({}, (spec.behavior && spec.behavior.params) || {}, {
+            boundingbox: [-6, 6, 6, -6]
+          })
+        })
+      });
+      return mountJsxPreset(host, fallback, Object.assign({}, spec.state || {}), { _update: null });
+    }
   }
 
   async function mountThreePreset(host, spec, state, opts) {
