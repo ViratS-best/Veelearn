@@ -732,6 +732,78 @@ body.learner-shell-active #learner-shell {
   color: var(--ls-text);
 }
 
+.ls-volunteer-stats {
+  max-width: 720px;
+}
+
+.ls-volunteer-metrics {
+  margin-bottom: 20px;
+}
+
+.ls-volunteer-certs-title {
+  margin: 0 0 12px;
+  font-size: 1.05rem;
+  color: var(--ls-text);
+}
+
+.ls-cert-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ls-cert-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: var(--ls-card);
+  border: 1px solid var(--ls-border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: var(--ls-shadow);
+  color: var(--ls-text);
+}
+
+.ls-cert-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ls-cert-meta {
+  font-size: 0.85rem;
+  color: var(--ls-muted);
+}
+
+.ls-cert-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ls-cert-actions a {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.ls-cert-actions .ls-btn-primary {
+  background: var(--ls-btn);
+  color: var(--ls-btn-text, #fff);
+}
+
+.ls-cert-actions .ls-btn-soft {
+  background: var(--ls-accent-soft);
+  color: var(--ls-active-text, var(--ls-accent));
+  border: 1px solid var(--ls-border);
+}
+
 .ls-settings-card label {
   display: block;
   font-weight: 700;
