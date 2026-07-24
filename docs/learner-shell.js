@@ -288,7 +288,7 @@
   function currentUserId() {
     if (window.currentUser?.id != null) return Number(window.currentUser.id);
     try {
-      const token = localStorage.getItem('token') || '';
+      const token = localStorage.getItem('token') || (typeof window.authToken === 'string' ? window.authToken : '') || '';
       const parts = token.split('.');
       if (parts.length === 3) {
         const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
@@ -300,25 +300,78 @@
     return profile?.id != null ? Number(profile.id) : null;
   }
 
+  function courseOwnerId(course) {
+    if (!course) return null;
+    if (course.creator_id != null) return Number(course.creator_id);
+    if (course.user_id != null) return Number(course.user_id);
+    return null;
+  }
+
+  async function resolveUserId() {
+    let uid = currentUserId();
+    if (uid != null && Number.isFinite(uid)) return uid;
+    try {
+      const profile = await fetchJson('/api/users/profile');
+      if (profile.success && profile.data?.id != null) {
+        try {
+          window.currentUser = profile.data;
+        } catch (_) { /* ignore */ }
+        return Number(profile.data.id);
+      }
+    } catch (_) { /* ignore */ }
+    try {
+      const me = await fetchJson('/api/users/me');
+      if (me.success && me.data?.id != null) {
+        try {
+          window.currentUser = Object.assign({}, window.currentUser || {}, me.data);
+        } catch (_) { /* ignore */ }
+        return Number(me.data.id);
+      }
+    } catch (_) { /* ignore */ }
+    return null;
+  }
+
   async function loadCourseFlyout() {
     const list = document.getElementById('ls-flyout-courses');
     if (!list) return;
     list.innerHTML = '<div class="ls-flyout-empty">Loading…</div>';
     try {
-      const uid = currentUserId();
       let courses = [];
-      if (uid) {
+
+      // Prefer auth-scoped endpoint (no client user-id required)
+      const mine = await fetchJson('/api/my-courses');
+      if (mine.success && Array.isArray(mine.data)) {
+        courses = mine.data;
+      }
+
+      const uid = await resolveUserId();
+      if (!courses.length && uid != null) {
         const owned = await fetchJson(`/api/users/${uid}/courses`);
         if (owned.success && Array.isArray(owned.data)) {
           courses = owned.data;
         }
       }
+
       if (!courses.length) {
         const data = await fetchJson('/api/courses');
-        courses = (data.success ? data.data || [] : []).filter(
-          (c) => uid != null && Number(c.creator_id) === uid
-        );
+        const all = data.success ? data.data || [] : [];
+        if (uid != null) {
+          courses = all.filter((c) => courseOwnerId(c) === uid);
+        }
       }
+
+      // Merge any courses already loaded by the legacy dashboard path
+      try {
+        const cached = Array.isArray(window.myCourses) ? window.myCourses : [];
+        if (cached.length) {
+          const byId = new Map(courses.map((c) => [Number(c.id), c]));
+          cached.forEach((c) => {
+            if (c && c.id != null && !byId.has(Number(c.id))) byId.set(Number(c.id), c);
+          });
+          courses = Array.from(byId.values());
+        }
+      } catch (_) { /* ignore */ }
+
       courses = [...courses].sort(
         (a, b) =>
           new Date(b.created_at || b.creation_time || 0) -
@@ -360,7 +413,6 @@
           if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
           const id = parseInt(btn.getAttribute('data-edit-course'), 10);
           if (!id) return;
-          // Keep flyout open while the menu is used
           const flyout = btn.closest('[data-flyout="create"]');
           if (flyout) flyout.classList.add('is-open');
           if (typeof window.showCourseContextMenu === 'function') {
@@ -371,6 +423,7 @@
         });
       });
     } catch (err) {
+      console.warn('loadCourseFlyout failed', err);
       list.innerHTML = '<div class="ls-flyout-empty">Could not load courses.</div>';
     }
   }
