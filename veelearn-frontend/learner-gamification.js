@@ -145,9 +145,58 @@
     }
   }
 
-  function appendAiBubble(role, text) {
+  function typesetCoachBubble(el) {
+    if (!el) return;
+    const eng = window.VeelearnWidgetEngine;
+    if (eng && typeof eng.typesetMath === 'function') {
+      eng.typesetMath(el);
+      return;
+    }
+    if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
+      window.MathJax.typesetPromise([el]).catch(() => {});
+    }
+  }
+
+  async function ensureWidgetEngine() {
+    if (window.VeelearnWidgetEngine) return window.VeelearnWidgetEngine;
+    if (typeof window.__veelearnLoadHeavy === 'function') {
+      await window.__veelearnLoadHeavy('widgets');
+    }
+    return window.VeelearnWidgetEngine;
+  }
+
+  async function mountCoachWidgets(host, widgets, opts) {
+    if (!host || !widgets || !widgets.length) return;
+    const eng = await ensureWidgetEngine();
+    if (!eng || typeof eng.mountWidgets !== 'function') return;
+    await eng.mountWidgets(host, widgets, opts || {});
+  }
+
+  function showDashboardTyping() {
     const box = document.getElementById('ls-ai-messages');
     if (!box) return;
+    removeDashboardTyping();
+    const wrap = document.createElement('div');
+    wrap.id = 'ls-ai-typing';
+    wrap.classList.add('ls-bubble-coach');
+    wrap.style.marginBottom = '10px';
+    wrap.style.padding = '10px 12px';
+    wrap.style.borderRadius = '12px';
+    wrap.style.marginRight = '24px';
+    wrap.setAttribute('aria-busy', 'true');
+    wrap.innerHTML =
+      '<strong>Coach</strong><div class="ls-ai-typing-dots" aria-hidden="true"><span>.</span><span>.</span><span>.</span></div>';
+    box.appendChild(wrap);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function removeDashboardTyping() {
+    document.getElementById('ls-ai-typing')?.remove();
+  }
+
+  function appendAiBubble(role, text, widgets, mountOpts) {
+    const box = document.getElementById('ls-ai-messages');
+    if (!box) return null;
     const wrap = document.createElement('div');
     wrap.style.marginBottom = '10px';
     wrap.style.padding = '10px 12px';
@@ -156,14 +205,24 @@
     if (role === 'user') {
       wrap.classList.add('ls-bubble-user');
       wrap.style.marginLeft = '24px';
-      wrap.innerHTML = `<strong>You</strong><div>${esc(text)}</div>`;
+      wrap.innerHTML = `<strong>You</strong><div class="ls-bubble-body">${esc(text)}</div>`;
     } else {
       wrap.classList.add('ls-bubble-coach');
       wrap.style.marginRight = '24px';
-      wrap.innerHTML = `<strong>Coach</strong><div>${esc(text)}</div>`;
+      wrap.innerHTML = `<strong>Coach</strong><div class="ls-bubble-body">${esc(text)}</div>`;
     }
+    const widgetHost = document.createElement('div');
+    widgetHost.className = 'vl-widget-host';
+    wrap.appendChild(widgetHost);
     box.appendChild(wrap);
     box.scrollTop = box.scrollHeight;
+    typesetCoachBubble(wrap.querySelector('.ls-bubble-body') || wrap);
+    if (role !== 'user' && widgets && widgets.length) {
+      mountCoachWidgets(widgetHost, widgets, mountOpts).then(() => {
+        box.scrollTop = box.scrollHeight;
+      });
+    }
+    return wrap;
   }
 
   function renderRecs(recs) {
@@ -240,7 +299,14 @@
     try {
       const data = await api('/api/ai/tutor/history?limit=30');
       if (data.success && Array.isArray(data.data)) {
-        data.data.forEach((m) => appendAiBubble(m.role === 'user' ? 'user' : 'assistant', m.content));
+        for (const m of data.data) {
+          appendAiBubble(
+            m.role === 'user' ? 'user' : 'assistant',
+            m.content,
+            m.widgets || [],
+            { skipDrawing: true }
+          );
+        }
       }
       if (!box.childElementCount) {
         appendAiBubble(
@@ -263,18 +329,21 @@
     input.value = '';
     appendAiBubble('user', message);
     if (sendBtn) sendBtn.disabled = true;
+    showDashboardTyping();
     try {
       const data = await api('/api/ai/tutor/chat', {
         method: 'POST',
         body: JSON.stringify({ message })
       });
+      removeDashboardTyping();
       if (data.success) {
-        appendAiBubble('assistant', data.data.reply || '…');
+        appendAiBubble('assistant', data.data.reply || '…', data.data.widgets || []);
         renderRecs(data.data.recommendations || []);
       } else {
         appendAiBubble('assistant', data.message || 'Sorry, I could not reply just now.');
       }
     } catch (e) {
+      removeDashboardTyping();
       appendAiBubble('assistant', 'Network error — please try again.');
     } finally {
       if (sendBtn) sendBtn.disabled = false;

@@ -824,6 +824,7 @@ const initializeDatabase = async () => {
                 INDEX idx_user_created (user_id, created_at)
             )
         `);
+        await addColumn('ai_tutor_messages', 'widgets_json', 'LONGTEXT NULL');
         await query(`
             CREATE TABLE IF NOT EXISTS user_learning_profile (
                 user_id INT PRIMARY KEY,
