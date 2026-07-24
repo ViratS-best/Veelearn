@@ -1829,6 +1829,7 @@ function handleLogin() {
                     role: userData.role,
                     shells: userData.shells || 0
                 };
+                try { window.currentUser = currentUser; } catch (_) { /* ignore */ }
                 if (window.logger) window.logger.debug("Login successful, currentUser set:", currentUser);
                 // INSTANT: Show dashboard immediately without needing a reload
                 showDashboard();
@@ -3529,10 +3530,12 @@ function loadUserCourses() {
             if (window.logger) window.logger.debug("Total courses from API:", allCoursesFromServer.length);
             if (window.logger) window.logger.debug("Current user ID:", currentUser.id);
 
-            myCourses = allCoursesFromServer.filter(
-                (c) => c.creator_id === currentUser.id
-            );
+            myCourses = allCoursesFromServer.filter((c) => {
+                const owner = c.creator_id != null ? c.creator_id : c.user_id;
+                return Number(owner) === Number(currentUser.id);
+            });
             myCourses = sortCoursesForDisplay(myCourses);
+            try { window.myCourses = myCourses; } catch (_) { /* ignore */ }
             
             // Merge enrollment status into courses (for courses user is enrolled in)
             const enrolledCourseIds = new Set(enrollmentData?.map(e => e.id) || []);
@@ -3554,6 +3557,10 @@ function loadUserCourses() {
             myCoursesCurrentSearch = '';
             myCoursesCurrentPage = 1;
             renderUserCourses('');
+
+            if (typeof window.LearnerShell?.refreshCourseFlyout === 'function') {
+                window.LearnerShell.refreshCourseFlyout();
+            }
 
             // If teacher, populate assignment dropdown (only if empty or fallback needed)
             if (currentUser.role === 'teacher' && myCourses.length > 0) {
@@ -7755,7 +7762,11 @@ async function showCoursePickerForSimulator(simulatorId, title) {
             });
             const json = await res.json();
             if (json.success) {
-                myCourses = (json.data || []).filter(c => c.creator_id === currentUser.id);
+                myCourses = (json.data || []).filter((c) => {
+                    const owner = c.creator_id != null ? c.creator_id : c.user_id;
+                    return Number(owner) === Number(currentUser.id);
+                });
+                try { window.myCourses = myCourses; } catch (_) { /* ignore */ }
             }
         } catch (err) {
             console.error('Failed to load courses for picker:', err);

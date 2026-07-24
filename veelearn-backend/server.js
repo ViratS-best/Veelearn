@@ -4372,31 +4372,74 @@ app.get('/api/users/:userId/courses', authenticateToken, (req, res) => {
         return apiResponse(res, 403, 'Access denied. You can only view your own courses');
     }
 
-    const query = 'SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time, grade_level, video_url FROM courses WHERE creator_id = ?';
+    const query = 'SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time, created_at, grade_level, video_url, course_type FROM courses WHERE creator_id = ? ORDER BY COALESCE(created_at, creation_time) DESC';
     db.query(query, [userId], (err, results) => {
         if (err) {
+            // Fallback if created_at / course_type columns missing on older DBs
+            if (/Unknown column/i.test(String(err.message || err))) {
+                const legacy =
+                    'SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time, grade_level, video_url FROM courses WHERE creator_id = ?';
+                return db.query(legacy, [userId], (err2, results2) => {
+                    if (err2) {
+                        console.error('Error fetching user courses:', err2);
+                        return apiResponse(res, 500, 'Server error fetching user courses');
+                    }
+                    return apiResponse(
+                        res,
+                        200,
+                        'User courses fetched successfully',
+                        parseCourseBlocks(results2)
+                    );
+                });
+            }
             console.error('Error fetching user courses:', err);
             return apiResponse(res, 500, 'Server error fetching user courses');
         }
 
-        // Parse blocks JSON for each course
-        const parsedResults = results.map(course => {
-            if (course.blocks) {
-                try {
-                    course.blocks = JSON.parse(course.blocks);
-                } catch (e) {
-                    console.error('Error parsing blocks for course', course.id, ':', e);
-                    course.blocks = [];
-                }
-            } else {
-                course.blocks = [];
-            }
-            return course;
-        });
-
-        apiResponse(res, 200, 'User courses fetched successfully', parsedResults);
+        apiResponse(res, 200, 'User courses fetched successfully', parseCourseBlocks(results));
     });
 });
+
+/** Auth-scoped "my courses" — prefers token identity over client-supplied user ids. */
+app.get('/api/my-courses', authenticateToken, (req, res) => {
+    const userId = req.user.id;
+    const query =
+        'SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time, created_at, grade_level, video_url, course_type FROM courses WHERE creator_id = ? ORDER BY COALESCE(created_at, creation_time) DESC';
+    db.query(query, [userId], (err, results) => {
+        if (err) {
+            if (/Unknown column/i.test(String(err.message || err))) {
+                const legacy =
+                    'SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time, grade_level, video_url FROM courses WHERE creator_id = ?';
+                return db.query(legacy, [userId], (err2, results2) => {
+                    if (err2) {
+                        console.error('Error fetching my courses:', err2);
+                        return apiResponse(res, 500, 'Server error fetching user courses');
+                    }
+                    return apiResponse(res, 200, 'User courses fetched successfully', parseCourseBlocks(results2));
+                });
+            }
+            console.error('Error fetching my courses:', err);
+            return apiResponse(res, 500, 'Server error fetching user courses');
+        }
+        apiResponse(res, 200, 'User courses fetched successfully', parseCourseBlocks(results));
+    });
+});
+
+function parseCourseBlocks(results) {
+    return (results || []).map((course) => {
+        if (course.blocks) {
+            try {
+                course.blocks = typeof course.blocks === 'string' ? JSON.parse(course.blocks) : course.blocks;
+            } catch (e) {
+                console.error('Error parsing blocks for course', course.id, ':', e);
+                course.blocks = [];
+            }
+        } else {
+            course.blocks = [];
+        }
+        return course;
+    });
+}
 
 // ===== ADMIN ROUTES =====
 app.get('/api/admin/courses/pending', authenticateToken, authorize('admin', 'superadmin'), (req, res) => {
