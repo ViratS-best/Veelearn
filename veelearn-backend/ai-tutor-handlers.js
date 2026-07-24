@@ -534,18 +534,127 @@ function wantsCourseRecommendation(message) {
     );
 }
 
-function wantsVisualization(message) {
+function wantsVisualization(message, historyBlob) {
     const msg = String(message || '').toLowerCase();
-    return (
-        /\b(visuali[sz]e|graph|plot|draw|diagram|simulat|interactive|3d|three.?d|fusion|particle|animat|show (me )?(this|the)|make (a |an )?(tool|sim|widget|demo)|spinning|cube|sphere)\b/.test(
+    const hist = String(historyBlob || '').toLowerCase();
+    const blob = `${msg}\n${hist}`;
+
+    const vizIntent =
+        /\b(visuali[sz]e|graph|plot|draw|diagram|figure|sketch|simulat|interactive|animat|spinning|cube|sphere|wave|fusion|pendulum|projectile)\b/.test(
             msg
         ) ||
-        /\b(amc|mathcounts|geometry|quadratic|inscribed|tangent|intersect|circle|triangle|parabola|polynomial|unit circle|number line)\b/.test(
+        /\b(show|see|make|create|build|give)\b.{0,24}\b(it|this|that|me|diagram|figure|graph|picture|drawing|sim)\b/.test(
             msg
         ) ||
+        /\b(can you|could you|please)\b.{0,20}\b(draw|show|graph|plot|visual)/.test(msg) ||
         /y\s*=\s*[^\n]{1,80}/i.test(message) ||
-        /\$\$[\s\S]+\$\$/.test(message)
-    );
+        /\$\$[\s\S]+\$\$/.test(message);
+
+    const mathFigureContext =
+        /\b(amc|mathcounts|geometry|rectangle|triangle|circle|quadrilateral|polygon|inscribed|tangent|intersect|segment|parabola|quadratic|polynomial|coordinate|unit circle|number line|wave|fusion|plasma|projectile|orbit|pendulum|spring)\b/.test(
+            blob
+        );
+
+    // Vague follow-ups like "visualize it?" still force when recent chat is geometry/physics
+    if (vizIntent) return true;
+    if (mathFigureContext && /\b(help|how|what|find|radius|length|area)\b/.test(msg) && msg.length > 40) {
+        // Long problem statements that are clearly contest geometry
+        return /\b(amc|mathcounts|rectangle|triangle|circle|inscribed)\b/.test(msg);
+    }
+    return false;
+}
+
+/** Build a geometry_board for common AMC rectangle / AF–DE intersection problems. */
+function buildGeometryFallback(text) {
+    const src = String(text || '');
+    const ab = src.match(/\bAB\s*=\s*(\d+(?:\.\d+)?)/i);
+    const bc = src.match(/\bBC\s*=\s*(\d+(?:\.\d+)?)/i);
+    const ae = src.match(/\bAE\s*=\s*(\d+(?:\.\d+)?)/i);
+    const df = src.match(/\bDF\s*=\s*(\d+(?:\.\d+)?)/i);
+
+    // Prefer explicit coordinates from coach/history if present
+    const coordRe = /\b([A-G])\s*=\s*\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)/gi;
+    const coords = {};
+    let m;
+    while ((m = coordRe.exec(src)) !== null) {
+        coords[m[1].toUpperCase()] = { x: Number(m[2]), y: Number(m[3]) };
+    }
+
+    let A;
+    let B;
+    let C;
+    let D;
+    let E;
+    let F;
+    if (coords.A && coords.B && coords.C && coords.D) {
+        A = coords.A;
+        B = coords.B;
+        C = coords.C;
+        D = coords.D;
+        E = coords.E || null;
+        F = coords.F || null;
+    } else {
+        const width = ab ? Number(ab[1]) : 5;
+        const height = bc ? Number(bc[1]) : 4;
+        const aeVal = ae ? Number(ae[1]) : Math.min(3, width);
+        const dfVal = df ? Number(df[1]) : Math.min(2, width);
+        // A top-left, B top-right, C bottom-right, D bottom-left
+        A = { x: 0, y: height };
+        B = { x: width, y: height };
+        C = { x: width, y: 0 };
+        D = { x: 0, y: 0 };
+        E = { x: aeVal, y: height }; // on AB
+        F = { x: dfVal, y: 0 }; // on DC from D
+    }
+
+    if (!E) E = { x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 };
+    if (!F) F = { x: (D.x + C.x) / 2, y: (D.y + C.y) / 2 };
+
+    const xs = [A.x, B.x, C.x, D.x, E.x, F.x];
+    const ys = [A.y, B.y, C.y, D.y, E.y, F.y];
+    const pad = 1.2;
+    const minX = Math.min(...xs) - pad;
+    const maxX = Math.max(...xs) + pad;
+    const minY = Math.min(...ys) - pad;
+    const maxY = Math.max(...ys) + pad;
+
+    const elements = [
+        { type: 'point', name: 'A', x: A.x, y: A.y, label: 'A' },
+        { type: 'point', name: 'B', x: B.x, y: B.y, label: 'B' },
+        { type: 'point', name: 'C', x: C.x, y: C.y, label: 'C' },
+        { type: 'point', name: 'D', x: D.x, y: D.y, label: 'D' },
+        { type: 'point', name: 'E', x: E.x, y: E.y, label: 'E', color: 'orange' },
+        { type: 'point', name: 'F', x: F.x, y: F.y, label: 'F', color: 'orange' },
+        { type: 'segment', name: 'AB', from: 'A', to: 'B', color: 'blue' },
+        { type: 'segment', name: 'BC', from: 'B', to: 'C', color: 'blue' },
+        { type: 'segment', name: 'CD', from: 'C', to: 'D', color: 'blue' },
+        { type: 'segment', name: 'DA', from: 'D', to: 'A', color: 'blue' },
+        { type: 'segment', name: 'AF', from: 'A', to: 'F', color: 'red' },
+        { type: 'segment', name: 'DE', from: 'D', to: 'E', color: 'red' },
+        { type: 'intersection', name: 'G', from: 'AF', to: 'DE', label: 'G', color: 'green' },
+        { type: 'segment', name: 'EG', from: 'E', to: 'G', color: 'purple' },
+        { type: 'segment', name: 'GD', from: 'G', to: 'D', color: 'purple' },
+        { type: 'segment', name: 'DE2', from: 'D', to: 'E', color: 'purple' }
+    ];
+
+    return validateWidgetSpecs([
+        {
+            id: 'auto-geo-rect',
+            title: 'Geometry Diagram',
+            objective: 'Rectangle ABCD with AF, DE, and intersection G',
+            view: { type: 'geometry', width: 520, height: 360 },
+            state: {},
+            inputs: [],
+            outputs: [],
+            behavior: {
+                preset: 'geometry_board',
+                params: {
+                    boundingbox: [minX, maxY, maxX, minY],
+                    elements
+                }
+            }
+        }
+    ]);
 }
 
 function autoFunctionWidget(message) {
@@ -573,11 +682,13 @@ function autoFunctionWidget(message) {
     ]);
 }
 
-/** Deterministic widgets when the model forgets JSON (cube, fusion, quadratic, …). */
-function autoFallbackWidgets(message) {
+/** Deterministic widgets when the model forgets JSON. historyBlob = recent chat text. */
+function autoFallbackWidgets(message, historyBlob) {
     const msg = String(message || '').toLowerCase();
+    const combined = `${message}\n${historyBlob || ''}`;
+    const combinedLower = combined.toLowerCase();
 
-    if (/\b(spinning\s*)?(cube|box)\b|\b3d\s*cube\b|\bspinning\s*box\b/.test(msg)) {
+    if (/\b(spinning\s*)?(cube|box)\b|\b3d\s*cube\b|\bspinning\s*box\b/.test(combinedLower)) {
         return validateWidgetSpecs([
             {
                 id: 'auto-cube',
@@ -601,12 +712,12 @@ function autoFallbackWidgets(message) {
         ]);
     }
 
-    if (/\bfusion\b|\bplasma\b|\bdeuterium\b|\btritium\b/.test(msg)) {
+    if (/\bfusion\b|\bplasma\b|\bdeuterium\b|\btritium\b/.test(combinedLower)) {
         return validateWidgetSpecs([
             {
                 id: 'auto-fusion',
                 title: 'D-T Fusion Simulator',
-                objective: 'Interactive particle fusion chamber',
+                objective: 'Interactive particle fusion chamber — temperature, density, and field change the plasma',
                 view: { type: 'particles2d', width: 520, height: 320 },
                 state: { temperature: 10, density: 50, magneticField: 50, energyMeV: 0, paused: false },
                 inputs: [
@@ -624,7 +735,7 @@ function autoFallbackWidgets(message) {
                     preset: 'fusion_dt',
                     params: {
                         velocityScale: 'sqrt_temperature',
-                        fusionDistance: 8,
+                        fusionDistance: 10,
                         energyPerFusionMeV: 17.6
                     }
                 }
@@ -632,7 +743,26 @@ function autoFallbackWidgets(message) {
         ]);
     }
 
-    if (/\bquadratic\b|\bparabola\b|\ba\s*\*\s*x\s*\^\s*2\b|\by\s*=\s*a/.test(msg)) {
+    if (/\bwave\b|\bsine\b|\bstanding wave\b|\btraveling wave\b/.test(combinedLower)) {
+        return validateWidgetSpecs([
+            {
+                id: 'auto-wave',
+                title: 'Wave Simulator',
+                objective: 'Traveling wave — amplitude, frequency, and speed are live',
+                view: { type: 'canvas2d', width: 520, height: 280 },
+                state: { amplitude: 40, frequency: 1, speed: 1 },
+                inputs: [
+                    { key: 'amplitude', type: 'slider', label: 'Amplitude', min: 0, max: 80, step: 1 },
+                    { key: 'frequency', type: 'slider', label: 'Frequency', min: 0.2, max: 4, step: 0.1 },
+                    { key: 'speed', type: 'slider', label: 'Wave Speed', min: 0, max: 4, step: 0.1 }
+                ],
+                outputs: [],
+                behavior: { preset: 'wave_1d', params: {} }
+            }
+        ]);
+    }
+
+    if (/\bquadratic\b|\bparabola\b|\ba\s*\*\s*x\s*\^\s*2\b|\by\s*=\s*a/.test(combinedLower)) {
         return validateWidgetSpecs([
             {
                 id: 'auto-quad',
@@ -650,7 +780,41 @@ function autoFallbackWidgets(message) {
         ]);
     }
 
-    return autoFunctionWidget(message);
+    if (
+        /\b(amc|mathcounts|geometry|rectangle|triangle|circle|inscribed|segment|intersect|quadrilateral|coordinate)\b/.test(
+            combinedLower
+        ) ||
+        /\b[A-G]\s*=\s*\(/.test(combined) ||
+        (/\b(visuali[sz]e|draw|diagram|figure|sketch)\b/.test(msg) &&
+            /\b(point|line|angle|rectangle|triangle|circle|geometry|amc|coordinate)\b/.test(combinedLower))
+    ) {
+        const geo = buildGeometryFallback(combined);
+        if (geo.length) return geo;
+    }
+
+    const fn = autoFunctionWidget(message);
+    if (fn.length) return fn;
+
+    // Last resort for any visualize/draw request: empty coordinate plane so something always appears
+    if (/\b(visuali[sz]e|draw|diagram|figure|graph|plot|sketch)\b/.test(msg)) {
+        return validateWidgetSpecs([
+            {
+                id: 'auto-plane',
+                title: 'Coordinate Plane',
+                objective: 'Blank plane — describe what to add next',
+                view: { type: 'function', width: 520, height: 320 },
+                state: {},
+                inputs: [],
+                outputs: [],
+                behavior: {
+                    preset: 'coordinate_plane',
+                    params: { boundingbox: [-6, 6, 6, -6], elements: [] }
+                }
+            }
+        ]);
+    }
+
+    return [];
 }
 
 /**
@@ -845,13 +1009,17 @@ function createAiTutorHandlers({ query, openRouterChatCompletion, apiResponse })
                 });
             }
 
-            const forceViz = wantsVisualization(message);
+            const historyBlob = historyRows
+                .slice(-8)
+                .map((r) => String(r.content || '').slice(0, 1200))
+                .join('\n');
+            const forceViz = wantsVisualization(message, historyBlob);
             const messages = [
                 { role: 'system', content: SOCRATIC_SYSTEM },
                 {
                     role: 'system',
                     content: forceViz
-                        ? `${contextBlock}\n\nIMPORTANT: The learner's latest message needs a visualization or interactive widget. You MUST include VEELEARN_WIDGET_JSON with at least one valid widgetSpec.`
+                        ? `${contextBlock}\n\nIMPORTANT: The learner needs a visualization or interactive widget NOW. You MUST include VEELEARN_WIDGET_JSON with at least one valid widgetSpec (geometry_board for contest geometry with params.elements points/segments; desmos_graph/function_plot for graphs; spinning_box for cubes; fusion_dt/wave_1d for those sims). Do not only describe a diagram in words.`
                         : `Personalization context:\n${contextBlock}`
                 },
                 ...historyMessages,
@@ -900,11 +1068,14 @@ function createAiTutorHandlers({ query, openRouterChatCompletion, apiResponse })
                             {
                                 role: 'system',
                                 content:
-                                    'Emit ONLY VEELEARN_WIDGET_JSON: then a JSON array of 1 widgetSpec for the user request. No prose. Use an allowed preset. For a spinning cube use preset spinning_box. For graphs use desmos_graph or function_plot (put params like a in state + slider inputs; expression may use a, e.g. "a * x^2"). For geometry use geometry_board with params.elements.'
+                                    'Emit ONLY VEELEARN_WIDGET_JSON: then a JSON array of 1 widgetSpec. No prose. Geometry/AMC → geometry_board with params.elements (points A,B,C… and segments). Graphs → desmos_graph or function_plot. Cube → spinning_box. Fusion → fusion_dt. Wave → wave_1d. Use recent problem context if the user said "visualize it".'
                             },
-                            { role: 'user', content: message }
+                            {
+                                role: 'user',
+                                content: `Recent context:\n${historyBlob.slice(0, 3500)}\n\nLatest request:\n${message}`
+                            }
                         ],
-                        { max_tokens: 1600, temperature: 0.2 }
+                        { max_tokens: 1800, temperature: 0.15 }
                     );
                     const retryParts = splitReplyAndPayloads(
                         /VEELEARN_WIDGET_JSON:/i.test(retryReply)
@@ -925,11 +1096,20 @@ function createAiTutorHandlers({ query, openRouterChatCompletion, apiResponse })
             }
 
             if (forceViz && !widgets.length) {
-                widgets = autoFallbackWidgets(message);
-                if (widgets.length && !/interactive|simulator|figure|graph|slider/i.test(safeReply)) {
+                widgets = autoFallbackWidgets(message, historyBlob);
+                if (widgets.length && !/interactive|simulator|figure|graph|slider|diagram/i.test(safeReply)) {
                     safeReply =
                         `${safeReply}\n\nUse the interactive below — try the controls and tell me what you notice.`.trim();
                 }
+            }
+
+            // Model often describes a diagram in prose without JSON — still force a widget
+            const claimsDiagram =
+                /\b(diagram|coordinate plane|i('ve| have) (set up|drawn|created|plotted)|see the (diagram|figure)|segments?\s+[A-Z]{2})\b/i.test(
+                    safeReply
+                );
+            if (!widgets.length && (forceViz || claimsDiagram)) {
+                widgets = autoFallbackWidgets(message, `${historyBlob}\n${safeReply}`);
             }
 
             if (!recommendations.length && catalog.length && wantsCourseRecommendation(message) && !forceViz) {
@@ -1027,3 +1207,4 @@ module.exports.splitReplyAndRecommendations = splitReplyAndRecommendations;
 module.exports.splitReplyAndPayloads = splitReplyAndPayloads;
 module.exports.validateWidgetSpecs = validateWidgetSpecs;
 module.exports.wantsVisualization = wantsVisualization;
+module.exports.autoFallbackWidgets = autoFallbackWidgets;

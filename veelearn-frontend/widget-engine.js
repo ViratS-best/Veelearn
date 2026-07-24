@@ -792,8 +792,8 @@
   function mountCanvasSim(host, spec, state, outputsApi, opts) {
     host.innerHTML = '';
     const canvas = document.createElement('canvas');
-    const w = host.clientWidth || 480;
-    const h = host.clientHeight || 300;
+    const w = Math.max(host.clientWidth || 0, 320);
+    const h = Math.max(host.clientHeight || 0, 260);
     canvas.width = w;
     canvas.height = h;
     canvas.style.width = '100%';
@@ -805,60 +805,99 @@
     const preset = spec.behavior.preset;
     const params = (spec.behavior && spec.behavior.params) || {};
 
+    function n(v, fallback) {
+      const x = Number(v);
+      return Number.isFinite(x) ? x : fallback;
+    }
+
     let alive = true;
     let raf = 0;
     let t0 = performance.now();
     const particles = [];
-    let energy = Number(state.energyMeV) || 0;
+    let energy = n(state.energyMeV, 0);
     const rateSeries = Array.isArray(state.fusionRateSeries) ? state.fusionRateSeries.slice() : [];
     let trail = [];
+    let lastDensity = -1;
+
+    function spawnParticle(species) {
+      const temp = Math.max(1, n(state.temperature, 10));
+      const sp = Math.sqrt(temp) * 0.8;
+      return {
+        x: Math.random() * w,
+        y: Math.random() * h,
+        vx: (Math.random() - 0.5) * sp,
+        vy: (Math.random() - 0.5) * sp,
+        species: species == null ? (Math.random() < 0.5 ? 0 : 1) : species,
+        r: species ? 4 : 3
+      };
+    }
+
+    function syncParticleCount(force) {
+      const dens = Math.max(10, Math.min(120, Math.round(n(state.density, 50))));
+      if (!force && dens === lastDensity) return;
+      lastDensity = dens;
+      while (particles.length < dens) particles.push(spawnParticle(particles.length % 2));
+      while (particles.length > dens) particles.pop();
+    }
 
     function resetParticles() {
       particles.length = 0;
-      const n = Math.min(120, Math.max(10, Number(state.density || params.count) || 40));
-      for (let i = 0; i < n; i++) {
-        const species = i % 2;
-        particles.push({
-          x: Math.random() * w,
-          y: Math.random() * h,
-          vx: (Math.random() - 0.5) * 2,
-          vy: (Math.random() - 0.5) * 2,
-          species,
-          r: species ? 4 : 3
-        });
-      }
+      lastDensity = -1;
+      syncParticleCount(true);
       energy = 0;
       rateSeries.length = 0;
       trail = [];
+      state.energyMeV = 0;
+      state.fusionRateSeries = [];
+      state._orb = null;
+      state._theta = null;
+      state._omega = null;
+      state._x = null;
+      state._v = null;
+      state._balls = null;
+      state._phase = 0;
     }
     resetParticles();
 
     opts._action = (action) => {
       if (action === 'reset') resetParticles();
     };
+    opts._update = () => {
+      if (preset === 'fusion_dt' || preset === 'particles2d') syncParticleCount(true);
+      if (preset === 'projectile') step(0);
+      if (preset === 'pendulum' && state.angle != null) {
+        state._theta = (n(state.angle, 40) * Math.PI) / 180;
+        state._omega = 0;
+      }
+      if (preset === 'collision_1d') {
+        state._balls = null;
+      }
+      draw();
+    };
 
     function step(dt) {
       if (state.paused) return;
-      const temp = Math.max(1, Number(state.temperature) || 10);
-      const mag = Math.max(1, Number(state.magneticField) || 50);
-      const dens = Math.max(5, Number(state.density) || 40);
+      const temp = Math.max(1, n(state.temperature, 10));
+      const mag = Math.max(1, n(state.magneticField, 50));
+      const dens = Math.max(10, n(state.density, 50));
 
       if (preset === 'fusion_dt' || preset === 'particles2d') {
-        const speedScale =
-          params.velocityScale === 'sqrt_temperature' ? Math.sqrt(temp) * 0.35 : temp * 0.05;
+        syncParticleCount(false);
+        // Strong, visible response to temperature
+        const speedScale = Math.sqrt(temp) * 0.85;
         let fusions = 0;
-        const fuseDist = Number(params.fusionDistance) || 8;
-        const ePer = Number(params.energyPerFusionMeV) || 17.6;
+        const fuseDist = n(params.fusionDistance, 10);
+        const ePer = n(params.energyPerFusionMeV, 17.6);
+        // Higher mag → tighter pull to center (visible confinement)
+        const pull = mag / 35;
         particles.forEach((p) => {
-          const sp = speedScale * (0.6 + Math.random() * 0.8);
-          p.vx += (Math.random() - 0.5) * 0.4 * sp;
-          p.vy += (Math.random() - 0.5) * 0.4 * sp;
-          // magnetic confinement pulls toward center
+          p.vx += (Math.random() - 0.5) * 0.55 * speedScale;
+          p.vy += (Math.random() - 0.5) * 0.55 * speedScale;
           const cx = w / 2;
           const cy = h / 2;
-          p.vx += ((cx - p.x) / w) * (mag / 80);
-          p.vy += ((cy - p.y) / h) * (mag / 80);
-          const maxV = 2 + speedScale;
+          p.vx += ((cx - p.x) / w) * pull;
+          p.vy += ((cy - p.y) / h) * pull;
+          const maxV = 1.2 + speedScale * 1.4;
           p.vx = Math.max(-maxV, Math.min(maxV, p.vx));
           p.vy = Math.max(-maxV, Math.min(maxV, p.vy));
           p.x += p.vx;
@@ -869,6 +908,8 @@
           p.y = Math.max(0, Math.min(h, p.y));
         });
         if (preset === 'fusion_dt') {
+          // Fusion rate rises sharply with temp & density
+          const fuseChance = Math.min(0.45, (temp * temp * dens) / 80000);
           for (let i = 0; i < particles.length; i++) {
             for (let j = i + 1; j < particles.length; j++) {
               const a = particles[i];
@@ -876,35 +917,33 @@
               if (a.species === b.species) continue;
               const dx = a.x - b.x;
               const dy = a.y - b.y;
-              if (dx * dx + dy * dy < fuseDist * fuseDist && Math.random() < dens / 400) {
+              if (dx * dx + dy * dy < fuseDist * fuseDist && Math.random() < fuseChance) {
                 fusions++;
                 energy += ePer;
-                a.x = Math.random() * w;
-                a.y = Math.random() * h;
-                b.x = Math.random() * w;
-                b.y = Math.random() * h;
+                Object.assign(a, spawnParticle(0));
+                Object.assign(b, spawnParticle(1));
               }
             }
           }
           rateSeries.push(fusions);
-          if (rateSeries.length > 40) rateSeries.shift();
-          state.energyMeV = energy;
+          if (rateSeries.length > 48) rateSeries.shift();
+          state.energyMeV = Math.round(energy * 10) / 10;
           state.fusionRateSeries = rateSeries.slice();
         }
       } else if (preset === 'projectile') {
-        const angle = ((Number(state.angle) || 45) * Math.PI) / 180;
-        const speed = Number(state.speed) || 40;
-        const g = Number(state.g) || 9.8;
+        const angle = (n(state.angle, 45) * Math.PI) / 180;
+        const speed = n(state.speed, 40);
+        const g = n(state.g, 9.8);
         trail = [];
         let x = 40;
         let y = h - 40;
         let vx = Math.cos(angle) * speed;
         let vy = -Math.sin(angle) * speed;
-        for (let i = 0; i < 200; i++) {
+        for (let i = 0; i < 240; i++) {
           trail.push({ x, y });
-          vy += g * 0.15;
-          x += vx * 0.15;
-          y += vy * 0.15;
+          vy += g * 0.12;
+          x += vx * 0.12;
+          y += vy * 0.12;
           if (y > h - 20) break;
         }
       } else if (preset === 'gravity_orbit') {
@@ -917,33 +956,33 @@
         const dx = cx - o.x;
         const dy = cy - o.y;
         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-        const G = Number(state.gravity) || 1200;
+        const G = n(state.gravity, 1200);
         o.vx += (G * dx) / (dist * dist * dist);
         o.vy += (G * dy) / (dist * dist * dist);
         o.x += o.vx;
         o.y += o.vy;
       } else if (preset === 'pendulum') {
-        if (state._theta == null) state._theta = ((Number(state.angle) || 40) * Math.PI) / 180;
+        if (state._theta == null) state._theta = (n(state.angle, 40) * Math.PI) / 180;
         if (state._omega == null) state._omega = 0;
-        const L = Math.max(40, Number(state.length) || 120);
-        const g = Number(state.g) || 9.8;
+        const L = Math.max(40, n(state.length, 120));
+        const g = n(state.g, 9.8);
         state._omega += (-(g / (L / 40)) * Math.sin(state._theta)) * 0.05;
         state._theta += state._omega * 0.05;
         state._omega *= 0.999;
         state._L = L;
       } else if (preset === 'spring_mass') {
-        if (state._x == null) state._x = Number(state.displacement) || 40;
+        if (state._x == null) state._x = n(state.displacement, 40);
         if (state._v == null) state._v = 0;
-        const k = Number(state.k) || 0.08;
-        const m = Number(state.mass) || 1;
+        const k = n(state.k, 0.08);
+        const m = Math.max(0.2, n(state.mass, 1));
         state._v += ((-k * state._x) / m) * 0.4;
         state._x += state._v;
         state._v *= 0.995;
       } else if (preset === 'collision_1d') {
         if (!state._balls) {
           state._balls = [
-            { x: 80, v: Number(state.v1) || 2, m: Number(state.m1) || 1, r: 14 },
-            { x: w - 100, v: Number(state.v2) || -1.2, m: Number(state.m2) || 1.5, r: 18 }
+            { x: 80, v: n(state.v1, 2), m: n(state.m1, 1), r: 14 },
+            { x: w - 100, v: n(state.v2, -1.2), m: n(state.m2, 1.5), r: 18 }
           ];
         }
         const [A, B] = state._balls;
@@ -967,19 +1006,32 @@
         if (A.x < A.r || A.x > w - A.r) A.v *= -1;
         if (B.x < B.r || B.x > w - B.r) B.v *= -1;
       } else if (preset === 'wave_1d') {
-        state._phase = (state._phase || 0) + (Number(state.frequency) || 1) * 0.08;
+        const freq = Math.max(0.05, n(state.frequency, 1));
+        const speed = n(state.speed != null ? state.speed : state.waveSpeed, 1);
+        // speed=0 freezes the wave; amplitude=0 is a flat line (not "high")
+        state._phase = (state._phase || 0) + freq * speed * 0.12;
       }
     }
 
     function draw() {
       ctx.clearRect(0, 0, w, h);
       if (preset === 'fusion_dt' || preset === 'particles2d') {
-        // chamber ring
-        ctx.strokeStyle = 'rgba(102,126,234,0.45)';
-        ctx.lineWidth = 3;
+        const temp = Math.max(1, n(state.temperature, 10));
+        const mag = Math.max(1, n(state.magneticField, 50));
+        // Chamber glow scales with temperature
+        const glow = Math.min(0.55, temp / 70);
+        ctx.strokeStyle = `rgba(102,126,234,${0.25 + glow})`;
+        ctx.lineWidth = 2 + mag / 40;
         ctx.beginPath();
         ctx.ellipse(w / 2, h / 2, w * 0.38, h * 0.38, 0, 0, Math.PI * 2);
         ctx.stroke();
+        if (glow > 0.05) {
+          const g = ctx.createRadialGradient(w / 2, h / 2, 10, w / 2, h / 2, Math.min(w, h) * 0.4);
+          g.addColorStop(0, `rgba(255,120,60,${glow * 0.35})`);
+          g.addColorStop(1, 'rgba(15,18,32,0)');
+          ctx.fillStyle = g;
+          ctx.fillRect(0, 0, w, h);
+        }
         particles.forEach((p) => {
           ctx.beginPath();
           ctx.fillStyle = p.species ? '#3498db' : '#e74c3c';
@@ -1059,17 +1111,26 @@
           ctx.fill();
         });
       } else if (preset === 'wave_1d') {
-        const amp = Number(state.amplitude) || 40;
-        const freq = Number(state.frequency) || 1;
+        // Allow amplitude === 0 (flat line). Do NOT treat 0 as missing.
+        const amp = n(state.amplitude, 40);
+        const freq = Math.max(0.05, n(state.frequency, 1));
         const phase = state._phase || 0;
+        const k = 0.028 * freq;
         ctx.strokeStyle = '#667eea';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 2.5;
         ctx.beginPath();
         for (let x = 0; x < w; x++) {
-          const y = h / 2 + Math.sin(x * 0.03 * freq + phase) * amp;
+          const y = h / 2 + Math.sin(x * k + phase) * amp;
           if (x === 0) ctx.moveTo(x, y);
           else ctx.lineTo(x, y);
         }
+        ctx.stroke();
+        // Zero line
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, h / 2);
+        ctx.lineTo(w, h / 2);
         ctx.stroke();
       }
       if (outputsApi) outputsApi.refresh();
@@ -1084,11 +1145,6 @@
       raf = requestAnimationFrame(loop);
     }
     raf = requestAnimationFrame(loop);
-
-    opts._update = () => {
-      if (preset === 'projectile') step(0);
-      draw();
-    };
 
     return {
       destroy() {
