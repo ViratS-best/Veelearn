@@ -413,17 +413,9 @@
       try {
         if (typeof board.resize === 'function') board.resize();
         board.fullUpdate();
-        // Force label contrast — JSXGraph/HTML labels often ignore strokeColor on dark themes
-        host.querySelectorAll('.JXGtext, .vl-jxg-label, text').forEach((node) => {
-          node.style.setProperty('color', '#ffffff', 'important');
-          node.style.setProperty('fill', '#ffffff', 'important');
-          node.style.setProperty('font-weight', '800', 'important');
-          node.style.setProperty('text-shadow', '0 0 4px #000, 0 1px 3px #000', 'important');
-          if (node.setAttribute && node.tagName === 'text') {
-            node.setAttribute('fill', '#ffffff');
-            node.setAttribute('stroke', 'none');
-          }
-        });
+        restyleBoardLabels(host);
+        setTimeout(() => restyleBoardLabels(host), 50);
+        setTimeout(() => restyleBoardLabels(host), 250);
       } catch (_) {
         /* ignore */
       }
