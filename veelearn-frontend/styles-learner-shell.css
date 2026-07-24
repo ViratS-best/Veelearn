@@ -1432,14 +1432,21 @@ body.course-viewer-active #viewer-next-btn:hover {
   min-height: 180px;
 }
 
-/* JSXGraph labels on dark boards */
+/* JSXGraph labels on dark boards — beat CDN jsxgraph.css defaults */
 .vl-widget-view .JXGtext,
 .vl-widget-view .vl-jxg-label,
 .vl-widget-view .JXGtext span,
-.vl-widget-view text {
-  color: #e8ecf4 !important;
-  fill: #e8ecf4 !important;
-  font-weight: 600 !important;
+.vl-widget-view .JXGtext *,
+.vl-widget-view text,
+.vl-widget-view svg text,
+.vl-widget-view .JXGtextforeignObject,
+#jxgbox .JXGtext {
+  color: #ffffff !important;
+  fill: #ffffff !important;
+  stroke: none !important;
+  font-weight: 800 !important;
+  opacity: 1 !important;
+  text-shadow: 0 0 4px #000, 0 1px 3px #000 !important;
 }
 
 .vl-widget-controls {

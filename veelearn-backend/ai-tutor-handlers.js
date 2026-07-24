@@ -272,7 +272,9 @@ function sanitizeElements(elements) {
         'perpendicular',
         'parallel',
         'midpoint',
-        'ray'
+        'ray',
+        'incircle',
+        'incenter'
     ]);
     return elements.slice(0, 40).map((el, i) => {
         if (!el || typeof el !== 'object') return null;
@@ -583,6 +585,37 @@ function wantsVisualization(message, historyBlob) {
 }
 
 /** Build a geometry_board for common AMC rectangle / AF–DE intersection problems. */
+function areNearlyCollinear(p1, p2, p3, eps) {
+    if (!p1 || !p2 || !p3) return true;
+    const area2 = Math.abs((p2.x - p1.x) * (p3.y - p1.y) - (p3.x - p1.x) * (p2.y - p1.y));
+    return area2 < (eps == null ? 1e-6 : eps);
+}
+
+function pickIncircleTriangle(requested, pointMap) {
+    const tryNames = (names) => {
+        if (!names || names.length !== 3) return null;
+        if (!names.every((n) => pointMap[n])) return null;
+        if (areNearlyCollinear(pointMap[names[0]], pointMap[names[1]], pointMap[names[2]])) return null;
+        return names;
+    };
+    const direct = tryNames(requested);
+    if (direct) return direct;
+    const alts = [
+        ['E', 'G', 'F'],
+        ['A', 'G', 'D'],
+        ['C', 'G', 'F'],
+        ['B', 'G', 'E'],
+        ['A', 'G', 'E'],
+        ['D', 'G', 'F'],
+        ['A', 'B', 'C']
+    ];
+    for (const alt of alts) {
+        const ok = tryNames(alt);
+        if (ok) return ok;
+    }
+    return null;
+}
+
 function buildGeometryFallback(text) {
     const src = String(text || '');
     const ab = src.match(/\bAB\s*=\s*(\d+(?:\.\d+)?)/i);
@@ -649,17 +682,65 @@ function buildGeometryFallback(text) {
         { type: 'segment', name: 'DA', from: 'D', to: 'A', color: 'blue' },
         { type: 'segment', name: 'AF', from: 'A', to: 'F', color: 'red' },
         { type: 'segment', name: 'DE', from: 'D', to: 'E', color: 'red' },
-        { type: 'intersection', name: 'G', from: 'AF', to: 'DE', label: 'G', color: 'green' },
-        { type: 'segment', name: 'EG', from: 'E', to: 'G', color: 'purple' },
-        { type: 'segment', name: 'GD', from: 'G', to: 'D', color: 'purple' },
-        { type: 'segment', name: 'DE2', from: 'D', to: 'E', color: 'purple' }
+        { type: 'intersection', name: 'G', from: 'AF', to: 'DE', label: 'G', color: 'green' }
     ];
+
+    const wantsIncircle = /\b(inscribed|incircle|inradius|inscribe)\b/i.test(src);
+    if (wantsIncircle) {
+        const triMatch =
+            src.match(/inscribed in (?:triangle\s*)?([A-Z]{3})\b/i) ||
+            src.match(/\btriangle\s+([A-Z]{3})\b[^.]{0,60}\b(inscribed|incircle|inradius)\b/i) ||
+            src.match(/\b(inscribed|incircle|inradius)\b[^.]{0,60}\btriangle\s+([A-Z]{3})\b/i);
+        let requested = null;
+        if (triMatch) {
+            const letters = (triMatch[1] && /^[A-Z]{3}$/i.test(triMatch[1]) ? triMatch[1] : triMatch[2] || '')
+                .toUpperCase()
+                .split('');
+            if (letters.length === 3) requested = letters;
+        }
+        // G is on DE, so △EGD is degenerate — pick a non-collinear triangle (often EGF)
+        const pointMap = { A, B, C, D, E, F, G: { x: (A.x + F.x) / 2, y: (A.y + F.y) / 2 } };
+        // Better G estimate: AF∩DE parametric
+        // AF: A + t(F-A), DE: D + s(E-D)
+        const afx = F.x - A.x;
+        const afy = F.y - A.y;
+        const dex = E.x - D.x;
+        const dey = E.y - D.y;
+        const den = afx * dey - afy * dex;
+        if (Math.abs(den) > 1e-9) {
+            const t = ((D.x - A.x) * dey - (D.y - A.y) * dex) / den;
+            pointMap.G = { x: A.x + t * afx, y: A.y + t * afy };
+        }
+        const tri = pickIncircleTriangle(requested, pointMap);
+        if (tri) {
+            elements.push(
+                { type: 'segment', name: `s_${tri[0]}${tri[1]}`, from: tri[0], to: tri[1], color: 'purple' },
+                { type: 'segment', name: `s_${tri[1]}${tri[2]}`, from: tri[1], to: tri[2], color: 'purple' },
+                { type: 'segment', name: `s_${tri[2]}${tri[0]}`, from: tri[2], to: tri[0], color: 'purple' }
+            );
+            elements.push({
+                type: 'polygon',
+                name: `tri_${tri.join('')}`,
+                points: tri,
+                color: 'purple'
+            });
+            elements.push({
+                type: 'incircle',
+                name: 'incircle',
+                points: tri,
+                label: 'I',
+                color: 'cyan'
+            });
+        }
+    }
 
     return validateWidgetSpecs([
         {
             id: 'auto-geo-rect',
             title: 'Geometry Diagram',
-            objective: 'Rectangle ABCD with AF, DE, and intersection G',
+            objective: wantsIncircle
+                ? 'Rectangle ABCD with AF ∩ DE = G and inscribed circle'
+                : 'Rectangle ABCD with AF, DE, and intersection G',
             view: { type: 'geometry', width: 520, height: 360 },
             state: {},
             inputs: [],
