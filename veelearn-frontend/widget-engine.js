@@ -75,9 +75,22 @@
   function ensureThree() {
     if (global.THREE) return Promise.resolve(global.THREE);
     if (threeReady) return threeReady;
-    threeReady = loadScript('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js').then(
-      () => global.THREE
-    );
+    const urls = [
+      'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js',
+      'https://unpkg.com/three@0.160.0/build/three.min.js'
+    ];
+    threeReady = (async () => {
+      let lastErr;
+      for (const url of urls) {
+        try {
+          await loadScript(url);
+          if (global.THREE) return global.THREE;
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+      throw lastErr || new Error('Three.js failed to load');
+    })();
     return threeReady;
   }
 
@@ -102,8 +115,9 @@
     if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
   }
 
-  /** Restricted math expression → JS function of x (and optional t). */
-  function compileExpr(expr, vars) {
+  /** Restricted math expression → fn(independentValue, state). State keys (a,b,…) bind from sliders. */
+  function compileExpr(expr, independentVars) {
+    const vars = independentVars && independentVars.length ? independentVars : ['x'];
     const raw = String(expr || '')
       .replace(/^\s*y\s*=\s*/i, '')
       .replace(/\^/g, '**')
@@ -122,14 +136,54 @@
       .replace(/\blog\b/g, 'Math.log')
       .replace(/\bln\b/g, 'Math.log')
       .replace(/\bexp\b/g, 'Math.exp')
-      .replace(/\bpow\b/g, 'Math.pow');
+      .replace(/\bpow\b/g, 'Math.pow')
+      .replace(/\bmin\b/g, 'Math.min')
+      .replace(/\bmax\b/g, 'Math.max');
     if (!/^[\d\sA-Za-z_+\-*/().,]+$/.test(body.replace(/Math\./g, ''))) {
       return () => NaN;
     }
-    const argList = (vars || ['x']).join(',');
+
+    const reserved = new Set([
+      ...vars,
+      'Math',
+      'sin',
+      'cos',
+      'tan',
+      'abs',
+      'sqrt',
+      'log',
+      'ln',
+      'exp',
+      'pow',
+      'min',
+      'max',
+      'PI',
+      'E',
+      'true',
+      'false',
+      'NaN',
+      'Infinity'
+    ]);
+    const freeIds = new Set();
+    body.replace(/\b([A-Za-z_][A-Za-z0-9_]*)\b/g, (id) => {
+      if (!reserved.has(id)) freeIds.add(id);
+      return id;
+    });
+    let safeBody = body;
+    freeIds.forEach((id) => {
+      safeBody = safeBody.replace(new RegExp(`\\b${id}\\b`, 'g'), `(+__s[${JSON.stringify(id)}]||0)`);
+    });
+
     try {
       // eslint-disable-next-line no-new-func
-      return new Function(argList, `"use strict"; return (${body});`);
+      const impl = new Function(...vars, '__s', `"use strict"; return (${safeBody});`);
+      return function evalExpr(independent, state) {
+        try {
+          return impl(independent, state || {});
+        } catch (_) {
+          return NaN;
+        }
+      };
     } catch (_) {
       return () => NaN;
     }
@@ -356,7 +410,7 @@
           });
         } else if (el.type === 'function' && el.expr) {
           const fn = compileExpr(el.expr, ['x']);
-          map[el.name] = board.create('functiongraph', [(x) => fn(x)], {
+          map[el.name] = board.create('functiongraph', [(x) => fn(x, {})], {
             strokeColor: resolveColor(el.color, '#e74c3c'),
             strokeWidth: 2
           });
@@ -475,12 +529,13 @@
         const colors = ['#e74c3c', '#3498db', '#2ecc71'];
         const cleaned = String(ex).replace(/^\s*y\s*[<>]=?\s*/i, '');
         const fn = compileExpr(cleaned, ['x']);
-        board.create('functiongraph', [(x) => fn(x)], {
+        board.create('functiongraph', [(x) => fn(x, state)], {
           strokeColor: colors[i % colors.length],
           strokeWidth: 2
         });
       });
       applyGeometryElements(board, JXG, params.elements, named);
+      opts._update = () => board.update();
       return { board };
     }
 
@@ -491,9 +546,10 @@
       const t1 = Number(params.tMax) || Math.PI * 2;
       board.create(
         'curve',
-        [(t) => xt(t), (t) => yt(t), t0, t1],
+        [(t) => xt(t, state), (t) => yt(t, state), t0, t1],
         { strokeColor: '#e74c3c', strokeWidth: 2 }
       );
+      opts._update = () => board.update();
       return { board };
     }
 
@@ -502,22 +558,8 @@
       const expr = params.expressions && params.expressions[0];
       if (expr) {
         const fn = compileExpr(expr, ['x']);
-        const a = Number(state.a != null ? state.a : params.a) || -1;
-        const b = Number(state.b != null ? state.b : params.b) || 1;
-        board.create('functiongraph', [(x) => fn(x)], { strokeColor: '#e74c3c', strokeWidth: 2 });
-        board.create(
-          'curve',
-          [
-            (t) => a + (b - a) * t,
-            (t) => {
-              const x = a + (b - a) * t;
-              return t < 0.5 ? 0 : fn(x);
-            },
-            0,
-            1
-          ],
-          { fillColor: '#667eea', fillOpacity: 0.3, strokeWidth: 0 }
-        );
+        board.create('functiongraph', [(x) => fn(x, state)], { strokeColor: '#e74c3c', strokeWidth: 2 });
+        opts._update = () => board.update();
       }
       return { board };
     }
@@ -525,16 +567,22 @@
     if (preset === 'function_plot' || preset === 'coordinate_plane') {
       const exprs = params.expressions || [];
       const colors = ['#e74c3c', '#3498db', '#2ecc71', '#e67e22'];
+      let plotted = false;
       exprs.forEach((ex, i) => {
-        const fn = compileExpr(ex, ['x']);
-        board.create('functiongraph', [(x) => fn(x)], {
-          strokeColor: colors[i % colors.length],
-          strokeWidth: 2
-        });
+        try {
+          const fn = compileExpr(ex, ['x']);
+          board.create('functiongraph', [(x) => fn(x, state)], {
+            strokeColor: colors[i % colors.length],
+            strokeWidth: 2
+          });
+          plotted = true;
+        } catch (err) {
+          console.warn('function_plot expr failed', ex, err);
+        }
       });
-      // Slider-linked a,b,c for ax^2+bx+c style
-      if (state.a != null || state.b != null || state.c != null) {
-        const curve = board.create(
+      // Default quadratic when sliders provide a/b/c but no expressions
+      if (!plotted && (state.a != null || state.b != null || state.c != null)) {
+        board.create(
           'functiongraph',
           [
             (x) => {
@@ -546,12 +594,10 @@
           ],
           { strokeColor: '#9b59b6', strokeWidth: 2 }
         );
-        opts._update = () => {
-          board.update();
-          void curve;
-        };
+        plotted = true;
       }
       applyGeometryElements(board, JXG, params.elements, named);
+      opts._update = () => board.update();
       return { board };
     }
 
@@ -559,12 +605,17 @@
     applyGeometryElements(board, JXG, params.elements, named);
     const exprs = params.expressions || [];
     exprs.forEach((ex, i) => {
-      const fn = compileExpr(ex, ['x']);
-      board.create('functiongraph', [(x) => fn(x)], {
-        strokeColor: ['#e74c3c', '#3498db'][i % 2],
-        strokeWidth: 2
-      });
+      try {
+        const fn = compileExpr(ex, ['x']);
+        board.create('functiongraph', [(x) => fn(x, state)], {
+          strokeColor: ['#e74c3c', '#3498db'][i % 2],
+          strokeWidth: 2
+        });
+      } catch (err) {
+        console.warn('geometry expr failed', ex, err);
+      }
     });
+    opts._update = () => board.update();
     return { board };
   }
 
@@ -601,7 +652,14 @@
 
   async function mountThreePreset(host, spec, state, opts) {
     const THREE = await ensureThree();
+    if (!THREE || !THREE.WebGLRenderer) {
+      throw new Error('Three.js WebGLRenderer unavailable');
+    }
     host.innerHTML = '';
+    host.style.position = 'relative';
+    host.style.minHeight = host.style.minHeight || '280px';
+    host.style.width = '100%';
+
     const canvas = document.createElement('canvas');
     canvas.style.width = '100%';
     canvas.style.height = '100%';
@@ -609,8 +667,12 @@
     canvas.style.borderRadius = '10px';
     host.appendChild(canvas);
 
-    const w = host.clientWidth || 480;
-    const h = host.clientHeight || 300;
+    // Force layout before measuring (host can be 0×0 on first paint)
+    const w = Math.max(host.clientWidth || 0, 320);
+    const h = Math.max(host.clientHeight || 0, 280);
+    canvas.width = w;
+    canvas.height = h;
+
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(global.devicePixelRatio || 1, 2));
     renderer.setSize(w, h, false);

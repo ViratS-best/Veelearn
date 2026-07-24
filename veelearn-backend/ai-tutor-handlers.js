@@ -29,6 +29,39 @@ const WIDGET_PRESETS = new Set([
     'wave_1d'
 ]);
 
+const PRESET_ALIASES = {
+    spinning_cube: 'spinning_box',
+    rotating_cube: 'spinning_box',
+    cube: 'spinning_box',
+    cube_simulator: 'spinning_box',
+    '3d_cube': 'spinning_box',
+    box: 'spinning_box',
+    desmos: 'desmos_graph',
+    graph: 'desmos_graph',
+    plot: 'function_plot',
+    function: 'function_plot',
+    quadratic: 'function_plot',
+    parabola: 'function_plot',
+    geometry: 'geometry_board',
+    geo: 'geometry_board',
+    fusion: 'fusion_dt',
+    nuclear_fusion: 'fusion_dt',
+    particles: 'particles2d',
+    orbit: 'gravity_orbit',
+    wave: 'wave_1d',
+    spring: 'spring_mass',
+    collision: 'collision_1d'
+};
+
+function normalizePreset(name) {
+    const raw = String(name || '').trim();
+    if (WIDGET_PRESETS.has(raw)) return raw;
+    const key = raw.toLowerCase().replace(/[\s-]+/g, '_');
+    if (WIDGET_PRESETS.has(key)) return key;
+    if (PRESET_ALIASES[key]) return PRESET_ALIASES[key];
+    return '';
+}
+
 const VIEW_TYPES = new Set([
     'function',
     'geometry',
@@ -384,8 +417,8 @@ function validateWidgetSpecs(rawWidgets) {
     const out = [];
     for (const w of rawWidgets.slice(0, 3)) {
         if (!w || typeof w !== 'object') continue;
-        const preset = String(w.behavior?.preset || w.preset || '').trim();
-        if (!WIDGET_PRESETS.has(preset)) continue;
+        const preset = normalizePreset(w.behavior?.preset || w.preset || '');
+        if (!preset) continue;
 
         let viewType = String(w.view?.type || '').toLowerCase();
         if (!VIEW_TYPES.has(viewType)) {
@@ -538,6 +571,86 @@ function autoFunctionWidget(message) {
             }
         }
     ]);
+}
+
+/** Deterministic widgets when the model forgets JSON (cube, fusion, quadratic, …). */
+function autoFallbackWidgets(message) {
+    const msg = String(message || '').toLowerCase();
+
+    if (/\b(spinning\s*)?(cube|box)\b|\b3d\s*cube\b|\bspinning\s*box\b/.test(msg)) {
+        return validateWidgetSpecs([
+            {
+                id: 'auto-cube',
+                title: '3D Cube Simulator',
+                objective: 'Interactive spinning cube — adjust size, color, and speed',
+                view: { type: 'sim3d', width: 520, height: 320 },
+                state: { size: 200, color: 'red', rotationSpeed: 1, rotating: true },
+                inputs: [
+                    { key: 'rotationSpeed', type: 'slider', label: 'Rotation Speed', min: 0, max: 5, step: 0.1 },
+                    { key: 'size', type: 'slider', label: 'Cube Size', min: 50, max: 300, step: 5 },
+                    {
+                        key: 'color',
+                        type: 'select',
+                        label: 'Cube Color',
+                        options: ['red', 'blue', 'green', 'orange', 'purple']
+                    }
+                ],
+                outputs: [],
+                behavior: { preset: 'spinning_box', params: {} }
+            }
+        ]);
+    }
+
+    if (/\bfusion\b|\bplasma\b|\bdeuterium\b|\btritium\b/.test(msg)) {
+        return validateWidgetSpecs([
+            {
+                id: 'auto-fusion',
+                title: 'D-T Fusion Simulator',
+                objective: 'Interactive particle fusion chamber',
+                view: { type: 'particles2d', width: 520, height: 320 },
+                state: { temperature: 10, density: 50, magneticField: 50, energyMeV: 0, paused: false },
+                inputs: [
+                    { key: 'temperature', type: 'slider', label: 'Temperature (keV)', min: 1, max: 40, step: 1 },
+                    { key: 'density', type: 'slider', label: 'Plasma Density', min: 10, max: 100 },
+                    { key: 'magneticField', type: 'slider', label: 'Magnetic Field', min: 10, max: 100 },
+                    { key: 'paused', type: 'toggle', label: 'Pause' },
+                    { key: 'reset', type: 'button', label: 'Reset', action: 'reset' }
+                ],
+                outputs: [
+                    { key: 'energyMeV', type: 'stat', label: 'Energy Output (MeV)' },
+                    { key: 'fusionRateSeries', type: 'sparkline', label: 'Fusion Rate' }
+                ],
+                behavior: {
+                    preset: 'fusion_dt',
+                    params: {
+                        velocityScale: 'sqrt_temperature',
+                        fusionDistance: 8,
+                        energyPerFusionMeV: 17.6
+                    }
+                }
+            }
+        ]);
+    }
+
+    if (/\bquadratic\b|\bparabola\b|\ba\s*\*\s*x\s*\^\s*2\b|\by\s*=\s*a/.test(msg)) {
+        return validateWidgetSpecs([
+            {
+                id: 'auto-quad',
+                title: 'Quadratic Explorer',
+                objective: 'Visualize y = a·x² with a live coefficient slider',
+                view: { type: 'function', width: 520, height: 320 },
+                state: { a: 1 },
+                inputs: [{ key: 'a', type: 'slider', label: 'Coefficient (a)', min: -5, max: 5, step: 0.1 }],
+                outputs: [],
+                behavior: {
+                    preset: 'function_plot',
+                    params: { expressions: ['a * x^2'], boundingbox: [-6, 6, 6, -6] }
+                }
+            }
+        ]);
+    }
+
+    return autoFunctionWidget(message);
 }
 
 /**
@@ -787,7 +900,7 @@ function createAiTutorHandlers({ query, openRouterChatCompletion, apiResponse })
                             {
                                 role: 'system',
                                 content:
-                                    'Emit ONLY VEELEARN_WIDGET_JSON: then a JSON array of 1 widgetSpec for the user request. No prose. Use an allowed preset. For graphs use desmos_graph or function_plot. For geometry use geometry_board with params.elements.'
+                                    'Emit ONLY VEELEARN_WIDGET_JSON: then a JSON array of 1 widgetSpec for the user request. No prose. Use an allowed preset. For a spinning cube use preset spinning_box. For graphs use desmos_graph or function_plot (put params like a in state + slider inputs; expression may use a, e.g. "a * x^2"). For geometry use geometry_board with params.elements.'
                             },
                             { role: 'user', content: message }
                         ],
@@ -812,7 +925,11 @@ function createAiTutorHandlers({ query, openRouterChatCompletion, apiResponse })
             }
 
             if (forceViz && !widgets.length) {
-                widgets = autoFunctionWidget(message);
+                widgets = autoFallbackWidgets(message);
+                if (widgets.length && !/interactive|simulator|figure|graph|slider/i.test(safeReply)) {
+                    safeReply =
+                        `${safeReply}\n\nUse the interactive below — try the controls and tell me what you notice.`.trim();
+                }
             }
 
             if (!recommendations.length && catalog.length && wantsCourseRecommendation(message) && !forceViz) {
