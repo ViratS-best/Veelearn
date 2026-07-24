@@ -1312,6 +1312,33 @@ function setupStudyCoachListeners() {
     }
 }
 
+function typesetStudyCoachBubble(el) {
+    if (!el) return;
+    const eng = window.VeelearnWidgetEngine;
+    if (eng && typeof eng.typesetMath === "function") {
+        eng.typesetMath(el);
+        return;
+    }
+    if (window.MathJax && typeof window.MathJax.typesetPromise === "function") {
+        window.MathJax.typesetPromise([el]).catch(() => {});
+    }
+}
+
+async function ensureStudyCoachWidgetEngine() {
+    if (window.VeelearnWidgetEngine) return window.VeelearnWidgetEngine;
+    if (typeof window.__veelearnLoadHeavy === "function") {
+        await window.__veelearnLoadHeavy("widgets");
+    }
+    return window.VeelearnWidgetEngine;
+}
+
+async function mountStudyCoachWidgets(host, widgets, opts) {
+    if (!host || !widgets || !widgets.length) return;
+    const eng = await ensureStudyCoachWidgetEngine();
+    if (!eng || typeof eng.mountWidgets !== "function") return;
+    await eng.mountWidgets(host, widgets, opts || {});
+}
+
 function removeStudyCoachTypingIndicator() {
     document.getElementById("study-coach-typing")?.remove();
 }
@@ -1337,9 +1364,9 @@ function showStudyCoachTypingIndicator() {
     box.scrollTop = box.scrollHeight;
 }
 
-function appendStudyCoachBubble(role, text) {
+function appendStudyCoachBubble(role, text, widgets, mountOpts) {
     const box = document.getElementById("study-coach-messages");
-    if (!box) return;
+    if (!box) return null;
     const wrap = document.createElement("div");
     wrap.className = "study-coach-bubble";
     wrap.style.marginBottom = "10px";
@@ -1350,15 +1377,25 @@ function appendStudyCoachBubble(role, text) {
         wrap.classList.add("study-coach-user");
         wrap.style.background = "rgba(118, 139, 255, 0.35)";
         wrap.style.marginLeft = "12px";
-        wrap.innerHTML = `<strong>You</strong><div>${escapeHtml(text)}</div>`;
+        wrap.innerHTML = `<strong>You</strong><div class="study-coach-body">${escapeHtml(text)}</div>`;
     } else {
         wrap.classList.add("study-coach-coach");
         wrap.style.background = "rgba(255,255,255,0.1)";
         wrap.style.marginRight = "12px";
-        wrap.innerHTML = `<strong>Coach</strong><div>${escapeHtml(text)}</div>`;
+        wrap.innerHTML = `<strong>Coach</strong><div class="study-coach-body">${escapeHtml(text)}</div>`;
     }
+    const widgetHost = document.createElement("div");
+    widgetHost.className = "vl-widget-host";
+    wrap.appendChild(widgetHost);
     box.appendChild(wrap);
     box.scrollTop = box.scrollHeight;
+    typesetStudyCoachBubble(wrap.querySelector(".study-coach-body") || wrap);
+    if (role !== "user" && widgets && widgets.length) {
+        mountStudyCoachWidgets(widgetHost, widgets, mountOpts).then(() => {
+            box.scrollTop = box.scrollHeight;
+        });
+    }
+    return wrap;
 }
 
 function renderStudyCoachRecommendations(recs) {
@@ -1410,7 +1447,9 @@ async function loadStudyCoachHistory() {
         box.innerHTML = "";
         data.data.forEach((row) => {
             if (row.role === "user" || row.role === "assistant") {
-                appendStudyCoachBubble(row.role, row.content || "");
+                appendStudyCoachBubble(row.role, row.content || "", row.widgets || [], {
+                    skipDrawing: true
+                });
             }
         });
     } catch (e) {
@@ -1455,7 +1494,7 @@ async function sendStudyCoachMessage() {
             return;
         }
         const reply = data.data?.reply || "";
-        appendStudyCoachBubble("assistant", reply);
+        appendStudyCoachBubble("assistant", reply, data.data?.widgets || []);
         renderStudyCoachRecommendations(data.data?.recommendations);
     } catch (e) {
         console.error(e);
