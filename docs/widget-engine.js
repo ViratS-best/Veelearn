@@ -346,14 +346,85 @@
     const id = `vl-jxg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     host.id = id;
     host.innerHTML = '';
-    return JXG.JSXGraph.initBoard(id, {
-      boundingbox: bb || [-6, 6, 6, -6],
+    host.style.minHeight = host.style.minHeight || '320px';
+    host.style.width = '100%';
+    host.style.background = '#0f1220';
+    const board = JXG.JSXGraph.initBoard(id, {
+      boundingbox: Array.isArray(bb) && bb.length === 4 ? bb : [-1, 6, 6, -1],
       axis: true,
+      grid: true,
       showCopyright: false,
       showNavigation: true,
-      pan: { enabled: true },
-      zoom: { enabled: true }
+      pan: { enabled: true, needTwoFingers: false },
+      zoom: { enabled: true },
+      keepaspectratio: true,
+      defaultAxes: {
+        x: {
+          strokeColor: '#8b93a7',
+          highlight: false,
+          ticks: {
+            strokeColor: '#8b93a7',
+            label: { strokeColor: '#e8ecf4', highlightStrokeColor: '#e8ecf4', cssClass: 'vl-jxg-label', highlightCssClass: 'vl-jxg-label' }
+          }
+        },
+        y: {
+          strokeColor: '#8b93a7',
+          highlight: false,
+          ticks: {
+            strokeColor: '#8b93a7',
+            label: { strokeColor: '#e8ecf4', highlightStrokeColor: '#e8ecf4', cssClass: 'vl-jxg-label', highlightCssClass: 'vl-jxg-label' }
+          }
+        }
+      }
     });
+    // Ensure layout after mount (empty boards often mean 0×0 host on first paint)
+    requestAnimationFrame(() => {
+      try {
+        if (typeof board.resize === 'function') board.resize();
+        board.fullUpdate();
+      } catch (_) {
+        /* ignore */
+      }
+    });
+    return board;
+  }
+
+  function readCoord(el, key, fallback) {
+    if (el == null) return fallback;
+    if (el[key] != null && Number.isFinite(Number(el[key]))) return Number(el[key]);
+    if (Array.isArray(el.coords) && el.coords.length >= 2) {
+      return Number(el.coords[key === 'x' ? 0 : 1]);
+    }
+    if (Array.isArray(el.pos) && el.pos.length >= 2) {
+      return Number(el.pos[key === 'x' ? 0 : 1]);
+    }
+    if (Array.isArray(el.position) && el.position.length >= 2) {
+      return Number(el.position[key === 'x' ? 0 : 1]);
+    }
+    const n = Number(el[key]);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  function pointOpts(el, color) {
+    return {
+      name: el.label || el.name || '',
+      size: 4,
+      fixed: el.fixed === false ? false : true,
+      color: resolveColor(color || el.color, '#ff6b6b'),
+      fillColor: resolveColor(color || el.color, '#ff6b6b'),
+      strokeColor: '#ffffff',
+      strokeWidth: 1,
+      label: {
+        strokeColor: '#f2f5ff',
+        highlightStrokeColor: '#ffffff',
+        fontSize: 14,
+        cssClass: 'vl-jxg-label',
+        highlightCssClass: 'vl-jxg-label',
+        offset: [8, 8]
+      },
+      highlight: false,
+      showInfobox: false
+    };
   }
 
   function applyGeometryElements(board, JXG, elements, named) {
@@ -361,67 +432,101 @@
     (elements || []).forEach((el) => {
       try {
         if (el.type === 'point') {
-          map[el.name] = board.create('point', [el.x || 0, el.y || 0], {
-            name: el.label || el.name || '',
-            size: 3,
-            color: resolveColor(el.color, '#e74c3c')
-          });
+          const hasX =
+            el.x != null ||
+            (Array.isArray(el.coords) && el.coords.length >= 2) ||
+            (Array.isArray(el.pos) && el.pos.length >= 2) ||
+            (Array.isArray(el.position) && el.position.length >= 2);
+          const hasY =
+            el.y != null ||
+            (Array.isArray(el.coords) && el.coords.length >= 2) ||
+            (Array.isArray(el.pos) && el.pos.length >= 2) ||
+            (Array.isArray(el.position) && el.position.length >= 2);
+          if (!hasX || !hasY) {
+            console.warn('geometry point missing coordinates, skipping', el);
+            return;
+          }
+          const x = readCoord(el, 'x', NaN);
+          const y = readCoord(el, 'y', NaN);
+          if (!Number.isFinite(x) || !Number.isFinite(y)) {
+            console.warn('geometry point invalid coordinates, skipping', el);
+            return;
+          }
+          map[el.name] = board.create('point', [x, y], pointOpts(el));
         } else if (el.type === 'segment' && map[el.from] && map[el.to]) {
           map[el.name] = board.create('segment', [map[el.from], map[el.to]], {
-            strokeColor: resolveColor(el.color, '#3498db')
+            strokeColor: resolveColor(el.color, '#6ea8fe'),
+            strokeWidth: 2,
+            fixed: true,
+            highlight: false
           });
         } else if (el.type === 'line' && map[el.from] && map[el.to]) {
           map[el.name] = board.create('line', [map[el.from], map[el.to]], {
-            strokeColor: resolveColor(el.color, '#3498db')
+            strokeColor: resolveColor(el.color, '#6ea8fe'),
+            strokeWidth: 2,
+            fixed: true,
+            highlight: false
           });
         } else if (el.type === 'ray' && map[el.from] && map[el.to]) {
           map[el.name] = board.create('line', [map[el.from], map[el.to]], {
             straightFirst: false,
             straightLast: true,
-            strokeColor: resolveColor(el.color, '#3498db')
+            strokeColor: resolveColor(el.color, '#6ea8fe'),
+            strokeWidth: 2,
+            fixed: true,
+            highlight: false
           });
         } else if (el.type === 'circle') {
           if (map[el.center] && map[el.through]) {
             map[el.name] = board.create('circle', [map[el.center], map[el.through]], {
-              strokeColor: resolveColor(el.color, '#9b59b6')
+              strokeColor: resolveColor(el.color, '#c084fc'),
+              strokeWidth: 2,
+              fixed: true,
+              highlight: false
             });
           } else if (map[el.center] && el.radius != null) {
-            map[el.name] = board.create('circle', [map[el.center], el.radius], {
-              strokeColor: resolveColor(el.color, '#9b59b6')
+            map[el.name] = board.create('circle', [map[el.center], Number(el.radius)], {
+              strokeColor: resolveColor(el.color, '#c084fc'),
+              strokeWidth: 2,
+              fixed: true,
+              highlight: false
             });
           }
         } else if (el.type === 'polygon' && Array.isArray(el.points)) {
           const pts = el.points.map((n) => map[n]).filter(Boolean);
           if (pts.length >= 3) {
             map[el.name] = board.create('polygon', pts, {
-              fillColor: resolveColor(el.color, '#3498db'),
-              fillOpacity: 0.25
+              fillColor: resolveColor(el.color, '#6ea8fe'),
+              fillOpacity: 0.22,
+              borders: { strokeColor: resolveColor(el.color, '#6ea8fe'), strokeWidth: 2 },
+              fixed: true,
+              highlight: false
             });
           }
         } else if (el.type === 'midpoint' && map[el.from] && map[el.to]) {
-          map[el.name] = board.create('midpoint', [map[el.from], map[el.to]], {
-            name: el.label || el.name || '',
-            size: 2
-          });
+          map[el.name] = board.create('midpoint', [map[el.from], map[el.to]], pointOpts(el, '#fbbf24'));
         } else if (el.type === 'intersection' && map[el.from] && map[el.to]) {
-          map[el.name] = board.create('intersection', [map[el.from], map[el.to], 0], {
-            name: el.label || el.name || '',
-            size: 3
-          });
+          map[el.name] = board.create('intersection', [map[el.from], map[el.to], 0], pointOpts(el, '#4ade80'));
         } else if (el.type === 'function' && el.expr) {
           const fn = compileExpr(el.expr, ['x']);
           map[el.name] = board.create('functiongraph', [(x) => fn(x, {})], {
-            strokeColor: resolveColor(el.color, '#e74c3c'),
+            strokeColor: resolveColor(el.color, '#f87171'),
             strokeWidth: 2
           });
         } else if (el.type === 'text') {
-          board.create('text', [el.x || 0, el.y || 0, el.text || ''], { fontSize: 14 });
+          board.create('text', [readCoord(el, 'x', 0), readCoord(el, 'y', 0), el.text || ''], {
+            fontSize: 14,
+            strokeColor: '#e8ecf4',
+            cssClass: 'vl-jxg-label',
+            highlightCssClass: 'vl-jxg-label'
+          });
         } else if (el.type === 'vector' && map[el.from] && map[el.to]) {
           map[el.name] = board.create('arrow', [map[el.from], map[el.to]], {
-            strokeColor: resolveColor(el.color, '#e67e22')
+            strokeColor: resolveColor(el.color, '#fb923c'),
+            strokeWidth: 2,
+            fixed: true,
+            highlight: false
           });
-        } else if (el.type === 'angle' && map[el.from] && map[el.center || el.name] === undefined && el.points) {
-          /* skip unsupported */
         }
       } catch (err) {
         console.warn('geometry element failed', el, err);
@@ -443,11 +548,15 @@
       const elements = params.elements || [];
       elements.forEach((el) => {
         if (el.type === 'point') {
-          board.create('point', [el.x || 0, 0], { name: el.label || el.name || '', size: 4 });
+          board.create('point', [readCoord(el, 'x', 0), 0], pointOpts(el));
         }
       });
       if (state.point != null) {
-        const p = board.create('point', [Number(state.point) || 0, 0], { name: 'P', size: 5, color: '#e74c3c' });
+        const p = board.create(
+          'point',
+          [Number(state.point) || 0, 0],
+          pointOpts({ name: 'P', label: 'P', color: '#e74c3c', fixed: false })
+        );
         opts._update = () => {
           p.setPosition(JXG.COORDS_BY_USER, [Number(state.point) || 0, 0]);
           board.update();
@@ -474,12 +583,18 @@
       const a = Number(state.a != null ? state.a : params.a) || 3;
       const b = Number(state.b != null ? state.b : params.b) || 4;
       const c = Number(state.c != null ? state.c : params.c) || 5;
-      const A = board.create('point', [0, 0], { name: 'A', fixed: true });
-      const B = board.create('point', [c, 0], { name: 'B', fixed: true });
+      const A = board.create('point', [0, 0], pointOpts({ name: 'A', label: 'A' }));
+      const B = board.create('point', [c, 0], pointOpts({ name: 'B', label: 'B' }));
       const cosA = (b * b + c * c - a * a) / (2 * b * c);
       const sinA = Math.sqrt(Math.max(0, 1 - cosA * cosA));
-      const C = board.create('point', [b * cosA, b * sinA], { name: 'C', fixed: true });
-      board.create('polygon', [A, B, C], { fillColor: '#667eea', fillOpacity: 0.2 });
+      const C = board.create('point', [b * cosA, b * sinA], pointOpts({ name: 'C', label: 'C' }));
+      board.create('polygon', [A, B, C], {
+        fillColor: '#667eea',
+        fillOpacity: 0.2,
+        borders: { strokeColor: '#6ea8fe', strokeWidth: 2 },
+        fixed: true,
+        highlight: false
+      });
       state.sideSummary = `a=${a}, b=${b}, c=${c}`;
       return { board };
     }
