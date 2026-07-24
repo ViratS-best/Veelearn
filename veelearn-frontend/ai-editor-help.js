@@ -189,11 +189,26 @@
 
     function fuzzyMatchPhet(query) {
         const list = Array.isArray(global.PHET_SIMS) ? global.PHET_SIMS : [];
-        const q = String(query || '')
-            .toLowerCase()
-            .trim();
-        if (!q || !list.length) return null;
+        const qRaw = String(query || '').toLowerCase().trim();
+        if (!qRaw || !list.length) return null;
 
+        // Topic aliases → prefer known good sims over weak fuzzy hits like "Quantum Coin Toss"
+        const aliases = [
+            { re: /plinko|probability|combinator|dice|coin toss|random|chance|stars?\s*and\s*bars/, prefer: /plinko|probability|random/i },
+            { re: /area|factor|binomial|ncr|npr|permut|combinat/, prefer: /area model|combination/i },
+            { re: /quadrat|parabola|graph/, prefer: /graphing quadratic|parabola/i },
+            { re: /fraction|ratio|proportion/, prefer: /fraction|proportion|ratio/i },
+            { re: /vector|force|newton/, prefer: /forces|vector|newton/i },
+            { re: /wave|sound|interference/, prefer: /wave|sound|interference/i }
+        ];
+        for (const a of aliases) {
+            if (a.re.test(qRaw)) {
+                const hit = list.find((s) => a.prefer.test(String(s.title || '')));
+                if (hit) return hit;
+            }
+        }
+
+        const q = qRaw;
         let best = null;
         let bestScore = 0;
         for (const sim of list) {
@@ -201,18 +216,21 @@
             const desc = String(sim.description || '').toLowerCase();
             let score = 0;
             if (title === q) score = 100;
-            else if (title.includes(q) || q.includes(title)) score = 80;
+            else if (title.includes(q) || (q.length > 8 && q.includes(title))) score = 80;
             else {
-                const parts = q.split(/\s+/).filter(Boolean);
-                const hits = parts.filter((p) => title.includes(p) || desc.includes(p)).length;
-                score = hits * 15;
+                const parts = q.split(/\s+/).filter((p) => p.length > 2);
+                if (!parts.length) continue;
+                const hits = parts.filter((p) => title.includes(p)).length;
+                // Require title word hits (ignore description-only) to avoid junk matches
+                score = hits * 20;
+                if (hits === parts.length && parts.length >= 2) score += 25;
             }
             if (score > bestScore) {
                 bestScore = score;
                 best = sim;
             }
         }
-        return bestScore >= 15 ? best : null;
+        return bestScore >= 40 ? best : null;
     }
 
     async function ensureDraftCourseSaved() {
@@ -570,75 +588,114 @@
             const chunkMessage = [
                 'Generate ONLY this one section for the VeeLearn course editor right now.',
                 'Do not ask clarifying questions.',
-                'OUTPUT RULE: Start with VEELEARN_EDITOR_ACTIONS_JSON: then a complete JSON array FIRST (before any prose).',
-                'Include actions: Core Theory (insert_html + add_latex), Recommended Simulation (add_phet), and exactly 3 add_question practice items with explanations.',
-                'Keep JSON complete and valid. Prefer fewer complete actions over truncated JSON.',
+                'OUTPUT RULE: Start with VEELEARN_EDITOR_ACTIONS_JSON: then a complete valid JSON array FIRST.',
+                'REQUIRED actions: (1) insert_html with theory + worked examples (put math as $...$ inside HTML), (2) 2–3 add_question with short_answer preferred.',
+                'OPTIONAL: one add_phet only if you know a real PhET title; skip add_latex (put formulas in HTML instead).',
+                'JSON escaping: double every backslash in strings. Prefer fewer complete actions over truncated JSON.',
                 '',
                 `SECTION TITLE: ${sec.title}`,
                 '',
                 'SECTION DETAILS:',
-                sec.body.slice(0, 4500),
+                sec.body.slice(0, 4000),
                 '',
                 'OUTLINE CONTEXT (do not generate other sections):',
-                fullText.slice(0, 2500)
+                fullText.slice(0, 2000)
             ].join('\n');
 
             try {
-                let { res, data } = await callEditorHelpApi({
-                    message: chunkMessage,
-                    mode: 'section',
-                    selection,
-                    editorSnippet: i === 0 ? editorSnippet : undefined
-                });
+                let result = null;
+                for (let attempt = 0; attempt < 2; attempt++) {
+                    try {
+                        result = await callEditorHelpApi({
+                            message: chunkMessage,
+                            mode: 'section',
+                            selection,
+                            editorSnippet: i === 0 && attempt === 0 ? editorSnippet : undefined
+                        });
+                        break;
+                    } catch (netErr) {
+                        if (attempt === 0) {
+                            appendBubble('system', `Network hiccup on “${sec.title}” — retrying…`);
+                            await new Promise((r) => setTimeout(r, 1500));
+                            continue;
+                        }
+                        throw netErr;
+                    }
+                }
+
+                let { res, data } = result;
 
                 if (!res.ok || !data || data.success === false) {
-                    appendBubble('error', `${sec.title}: ${errorMessageFromResponse(res, data)}`);
-                    await new Promise((r) => setTimeout(r, 800));
-                    continue;
+                    // One more try on timeout/rate-limit with a shorter prompt
+                    if (res.status === 504 || res.status === 429 || res.status === 502) {
+                        appendBubble('system', `Simplifying “${sec.title}” after ${res.status}…`);
+                        await new Promise((r) => setTimeout(r, res.status === 429 ? 2500 : 1000));
+                        const simple = await callEditorHelpApi({
+                            message: [
+                                'Return ONLY VEELEARN_EDITOR_ACTIONS_JSON: then a JSON array.',
+                                'Include one insert_html (theory + 1 example) and two short_answer add_question items.',
+                                'No add_latex. No add_phet. Keep under 1800 characters of HTML.',
+                                `Section: ${sec.title}`,
+                                sec.body.slice(0, 1800)
+                            ].join('\n'),
+                            mode: 'section',
+                            selection
+                        });
+                        if (simple.res.ok && simple.data && simple.data.success !== false) {
+                            res = simple.res;
+                            data = simple.data;
+                        } else {
+                            appendBubble('error', `${sec.title}: ${errorMessageFromResponse(res, data)}`);
+                            await new Promise((r) => setTimeout(r, 800));
+                            continue;
+                        }
+                    } else {
+                        appendBubble('error', `${sec.title}: ${errorMessageFromResponse(res, data)}`);
+                        await new Promise((r) => setTimeout(r, 800));
+                        continue;
+                    }
                 }
 
                 let reply = data.data?.reply || '';
-                let actions = data.data?.actions || [];
+                let actions = Array.isArray(data.data?.actions) ? data.data.actions : [];
 
-                // One retry if model returned prose without actions
+                // Client retry if still empty (backend should usually salvage)
                 if (!actions.length) {
-                    appendBubble('system', `Retrying “${sec.title}” with stricter JSON-only instructions…`);
-                    const retryMsg = [
-                        'CRITICAL RETRY: Your previous answer had no editor actions.',
-                        'Respond with ONLY this format (JSON array must be complete):',
-                        'VEELEARN_EDITOR_ACTIONS_JSON:',
-                        '[{"type":"insert_html","payload":{"html":"<h3>' +
-                            sec.title.replace(/"/g, '') +
-                            '</h3><p>Core theory here</p>"}},{"type":"add_latex","payload":{"latex":"E=mc^2","display":true}},{"type":"add_phet","payload":{"query":"Area Model Algebra"}},{"type":"add_question","payload":{"question_text":"Q1?","question_type":"multiple_choice","options":["A","B","C","D"],"correct_answer":"A","explanation":"steps","points":10}},{"type":"add_question","payload":{"question_text":"Q2?","question_type":"multiple_choice","options":["A","B","C","D"],"correct_answer":"B","explanation":"steps","points":10}},{"type":"add_question","payload":{"question_text":"Q3?","question_type":"multiple_choice","options":["A","B","C","D"],"correct_answer":"C","explanation":"steps","points":10}}]',
-                        '',
-                        'Fill that template with real content for this section:',
-                        sec.title,
-                        sec.body.slice(0, 3500)
-                    ].join('\n');
-
+                    appendBubble('system', `Retrying “${sec.title}” with simpler HTML-only instructions…`);
                     const retry = await callEditorHelpApi({
-                        message: retryMsg,
+                        message: [
+                            'CRITICAL RETRY: emit ONLY:',
+                            'VEELEARN_EDITOR_ACTIONS_JSON:',
+                            `[{"type":"insert_html","payload":{"html":"<h3>${sec.title.replace(/"/g, '')}</h3><p>Write 3-5 paragraphs of theory and one worked example. Use $n$ for variables.</p>"}},{"type":"add_question","payload":{"question_text":"Practice question 1","question_type":"short_answer","correct_answer":"...","explanation":"...","points":10}},{"type":"add_question","payload":{"question_text":"Practice question 2","question_type":"short_answer","correct_answer":"...","explanation":"...","points":10}}]`,
+                            'Replace placeholders with real content for:',
+                            sec.title,
+                            sec.body.slice(0, 2500)
+                        ].join('\n'),
                         mode: 'section',
                         selection
                     });
                     if (retry.res.ok && retry.data && retry.data.success !== false) {
-                        res = retry.res;
                         data = retry.data;
                         reply = data.data?.reply || reply;
-                        actions = data.data?.actions || [];
+                        actions = Array.isArray(data.data?.actions) ? data.data.actions : [];
                     }
                 }
 
-                // Last resort: place the prose reply as HTML so the section is not lost
-                if (!actions.length && reply && reply.length > 40) {
-                    actions = [{ type: 'insert_html', payload: { html: `<h3>${esc(sec.title)}</h3><p>${esc(reply)}</p>` } }];
+                if (!actions.length && reply && reply.length > 40 && !/^done\.?$/i.test(reply.trim())) {
+                    actions = [
+                        {
+                            type: 'insert_html',
+                            payload: { html: `<h3>${esc(sec.title)}</h3><p>${esc(reply)}</p>` }
+                        }
+                    ];
                     appendBubble('system', `Placed written summary for “${sec.title}” (actions were incomplete).`);
                 }
 
-                if (reply) appendBubble('assistant', reply);
+                if (reply && !/^done\.?$/i.test(reply.trim())) appendBubble('assistant', reply);
                 if (actions.length) {
                     await executeEditorActions(actions);
                     okCount += 1;
+                    appendBubble('system', `✓ Placed “${sec.title}”.`);
                 } else {
                     appendBubble('system', `No content placed for “${sec.title}”.`);
                 }
@@ -648,7 +705,7 @@
             }
 
             if (i < sections.length - 1) {
-                await new Promise((r) => setTimeout(r, 900));
+                await new Promise((r) => setTimeout(r, 1100));
             }
         }
 

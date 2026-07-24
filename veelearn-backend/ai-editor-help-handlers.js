@@ -18,25 +18,28 @@ Help teachers build lessons by returning structured editor actions.
 CRITICAL OUTPUT FORMAT (follow exactly):
 1) First line must be exactly: VEELEARN_EDITOR_ACTIONS_JSON:
 2) Immediately after that, a single JSON array of action objects (no markdown fences, no commentary inside the array).
-3) After the JSON array, optionally add a short human reply (under 60 words).
+3) After the JSON array, optionally add a short human reply (under 40 words).
 Putting JSON FIRST is required so long lessons are not truncated before actions appear.
+
+JSON ESCAPING (critical — invalid JSON is discarded):
+- In every JSON string, backslashes must be doubled. For LaTeX write "\\\\frac{n}{k}" not "\\frac{n}{k}".
+- Prefer putting formulas inside insert_html as $...$ / $$...$$ text instead of add_latex when unsure about escaping.
+- Prefer short_answer questions over multiple_choice when options are long (fewer JSON commas/quotes to break).
 
 Rules:
 - Never ask clarifying questions when the user already gave a topic or outline — start generating immediately.
 - Prefer concrete teaching content over fluff.
 - When the user asks to add a quiz, PhET sim, LaTeX, marketplace sim, or a full lesson, emit actions.
 - For bulk/section lessons, return an ordered list of actions mixing insert_html, add_latex, add_phet, and add_question.
-- For expand/simplify modes: rewrite the provided selection and emit insert_html with the result.
+- For expand/simplify modes: rewrite the provided selection and emit insert_html.
 - For check_question mode: emit add_question that checks understanding of the selection.
-- For topics or resource paste: emit suggest_sims and/or add_phet with a clear query/title.
 - Never invent marketplace simulator IDs; use suggest_sims with a search query instead.
-- PhET: use add_phet with payload.query or payload.title matching common PhET names (e.g. "Area Model Algebra", "Graphing Quadratics", "Proportion Playground", "Equation Grapher").
-- LaTeX: use add_latex with payload.latex (raw TeX without $) and payload.display (true for $$). Content is inserted inline automatically.
-- Quiz: use add_question with question_text, question_type (multiple_choice|true_false|short_answer), options (string array for MC), correct_answer, explanation (include step-by-step solution), points.
-- HTML: use insert_html with payload.html as simple safe markup (h2, h3, p, strong, em, ul, ol, li, br only).
-- SECTION mode: generate ONLY the requested section (theory + sim + practice). Do not generate other modules.
+- PhET: use add_phet with payload.query matching a real PhET title closely (e.g. "Plinko Probability", "Area Model Algebra", "Graphing Quadratics"). Do NOT invent titles; if unsure omit add_phet.
+- Quiz: use add_question with question_text, question_type (multiple_choice|true_false|short_answer), options (string array for MC), correct_answer, explanation (step-by-step), points.
+- HTML: use insert_html with payload.html as simple safe markup (h2, h3, p, strong, em, ul, ol, li, br only). Put example problems and worked solutions in the HTML.
+- SECTION mode: generate ONLY the requested section. Always include at least one insert_html with substantive theory + examples. Then 2–3 add_question items. Optional: one add_phet, optional add_latex.
 - Keep the JSON array complete and valid. Prefer fewer complete actions over truncated JSON.
-- Example shape: [{"type":"insert_html","payload":{"html":"<h3>Title</h3><p>Theory...</p>"}},{"type":"add_latex","payload":{"latex":"a^2-b^2=(a-b)(a+b)","display":true}},{"type":"add_phet","payload":{"query":"Area Model Algebra"}},{"type":"add_question","payload":{"question_text":"...","question_type":"multiple_choice","options":["A","B","C","D"],"correct_answer":"A","explanation":"...","points":10}}]`;
+- Minimum viable section: [{"type":"insert_html","payload":{"html":"<h3>Title</h3><p>Theory...</p><p>Example...</p>"}},{"type":"add_question","payload":{"question_text":"...","question_type":"short_answer","correct_answer":"...","explanation":"...","points":10}}]`;
 
 function stripUnsafeHtml(html) {
     if (typeof html !== 'string') return '';
@@ -50,47 +53,281 @@ function stripUnsafeHtml(html) {
     return s;
 }
 
+/**
+ * Fix invalid / LaTeX-corrupted backslash escapes inside JSON string literals.
+ * Turns `\frac` / `\neq` into `\\frac` / `\\neq` while keeping real JSON escapes
+ * like `\n` before a quote/space/punctuation.
+ */
+function repairJsonStringEscapes(input) {
+    const s = String(input || '');
+    let out = '';
+    let inString = false;
+    let escaped = false;
+    for (let i = 0; i < s.length; i++) {
+        const ch = s[i];
+        if (!inString) {
+            if (ch === '"') inString = true;
+            out += ch;
+            continue;
+        }
+        if (escaped) {
+            out += ch;
+            escaped = false;
+            continue;
+        }
+        if (ch === '\\') {
+            const next = s[i + 1];
+            if (next == null) {
+                out += '\\\\';
+                continue;
+            }
+            // Always-safe JSON escapes
+            if ('"\\/'.includes(next)) {
+                out += ch;
+                escaped = true;
+                continue;
+            }
+            if (next === 'u' && /^[0-9a-fA-F]{4}/.test(s.slice(i + 2, i + 6))) {
+                out += ch;
+                escaped = true;
+                continue;
+            }
+            // \b \f \n \r \t are valid JSON, but LaTeX macros use the same letters
+            // (\neq, \frac, \times, \binom, \rightarrow). If a letter follows, treat as LaTeX.
+            if ('bfnrt'.includes(next)) {
+                const after = s[i + 2];
+                if (after && /[a-zA-Z]/.test(after)) {
+                    out += '\\\\';
+                    continue;
+                }
+                out += ch;
+                escaped = true;
+                continue;
+            }
+            // Any other escape (e.g. \a, \c for LaTeX) — double the backslash
+            out += '\\\\';
+            continue;
+        }
+        if (ch === '"') {
+            inString = false;
+            out += ch;
+            continue;
+        }
+        out += ch;
+    }
+    return out;
+}
+
+function extractBalancedJsonArray(text) {
+    const s = String(text || '');
+    const start = s.indexOf('[');
+    if (start < 0) return null;
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    for (let i = start; i < s.length; i++) {
+        const ch = s[i];
+        if (inString) {
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+            if (ch === '\\') {
+                escaped = true;
+                continue;
+            }
+            if (ch === '"') inString = false;
+            continue;
+        }
+        if (ch === '"') {
+            inString = true;
+            continue;
+        }
+        if (ch === '[') depth += 1;
+        else if (ch === ']') {
+            depth -= 1;
+            if (depth === 0) return s.slice(start, i + 1);
+        }
+    }
+    return s.slice(start); // truncated — caller may repair
+}
+
+function extractActionsByRegex(text) {
+    const s = String(text || '');
+    const actions = [];
+
+    // insert_html blocks
+    const htmlRe = /"type"\s*:\s*"insert_html"[\s\S]*?"html"\s*:\s*"((?:[^"\\]|\\.)*)"/gi;
+    let m;
+    while ((m = htmlRe.exec(s)) !== null) {
+        try {
+            const html = JSON.parse(`"${m[1]}"`);
+            if (html && String(html).trim()) {
+                actions.push({ type: 'insert_html', payload: { html: String(html) } });
+            }
+        } catch (_) {
+            const loose = m[1]
+                .replace(/\\n/g, '\n')
+                .replace(/\\"/g, '"')
+                .replace(/\\\\/g, '\\');
+            if (loose.trim()) actions.push({ type: 'insert_html', payload: { html: loose } });
+        }
+    }
+
+    // add_latex
+    const latexRe = /"type"\s*:\s*"add_latex"[\s\S]*?"latex"\s*:\s*"((?:[^"\\]|\\.)*)"/gi;
+    while ((m = latexRe.exec(s)) !== null) {
+        try {
+            const latex = JSON.parse(`"${m[1]}"`);
+            if (latex && String(latex).trim()) {
+                actions.push({ type: 'add_latex', payload: { latex: String(latex), display: true } });
+            }
+        } catch (_) {
+            /* skip */
+        }
+    }
+
+    // add_phet
+    const phetRe = /"type"\s*:\s*"add_phet"[\s\S]*?"(?:query|title)"\s*:\s*"((?:[^"\\]|\\.)*)"/gi;
+    while ((m = phetRe.exec(s)) !== null) {
+        try {
+            const query = JSON.parse(`"${m[1]}"`);
+            if (query && String(query).trim()) {
+                actions.push({ type: 'add_phet', payload: { query: String(query), title: String(query) } });
+            }
+        } catch (_) {
+            /* skip */
+        }
+    }
+
+    // add_question — capture nearby fields loosely
+    const qBlocks = s.split(/"type"\s*:\s*"add_question"/i).slice(1);
+    for (const block of qBlocks.slice(0, 8)) {
+        const grab = (key) => {
+            const re = new RegExp(`"${key}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`, 'i');
+            const mm = block.match(re);
+            if (!mm) return '';
+            try {
+                return JSON.parse(`"${mm[1]}"`);
+            } catch (_) {
+                return mm[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+            }
+        };
+        const question_text = grab('question_text');
+        if (!question_text.trim()) continue;
+        let options = null;
+        const optMatch = block.match(/"options"\s*:\s*(\[[^\]]*\])/i);
+        if (optMatch) {
+            try {
+                options = JSON.parse(repairJsonStringEscapes(optMatch[1]));
+            } catch (_) {
+                options = null;
+            }
+        }
+        actions.push({
+            type: 'add_question',
+            payload: {
+                question_text,
+                question_type: options && options.length >= 2 ? 'multiple_choice' : 'short_answer',
+                options,
+                correct_answer: grab('correct_answer') || 'See explanation',
+                explanation: grab('explanation'),
+                points: 10
+            }
+        });
+    }
+
+    return actions;
+}
+
+function proseToHtml(text) {
+    const raw = String(text || '').trim();
+    if (!raw) return '';
+    // Strip residual JSON marker noise
+    let body = raw
+        .replace(/^VEELEARN_EDITOR_ACTIONS_JSON:\s*/i, '')
+        .replace(/^```(?:json)?\s*/i, '')
+        .replace(/\s*```$/i, '')
+        .trim();
+    if (!body || body.length < 20) return '';
+    // If it still looks like JSON, don't dump it as prose
+    if (/^\s*[\[{]/.test(body) && /"type"\s*:/.test(body)) return '';
+
+    const lines = body.split(/\n/);
+    const parts = [];
+    let listBuf = [];
+    const flushList = () => {
+        if (!listBuf.length) return;
+        parts.push(`<ul>${listBuf.map((li) => `<li>${li}</li>`).join('')}</ul>`);
+        listBuf = [];
+    };
+    for (const line of lines) {
+        const t = line.trim();
+        if (!t) {
+            flushList();
+            continue;
+        }
+        const esc = t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        if (/^#{1,3}\s+/.test(t)) {
+            flushList();
+            const level = Math.min(3, (t.match(/^#+/) || ['#'])[0].length);
+            const title = esc.replace(/^#+\s+/, '');
+            parts.push(`<h${level + 1}>${title}</h${level + 1}>`);
+        } else if (/^[-*•]\s+/.test(t)) {
+            listBuf.push(esc.replace(/^[-*•]\s+/, ''));
+        } else if (/^\d+[.)]\s+/.test(t)) {
+            listBuf.push(esc.replace(/^\d+[.)]\s+/, ''));
+        } else {
+            flushList();
+            parts.push(`<p>${esc}</p>`);
+        }
+    }
+    flushList();
+    return parts.join('').slice(0, 12000);
+}
+
 function tryParseActionsJson(jsonPart) {
     if (!jsonPart || typeof jsonPart !== 'string') return [];
     let s = jsonPart.trim();
-    // Strip markdown fences
     s = s.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
 
     const attempts = [];
+    const balanced = extractBalancedJsonArray(s);
+    if (balanced) attempts.push(balanced);
     attempts.push(s);
 
     const start = s.indexOf('[');
     const end = s.lastIndexOf(']');
-    if (start >= 0 && end > start) {
-        attempts.push(s.slice(start, end + 1));
-    }
+    if (start >= 0 && end > start) attempts.push(s.slice(start, end + 1));
 
-    // Object wrapper: {"actions":[...]} or {"type":...}
     const objStart = s.indexOf('{');
     if (objStart >= 0) {
         const objEnd = s.lastIndexOf('}');
         if (objEnd > objStart) attempts.push(s.slice(objStart, objEnd + 1));
     }
 
-    // Truncation repair: close open brackets if JSON was cut mid-stream
+    // Truncation repair
     if (start >= 0 && (end < 0 || end < start)) {
         let fragment = s.slice(start);
-        // Drop trailing incomplete string/object piece after last complete element
         const lastComplete = Math.max(fragment.lastIndexOf('},'), fragment.lastIndexOf('}]'));
-        if (lastComplete > 0) {
-            fragment = fragment.slice(0, lastComplete + 1);
-        }
+        if (lastComplete > 0) fragment = fragment.slice(0, lastComplete + 1);
         const opens = (fragment.match(/\[/g) || []).length;
         const closes = (fragment.match(/\]/g) || []).length;
         const openBraces = (fragment.match(/\{/g) || []).length;
         const closeBraces = (fragment.match(/\}/g) || []).length;
-        // Close dangling braces then arrays
         fragment += '}'.repeat(Math.max(0, openBraces - closeBraces));
         fragment += ']'.repeat(Math.max(0, opens - closes));
         attempts.push(fragment);
     }
 
-    for (const attempt of attempts) {
+    // Prefer escape-repaired variants first (LaTeX \neq/\frac often "parse" but corrupt)
+    const expanded = [];
+    for (const a of attempts) {
+        expanded.push(repairJsonStringEscapes(a));
+        expanded.push(a);
+    }
+
+    for (const attempt of expanded) {
         try {
             const parsed = JSON.parse(attempt);
             if (Array.isArray(parsed)) return parsed;
@@ -102,7 +339,9 @@ function tryParseActionsJson(jsonPart) {
             /* try next */
         }
     }
-    return [];
+
+    // Last resort: regex salvage of individual actions from broken JSON
+    return extractActionsByRegex(s);
 }
 
 function splitReplyAndActions(raw) {
@@ -124,22 +363,20 @@ function splitReplyAndActions(raw) {
         }
     }
 
-    // Prefer explicit marker; otherwise hunt for first JSON array of actions
     if (idx < 0) {
         const arrStart = text.search(/\[[\s\S]*?"type"\s*:/);
         if (arrStart >= 0) {
             const rawActions = tryParseActionsJson(text.slice(arrStart));
             const replyText = text.slice(0, arrStart).trim();
-            return { replyText, rawActions };
+            return { replyText, rawActions, rawText: text };
         }
-        return { replyText: text.trim(), rawActions: [] };
+        return { replyText: text.trim(), rawActions: [], rawText: text };
     }
 
     const before = text.slice(0, idx).trim();
     const after = text.slice(idx + markerLen).trim();
     const rawActions = tryParseActionsJson(after);
 
-    // If JSON came first, reply may be after the array
     let replyText = before;
     if (!replyText && rawActions.length) {
         const endBracket = after.lastIndexOf(']');
@@ -147,8 +384,12 @@ function splitReplyAndActions(raw) {
             replyText = after.slice(endBracket + 1).replace(/^```\s*/i, '').trim();
         }
     }
+    // If JSON failed, keep the full model text as reply candidate for prose fallback
+    if (!rawActions.length && !replyText) {
+        replyText = after.slice(0, 8000);
+    }
 
-    return { replyText, rawActions };
+    return { replyText, rawActions, rawText: text };
 }
 
 function normalizeQuestionPayload(payload) {
@@ -408,7 +649,7 @@ module.exports = function createAiEditorHelpHandlers({ query, openRouterChatComp
                 check_question: 'MODE: check_question — create one review quiz about the selection; emit add_question.',
                 validate: 'MODE: validate — review the editor snippet for LaTeX/quiz issues; emit validate_report with findings.',
                 section:
-                    'MODE: section — Generate ONLY the requested section now. Include: (1) Core Theory as insert_html + add_latex formulas, (2) add_phet for the recommended simulation, (3) exactly 3 add_question practice problems with step-by-step explanations. Do not ask questions. Do not generate other sections.',
+                    'MODE: section — Generate ONLY this section. REQUIRED: at least one insert_html (theory + worked examples with $LaTeX$ inline). Then 2–3 add_question (prefer short_answer). Optional one add_phet with a real PhET title. Optional add_latex only if escapes are correct (\\\\frac). Never ask questions. Never generate other sections. JSON must be valid.',
                 chat: 'MODE: chat — follow the user request and emit appropriate actions. Never ask for more info if an outline/topic is already provided.'
             };
 
@@ -433,9 +674,9 @@ module.exports = function createAiEditorHelpHandlers({ query, openRouterChatComp
             let raw;
             try {
                 raw = await openRouterChatCompletion(messages, {
-                    temperature: 0.25,
-                    max_tokens: isSection ? 4500 : 2200,
-                    budgetMs: isSection ? 55000 : 40000
+                    temperature: 0.2,
+                    max_tokens: isSection ? 5000 : 2200,
+                    budgetMs: isSection ? 60000 : 40000
                 });
             } catch (e) {
                 if (e.code === 'OPENROUTER_NOT_CONFIGURED') {
@@ -462,27 +703,71 @@ module.exports = function createAiEditorHelpHandlers({ query, openRouterChatComp
                 return apiResponse(res, 502, 'AI Help request failed. Please try again.');
             }
 
-            const { replyText, rawActions } = splitReplyAndActions(raw);
+            let { replyText, rawActions, rawText } = splitReplyAndActions(raw);
             let actions = validateActions(rawActions);
 
-            // If the model wrote prose but forgot/truncated JSON, still place content
-            if (!actions.length && replyText && replyText.length > 40) {
-                const paras = replyText
-                    .split(/\n{2,}/)
-                    .map((p) => p.trim())
-                    .filter(Boolean)
-                    .slice(0, 12)
-                    .map((p) => `<p>${String(p).replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`)
-                    .join('');
-                if (paras) {
-                    actions.push({ type: 'insert_html', payload: { html: paras } });
+            // Server-side recovery retry for section mode when JSON/actions are empty
+            if (!actions.length && isSection) {
+                try {
+                    const retryMessages = [
+                        { role: 'system', content: EDITOR_SYSTEM },
+                        {
+                            role: 'user',
+                            content: [
+                                'CRITICAL: Previous reply had no usable editor actions.',
+                                'Return ONLY valid JSON in this exact shape (no markdown, no prose before JSON):',
+                                'VEELEARN_EDITOR_ACTIONS_JSON:',
+                                '[{"type":"insert_html","payload":{"html":"<h3>Section Title</h3><p>Core theory with examples. Use $x^2$ for math.</p><p><strong>Example:</strong> worked solution...</p>"}},{"type":"add_question","payload":{"question_text":"Practice 1?","question_type":"short_answer","correct_answer":"answer","explanation":"steps","points":10}},{"type":"add_question","payload":{"question_type":"short_answer","question_text":"Practice 2?","correct_answer":"answer","explanation":"steps","points":10}}]',
+                                'Fill with real content for this request (keep HTML under 2500 chars; no add_latex; no add_phet):',
+                                message.slice(0, 5000)
+                            ].join('\n')
+                        }
+                    ];
+                    const retryRaw = await openRouterChatCompletion(retryMessages, {
+                        temperature: 0.1,
+                        max_tokens: 3500,
+                        budgetMs: 45000
+                    });
+                    const parsedRetry = splitReplyAndActions(retryRaw);
+                    const retryActions = validateActions(parsedRetry.rawActions);
+                    if (retryActions.length) {
+                        actions = retryActions;
+                        replyText = parsedRetry.replyText || replyText;
+                        rawText = parsedRetry.rawText || rawText;
+                        raw = retryRaw;
+                    } else if (!replyText && parsedRetry.replyText) {
+                        replyText = parsedRetry.replyText;
+                        rawText = parsedRetry.rawText || rawText;
+                    }
+                } catch (retryErr) {
+                    console.warn('AI editor help section retry failed:', retryErr.message);
                 }
+            }
+
+            // Prose / salvage fallback so the section is never empty
+            if (!actions.length) {
+                const html =
+                    proseToHtml(replyText) ||
+                    proseToHtml(rawText) ||
+                    proseToHtml(String(raw || ''));
+                if (html) {
+                    actions.push({ type: 'insert_html', payload: { html } });
+                }
+            }
+
+            // Ensure section responses always have theory HTML if we only got quizzes/phet
+            if (isSection && actions.length && !actions.some((a) => a.type === 'insert_html')) {
+                const html = proseToHtml(replyText) || proseToHtml(rawText);
+                if (html) actions.unshift({ type: 'insert_html', payload: { html } });
             }
 
             actions = await enrichSuggestSims(actions, query);
 
             const reply =
-                replyText || (actions.length ? 'Inserted content into the editor.' : 'Done.');
+                (replyText && !/^\s*[\[{]/.test(replyText) && replyText.length < 500
+                    ? replyText
+                    : '') ||
+                (actions.length ? 'Inserted content into the editor.' : 'Done.');
 
             const userPersist =
                 message ||
@@ -504,4 +789,14 @@ module.exports = function createAiEditorHelpHandlers({ query, openRouterChatComp
             });
         }
     };
+};
+
+// Test helpers (used by local scripts; not wired to HTTP)
+module.exports._test = {
+    repairJsonStringEscapes,
+    tryParseActionsJson,
+    splitReplyAndActions,
+    proseToHtml,
+    extractActionsByRegex,
+    validateActions
 };
