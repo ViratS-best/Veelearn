@@ -721,6 +721,10 @@ body.learner-shell-active #learner-shell {
   color: var(--ls-text);
 }
 
+.ls-enrolled-list li strong {
+  color: inherit;
+}
+
 .ls-settings-card,
 .ls-help-card {
   background: var(--ls-card);
@@ -1300,6 +1304,32 @@ body.learner-shell-active #learner-shell .ls-flyout-item {
 body.learner-shell-active #learner-shell .ls-flyout-meta,
 body.learner-shell-active #learner-shell .ls-flyout-empty {
   color: var(--ls-muted) !important;
+}
+
+/*
+ * theme-toggle.css forces [data-theme="light"] li { background:#fff }.
+ * That clashes with dark dashboard themes (hacker) → white cards + light text.
+ */
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-enrolled-list li,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-enrolled-list li,
+body.learner-shell-active #learner-shell .ls-enrolled-list li,
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-cert-row,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-cert-row,
+body.learner-shell-active #learner-shell .ls-cert-row {
+  background: var(--ls-card) !important;
+  background-color: var(--ls-card) !important;
+  border-color: var(--ls-border) !important;
+  color: var(--ls-text) !important;
+}
+
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-enrolled-list li strong,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-enrolled-list li strong,
+body.learner-shell-active #learner-shell .ls-enrolled-list li strong,
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-enrolled-list li div,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-enrolled-list li div,
+body.learner-shell-active #learner-shell .ls-enrolled-list li div {
+  color: var(--ls-text) !important;
+  background: transparent !important;
 }
 
 /* ===== Course viewer: hide site navbar + apply store theme ===== */
