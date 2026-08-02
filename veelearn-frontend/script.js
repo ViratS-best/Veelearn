@@ -6721,6 +6721,12 @@ function hydrateQuizPlaceholders() {
     });
 
     console.log(`Hydrated ${questionCounter} quiz questions successfully`);
+
+    // Typeset LaTeX in quiz stems/options after hydration (escapeHtml leaves $...$ intact as text)
+    const quizNodes = viewerContent.querySelectorAll('.quiz-question');
+    if (quizNodes.length && window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
+        window.MathJax.typesetPromise(Array.from(quizNodes)).catch(() => {});
+    }
 }
 
 function hydrateSimulatorPlaceholders() {
