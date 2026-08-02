@@ -1378,24 +1378,68 @@ def build_unit8():
     concepts.append(concept_block(
         "5. Hard mixed worked examples",
         [
-            "Layered problems combine two or more units. Outline layers before numbers.",
-            "Example layers: complement outside, product inside; or PIE outside, cases inside.",
-            "Keep intermediate results boxed.",
-            "If stuck, replace parameters with smaller numbers preserving structure.",
-            "Explain each layer in a short clause.",
-            "These mirror State/National difficulty.",
+            "Layered problems stack two or more counting tools. A common stack is \"complement on the outside, "
+            "product of slots on the inside.\" Another is \"PIE on the outside, casework on the inside.\" "
+            "The skill is not memorizing stacks — it is writing the stack as an outline before you touch a calculator.",
+            "Example outline for \"distinct length-6 digit strings with at least one zero\": "
+            "(1) Total = all distinct 6-digit codes from digits 0–9 = $P(10,6)$. "
+            "(2) Bad = codes with no zero at all = $P(9,6)$. "
+            "(3) Good = Total − Bad. That outline is the whole solution plan; the numbers come second.",
+            "Keep every middle total in a labeled box on scratch paper. Layered arithmetic without boxes is where "
+            "factors disappear — especially a forgotten subtract or a forgotten divide by $k!$.",
+            "If the real numbers feel huge, shrink them while keeping the same structure (length 6 → length 3). "
+            "List the tiny version by hand, confirm your outline matches the list, then scale back up.",
+            "Say each layer in a short English clause: \"First I count all codes. Then I remove codes with no zero.\" "
+            "If you cannot say the clause, you are not ready to multiply yet.",
+            "These problems mirror State/National and late AMC difficulty: the arithmetic is doable, but only after "
+            "the outline is honest.",
         ],
-        "<p>Layers need outlines.</p>",
-        "<p>Outline → compute → verify tiny → finalize.</p>",
-        solved(13, "Distinct length-6 digit strings with ≥1 zero?",
-               ["P(10,6)-P(9,6)=90720."], "$90720$", "", "Hard")
-        + solved(14, "Rectangles in 5×5 grid?",
-                 ["C(6,2)^2=225."], "$225$", "", "Medium")
-        + solved(15, "Onto [5]→[3]?",
-                 ["150."], "$150$", "", "National"),
-        ("Skipping the outline", "Layers without outline cause lost factors."),
-        ("Box intermediates", "Audit trail."),
-        ["I outline layered problems.", "I can do complement of P’s.", "I attempt National stretch calmly."],
+        "A layered counting problem is really a short program: Layer 1 tool, Layer 2 tool, then combine. "
+        "Students who skip the outline often do only one layer and submit that number. Contests reward the full program.",
+        "Write Outline → Compute each boxed piece → Verify on a tiny analog → Finalize. "
+        "Never reverse the order on Target/National: computing first and outlining later is how layers get dropped.",
+        solved(13, "How many distinct length-6 strings using digits 0–9 have at least one zero?",
+               [
+                   "Outline: Total = $P(10,6)$; Bad = no zeros = $P(9,6)$; Good = Total − Bad.",
+                   "Total: $10×9×8×7×6×5 = 151200$.",
+                   "Bad: $9×8×7×6×5×4 = 60480$.",
+                   "Good: $151200 − 60480 = 90720$.",
+               ], "$90720$",
+               "Notice the outline named three boxes before any multiply. That is the habit this concept trains.",
+               "Hard")
+        + solved(14, "How many rectangles are in a 5×5 grid of unit squares?",
+                 [
+                     "A 5×5 grid of squares has 6 horizontal and 6 vertical lines.",
+                     "A rectangle is choosing 2 distinct horizontal lines and 2 distinct vertical lines.",
+                     "So the count is $C(6,2)×C(6,2) = 15×15 = 225$.",
+                 ], "$225$",
+                 "Geometry counting often hides a combinations layer — outline \"choose lines\" before multiplying.",
+                 "Medium")
+        + solved(15, "How many onto functions are there from a set of 5 elements to a set of 3 elements?",
+                 [
+                     "Outline with PIE: all functions − missing at least one output + missing at least two outputs.",
+                     "All functions: $3^5 = 243$.",
+                     "Subtract $C(3,1)·2^5 = 3·32 = 96$.",
+                     "Add back $C(3,2)·1^5 = 3$.",
+                     "Onto count: $243 − 96 + 3 = 150$.",
+                 ], "$150$",
+                 "National-style: the outline is PIE; the boxes are the three PIE terms.",
+                 "National"),
+        ("Skipping the outline",
+         "If a problem has two layers (for example: first remove bad codes with a complement, then arrange what remains), "
+         "jumping straight into multiplying makes you lose a whole layer — like forgetting to subtract, "
+         "or forgetting a divide by $k!$. Always write a 2–4 line outline that names each layer before any arithmetic. "
+         "The outline should be readable by a teammate who has not seen the problem yet."),
+        ("Box intermediates",
+         "Every middle total should be boxed and labeled on scratch paper (Total, Bad, Case 1, Paths to C). "
+         "That written audit trail lets you check each piece alone, and it stops you from accidentally reusing "
+         "the wrong number when you combine layers at the end. On Team Round, boxing also lets your partner "
+         "verify your work without redoing the whole solution."),
+        [
+            "I outline layered problems in words before calculating, naming each tool in order.",
+            "I can compute a complement of permutations (like $P(10,6)-P(9,6)$) and explain each term as Total / Bad / Good.",
+            "I attempt National/AMC 10 stretch problems calmly with a written plan, even if I need more time.",
+        ],
         21,
     ))
     for t, a, e in [
