@@ -1352,15 +1352,21 @@ def _u3_questions():
         ))
 
     # C. Complex multiplication (6)
-    mult_pairs = [((2, 1), (3, -2), "8-i"), ((1, 1), (1, 1), "2i"), ((3, -2), (1, 1), "5+i"),
-                  ((4, 1), (-2, 1), "-9+2i"), ((2, 3), (2, -3), "13"), ((-1, 1), (2, -1), "-1+3i")]
-    for (a1, b1), (a2, b2), ans in mult_pairs:
+    mult_pairs = [
+        ((2, 1), (3, -2), "8-i", ["8+i", "2-i", "1-i"]),
+        ((1, 1), (1, 1), "2i", ["2", "1+2i", "-2i"]),
+        ((3, -2), (1, 1), "5+i", ["5-i", "1+i", "7-i"]),
+        ((4, 1), (-2, 1), "-9+2i", ["-9-2i", "9+2i", "-7+2i"]),
+        ((3, 4), (3, -4), "25", ["9-16i", "-25", "9+16i"]),
+        ((-1, 1), (2, -1), "-1+3i", ["-1-3i", "1+3i", "-3+i"]),
+    ]
+    for (a1, b1), (a2, b2), ans, dist in mult_pairs:
         finale.append(mq(
             f"Simplify $({a1}{'+' if b1 >= 0 else ''}{b1}i)({a2}{'+' if b2 >= 0 else ''}{b2}i)$.",
             ans,
             f"FOIL and use $i^2=-1$ to simplify to ${ans}$.",
             0,
-            distractors=near_str(ans, ["7+i", "2i", "5+i", "-9+2i", "13", "-1+3i", "1-i"]),
+            distractors=dist,
         ))
 
     # D. Modulus (Pythagorean triples) (6)
