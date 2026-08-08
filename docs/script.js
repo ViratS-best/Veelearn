@@ -109,7 +109,7 @@ function startKeepAlive() {
         clearInterval(keepAliveInterval);
     }
     
-    // Ping server every 10 minutes during user activity
+    // Ping server every 5 minutes during user activity (below typical free-tier idle sleep)
     keepAliveInterval = setInterval(async () => {
         try {
             const response = await fetch(`${API_BASE_URL}/api/health`, {
@@ -126,7 +126,7 @@ function startKeepAlive() {
         } catch (error) {
             console.log('❌ Keep-alive ping error:', error.message);
         }
-    }, 10 * 60 * 1000); // Every 10 minutes
+    }, 5 * 60 * 1000); // Every 5 minutes
     
     console.log('🔄 Client-side keep-alive started');
 }
@@ -155,6 +155,15 @@ function checkInactivity() {
 
 // Set up activity tracking
 document.addEventListener('DOMContentLoaded', () => {
+    // Fire-and-forget health ping so Render starts waking before the user finishes login
+    if (typeof API_BASE_URL === 'string' && API_BASE_URL) {
+        fetch(`${API_BASE_URL}/api/health`, {
+            method: 'GET',
+            cache: 'no-store',
+            credentials: 'omit'
+        }).catch(() => { /* ignore — wake attempt only */ });
+    }
+
     // Track user interactions
     const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
     events.forEach(event => {
@@ -202,55 +211,79 @@ async function checkServerHealth() {
 }
 
 async function handleWithServerLoading(apiCall, action = 'login') {
-    // Try the API call first - only show loading screen if it fails
+    // Run the real call without aborting it — race only decides when to show the wake UI.
+    // If the call eventually succeeds during the health poll, return that result (no double-wait retry).
+    let settled = false;
+    let callResult;
+    let callError;
+
+    const callPromise = Promise.resolve()
+        .then(() => apiCall())
+        .then((result) => {
+            settled = true;
+            callResult = result;
+            return result;
+        })
+        .catch((err) => {
+            settled = true;
+            callError = err;
+            throw err;
+        });
+
     try {
-        // Set a timeout for the API call
         const timeoutPromise = new Promise((_, reject) => {
             setTimeout(() => reject(new Error('API timeout')), 5000);
         });
-        
-        // Race between the actual API call and timeout
-        const result = await Promise.race([apiCall(), timeoutPromise]);
-        
-        // If we get here, the API call succeeded - no loading screen needed
-        return result;
-        
+        return await Promise.race([callPromise, timeoutPromise]);
     } catch (error) {
-        // API call failed or timed out - now check if it's a server wake-up issue
+        // Slow or failed — check health. If original call already won, use it.
+        if (settled && callError === undefined) {
+            return callResult;
+        }
+
         console.log('API call failed, checking server health:', error.message);
-        
-        // Quick server health check
         const isServerHealthy = await checkServerHealth();
-        
+
         if (!isServerHealthy && (error.message === 'API timeout' || error.message.includes('fetch'))) {
-            // Server is likely waking up - show loading screen
             console.log('Server appears to be waking up, showing loading screen');
             ServerLoadingManager.show(action);
-            
-            // Wait for server to be ready
+
             let attempts = 0;
             const maxAttempts = 15; // 15 * 2 seconds = 30 seconds max
-            
+
             while (attempts < maxAttempts) {
                 await new Promise(resolve => setTimeout(resolve, 2000));
+
+                // Original slow request may have completed while we waited
+                if (settled && callError === undefined) {
+                    ServerLoadingManager.hide();
+                    return callResult;
+                }
+
                 const serverReady = await checkServerHealth();
-                
                 if (serverReady) {
                     ServerLoadingManager.hide();
                     console.log('Server is ready, retrying API call');
-                    // Retry the original API call
+                    if (settled && callError === undefined) {
+                        return callResult;
+                    }
                     return apiCall();
                 }
                 attempts++;
             }
-            
-            // If server still not ready, hide loading screen and proceed with original error
+
             console.warn('Server still not ready after maximum attempts');
             ServerLoadingManager.hide();
+
+            if (settled && callError === undefined) {
+                return callResult;
+            }
         }
-        
-        // Re-throw the original error
-        throw error;
+
+        if (settled && callError === undefined) {
+            return callResult;
+        }
+        throw callError || error;
     }
 }
 
@@ -1901,14 +1934,29 @@ function fetchUserProfile() {
     const headers = {};
     if (authToken) {
         headers['Authorization'] = `Bearer ${authToken}`;
+    } else {
+        const saved = localStorage.getItem('token');
+        if (saved) {
+            authToken = saved;
+            headers['Authorization'] = `Bearer ${saved}`;
+        }
     }
 
     fetch(`${API_BASE_URL}/api/users/profile`, {
         headers,
         credentials: "include"
     })
-        .then((res) => res.json())
-        .then((data) => {
+        .then(async (res) => {
+            const data = await res.json().catch(() => ({}));
+            if (res.status === 403 || res.status === 401) {
+                // Stale/invalid JWT — clear and show login cleanly (no retry spam)
+                authToken = null;
+                currentUser = null;
+                try { window.currentUser = null; } catch (_) { /* ignore */ }
+                localStorage.removeItem('token');
+                showLandingPage();
+                return;
+            }
             if (data.success) {
                 currentUser = data.data;
                 try { window.currentUser = currentUser; } catch (_) { /* ignore */ }
