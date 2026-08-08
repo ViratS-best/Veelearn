@@ -4222,8 +4222,9 @@ app.get('/api/courses', authenticateToken, (req, res) => {
     }
 
     // Show approved courses from everyone + own courses (even if pending)
+    // Omit content/blocks from list — viewers/editors load full course via GET /api/courses/:id
     let query = `
-SELECT c.id, c.title, c.description, c.content, c.blocks, c.creator_id, c.status, c.is_paid, c.shells_cost, c.creation_time, c.grade_level, c.video_url,
+SELECT c.id, c.title, c.description, c.creator_id, c.status, c.is_paid, c.shells_cost, c.creation_time, c.grade_level, c.video_url,
        c.like_count, c.course_type, u.email as creator_email,
        CASE WHEN cl.user_id IS NOT NULL THEN true ELSE false END as is_liked,
        (SELECT COUNT(*) FROM course_units WHERE parent_course_id = c.id AND is_draft = FALSE) as units_count
@@ -4251,22 +4252,7 @@ WHERE (c.status = 'approved' OR c.creator_id = ?)
             return apiResponse(res, 500, 'Server error fetching courses');
         }
 
-        // Parse blocks JSON for each course
-        const parsedResults = results.map(course => {
-            if (course.blocks && typeof course.blocks === 'string') {
-                try {
-                    course.blocks = JSON.parse(course.blocks);
-                } catch (e) {
-                    console.error('Error parsing blocks for course', course.id, ':', e);
-                    course.blocks = [];
-                }
-            } else if (!course.blocks) {
-                course.blocks = [];
-            }
-            return course;
-        });
-
-        apiResponse(res, 200, 'Courses fetched successfully', parsedResults);
+        apiResponse(res, 200, 'Courses fetched successfully', results);
     });
 });
 

@@ -4,6 +4,10 @@
 (function () {
   let profileCache = null;
   let aiHistoryLoaded = false;
+  /** @type {Array|null} Cached enhanced enrollments for instant Enrolled pane */
+  let enrollmentsCache = null;
+  /** @type {Promise<Array>|null} In-flight prefetch so renderEnrolled can await it */
+  let enrollmentsPrefetch = null;
 
   function apiBase() {
     return typeof window.API_BASE_URL === 'string' ? window.API_BASE_URL : '';
@@ -25,6 +29,72 @@
     });
     const data = await res.json().catch(() => ({}));
     return data;
+  }
+
+  /**
+   * Fetch enrollments once and cache. Falls back to basic list only when enhanced fails
+   * (not when enhanced legitimately returns an empty array).
+   * @param {{ force?: boolean }} [opts]
+   * @returns {Promise<Array>}
+   */
+  async function fetchEnrollments(opts = {}) {
+    if (!opts.force && enrollmentsCache) return enrollmentsCache;
+    if (!opts.force && enrollmentsPrefetch) return enrollmentsPrefetch;
+
+    enrollmentsPrefetch = (async () => {
+      try {
+        const data = await api('/api/users/enrollments/enhanced');
+        if (data.success) {
+          enrollmentsCache = data.data || [];
+          return enrollmentsCache;
+        }
+        // Enhanced failed — try basic list once
+        const fallback = await api('/api/users/enrollments');
+        if (fallback.success) {
+          enrollmentsCache = fallback.data || [];
+          return enrollmentsCache;
+        }
+        enrollmentsCache = [];
+        return enrollmentsCache;
+      } catch (_) {
+        enrollmentsCache = enrollmentsCache || [];
+        return enrollmentsCache;
+      } finally {
+        enrollmentsPrefetch = null;
+      }
+    })();
+
+    return enrollmentsPrefetch;
+  }
+
+  function paintEnrolledList(courses) {
+    const list = document.getElementById('ls-enrolled-ul');
+    if (!list) return;
+    if (!courses.length) {
+      list.innerHTML = '<li>No enrollments yet — ask the Dashboard coach to suggest a course!</li>';
+      return;
+    }
+    list.innerHTML = courses
+      .map((c) => {
+        const title = c.title || c.course_title || 'Course';
+        const id = c.course_id || c.id;
+        return `<li><div><strong>${esc(title)}</strong></div>
+          <button type="button" class="ls-btn-primary" data-open="${id}">Open</button></li>`;
+      })
+      .join('');
+    list.querySelectorAll('[data-open]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = parseInt(btn.getAttribute('data-open'), 10);
+        window.LearnerShell?.hideLearnerShell?.();
+        try {
+          const detail = await api(`/api/courses/${id}`);
+          if (detail.success && detail.data && typeof window.__veelearnPushCourse === 'function') {
+            window.__veelearnPushCourse(detail.data);
+          }
+        } catch (_) { /* ignore */ }
+        if (typeof window.viewCourse === 'function') window.viewCourse(id);
+      });
+    });
   }
 
   function asset(key) {
@@ -405,43 +475,18 @@
   async function renderEnrolled() {
     const pane = document.getElementById('ls-pane-enrolled');
     if (!pane) return;
-    pane.innerHTML = `<h2 class="ls-section-title">Enrolled Courses</h2><p class="ls-section-sub">Jump back into what you're learning.</p><ul class="ls-enrolled-list" id="ls-enrolled-ul"><li>Loading…</li></ul>`;
+    const hasCache = Array.isArray(enrollmentsCache);
+    pane.innerHTML = `<h2 class="ls-section-title">Enrolled Courses</h2><p class="ls-section-sub">Jump back into what you're learning.</p><ul class="ls-enrolled-list" id="ls-enrolled-ul">${hasCache ? '' : '<li>Loading…</li>'}</ul>`;
+    if (hasCache) {
+      paintEnrolledList(enrollmentsCache);
+    }
     try {
-      let data = await api('/api/users/enrollments/enhanced');
-      let courses = data.success ? data.data || [] : [];
-      if (!courses.length) {
-        data = await api('/api/users/enrollments');
-        courses = data.success ? data.data || [] : [];
-      }
-      const list = document.getElementById('ls-enrolled-ul');
-      if (!courses.length) {
-        list.innerHTML = '<li>No enrollments yet — ask the Dashboard coach to suggest a course!</li>';
-        return;
-      }
-      list.innerHTML = courses
-        .map((c) => {
-          const title = c.title || c.course_title || 'Course';
-          const id = c.course_id || c.id;
-          return `<li><div><strong>${esc(title)}</strong></div>
-            <button type="button" class="ls-btn-primary" data-open="${id}">Open</button></li>`;
-        })
-        .join('');
-      list.querySelectorAll('[data-open]').forEach((btn) => {
-        btn.addEventListener('click', async () => {
-          const id = parseInt(btn.getAttribute('data-open'), 10);
-          window.LearnerShell?.hideLearnerShell?.();
-          try {
-            const detail = await api(`/api/courses/${id}`);
-            if (detail.success && detail.data && typeof window.__veelearnPushCourse === 'function') {
-              window.__veelearnPushCourse(detail.data);
-            }
-          } catch (_) { /* ignore */ }
-          if (typeof window.viewCourse === 'function') window.viewCourse(id);
-        });
-      });
+      // Use in-flight prefetch if shell already started one; otherwise fetch (refresh in background when cached)
+      const courses = await fetchEnrollments({ force: hasCache });
+      paintEnrolledList(courses);
     } catch (e) {
       const list = document.getElementById('ls-enrolled-ul');
-      if (list) list.innerHTML = '<li>Could not load enrollments.</li>';
+      if (list && !hasCache) list.innerHTML = '<li>Could not load enrollments.</li>';
     }
   }
 
@@ -712,8 +757,9 @@
 
   async function onShellShown() {
     aiHistoryLoaded = false;
-    await refreshProfile();
-    await checkin();
+    // Prefetch enrollments in parallel with profile/checkin so Enrolled pane is instant
+    const enrollmentsReady = fetchEnrollments({ force: true });
+    await Promise.all([refreshProfile(), checkin(), enrollmentsReady]);
   }
 
   window.LearnerGamification = {
@@ -732,6 +778,7 @@
     openFeedbackModal,
     renderAvatarInto,
     onShellShown,
-    getProfile: () => profileCache
+    getProfile: () => profileCache,
+    prefetchEnrollments: () => fetchEnrollments({ force: true })
   };
 })();
