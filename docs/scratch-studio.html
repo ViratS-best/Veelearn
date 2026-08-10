@@ -51,8 +51,6 @@
     .flag-btn { background: #22c55e; color: white; width: 36px; height: 32px; justify-content: center; font-size: 16px; }
     .stop-btn { background: #ef4444; color: white; width: 36px; height: 32px; justify-content: center; font-size: 14px; }
 
-    .main { display: grid; grid-template-columns: 1fr var(--stage-w); height: calc(100% - 48px); }
-
     .left-pane { display: flex; flex-direction: column; min-width: 0; border-right: 1px solid var(--border); }
     .workspace-wrap { flex: 1; position: relative; min-height: 0; }
     #blocklyDiv { position: absolute; inset: 0; }
@@ -172,6 +170,49 @@
       box-shadow: 0 4px 16px rgba(15, 23, 42, 0.12);
     }
 
+    /* Simulator AI panel */
+    .main { display: grid; grid-template-columns: 1fr var(--stage-w) minmax(260px, 300px); height: calc(100% - 48px); }
+    .main.ai-collapsed { grid-template-columns: 1fr var(--stage-w); }
+    .sim-ai-panel {
+      display: flex; flex-direction: column; background: var(--bg-panel);
+      border-left: 1px solid var(--border); min-height: 0; min-width: 0;
+    }
+    .main.ai-collapsed .sim-ai-panel { display: none; }
+    .sim-ai-header {
+      display: flex; align-items: center; gap: 8px; padding: 10px 12px;
+      border-bottom: 1px solid var(--border); font-weight: 700; font-size: 14px;
+    }
+    .sim-ai-header .spacer { flex: 1; }
+    .sim-ai-wait-banner {
+      background: #fff7ed; color: #9a3412; border-bottom: 1px solid #fed7aa;
+      padding: 8px 12px; font-size: 12px; font-weight: 600;
+    }
+    .sim-ai-messages {
+      flex: 1; overflow: auto; padding: 12px; background: #f8fafc;
+    }
+    .sim-ai-bubble {
+      margin-bottom: 10px; padding: 8px 10px; border-radius: 10px; font-size: 13px;
+      white-space: pre-wrap; line-height: 1.4;
+    }
+    .sim-ai-bubble strong { display: block; font-size: 11px; margin-bottom: 4px; opacity: 0.75; }
+    .sim-ai-user { background: #dbeafe; margin-left: 18px; }
+    .sim-ai-assistant { background: #ffffff; border: 1px solid var(--border); margin-right: 12px; }
+    .sim-ai-system { background: #ecfeff; border: 1px solid #a5f3fc; font-size: 12px; }
+    .sim-ai-error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+    .sim-ai-composer {
+      border-top: 1px solid var(--border); padding: 10px; display: flex; flex-direction: column; gap: 8px;
+    }
+    .sim-ai-composer textarea {
+      width: 100%; min-height: 64px; resize: vertical; border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 8px; font: inherit; background: var(--bg-input);
+    }
+    .sim-ai-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .sim-ai-fab {
+      position: fixed; bottom: 20px; right: 20px; z-index: 900;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.18);
+    }
+    .main:not(.ai-collapsed) .sim-ai-fab { display: none; }
+
     /* Blockly light theme overrides */
     .blocklyMainBackground { fill: #f8fafc !important; }
     .blocklyToolboxDiv { background: #ffffff !important; color: var(--text) !important; border-right: 1px solid var(--border); }
@@ -256,13 +297,34 @@
         </div>
       </div>
     </aside>
+
+    <aside class="sim-ai-panel" id="sim-ai-panel" aria-label="Simulator AI">
+      <div class="sim-ai-header">
+        <span>Studio AI</span>
+        <span class="spacer"></span>
+        <button type="button" class="btn btn-secondary" id="sim-ai-collapse" title="Hide AI">✕</button>
+      </div>
+      <div class="sim-ai-wait-banner" id="sim-ai-wait-banner" hidden>Waiting for you…</div>
+      <div class="sim-ai-messages" id="sim-ai-messages" aria-live="polite"></div>
+      <div class="sim-ai-composer">
+        <textarea id="sim-ai-input" placeholder="Describe the simulation you want…" rows="3"></textarea>
+        <div class="sim-ai-actions">
+          <button type="button" class="btn btn-primary" id="sim-ai-send">Send</button>
+          <button type="button" class="btn btn-secondary" id="sim-ai-continue" disabled>Continue</button>
+        </div>
+      </div>
+    </aside>
   </div>
+
+  <button type="button" class="btn btn-primary sim-ai-fab" id="sim-ai-toggle" aria-expanded="true" title="Open Studio AI">AI</button>
 
   <div class="toast" id="toast"></div>
 
+  <script src="ai-typewriter.js?v=1"></script>
   <script src="scratch-blocks.js"></script>
   <script src="scratch-stage.js"></script>
   <script src="scratch-runtime.js"></script>
   <script src="scratch-studio.js"></script>
+  <script src="ai-simulator-help.js?v=1"></script>
 </body>
 </html>

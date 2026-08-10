@@ -1397,36 +1397,50 @@ function showStudyCoachTypingIndicator() {
     box.scrollTop = box.scrollHeight;
 }
 
-function appendStudyCoachBubble(role, text, widgets, mountOpts) {
+async function appendStudyCoachBubble(role, text, widgets, mountOpts) {
     const box = document.getElementById("study-coach-messages");
     if (!box) return null;
+    const opts = mountOpts || {};
+    const instant = !!opts.instant || role === "user";
     const wrap = document.createElement("div");
     wrap.className = "study-coach-bubble";
     wrap.style.marginBottom = "10px";
     wrap.style.padding = "8px 10px";
     wrap.style.borderRadius = "8px";
     wrap.style.whiteSpace = "pre-wrap";
+    const body = document.createElement("div");
+    body.className = "study-coach-body";
     if (role === "user") {
         wrap.classList.add("study-coach-user");
         wrap.style.background = "rgba(118, 139, 255, 0.35)";
         wrap.style.marginLeft = "12px";
-        wrap.innerHTML = `<strong>You</strong><div class="study-coach-body">${escapeHtml(text)}</div>`;
+        wrap.innerHTML = "<strong>You</strong>";
     } else {
         wrap.classList.add("study-coach-coach");
         wrap.style.background = "rgba(255,255,255,0.1)";
         wrap.style.marginRight = "12px";
-        wrap.innerHTML = `<strong>Coach</strong><div class="study-coach-body">${escapeHtml(text)}</div>`;
+        wrap.innerHTML = "<strong>Coach</strong>";
     }
+    wrap.appendChild(body);
     const widgetHost = document.createElement("div");
     widgetHost.className = "vl-widget-host";
     wrap.appendChild(widgetHost);
     box.appendChild(wrap);
     box.scrollTop = box.scrollHeight;
-    typesetStudyCoachBubble(wrap.querySelector(".study-coach-body") || wrap);
-    if (role !== "user" && widgets && widgets.length) {
-        mountStudyCoachWidgets(widgetHost, widgets, mountOpts).then(() => {
-            box.scrollTop = box.scrollHeight;
+
+    if (instant || !window.VeelearnTypewriter) {
+        body.textContent = text == null ? "" : String(text);
+    } else {
+        await window.VeelearnTypewriter.typeIntoElement(body, text, {
+            scrollParent: box,
+            msPerChar: window.VeelearnTypewriter.DEFAULT_MS_PER_CHAR
         });
+    }
+
+    typesetStudyCoachBubble(body);
+    if (role !== "user" && widgets && widgets.length) {
+        await mountStudyCoachWidgets(widgetHost, widgets, opts);
+        box.scrollTop = box.scrollHeight;
     }
     return wrap;
 }
@@ -1478,13 +1492,14 @@ async function loadStudyCoachHistory() {
         const data = await res.json();
         if (!data.success || !Array.isArray(data.data)) return;
         box.innerHTML = "";
-        data.data.forEach((row) => {
+        for (const row of data.data) {
             if (row.role === "user" || row.role === "assistant") {
-                appendStudyCoachBubble(row.role, row.content || "", row.widgets || [], {
-                    skipDrawing: true
+                await appendStudyCoachBubble(row.role, row.content || "", row.widgets || [], {
+                    skipDrawing: true,
+                    instant: true
                 });
             }
-        });
+        }
     } catch (e) {
         console.warn("Study coach history:", e);
     }
@@ -1523,16 +1538,22 @@ async function sendStudyCoachMessage() {
         const data = await res.json();
         removeStudyCoachTypingIndicator();
         if (!data.success) {
-            appendStudyCoachBubble("assistant", data.message || "Something went wrong. Try again later.");
+            await appendStudyCoachBubble(
+                "assistant",
+                data.message || "Something went wrong. Try again later."
+            );
             return;
         }
         const reply = data.data?.reply || "";
-        appendStudyCoachBubble("assistant", reply, data.data?.widgets || []);
+        await appendStudyCoachBubble("assistant", reply, data.data?.widgets || []);
         renderStudyCoachRecommendations(data.data?.recommendations);
     } catch (e) {
         console.error(e);
         removeStudyCoachTypingIndicator();
-        appendStudyCoachBubble("assistant", "Could not reach the study coach. Check your connection and try again.");
+        await appendStudyCoachBubble(
+            "assistant",
+            "Could not reach the study coach. Check your connection and try again."
+        );
     } finally {
         if (sendBtn) sendBtn.disabled = false;
         if (input) input.disabled = false;

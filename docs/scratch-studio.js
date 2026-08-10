@@ -356,6 +356,7 @@
       rotationCenterY: img.height / 2,
       bitmapResolution: 1
     };
+    const kind = selectedId === 'stage' ? 'backdrop' : 'costume';
     if (selectedId === 'stage') {
       project.stage.backdrops.push(costume);
       project.stage.currentBackdrop = project.stage.backdrops.length - 1;
@@ -369,6 +370,11 @@
     redrawStagePreview();
     dirty = true;
     toast('Asset added');
+    try {
+      window.dispatchEvent(new CustomEvent('veelearn-asset-added', {
+        detail: { kind, name: costume.name, targetId: selectedId }
+      }));
+    } catch (_) { /* ignore */ }
   }
 
   async function uploadSound(file) {
@@ -379,6 +385,11 @@
     renderSounds();
     dirty = true;
     toast('Sound added');
+    try {
+      window.dispatchEvent(new CustomEvent('veelearn-asset-added', {
+        detail: { kind: 'sound', name: sound.name, targetId: selectedId }
+      }));
+    } catch (_) { /* ignore */ }
   }
 
   function buildSavePayload() {
@@ -852,11 +863,92 @@
     init();
   }
 
-  // Expose for debugging
+  function ensureSpriteByName(name) {
+    const want = String(name || 'Sprite').trim() || 'Sprite';
+    const existing = project.sprites.find(
+      (s) => s.name.toLowerCase() === want.toLowerCase() || s.id === want
+    );
+    if (existing) {
+      selectTarget(existing.id);
+      return existing;
+    }
+    saveCurrentTargetWorkspace();
+    const costume = ScratchStageUtils.makeDefaultCostume(
+      'costume1',
+      '#' + Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, '0')
+    );
+    const s = {
+      id: uid('sprite'),
+      name: want,
+      x: 0, y: 0, direction: 90, size: 100, visible: true,
+      costumes: [costume], currentCostume: 0, sounds: [],
+      workspace: {}, variables: {}, lists: {},
+      rotationStyle: 'all around', layer: project.sprites.length + 1
+    };
+    project.sprites.push(s);
+    selectTarget(s.id);
+    dirty = true;
+    return s;
+  }
+
+  function setSpriteProps(props) {
+    const p = props || {};
+    if (selectedId === 'stage') return;
+    const s = getSelectedSprite();
+    if (!s) return;
+    if (typeof p.x === 'number') s.x = p.x;
+    if (typeof p.y === 'number') s.y = p.y;
+    if (typeof p.size === 'number') s.size = p.size;
+    if (typeof p.direction === 'number') s.direction = p.direction;
+    if (typeof p.visible === 'boolean') s.visible = p.visible;
+    if (p.name) s.name = String(p.name).slice(0, 80);
+    updateToolbar();
+    renderSpriteList();
+    redrawStagePreview();
+    dirty = true;
+  }
+
+  function resolveTargetId(target) {
+    const t = String(target || '').trim();
+    if (!t || /^stage$/i.test(t)) return 'stage';
+    const byId = project.sprites.find((s) => s.id === t);
+    if (byId) return byId.id;
+    const byName = project.sprites.find((s) => s.name.toLowerCase() === t.toLowerCase());
+    if (byName) return byName.id;
+    if (/^sprite1$/i.test(t) && project.sprites[0]) return project.sprites[0].id;
+    return project.sprites[0] ? project.sprites[0].id : 'stage';
+  }
+
+  function getProjectSummary() {
+    saveCurrentTargetWorkspace();
+    const sprites = project.sprites.map((s) => ({
+      id: s.id,
+      name: s.name,
+      costumes: (s.costumes || []).map((c) => c.name),
+      sounds: (s.sounds || []).map((x) => x.name),
+      x: s.x,
+      y: s.y
+    }));
+    return JSON.stringify({
+      selectedId,
+      stageBackdrops: (project.stage.backdrops || []).map((b) => b.name),
+      stageSounds: (project.stage.sounds || []).map((s) => s.name),
+      sprites,
+      blockCountHint: 'see workspace'
+    });
+  }
+
+  // Expose for debugging + AI assistant
   window.ScratchStudio = {
     getProject: () => project,
     getWorkspace: () => workspace,
     getRuntime: () => runtime,
+    getSelectedId: () => selectedId,
+    selectTarget: (id) => selectTarget(resolveTargetId(id)),
+    ensureSprite: ensureSpriteByName,
+    setSpriteProps,
+    switchTab,
+    getProjectSummary,
     greenFlag,
     stopAll
   };

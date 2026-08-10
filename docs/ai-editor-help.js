@@ -106,14 +106,69 @@
         return tmp.innerHTML;
     }
 
-    function appendBubble(role, text) {
+    async function appendBubble(role, text, opts) {
+        const options = opts || {};
         const box = document.getElementById('ai-help-messages');
-        if (!box) return;
+        if (!box) return null;
         const div = document.createElement('div');
         div.className = `ai-help-bubble ${role}`;
-        div.textContent = text;
         box.appendChild(div);
         box.scrollTop = box.scrollHeight;
+
+        const instant =
+            !!options.instant ||
+            role === 'user' ||
+            role === 'error' ||
+            !global.VeelearnTypewriter;
+
+        if (instant) {
+            div.textContent = text == null ? '' : String(text);
+        } else {
+            await global.VeelearnTypewriter.typeIntoElement(div, text, {
+                scrollParent: box,
+                msPerChar:
+                    role === 'system'
+                        ? global.VeelearnTypewriter.FAST_MS_PER_CHAR
+                        : global.VeelearnTypewriter.DEFAULT_MS_PER_CHAR
+            });
+        }
+        return div;
+    }
+
+    function unitDelay() {
+        if (global.VeelearnTypewriter && typeof global.VeelearnTypewriter.delay === 'function') {
+            return global.VeelearnTypewriter.delay(350);
+        }
+        return new Promise((r) => setTimeout(r, 350));
+    }
+
+    /** Strip tags for visible typewriter text, then commit sanitized HTML. */
+    async function skillInsertHtml(payload) {
+        const rawHtml = payload.html || '';
+        const safe = sanitizeAiHtml(rawHtml);
+        const wrap = document.createElement('div');
+        wrap.className = 'ai-inserted-content';
+        insertBelowAnchor(wrap);
+
+        const tmp = document.createElement('div');
+        tmp.innerHTML = safe || String(rawHtml).replace(/<[^>]+>/g, '');
+        const visible = (tmp.textContent || '').replace(/\s+/g, ' ').trim();
+
+        if (visible && global.VeelearnTypewriter) {
+            await global.VeelearnTypewriter.typeIntoElement(wrap, visible, {
+                msPerChar: global.VeelearnTypewriter.FAST_MS_PER_CHAR,
+                scrollParent: getEditor()
+            });
+        }
+
+        wrap.innerHTML = safe;
+        if (!wrap.innerHTML.trim()) {
+            wrap.textContent = String(rawHtml || '').replace(/<[^>]+>/g, '');
+        }
+        setLastAnchor(wrap);
+        if (global.MathJax && typeof global.MathJax.typesetPromise === 'function') {
+            global.MathJax.typesetPromise([wrap]).catch(() => {});
+        }
     }
 
     function clearAiHelpMessages() {
@@ -136,7 +191,7 @@
             if (!data.success || !Array.isArray(data.data)) return;
             data.data.forEach((row) => {
                 if (row.role === 'user' || row.role === 'assistant') {
-                    appendBubble(row.role, row.content);
+                    appendBubble(row.role, row.content, { instant: true });
                 }
             });
         } catch (err) {
@@ -387,16 +442,6 @@
             }
         });
         return placeholder;
-    }
-
-    async function skillInsertHtml(payload) {
-        const wrap = document.createElement('div');
-        wrap.className = 'ai-inserted-content';
-        wrap.innerHTML = sanitizeAiHtml(payload.html);
-        if (!wrap.innerHTML.trim()) {
-            wrap.textContent = String(payload.html || '').replace(/<[^>]+>/g, '');
-        }
-        insertBelowAnchor(wrap);
     }
 
     async function skillAddQuestion(payload) {
@@ -793,12 +838,12 @@
 
             const reply = data.data?.reply || '';
             const actions = data.data?.actions || [];
-            if (reply) appendBubble('assistant', reply);
+            if (reply) await appendBubble('assistant', reply);
             await executeEditorActions(actions);
-            if (!actions.length && !reply) appendBubble('assistant', 'No changes suggested.');
+            if (!actions.length && !reply) await appendBubble('assistant', 'No changes suggested.');
         } catch (err) {
             console.error(err);
-            appendBubble(
+            await appendBubble(
                 'error',
                 'Could not reach AI Help (network or CORS). If this persists after a redeploy, try again in a minute.'
             );
@@ -972,15 +1017,25 @@
             const payload = action.payload || {};
             try {
                 if (type === 'insert_html') await skillInsertHtml(payload);
-                else if (type === 'add_question') await skillAddQuestion(payload);
-                else if (type === 'add_phet') await skillAddPhet(payload);
-                else if (type === 'add_latex') await skillAddLatex(payload);
-                else if (type === 'add_marketplace_sim') await skillAddMarketplaceSim(payload);
-                else if (type === 'suggest_sims') renderSimSuggestions(payload);
+                else if (type === 'add_question') {
+                    await skillAddQuestion(payload);
+                    await appendBubble('system', 'Added quiz question.');
+                    await unitDelay();
+                } else if (type === 'add_phet') {
+                    await skillAddPhet(payload);
+                    await unitDelay();
+                } else if (type === 'add_latex') {
+                    await skillAddLatex(payload);
+                    await unitDelay();
+                } else if (type === 'add_marketplace_sim') {
+                    await skillAddMarketplaceSim(payload);
+                    await appendBubble('system', 'Added marketplace simulation.');
+                    await unitDelay();
+                } else if (type === 'suggest_sims') renderSimSuggestions(payload);
                 else if (type === 'validate_report') renderValidateFindings(payload.findings || []);
             } catch (err) {
                 console.error('AI skill failed:', type, err);
-                appendBubble('error', `Action “${type}” failed: ${err.message || err}`);
+                await appendBubble('error', `Action “${type}” failed: ${err.message || err}`);
             }
         }
     }
