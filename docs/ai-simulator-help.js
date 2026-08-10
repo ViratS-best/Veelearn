@@ -249,13 +249,19 @@
   }
 
   async function executeActions(actions) {
-    if (!Array.isArray(actions)) return;
+    if (!Array.isArray(actions)) return { ok: 0, fail: 0 };
     stackCursor = null;
     nestParent = null;
     nestInput = null;
     stackX = 40;
     stackY = 40;
-    for (const action of actions) {
+    let ok = 0;
+    let fail = 0;
+    const total = actions.length;
+    await appendBubble('system', `Applying ${total} action${total === 1 ? '' : 's'}…`, { instant: true });
+
+    for (let i = 0; i < actions.length; i++) {
+      const action = actions[i];
       const type = action.type;
       const payload = action.payload || {};
       try {
@@ -265,54 +271,78 @@
           studio()?.selectTarget?.(payload.target);
           stackCursor = null;
           nestParent = null;
-          await delay(200);
+          await delay(120);
         } else if (type === 'ensure_sprite') {
           studio()?.ensureSprite?.(payload.name || 'Sprite');
           stackCursor = null;
           nestParent = null;
-          await delay(250);
+          await appendBubble('system', `Sprite: ${payload.name || 'Sprite'}`, { instant: true });
+          await delay(150);
         } else if (type === 'set_sprite_props') {
           studio()?.setSpriteProps?.(payload);
-          await delay(150);
+          await delay(80);
         } else if (type === 'draw_asset') {
-          studio()?.applyDrawnAsset?.(payload);
-          await appendBubble('system', `Drew ${payload.kind || 'asset'}: ${payload.name || ''}`);
-          await delay(280);
+          if (typeof studio()?.applyDrawnAsset !== 'function') {
+            throw new Error('applyDrawnAsset missing — hard-refresh the studio');
+          }
+          studio().applyDrawnAsset(payload);
+          await appendBubble('system', `Drew ${payload.kind || 'asset'}: ${payload.name || ''}`, {
+            instant: true
+          });
+          await delay(160);
         } else if (type === 'add_block') {
+          const ws = studio()?.getWorkspace?.();
+          if (!ws) throw new Error('Blockly workspace not ready');
           placeBlock(payload);
-          await delay(280);
+          if (i === 0 || i === total - 1 || (i + 1) % 4 === 0) {
+            await appendBubble('system', `Blocks ${i + 1}/${total}: ${payload.type}`, { instant: true });
+          }
+          await delay(180);
         } else if (type === 'add_stack') {
           const blocks = payload.blocks || [];
-          for (let i = 0; i < blocks.length; i++) {
-            const b = { ...blocks[i] };
-            if (i === 0) b.newStack = b.newStack != null ? b.newStack : true;
+          for (let j = 0; j < blocks.length; j++) {
+            const b = { ...blocks[j] };
+            if (j === 0) b.newStack = b.newStack != null ? b.newStack : true;
             else b.connectToPrevious = true;
             placeBlock(b);
-            await delay(280);
+            await delay(180);
           }
         } else if (type === 'wait_for_user') {
-          // Never pause for assets — draw them procedurally
           const need = String(payload.need || 'costume').toLowerCase();
           if (need === 'sound') {
-            await appendBubble('system', 'Skipping sound upload — continuing with visuals.');
+            await appendBubble('system', 'Skipping sound upload — continuing with visuals.', {
+              instant: true
+            });
           } else {
             const drawn = defaultShapesForNeed(need === 'backdrop' ? 'backdrop' : 'costume');
             if (need === 'backdrop') studio()?.selectTarget?.('stage');
             studio()?.applyDrawnAsset?.(drawn);
-            await appendBubble('system', `Auto-drew ${drawn.kind} (no upload needed).`);
+            await appendBubble('system', `Auto-drew ${drawn.kind} (no upload needed).`, {
+              instant: true
+            });
           }
-          await delay(200);
+          await delay(120);
         } else if (type === 'done') {
           await appendBubble('assistant', payload.message || 'Done! Press the green flag to try it.');
           try {
             studio()?.switchTab?.('code');
           } catch (_) { /* ignore */ }
+        } else {
+          await appendBubble('system', `Skipped unknown action: ${type}`, { instant: true });
         }
+        ok++;
       } catch (err) {
+        fail++;
         console.error('sim AI action failed', type, err);
-        await appendBubble('error', `Action “${type}” failed: ${err.message || err}`);
+        await appendBubble('error', `Action ${i + 1}/${total} “${type}” failed: ${err.message || err}`);
       }
     }
+    await appendBubble(
+      'system',
+      fail ? `Finished with ${ok} ok, ${fail} failed.` : `Finished applying ${ok} actions.`,
+      { instant: true }
+    );
+    return { ok, fail };
   }
 
   function resumeWait(source) {
@@ -387,17 +417,49 @@
       }
 
       const reply = data.data?.reply || '';
-      const actions = data.data?.actions || [];
+      let actions = Array.isArray(data.data?.actions) ? data.data.actions : [];
+      const actionCount = data.data?.actionCount != null ? data.data.actionCount : actions.length;
+      const usedFallback = !!data.data?.usedFallback;
+
+      console.log('[Studio AI]', {
+        status: res.status,
+        actionCount,
+        usedFallback,
+        replyPreview: String(reply).slice(0, 120),
+        rawPreview: data.data?.rawPreview
+      });
+
       if (reply) {
         await appendBubble('assistant', reply);
         history.push({ role: 'assistant', content: reply });
       }
-      await executeActions(actions);
-      if (!actions.length && !reply) {
-        await appendBubble('assistant', 'No changes suggested.');
+
+      if (!actions.length) {
+        await appendBubble(
+          'error',
+          'No build actions came back from the server. Check console for [Studio AI] logs, then try Continue.'
+        );
+        return;
+      }
+
+      if (usedFallback) {
+        await appendBubble(
+          'system',
+          'Model skipped JSON actions — using a guaranteed starter build.',
+          { instant: true }
+        );
+      }
+
+      await appendBubble('system', `Received ${actions.length} actions.`, { instant: true });
+      const result = await executeActions(actions);
+      if (result && result.ok === 0) {
+        await appendBubble(
+          'error',
+          'Actions were received but none applied. Hard-refresh the studio (Ctrl+Shift+R) and try again.'
+        );
       }
     } catch (err) {
-      console.error(err);
+      console.error('[Studio AI] network/error', err);
       await appendBubble('error', 'Could not reach Simulator AI. Check your connection.');
     } finally {
       busy = false;
