@@ -6,8 +6,10 @@
 
   const API_BASE_URL = (() => {
     if (typeof location === 'undefined') return 'http://localhost:3000';
+    if (location.hostname.includes('veelearn.org')) return 'https://api.veelearn.org';
+    if (location.hostname.includes('github.io')) return 'https://veelearn.onrender.com';
     if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') return 'http://localhost:3000';
-    return 'https://veelearn-backend.onrender.com';
+    return location.origin;
   })();
 
   let busy = false;

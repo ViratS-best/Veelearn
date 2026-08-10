@@ -169,9 +169,13 @@
       { type: 'procedures_definition', message0: 'define %1', args0: [{ type: 'field_input', name: 'NAME', text: 'my block' }], nextStatement: null, colour: COLORS.myblocks, hat: 'cap' },
       { type: 'procedures_call', message0: '%1', args0: [{ type: 'field_input', name: 'NAME', text: 'my block' }], previousStatement: null, nextStatement: null, colour: COLORS.myblocks, inputsInline: true },
 
-      // Shadow helpers
-      { type: 'math_number', message0: '%1', args0: [{ type: 'field_number', name: 'NUM', value: 0 }], output: 'Number', colour: COLORS.operators },
-      { type: 'text', message0: '%1', args0: [{ type: 'field_input', name: 'TEXT', text: '' }], output: 'String', colour: COLORS.operators },
+      // Shadow helpers — only register if Blockly core did not already define them
+      ...(Blockly.Blocks.math_number
+        ? []
+        : [{ type: 'math_number', message0: '%1', args0: [{ type: 'field_number', name: 'NUM', value: 0 }], output: 'Number', colour: COLORS.operators }]),
+      ...(Blockly.Blocks.text
+        ? []
+        : [{ type: 'text', message0: '%1', args0: [{ type: 'field_input', name: 'TEXT', text: '' }], output: 'String', colour: COLORS.operators }]),
       { type: 'text_broadcast', message0: '%1', args0: [{ type: 'field_input', name: 'TEXT', text: 'message1' }], output: 'String', colour: COLORS.events }
     ]);
   }
