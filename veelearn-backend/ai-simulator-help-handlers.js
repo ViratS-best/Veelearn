@@ -160,39 +160,75 @@ function repairJsonStringEscapes(input) {
     return out;
 }
 
-function extractActionsAndReply(raw) {
-    const text = String(raw || '');
+function extractJsonArray(text) {
+    const s = String(text || '');
+    // Prefer marker, then fenced ```json, then first top-level array that looks like actions
     const marker = 'VEELEARN_SIM_ACTIONS_JSON:';
-    const idx = text.indexOf(marker);
-    let jsonPart = '';
-    let reply = '';
-    if (idx >= 0) {
-        const after = text.slice(idx + marker.length).trim();
-        const arrStart = after.indexOf('[');
-        if (arrStart >= 0) {
-            let depth = 0;
-            let end = -1;
-            for (let i = arrStart; i < after.length; i++) {
-                const c = after[i];
-                if (c === '[') depth++;
-                else if (c === ']') {
-                    depth--;
-                    if (depth === 0) {
-                        end = i;
-                        break;
-                    }
-                }
+    let searchFrom = 0;
+    const mi = s.indexOf(marker);
+    if (mi >= 0) searchFrom = mi + marker.length;
+
+    const fence = s.indexOf('```', searchFrom);
+    let slice = s.slice(searchFrom);
+    if (fence >= 0 && (mi < 0 || fence > mi)) {
+        const afterFence = s.slice(fence + 3).replace(/^json\s*/i, '');
+        const endFence = afterFence.indexOf('```');
+        if (endFence >= 0) slice = afterFence.slice(0, endFence);
+        else slice = afterFence;
+    }
+
+    const arrStart = slice.indexOf('[');
+    if (arrStart < 0) return { jsonPart: '', reply: s.trim() };
+
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    let end = -1;
+    for (let i = arrStart; i < slice.length; i++) {
+        const c = slice[i];
+        if (inString) {
+            if (escaped) {
+                escaped = false;
+            } else if (c === '\\') {
+                escaped = true;
+            } else if (c === '"') {
+                inString = false;
             }
-            if (end >= 0) {
-                jsonPart = after.slice(arrStart, end + 1);
-                reply = after.slice(end + 1).trim();
-            } else {
-                jsonPart = after.slice(arrStart);
+            continue;
+        }
+        if (c === '"') {
+            inString = true;
+            continue;
+        }
+        if (c === '[') depth++;
+        else if (c === ']') {
+            depth--;
+            if (depth === 0) {
+                end = i;
+                break;
             }
         }
-    } else {
-        reply = text.trim();
     }
+
+    if (end < 0) {
+        return { jsonPart: slice.slice(arrStart), reply: '' };
+    }
+    const jsonPart = slice.slice(arrStart, end + 1);
+    // Reply = text before marker/array + text after array (excluding fences)
+    let reply = '';
+    if (mi >= 0) {
+        reply = (s.slice(0, mi) + ' ' + slice.slice(end + 1)).replace(/```/g, '').trim();
+    } else {
+        reply = (s.slice(0, searchFrom + arrStart) + ' ' + slice.slice(end + 1)).replace(/```/g, '').trim();
+        // If reply still looks like JSON, drop it
+        if (/^\s*[\[{]/.test(reply)) reply = '';
+    }
+    return { jsonPart, reply };
+}
+
+function extractActionsAndReply(raw) {
+    const text = String(raw || '');
+    const { jsonPart, reply } = extractJsonArray(text);
 
     let actions = [];
     if (jsonPart) {
@@ -200,13 +236,19 @@ function extractActionsAndReply(raw) {
             actions = JSON.parse(repairJsonStringEscapes(jsonPart));
         } catch (e) {
             try {
-                // Truncation salvage: close open brackets
                 let salvage = repairJsonStringEscapes(jsonPart);
-                const open = (salvage.match(/\[/g) || []).length;
-                const close = (salvage.match(/\]/g) || []).length;
-                for (let i = 0; i < open - close; i++) salvage += ']';
-                const lastObj = salvage.lastIndexOf('}');
-                if (lastObj > 0) salvage = salvage.slice(0, lastObj + 1) + ']';
+                // Drop trailing incomplete object
+                const lastComplete = Math.max(salvage.lastIndexOf('},'), salvage.lastIndexOf('}]'));
+                if (lastComplete > 0) {
+                    salvage = salvage.slice(0, lastComplete + 1);
+                    if (!salvage.trim().endsWith(']')) salvage += ']';
+                } else {
+                    const open = (salvage.match(/\[/g) || []).length;
+                    const close = (salvage.match(/\]/g) || []).length;
+                    for (let i = 0; i < open - close; i++) salvage += ']';
+                    const lastObj = salvage.lastIndexOf('}');
+                    if (lastObj > 0) salvage = salvage.slice(0, lastObj + 1) + ']';
+                }
                 actions = JSON.parse(salvage);
             } catch (_) {
                 actions = [];
@@ -214,7 +256,75 @@ function extractActionsAndReply(raw) {
         }
     }
     if (!Array.isArray(actions)) actions = [];
+    // Filter noise: only objects with type
+    actions = actions.filter((a) => a && typeof a === 'object' && a.type);
     return { actions, reply: String(reply || '').slice(0, 2000) };
+}
+
+/** Guaranteed runnable starter when the model returns prose only. */
+function fallbackBounceActions(userMessage) {
+    const topic = String(userMessage || 'simulation').slice(0, 80);
+    return [
+        { type: 'message', payload: { text: `Building a working starter for “${topic}” (model skipped actions — using fallback).` } },
+        {
+            type: 'draw_asset',
+            payload: {
+                kind: 'backdrop',
+                name: 'lab',
+                bg: '#0b1220',
+                replace: true,
+                shapes: [
+                    { shape: 'rect', x: 0, y: 0, w: 480, h: 360, fill: '#0b1220' },
+                    { shape: 'rect', x: 30, y: 290, w: 420, h: 40, fill: '#57534e' },
+                    { shape: 'rect', x: 220, y: 80, w: 18, h: 160, fill: '#94a3b8' },
+                    { shape: 'rect', x: 218, y: 120, w: 22, h: 28, fill: '#0b1220' },
+                    { shape: 'rect', x: 218, y: 180, w: 22, h: 28, fill: '#0b1220' },
+                    { shape: 'rect', x: 420, y: 60, w: 12, h: 220, fill: '#e2e8f0' },
+                    { shape: 'circle', x: 80, y: 40, r: 5, fill: '#f8fafc' },
+                    { shape: 'circle', x: 120, y: 40, r: 5, fill: '#f8fafc' },
+                    { shape: 'circle', x: 160, y: 40, r: 5, fill: '#f8fafc' }
+                ]
+            }
+        },
+        { type: 'ensure_sprite', payload: { name: 'Emitter' } },
+        {
+            type: 'draw_asset',
+            payload: {
+                kind: 'costume',
+                name: 'emitter',
+                target: 'Emitter',
+                replace: true,
+                shapes: [{ shape: 'trapezoid', x: 64, y: 40, wTop: 20, wBottom: 70, h: 50, fill: '#f59e0b' }]
+            }
+        },
+        { type: 'set_sprite_props', payload: { x: -180, y: 0, size: 70 } },
+        { type: 'ensure_sprite', payload: { name: 'Particle' } },
+        {
+            type: 'draw_asset',
+            payload: {
+                kind: 'costume',
+                name: 'particle',
+                target: 'Particle',
+                replace: true,
+                shapes: [{ shape: 'sphere', x: 64, y: 64, r: 22, fill: '#38bdf8', highlight: '#e0f2fe', shade: '#075985' }]
+            }
+        },
+        { type: 'set_sprite_props', payload: { x: -140, y: 0, size: 45 } },
+        { type: 'select_target', payload: { target: 'Particle' } },
+        { type: 'add_block', payload: { type: 'event_whenflagclicked', newStack: true } },
+        { type: 'add_block', payload: { type: 'motion_gotoxy', inputs: { X: -140, Y: 0 }, connectToPrevious: true } },
+        { type: 'add_block', payload: { type: 'motion_pointindirection', inputs: { DIRECTION: 90 }, connectToPrevious: true } },
+        { type: 'add_block', payload: { type: 'control_forever', connectToPrevious: true } },
+        { type: 'add_block', payload: { type: 'motion_movesteps', inputs: { STEPS: 8 }, connectToPrevious: true, into: 'SUBSTACK' } },
+        { type: 'add_block', payload: { type: 'motion_ifonedgebounce', connectToPrevious: true } },
+        { type: 'add_block', payload: { type: 'control_wait', inputs: { DURATION: 0.05 }, connectToPrevious: true } },
+        {
+            type: 'done',
+            payload: {
+                message: 'Starter placed (Emitter + Particle bounce). Press ▶ — then ask me to expand the full double-slit logic.'
+            }
+        }
+    ];
 }
 
 function normalizeInputs(inputs) {
@@ -408,7 +518,7 @@ module.exports = function createAiSimulatorHelpHandlers({ openRouterChatCompleti
             let raw = '';
             try {
                 raw = await openRouterChatCompletion(messages, {
-                    temperature: 0.35,
+                    temperature: 0.25,
                     max_tokens: 5500,
                     budgetMs: 55000,
                     timeoutMs: 60000
@@ -428,17 +538,61 @@ module.exports = function createAiSimulatorHelpHandlers({ openRouterChatCompleti
                 return apiResponse(res, 502, e.message || 'AI service failed');
             }
 
-            const parsed = extractActionsAndReply(raw);
-            const actions = validateActions(parsed.actions);
+            let parsed = extractActionsAndReply(raw);
+            let actions = validateActions(parsed.actions);
             let reply = parsed.reply;
-            if (!actions.length && !reply) {
-                reply = 'I could not build that yet. Try a simpler request like “make a sprite bounce side to side”.';
+
+            if (!actions.length) {
+                console.warn('[sim-ai] zero actions on first pass; retrying. preview:', String(raw).slice(0, 240));
+                try {
+                    const retryRaw = await openRouterChatCompletion(
+                        [
+                            { role: 'system', content: SIM_SYSTEM },
+                            {
+                                role: 'user',
+                                content: [
+                                    'CRITICAL RETRY: Your previous reply had NO executable actions.',
+                                    'Output ONLY:',
+                                    'VEELEARN_SIM_ACTIONS_JSON:',
+                                    'then a JSON array starting with draw_asset / ensure_sprite / add_block.',
+                                    'Do NOT write a paragraph claiming you built it — emit real actions.',
+                                    'Include at least: 1 backdrop draw_asset, 1 costume draw_asset, event_whenflagclicked, control_forever, motion_movesteps into SUBSTACK, motion_ifonedgebounce, done.',
+                                    `User request: ${message || 'continue'}`
+                                ].join('\n')
+                            }
+                        ],
+                        { temperature: 0.1, max_tokens: 4500, budgetMs: 45000 }
+                    );
+                    raw = retryRaw;
+                    parsed = extractActionsAndReply(retryRaw);
+                    actions = validateActions(parsed.actions);
+                    if (parsed.reply) reply = parsed.reply;
+                } catch (retryErr) {
+                    console.warn('[sim-ai] retry failed:', retryErr.message);
+                }
+            }
+
+            let usedFallback = false;
+            if (!actions.length) {
+                usedFallback = true;
+                actions = validateActions(fallbackBounceActions(message || 'simulation'));
+                reply =
+                    reply ||
+                    'The model did not return build actions, so I placed a working starter simulation you can expand.';
+            }
+
+            if (!reply) {
+                reply = usedFallback
+                    ? 'Starter simulation placed. Press ▶ to run.'
+                    : `Placing ${actions.length} studio actions…`;
             }
 
             return apiResponse(res, 200, 'OK', {
                 reply,
                 actions,
-                rawPreview: String(raw).slice(0, 500)
+                actionCount: actions.length,
+                usedFallback,
+                rawPreview: String(raw).slice(0, 800)
             });
         }
     };
