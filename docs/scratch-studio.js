@@ -938,6 +938,54 @@
     });
   }
 
+  /**
+   * Procedurally draw a costume or backdrop from shape descriptors (Studio AI).
+   * @param {{ kind?: string, name?: string, target?: string, shapes?: Array, bg?: string, width?: number, height?: number, replace?: boolean }} opts
+   */
+  function applyDrawnAsset(opts) {
+    const o = opts || {};
+    const kind = String(o.kind || 'costume').toLowerCase();
+    const isBackdrop = kind === 'backdrop' || kind === 'background';
+    if (o.target) selectTarget(resolveTargetId(o.target));
+    else if (isBackdrop) selectTarget('stage');
+
+    const shapes = Array.isArray(o.shapes) ? o.shapes : [];
+    const asset = ScratchStageUtils.makeShapesAsset(o.name || (isBackdrop ? 'backdrop' : 'costume'), shapes, {
+      asBackdrop: isBackdrop,
+      bg: o.bg,
+      width: o.width,
+      height: o.height
+    });
+
+    if (isBackdrop || selectedId === 'stage') {
+      if (o.replace !== false && project.stage.backdrops.length) {
+        project.stage.backdrops[project.stage.currentBackdrop || 0] = asset;
+      } else {
+        project.stage.backdrops.push(asset);
+        project.stage.currentBackdrop = project.stage.backdrops.length - 1;
+      }
+    } else {
+      const s = getSelectedSprite();
+      if (!s) return null;
+      if (o.replace !== false && s.costumes.length) {
+        s.costumes[s.currentCostume || 0] = asset;
+      } else {
+        s.costumes.push(asset);
+        s.currentCostume = s.costumes.length - 1;
+      }
+    }
+    renderCostumes();
+    renderSpriteList();
+    redrawStagePreview();
+    dirty = true;
+    try {
+      window.dispatchEvent(new CustomEvent('veelearn-asset-added', {
+        detail: { kind: isBackdrop ? 'backdrop' : 'costume', name: asset.name, targetId: selectedId, drawn: true }
+      }));
+    } catch (_) { /* ignore */ }
+    return asset;
+  }
+
   // Expose for debugging + AI assistant
   window.ScratchStudio = {
     getProject: () => project,
@@ -949,6 +997,7 @@
     setSpriteProps,
     switchTab,
     getProjectSummary,
+    applyDrawnAsset,
     greenFlag,
     stopAll
   };
