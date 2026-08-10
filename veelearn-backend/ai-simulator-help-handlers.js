@@ -8,6 +8,7 @@ const ALLOWED_ACTION_TYPES = new Set([
     'ensure_sprite',
     'add_block',
     'add_stack',
+    'draw_asset',
     'wait_for_user',
     'set_sprite_props',
     'done'
@@ -40,32 +41,68 @@ const KNOWN_BLOCK_TYPES = new Set([
 ]);
 
 const SIM_SYSTEM = `You are VeeLearn's Scratch Simulator Studio assistant.
-You build working Scratch-style simulations by emitting structured actions the studio executes one-by-one.
+You build COMPLETE, RUNNABLE Scratch-style simulations yourself — assets AND blocks. Never ask the user to upload images.
 
 CRITICAL OUTPUT FORMAT:
 1) First line exactly: VEELEARN_SIM_ACTIONS_JSON:
 2) Immediately after: a single JSON array of action objects (no markdown fences).
 3) After the JSON, optionally a short human reply (under 40 words).
 
-Rules:
-- Never invent block types. Use only real types like event_whenflagclicked, motion_movesteps, control_forever, looks_say, etc.
-- Prefer simple working stacks: start with event_whenflagclicked (or a key hat), then motion/looks/control.
-- Emit ONE add_block per block so the user sees them appear. Set connectToPrevious:true for stacked statements after a hat.
-- For numeric inputs use payload.inputs like {"STEPS": 10}. For text use {"MESSAGE": "Hello"}. For dropdown fields use payload.fields like {"KEY_OPTION": "space"}.
-- When the user must upload a custom backdrop, costume, or sound, emit wait_for_user BEFORE blocks that need that asset:
-  {"type":"wait_for_user","payload":{"need":"backdrop"|"costume"|"sound","message":"Please upload ..."}}
-- Use select_target with payload.target "stage" or a sprite name/id before wait_for_user for costumes vs backdrops.
-- Use ensure_sprite if you need an extra sprite: {"type":"ensure_sprite","payload":{"name":"Cat"}}.
-- set_sprite_props: optional x,y,size,direction,visible.
-- End with {"type":"done","payload":{"message":"Press the green flag to try it!"}} when finished.
-- On continue after wait_for_user, finish remaining logic; do not re-ask for the same asset unless still missing.
-- Keep stacks under ~25 blocks unless the user asks for more.
-- Do not clear existing blocks unless the user asks to rebuild from scratch.
+ASSET RULES (mandatory):
+- NEVER emit wait_for_user for backdrop/costume/sound. Draw everything with draw_asset.
+- draw_asset payload: {"kind":"backdrop"|"costume","name":"...","target":"stage"|spriteName,"bg":"#0f172a","replace":true,"shapes":[...]}
+- Shape types: rect, roundedRect, circle, sphere, ellipse, trapezoid, triangle, line, polygon, text.
+- Shape fields examples:
+  {"shape":"rect","x":40,"y":280,"w":400,"h":40,"fill":"#6b4423"}
+  {"shape":"sphere","x":64,"y":64,"r":40,"fill":"#22c55e","highlight":"#bbf7d0","shade":"#14532d"}
+  {"shape":"ellipse","x":64,"y":70,"rx":28,"ry":40,"fill":"#a78bfa"}
+  {"shape":"trapezoid","x":240,"y":200,"wTop":60,"wBottom":120,"h":40,"fill":"#64748b"}
+  {"shape":"line","x1":40,"y1":40,"x2":440,"y2":40,"stroke":"#94a3b8","lineWidth":2}
+  {"shape":"text","x":20,"y":30,"text":"Lab","fill":"#e2e8f0","font":"bold 18px sans-serif"}
+- Backdrop canvas is 480x360. Costume canvas defaults ~128x128 (center at 64,64). Stretch/deform with rx/ry, w/h, rotate.
+- First create backdrops and costumes with draw_asset, THEN add scripts.
 
-Example (walk left-right):
+BLOCK RULES (mandatory — make the ACTUAL working sim):
+- Never invent block types. Use real types only.
+- Every sprite that should run needs a COMPLETE stack: event_whenflagclicked -> control_forever (or repeat) -> motion/looks/sensing inside SUBSTACK.
+- Emit ONE add_block per block. After a hat, next block connectToPrevious:true.
+- After control_forever / control_repeat / control_if, the NEXT statement MUST use "into":"SUBSTACK" (or SUBSTACK2 for else).
+- Blocks after the first inside a C-block: connectToPrevious:true (no into) so they stack inside the C-block.
+- Prefer 12–40 actions for rich sims (multi-sprite). Do not stop after 3 blocks.
+- Use ensure_sprite for named roles (Emitter, Particle, Detector, etc.), set_sprite_props for x/y/size, looks_hide on templates used only as clones when needed.
+- For physics/graphs: use motion + variables (data_setvariableto / data_changevariableby / data_showvariable) and looks_say for simple readouts if needed.
+- End with {"type":"done","payload":{"message":"Press the green flag to try it!"}}.
+
+Example (particle bouncing + lab backdrop):
 VEELEARN_SIM_ACTIONS_JSON:
-[{"type":"message","payload":{"text":"Building a left-right walker…"}},{"type":"select_target","payload":{"target":"Sprite1"}},{"type":"add_block","payload":{"type":"event_whenflagclicked","newStack":true}},{"type":"add_block","payload":{"type":"control_forever","connectToPrevious":true}},{"type":"add_block","payload":{"type":"motion_movesteps","inputs":{"STEPS":10},"connectToPrevious":true,"into":"SUBSTACK"}},{"type":"add_block","payload":{"type":"motion_ifonedgebounce","connectToPrevious":true}},{"type":"done","payload":{"message":"Done — press ▶ to run!"}}]
+[{"type":"message","payload":{"text":"Building a lab particle bounce…"}},{"type":"draw_asset","payload":{"kind":"backdrop","name":"lab","bg":"#0b1220","shapes":[{"shape":"rect","x":0,"y":300,"w":480,"h":60,"fill":"#334155"},{"shape":"rect","x":60,"y":250,"w":360,"h":20,"fill":"#78716c"},{"shape":"circle","x":80,"y":40,"r":6,"fill":"#f8fafc"},{"shape":"circle","x":140,"y":40,"r":6,"fill":"#f8fafc"},{"shape":"circle","x":200,"y":40,"r":6,"fill":"#f8fafc"}]}},{"type":"ensure_sprite","payload":{"name":"Particle"}},{"type":"draw_asset","payload":{"kind":"costume","name":"dot","target":"Particle","shapes":[{"shape":"sphere","x":64,"y":64,"r":28,"fill":"#38bdf8","highlight":"#e0f2fe","shade":"#075985"}]}},{"type":"set_sprite_props","payload":{"x":-180,"y":0,"size":60}},{"type":"add_block","payload":{"type":"event_whenflagclicked","newStack":true}},{"type":"add_block","payload":{"type":"control_forever","connectToPrevious":true}},{"type":"add_block","payload":{"type":"motion_movesteps","inputs":{"STEPS":8},"connectToPrevious":true,"into":"SUBSTACK"}},{"type":"add_block","payload":{"type":"motion_ifonedgebounce","connectToPrevious":true}},{"type":"done","payload":{"message":"Done — press ▶!"}}]
 Short reply here.`;
+
+function normalizeShape(s) {
+    if (!s || typeof s !== 'object') return null;
+    const shape = String(s.shape || s.type || '').toLowerCase().slice(0, 32);
+    if (!shape) return null;
+    const out = { shape };
+    const copyNum = (keys) => {
+        for (const k of keys) {
+            if (s[k] != null && !Number.isNaN(Number(s[k]))) out[k] = Number(s[k]);
+        }
+    };
+    const copyStr = (keys) => {
+        for (const k of keys) {
+            if (s[k] != null) out[k] = String(s[k]).slice(0, 80);
+        }
+    };
+    copyNum(['x', 'y', 'w', 'h', 'r', 'rx', 'ry', 'wTop', 'wBottom', 'x1', 'y1', 'x2', 'y2', 'rotate', 'opacity', 'lineWidth', 'width', 'height', 'radius', 'top', 'bottom']);
+    copyStr(['fill', 'color', 'stroke', 'bg', 'highlight', 'shade', 'font', 'text']);
+    if (Array.isArray(s.points)) {
+        out.points = s.points.slice(0, 24).map((p) => {
+            if (Array.isArray(p)) return [Number(p[0]) || 0, Number(p[1]) || 0];
+            return { x: Number(p.x) || 0, y: Number(p.y) || 0 };
+        });
+    }
+    return out;
+}
 
 function repairJsonStringEscapes(input) {
     const s = String(input || '');
@@ -255,14 +292,56 @@ function validateActions(rawActions) {
             }
             if (!normalized.length) continue;
             out.push({ type, payload: { blocks: normalized } });
-        } else if (type === 'wait_for_user') {
-            let need = String(payload.need || '').toLowerCase();
-            if (!['backdrop', 'costume', 'sound'].includes(need)) need = 'costume';
+        } else if (type === 'draw_asset') {
+            const kindRaw = String(payload.kind || 'costume').toLowerCase();
+            const kind = kindRaw === 'backdrop' || kindRaw === 'background' ? 'backdrop' : 'costume';
+            const shapes = Array.isArray(payload.shapes)
+                ? payload.shapes.map(normalizeShape).filter(Boolean).slice(0, 80)
+                : [];
+            if (!shapes.length) continue;
             out.push({
                 type,
                 payload: {
-                    need,
-                    message: String(payload.message || `Please add a ${need}.`).slice(0, 500)
+                    kind,
+                    name: String(payload.name || kind).slice(0, 80),
+                    target: payload.target ? String(payload.target).slice(0, 120) : kind === 'backdrop' ? 'stage' : undefined,
+                    bg: payload.bg ? String(payload.bg).slice(0, 40) : undefined,
+                    width: typeof payload.width === 'number' ? payload.width : undefined,
+                    height: typeof payload.height === 'number' ? payload.height : undefined,
+                    replace: payload.replace !== false,
+                    shapes
+                }
+            });
+        } else if (type === 'wait_for_user') {
+            // Convert legacy wait_for_user asset requests into procedural draw_asset
+            let need = String(payload.need || '').toLowerCase();
+            if (need === 'sound') {
+                // No procedural audio — skip silently (AI should not wait)
+                continue;
+            }
+            if (need !== 'backdrop') need = 'costume';
+            const isBackdrop = need === 'backdrop';
+            const shapes = isBackdrop
+                ? [
+                      { shape: 'rect', x: 0, y: 0, w: 480, h: 360, fill: '#0f172a' },
+                      { shape: 'rect', x: 40, y: 280, w: 400, h: 50, fill: '#57534e' },
+                      { shape: 'circle', x: 100, y: 50, r: 5, fill: '#f8fafc' },
+                      { shape: 'circle', x: 160, y: 50, r: 5, fill: '#f8fafc' },
+                      { shape: 'circle', x: 220, y: 50, r: 5, fill: '#f8fafc' },
+                      { shape: 'circle', x: 280, y: 50, r: 5, fill: '#f8fafc' }
+                  ]
+                : [
+                      { shape: 'sphere', x: 64, y: 64, r: 36, fill: '#38bdf8', highlight: '#e0f2fe', shade: '#0c4a6e' }
+                  ];
+            out.push({
+                type: 'draw_asset',
+                payload: {
+                    kind: isBackdrop ? 'backdrop' : 'costume',
+                    name: isBackdrop ? 'auto-lab' : 'auto-sprite',
+                    target: isBackdrop ? 'stage' : undefined,
+                    bg: isBackdrop ? '#0f172a' : undefined,
+                    replace: true,
+                    shapes
                 }
             });
         } else if (type === 'set_sprite_props') {
@@ -281,7 +360,7 @@ function validateActions(rawActions) {
             });
         }
 
-        if (out.length >= 60) break;
+        if (out.length >= 80) break;
     }
     return out;
 }
@@ -329,10 +408,10 @@ module.exports = function createAiSimulatorHelpHandlers({ openRouterChatCompleti
             let raw = '';
             try {
                 raw = await openRouterChatCompletion(messages, {
-                    temperature: 0.4,
-                    max_tokens: 3500,
-                    budgetMs: 45000,
-                    timeoutMs: 55000
+                    temperature: 0.35,
+                    max_tokens: 5500,
+                    budgetMs: 55000,
+                    timeoutMs: 60000
                 });
             } catch (e) {
                 console.error('ai simulator help openrouter:', e.message);

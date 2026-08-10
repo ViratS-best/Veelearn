@@ -115,6 +115,15 @@
     }
   }
 
+  function emptyStatementInput(block) {
+    if (!block || !block.getInput) return null;
+    for (const name of ['SUBSTACK', 'SUBSTACK2']) {
+      const input = block.getInput(name);
+      if (input && input.connection && !input.connection.targetBlock()) return name;
+    }
+    return null;
+  }
+
   function placeBlock(payload) {
     const st = studio();
     const ws = st?.getWorkspace?.();
@@ -141,38 +150,66 @@
 
     const isHat = !block.previousConnection;
     const newStack = !!payload.newStack || isHat;
-    const into = payload.into;
+    let into = payload.into || null;
 
+    // Auto-nest into empty C-block SUBSTACK when AI forgets "into"
+    if (
+      !into &&
+      !newStack &&
+      block.previousConnection &&
+      nestParent &&
+      emptyStatementInput(nestParent) &&
+      (!stackCursor || !stackCursor.nextConnection || stackCursor === nestParent)
+    ) {
+      into = emptyStatementInput(nestParent);
+    }
+
+    let connected = false;
     if (into && nestParent && nestParent.getInput(into)) {
       const conn = nestParent.getInput(into).connection;
       if (conn && block.previousConnection) {
-        conn.connect(block.previousConnection);
-      } else {
-        block.moveBy(stackX + 40, stackY + 40);
+        try {
+          conn.connect(block.previousConnection);
+          connected = true;
+        } catch (_) { /* ignore */ }
       }
-      nestParent = block;
-      nestInput = null;
-    } else if (!newStack && payload.connectToPrevious !== false && stackCursor && stackCursor.nextConnection && block.previousConnection) {
+    }
+
+    if (!connected && !newStack && payload.connectToPrevious !== false && stackCursor && stackCursor.nextConnection && block.previousConnection) {
       try {
         stackCursor.nextConnection.connect(block.previousConnection);
-      } catch (_) {
-        block.moveBy(stackX, stackY + 80);
+        connected = true;
+      } catch (_) { /* ignore */ }
+    }
+
+    // If still not connected but nestParent has empty substack, force nest
+    if (!connected && !newStack && block.previousConnection && nestParent) {
+      const empty = emptyStatementInput(nestParent);
+      if (empty) {
+        try {
+          nestParent.getInput(empty).connection.connect(block.previousConnection);
+          connected = true;
+          into = empty;
+        } catch (_) { /* ignore */ }
       }
-    } else {
+    }
+
+    if (!connected) {
       block.moveBy(stackX, stackY);
-      stackY += 24;
+      stackY += 28;
       if (stackY > 280) {
         stackY = 40;
         stackX += 280;
       }
     }
 
-    // Track control blocks that have statement inputs for following "into" actions
+    // C-blocks become the nest parent for following statements
     if (block.getInput && (block.getInput('SUBSTACK') || block.getInput('SUBSTACK2'))) {
       nestParent = block;
+    } else if (into && nestParent) {
+      // stay nested under same C-block; stackCursor advances for chaining inside
     }
 
-    // Always advance stack cursor to the last placed statement/hat block
     if (block.nextConnection || block.previousConnection || isHat) {
       stackCursor = block;
     }
@@ -184,29 +221,40 @@
     return block;
   }
 
-  function waitForUser(need, message) {
-    return new Promise((resolve) => {
-      lastNeed = need;
-      waitResolve = resolve;
-      const tab = need === 'sound' ? 'sounds' : 'assets';
-      try {
-        studio()?.switchTab?.(tab);
-        if (need === 'backdrop') studio()?.selectTarget?.('stage');
-      } catch (_) { /* ignore */ }
-      setWaitUi(true, message || `Please upload a ${need}, then click Continue.`);
-    });
-  }
-
-  function resumeWait(source) {
-    if (!waiting || !waitResolve) return;
-    const resolve = waitResolve;
-    waitResolve = null;
-    setWaitUi(false);
-    resolve({ source: source || 'continue' });
+  function defaultShapesForNeed(need) {
+    if (need === 'backdrop') {
+      return {
+        kind: 'backdrop',
+        name: 'lab',
+        bg: '#0f172a',
+        shapes: [
+          { shape: 'rect', x: 0, y: 0, w: 480, h: 360, fill: '#0f172a' },
+          { shape: 'rect', x: 40, y: 280, w: 400, h: 50, fill: '#57534e' },
+          { shape: 'rect', x: 80, y: 200, w: 320, h: 16, fill: '#78716c' },
+          { shape: 'circle', x: 100, y: 48, r: 5, fill: '#f8fafc' },
+          { shape: 'circle', x: 160, y: 48, r: 5, fill: '#f8fafc' },
+          { shape: 'circle', x: 220, y: 48, r: 5, fill: '#f8fafc' },
+          { shape: 'circle', x: 280, y: 48, r: 5, fill: '#f8fafc' },
+          { shape: 'circle', x: 340, y: 48, r: 5, fill: '#f8fafc' }
+        ]
+      };
+    }
+    return {
+      kind: 'costume',
+      name: 'blob',
+      shapes: [
+        { shape: 'sphere', x: 64, y: 64, r: 36, fill: '#38bdf8', highlight: '#e0f2fe', shade: '#0c4a6e' }
+      ]
+    };
   }
 
   async function executeActions(actions) {
     if (!Array.isArray(actions)) return;
+    stackCursor = null;
+    nestParent = null;
+    nestInput = null;
+    stackX = 40;
+    stackY = 40;
     for (const action of actions) {
       const type = action.type;
       const payload = action.payload || {};
@@ -215,29 +263,45 @@
           await appendBubble('assistant', payload.text || '');
         } else if (type === 'select_target') {
           studio()?.selectTarget?.(payload.target);
+          stackCursor = null;
+          nestParent = null;
           await delay(200);
         } else if (type === 'ensure_sprite') {
           studio()?.ensureSprite?.(payload.name || 'Sprite');
+          stackCursor = null;
+          nestParent = null;
           await delay(250);
         } else if (type === 'set_sprite_props') {
           studio()?.setSpriteProps?.(payload);
           await delay(150);
+        } else if (type === 'draw_asset') {
+          studio()?.applyDrawnAsset?.(payload);
+          await appendBubble('system', `Drew ${payload.kind || 'asset'}: ${payload.name || ''}`);
+          await delay(280);
         } else if (type === 'add_block') {
           placeBlock(payload);
-          await delay(320);
+          await delay(280);
         } else if (type === 'add_stack') {
           const blocks = payload.blocks || [];
           for (let i = 0; i < blocks.length; i++) {
-            const b = blocks[i];
+            const b = { ...blocks[i] };
             if (i === 0) b.newStack = b.newStack != null ? b.newStack : true;
             else b.connectToPrevious = true;
             placeBlock(b);
-            await delay(320);
+            await delay(280);
           }
         } else if (type === 'wait_for_user') {
-          await appendBubble('system', payload.message || `Please add a ${payload.need}.`);
-          await waitForUser(payload.need, payload.message);
-          await appendBubble('system', 'Thanks — continuing…', { instant: true });
+          // Never pause for assets — draw them procedurally
+          const need = String(payload.need || 'costume').toLowerCase();
+          if (need === 'sound') {
+            await appendBubble('system', 'Skipping sound upload — continuing with visuals.');
+          } else {
+            const drawn = defaultShapesForNeed(need === 'backdrop' ? 'backdrop' : 'costume');
+            if (need === 'backdrop') studio()?.selectTarget?.('stage');
+            studio()?.applyDrawnAsset?.(drawn);
+            await appendBubble('system', `Auto-drew ${drawn.kind} (no upload needed).`);
+          }
+          await delay(200);
         } else if (type === 'done') {
           await appendBubble('assistant', payload.message || 'Done! Press the green flag to try it.');
           try {
@@ -248,6 +312,19 @@
         console.error('sim AI action failed', type, err);
         await appendBubble('error', `Action “${type}” failed: ${err.message || err}`);
       }
+    }
+  }
+
+  function resumeWait(source) {
+    // Asset waits are auto-drawn now; Continue asks the AI to keep building.
+    if (waiting) {
+      waiting = false;
+      setWaitUi(false);
+    }
+    if (waitResolve) {
+      const resolve = waitResolve;
+      waitResolve = null;
+      resolve({ source: source || 'continue' });
     }
   }
 
@@ -403,7 +480,7 @@
 
     appendBubble(
       'assistant',
-      'Describe a simulation and I’ll build it block by block. If I need a backdrop or costume, I’ll pause until you upload it.',
+      'Describe a simulation and I’ll build it fully — draw costumes/backdrops from shapes and wire complete block stacks. No uploads needed.',
       { instant: true }
     );
   }

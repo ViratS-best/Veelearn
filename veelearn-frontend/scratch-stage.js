@@ -108,6 +108,169 @@
     };
   }
 
+  function drawOneShape(ctx, s) {
+    if (!s || typeof s !== 'object') return;
+    const shape = String(s.shape || s.type || 'rect').toLowerCase();
+    const fill = s.fill || s.color || '#6366f1';
+    const stroke = s.stroke || null;
+    const lw = s.lineWidth != null ? Number(s.lineWidth) : 2;
+
+    ctx.save();
+    if (s.opacity != null) ctx.globalAlpha = Math.max(0, Math.min(1, Number(s.opacity)));
+    if (s.rotate) {
+      const cx = Number(s.x) || 0;
+      const cy = Number(s.y) || 0;
+      ctx.translate(cx, cy);
+      ctx.rotate((Number(s.rotate) * Math.PI) / 180);
+      ctx.translate(-cx, -cy);
+    }
+
+    const applyFillStroke = () => {
+      if (fill && fill !== 'none') {
+        ctx.fillStyle = fill;
+        ctx.fill();
+      }
+      if (stroke) {
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = lw;
+        ctx.stroke();
+      }
+    };
+
+    if (shape === 'rect' || shape === 'rectangle') {
+      const x = Number(s.x) || 0;
+      const y = Number(s.y) || 0;
+      const w = Number(s.w != null ? s.w : s.width) || 40;
+      const h = Number(s.h != null ? s.h : s.height) || 40;
+      ctx.beginPath();
+      ctx.rect(x, y, w, h);
+      applyFillStroke();
+    } else if (shape === 'roundedrect' || shape === 'roundrect') {
+      const x = Number(s.x) || 0;
+      const y = Number(s.y) || 0;
+      const w = Number(s.w != null ? s.w : s.width) || 40;
+      const h = Number(s.h != null ? s.h : s.height) || 40;
+      const r = Math.min(Number(s.r) || 8, w / 2, h / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+      applyFillStroke();
+    } else if (shape === 'circle' || shape === 'sphere') {
+      const x = Number(s.x) || 0;
+      const y = Number(s.y) || 0;
+      const r = Number(s.r != null ? s.r : s.radius) || 20;
+      if (shape === 'sphere') {
+        const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.1, x, y, r);
+        g.addColorStop(0, s.highlight || '#ffffff');
+        g.addColorStop(0.35, fill);
+        g.addColorStop(1, s.shade || '#111827');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        applyFillStroke();
+      }
+    } else if (shape === 'ellipse' || shape === 'oval') {
+      const x = Number(s.x) || 0;
+      const y = Number(s.y) || 0;
+      const rx = Number(s.rx != null ? s.rx : s.w / 2) || 20;
+      const ry = Number(s.ry != null ? s.ry : s.h / 2) || 30;
+      ctx.beginPath();
+      ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+      applyFillStroke();
+    } else if (shape === 'trapezoid') {
+      const x = Number(s.x) || 0;
+      const y = Number(s.y) || 0;
+      const wTop = Number(s.wTop != null ? s.wTop : s.top) || 40;
+      const wBottom = Number(s.wBottom != null ? s.wBottom : s.bottom) || 80;
+      const h = Number(s.h) || 50;
+      ctx.beginPath();
+      ctx.moveTo(x - wTop / 2, y);
+      ctx.lineTo(x + wTop / 2, y);
+      ctx.lineTo(x + wBottom / 2, y + h);
+      ctx.lineTo(x - wBottom / 2, y + h);
+      ctx.closePath();
+      applyFillStroke();
+    } else if (shape === 'triangle') {
+      const x = Number(s.x) || 0;
+      const y = Number(s.y) || 0;
+      const w = Number(s.w) || 40;
+      const h = Number(s.h) || 50;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + w / 2, y + h);
+      ctx.lineTo(x - w / 2, y + h);
+      ctx.closePath();
+      applyFillStroke();
+    } else if (shape === 'line') {
+      ctx.beginPath();
+      ctx.moveTo(Number(s.x1) || 0, Number(s.y1) || 0);
+      ctx.lineTo(Number(s.x2) || 0, Number(s.y2) || 0);
+      ctx.strokeStyle = stroke || fill;
+      ctx.lineWidth = lw;
+      ctx.stroke();
+    } else if (shape === 'polygon' && Array.isArray(s.points) && s.points.length >= 3) {
+      ctx.beginPath();
+      s.points.forEach((p, i) => {
+        const px = Array.isArray(p) ? p[0] : p.x;
+        const py = Array.isArray(p) ? p[1] : p.y;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      });
+      ctx.closePath();
+      applyFillStroke();
+    } else if (shape === 'text') {
+      ctx.fillStyle = fill;
+      ctx.font = s.font || '16px sans-serif';
+      ctx.fillText(String(s.text || ''), Number(s.x) || 0, Number(s.y) || 0);
+    }
+    ctx.restore();
+  }
+
+  /**
+   * Build a costume/backdrop from declarative shapes (AI / procedural art).
+   * @param {string} name
+   * @param {Array<object>} shapes
+   * @param {{ width?: number, height?: number, bg?: string, asBackdrop?: boolean }} opts
+   */
+  function makeShapesAsset(name, shapes, opts) {
+    const options = opts || {};
+    const asBackdrop = !!options.asBackdrop;
+    const width = Math.max(16, Math.min(960, Number(options.width) || (asBackdrop ? STAGE_W : 128)));
+    const height = Math.max(16, Math.min(720, Number(options.height) || (asBackdrop ? STAGE_H : 128)));
+    const c = document.createElement('canvas');
+    c.width = width;
+    c.height = height;
+    const ctx = c.getContext('2d');
+    if (options.bg && options.bg !== 'transparent') {
+      ctx.fillStyle = options.bg;
+      ctx.fillRect(0, 0, width, height);
+    } else if (asBackdrop) {
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, width, height);
+    } else {
+      ctx.clearRect(0, 0, width, height);
+    }
+    const list = Array.isArray(shapes) ? shapes.slice(0, 80) : [];
+    for (const s of list) drawOneShape(ctx, s);
+    return {
+      name: name || (asBackdrop ? 'backdrop' : 'costume'),
+      dataUrl: c.toDataURL('image/png'),
+      bitmapResolution: 1,
+      rotationCenterX: width / 2,
+      rotationCenterY: height / 2,
+      width,
+      height
+    };
+  }
+
   class ScratchStage {
     constructor(canvas, monitorsEl, speechEl) {
       this.canvas = canvas;
@@ -402,6 +565,7 @@
     canvasToScratch,
     makeDefaultCostume,
     makeDefaultBackdrop,
-    makeLibraryCostume
+    makeLibraryCostume,
+    makeShapesAsset
   };
 })(window);
