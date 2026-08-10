@@ -1191,12 +1191,25 @@ const aiEditorHelpLimiter = rateLimit({
     message: { success: false, message: 'Too many AI Help requests. Please wait a moment and try again.' }
 });
 
+const aiSimulatorHelpLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 30,
+    message: { success: false, message: 'Too many Simulator AI requests. Please wait a moment and try again.' }
+});
+
 const createAiTutorHandlers = require('./ai-tutor-handlers');
 const aiTutorHandlers = createAiTutorHandlers({ query, openRouterChatCompletion, apiResponse });
 
 const createAiEditorHelpHandlers = require('./ai-editor-help-handlers');
 const aiEditorHelpHandlers = createAiEditorHelpHandlers({
     query,
+    openRouterChatCompletion,
+    apiResponse,
+    getOpenRouterKeys
+});
+
+const createAiSimulatorHelpHandlers = require('./ai-simulator-help-handlers');
+const aiSimulatorHelpHandlers = createAiSimulatorHelpHandlers({
     openRouterChatCompletion,
     apiResponse,
     getOpenRouterKeys
@@ -7513,6 +7526,14 @@ app.delete('/api/ai/editor-help/history', aiEditorHelpLimiter, authenticateToken
     aiEditorHelpHandlers.clearHistory(req, res).catch((e) => {
         console.error('ai editor help clear:', e);
         apiResponse(res, 500, 'AI Help history error');
+    });
+});
+
+// ===== AI SIMULATOR STUDIO HELP =====
+app.post('/api/ai/simulator-help', aiSimulatorHelpLimiter, authenticateToken, (req, res) => {
+    aiSimulatorHelpHandlers.help(req, res).catch((e) => {
+        console.error('ai simulator help:', e);
+        apiResponse(res, 500, 'Simulator AI error');
     });
 });
 

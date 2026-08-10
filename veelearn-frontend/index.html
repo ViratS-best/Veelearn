@@ -1111,9 +1111,10 @@
   <script src="api-cache.js" defer></script>
   <script src="image-optimization.js" defer></script>
   <script src="accessibility.js" defer></script>
+  <script src="ai-typewriter.js?v=1" defer></script>
   <script src="learner-shell.js?v=5" defer></script>
-  <script src="learner-gamification.js?v=7" defer></script>
-  <script src="script.js?v=23" defer></script>
+  <script src="learner-gamification.js?v=8" defer></script>
+  <script src="script.js?v=24" defer></script>
   <script src="course-editor-ux.js?v=1" defer></script>
   <script>
     function loadScriptOnce(src) {
@@ -1134,7 +1135,7 @@
       if (kind === 'battle' || kind === 'all') await loadScriptOnce('anime-battle-system.js');
       if (kind === 'blocks' || kind === 'all') await loadScriptOnce('block-templates-unified.js');
       if (kind === 'editor' || kind === 'all') {
-        await loadScriptOnce('ai-editor-help.js?v=11');
+        await loadScriptOnce('ai-editor-help.js?v=12');
         if (typeof setupAiEditorHelp === 'function') setupAiEditorHelp();
       }
       if (kind === 'server' || kind === 'all') await loadScriptOnce('server-loading.js');

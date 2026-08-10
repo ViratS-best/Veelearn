@@ -264,33 +264,47 @@
     document.getElementById('ls-ai-typing')?.remove();
   }
 
-  function appendAiBubble(role, text, widgets, mountOpts) {
+  async function appendAiBubble(role, text, widgets, mountOpts) {
     const box = document.getElementById('ls-ai-messages');
     if (!box) return null;
+    const opts = mountOpts || {};
+    const instant = !!opts.instant || role === 'user';
     const wrap = document.createElement('div');
     wrap.style.marginBottom = '10px';
     wrap.style.padding = '10px 12px';
     wrap.style.borderRadius = '12px';
     wrap.style.whiteSpace = 'pre-wrap';
+    const body = document.createElement('div');
+    body.className = 'ls-bubble-body';
     if (role === 'user') {
       wrap.classList.add('ls-bubble-user');
       wrap.style.marginLeft = '24px';
-      wrap.innerHTML = `<strong>You</strong><div class="ls-bubble-body">${esc(text)}</div>`;
+      wrap.innerHTML = '<strong>You</strong>';
     } else {
       wrap.classList.add('ls-bubble-coach');
       wrap.style.marginRight = '24px';
-      wrap.innerHTML = `<strong>Coach</strong><div class="ls-bubble-body">${esc(text)}</div>`;
+      wrap.innerHTML = '<strong>Coach</strong>';
     }
+    wrap.appendChild(body);
     const widgetHost = document.createElement('div');
     widgetHost.className = 'vl-widget-host';
     wrap.appendChild(widgetHost);
     box.appendChild(wrap);
     box.scrollTop = box.scrollHeight;
-    typesetCoachBubble(wrap.querySelector('.ls-bubble-body') || wrap);
-    if (role !== 'user' && widgets && widgets.length) {
-      mountCoachWidgets(widgetHost, widgets, mountOpts).then(() => {
-        box.scrollTop = box.scrollHeight;
+
+    if (instant || !window.VeelearnTypewriter) {
+      body.textContent = text == null ? '' : String(text);
+    } else {
+      await window.VeelearnTypewriter.typeIntoElement(body, text, {
+        scrollParent: box,
+        msPerChar: window.VeelearnTypewriter.DEFAULT_MS_PER_CHAR
       });
+    }
+
+    typesetCoachBubble(body);
+    if (role !== 'user' && widgets && widgets.length) {
+      await mountCoachWidgets(widgetHost, widgets, opts);
+      box.scrollTop = box.scrollHeight;
     }
     return wrap;
   }
@@ -370,23 +384,27 @@
       const data = await api('/api/ai/tutor/history?limit=30');
       if (data.success && Array.isArray(data.data)) {
         for (const m of data.data) {
-          appendAiBubble(
+          await appendAiBubble(
             m.role === 'user' ? 'user' : 'assistant',
             m.content,
             m.widgets || [],
-            { skipDrawing: true }
+            { skipDrawing: true, instant: true }
           );
         }
       }
       if (!box.childElementCount) {
-        appendAiBubble(
+        await appendAiBubble(
           'assistant',
-          "Hi! Tell me what you want to learn, or ask a question — I'll help and can suggest great courses (I'll pick top liked ones when there are a few that fit)."
+          "Hi! Tell me what you want to learn, or ask a question — I'll help and can suggest great courses (I'll pick top liked ones when there are a few that fit).",
+          null,
+          { instant: true }
         );
       }
       aiHistoryLoaded = true;
     } catch (e) {
-      appendAiBubble('assistant', 'Welcome! Ask me anything about what you want to study.');
+      await appendAiBubble('assistant', 'Welcome! Ask me anything about what you want to study.', null, {
+        instant: true
+      });
     }
   }
 
@@ -407,14 +425,14 @@
       });
       removeDashboardTyping();
       if (data.success) {
-        appendAiBubble('assistant', data.data.reply || '…', data.data.widgets || []);
+        await appendAiBubble('assistant', data.data.reply || '…', data.data.widgets || []);
         renderRecs(data.data.recommendations || []);
       } else {
-        appendAiBubble('assistant', data.message || 'Sorry, I could not reply just now.');
+        await appendAiBubble('assistant', data.message || 'Sorry, I could not reply just now.');
       }
     } catch (e) {
       removeDashboardTyping();
-      appendAiBubble('assistant', 'Network error — please try again.');
+      await appendAiBubble('assistant', 'Network error — please try again.');
     } finally {
       if (sendBtn) sendBtn.disabled = false;
     }
