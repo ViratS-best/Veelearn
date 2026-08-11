@@ -374,6 +374,97 @@
     return { res, data };
   }
 
+  /**
+   * Realtime SSE stream from /api/ai/simulator-help/stream.
+   * Falls back to non-stream callApi if stream endpoint is unavailable.
+   */
+  async function callApiStream(body, onToken) {
+    const res = await fetch(`${API_BASE_URL}/api/ai/simulator-help/stream`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: authHeaders(),
+      body: JSON.stringify(body)
+    });
+
+    const ct = (res.headers.get('content-type') || '').toLowerCase();
+    if (!res.ok || !res.body || !ct.includes('text/event-stream')) {
+      // Older deploy / HTML error page — fall back
+      if (ct.includes('application/json')) {
+        let data = null;
+        try {
+          data = await res.json();
+        } catch (_) {
+          data = null;
+        }
+        return { ok: false, status: res.status, data, result: null, streamed: false };
+      }
+      const fallback = await callApi(body);
+      return {
+        ok: fallback.res.ok && fallback.data && fallback.data.success !== false,
+        status: fallback.res.status,
+        data: fallback.data,
+        result: fallback.data?.data || null,
+        streamed: false,
+        errorMessage:
+          (fallback.data && fallback.data.message) ||
+          (fallback.res.status === 401
+            ? 'Please log in on Veelearn first, then reopen the studio.'
+            : null)
+      };
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let result = null;
+    let errorMessage = null;
+    let errorStatus = res.status;
+
+    const handleEvent = (eventName, dataStr) => {
+      let payload = null;
+      try {
+        payload = JSON.parse(dataStr);
+      } catch (_) {
+        return;
+      }
+      if (eventName === 'token' && payload && typeof payload.text === 'string') {
+        if (typeof onToken === 'function') onToken(payload.text);
+      } else if (eventName === 'result' && payload) {
+        result = payload;
+      } else if (eventName === 'error' && payload) {
+        errorMessage = payload.message || 'AI stream error';
+        errorStatus = payload.status || errorStatus;
+      }
+    };
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const parts = buffer.split('\n\n');
+      buffer = parts.pop() || '';
+      for (const part of parts) {
+        if (!part.trim() || part.trim().startsWith(':')) continue;
+        let eventName = 'message';
+        const dataLines = [];
+        for (const line of part.split('\n')) {
+          if (line.startsWith('event:')) eventName = line.slice(6).trim();
+          else if (line.startsWith('data:')) dataLines.push(line.slice(5).trim());
+        }
+        if (dataLines.length) handleEvent(eventName, dataLines.join('\n'));
+      }
+    }
+
+    return {
+      ok: !errorMessage && !!result,
+      status: errorStatus,
+      data: result ? { success: true, data: result } : { success: false, message: errorMessage },
+      result,
+      streamed: true,
+      errorMessage
+    };
+  }
+
   async function sendMessage(opts) {
     const options = opts || {};
     if (busy) return;
@@ -396,41 +487,71 @@
     const summary =
       typeof studio()?.getProjectSummary === 'function' ? studio().getProjectSummary() : '';
 
-    try {
-      const { res, data } = await callApi({
-        message: text || 'continue',
-        continue: !!options.continue,
-        lastNeed: options.lastNeed || lastNeed || '',
-        projectSummary: summary,
-        history: history.slice(-10)
-      });
+    // Live streaming bubble — tokens appear as the model generates them
+    const liveWrap = await appendBubble('assistant', '', { instant: true });
+    const liveBody = liveWrap && liveWrap.querySelector('.sim-ai-body');
+    const msgBox = document.getElementById('sim-ai-messages');
+    if (liveBody) liveBody.textContent = '…';
 
-      if (!res.ok || !data || data.success === false) {
-        await appendBubble(
-          'error',
-          (data && data.message) ||
-            (res.status === 401
-              ? 'Please log in on Veelearn first, then reopen the studio.'
-              : `Simulator AI failed (${res.status})`)
-        );
+    try {
+      let sawToken = false;
+      const streamOut = await callApiStream(
+        {
+          message: text || 'continue',
+          continue: !!options.continue,
+          lastNeed: options.lastNeed || lastNeed || '',
+          projectSummary: summary,
+          history: history.slice(-10)
+        },
+        (token) => {
+          if (!liveBody) return;
+          if (!sawToken) {
+            liveBody.textContent = '';
+            sawToken = true;
+          }
+          liveBody.textContent += token;
+          if (msgBox) msgBox.scrollTop = msgBox.scrollHeight;
+        }
+      );
+
+      if (!streamOut.ok || !streamOut.result) {
+        const msg =
+          streamOut.errorMessage ||
+          streamOut.data?.message ||
+          (streamOut.status === 401
+            ? 'Please log in on Veelearn first, then reopen the studio.'
+            : `Simulator AI failed (${streamOut.status})`);
+        if (liveBody) liveBody.textContent = msg;
+        liveWrap.classList.add('sim-ai-error');
         return;
       }
 
-      const reply = data.data?.reply || '';
-      let actions = Array.isArray(data.data?.actions) ? data.data.actions : [];
-      const actionCount = data.data?.actionCount != null ? data.data.actionCount : actions.length;
-      const usedFallback = !!data.data?.usedFallback;
+      const reply = streamOut.result.reply || '';
+      let actions = Array.isArray(streamOut.result.actions) ? streamOut.result.actions : [];
+      const actionCount =
+        streamOut.result.actionCount != null ? streamOut.result.actionCount : actions.length;
+      const usedFallback = !!streamOut.result.usedFallback;
 
       console.log('[Studio AI]', {
-        status: res.status,
+        status: streamOut.status,
+        streamed: streamOut.streamed,
         actionCount,
         usedFallback,
         replyPreview: String(reply).slice(0, 120),
-        rawPreview: data.data?.rawPreview
+        rawPreview: streamOut.result.rawPreview
       });
 
+      if (liveBody) {
+        // Prefer clean reply if stream only showed a status snippet (or nothing)
+        const current = (liveBody.textContent || '').trim();
+        if (reply && (!sawToken || current.length < 8 || current === '…')) {
+          liveBody.textContent = reply;
+        } else if (reply && current && !current.includes(reply.slice(0, Math.min(20, reply.length)))) {
+          liveBody.textContent = (current + '\n' + reply).trim();
+        }
+      }
+
       if (reply) {
-        await appendBubble('assistant', reply);
         history.push({ role: 'assistant', content: reply });
       }
 
@@ -460,7 +581,12 @@
       }
     } catch (err) {
       console.error('[Studio AI] network/error', err);
-      await appendBubble('error', 'Could not reach Simulator AI. Check your connection.');
+      if (liveBody) {
+        liveBody.textContent = 'Could not reach Simulator AI. Check your connection.';
+        liveWrap.classList.add('sim-ai-error');
+      } else {
+        await appendBubble('error', 'Could not reach Simulator AI. Check your connection.');
+      }
     } finally {
       busy = false;
       if (sendBtn) sendBtn.disabled = false;
