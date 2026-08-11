@@ -44,9 +44,10 @@ const SIM_SYSTEM = `You are VeeLearn's Scratch Simulator Studio assistant.
 You build COMPLETE, RUNNABLE Scratch-style simulations yourself — assets AND blocks. Never ask the user to upload images.
 
 CRITICAL OUTPUT FORMAT:
-1) First line exactly: VEELEARN_SIM_ACTIONS_JSON:
-2) Immediately after: a single JSON array of action objects (no markdown fences).
-3) After the JSON, optionally a short human reply (under 40 words).
+1) First: ONE short human status line (under 25 words). No JSON on this line. Example: Building a bouncing particle lab…
+2) Next line exactly: VEELEARN_SIM_ACTIONS_JSON:
+3) Immediately after: a single JSON array of action objects (no markdown fences).
+4) After the JSON, optionally one more short line.
 
 ASSET RULES (mandatory):
 - NEVER emit wait_for_user for backdrop/costume/sound. Draw everything with draw_asset.
@@ -74,9 +75,10 @@ BLOCK RULES (mandatory — make the ACTUAL working sim):
 - End with {"type":"done","payload":{"message":"Press the green flag to try it!"}}.
 
 Example (particle bouncing + lab backdrop):
+Building a lab particle bounce…
 VEELEARN_SIM_ACTIONS_JSON:
 [{"type":"message","payload":{"text":"Building a lab particle bounce…"}},{"type":"draw_asset","payload":{"kind":"backdrop","name":"lab","bg":"#0b1220","shapes":[{"shape":"rect","x":0,"y":300,"w":480,"h":60,"fill":"#334155"},{"shape":"rect","x":60,"y":250,"w":360,"h":20,"fill":"#78716c"},{"shape":"circle","x":80,"y":40,"r":6,"fill":"#f8fafc"},{"shape":"circle","x":140,"y":40,"r":6,"fill":"#f8fafc"},{"shape":"circle","x":200,"y":40,"r":6,"fill":"#f8fafc"}]}},{"type":"ensure_sprite","payload":{"name":"Particle"}},{"type":"draw_asset","payload":{"kind":"costume","name":"dot","target":"Particle","shapes":[{"shape":"sphere","x":64,"y":64,"r":28,"fill":"#38bdf8","highlight":"#e0f2fe","shade":"#075985"}]}},{"type":"set_sprite_props","payload":{"x":-180,"y":0,"size":60}},{"type":"add_block","payload":{"type":"event_whenflagclicked","newStack":true}},{"type":"add_block","payload":{"type":"control_forever","connectToPrevious":true}},{"type":"add_block","payload":{"type":"motion_movesteps","inputs":{"STEPS":8},"connectToPrevious":true,"into":"SUBSTACK"}},{"type":"add_block","payload":{"type":"motion_ifonedgebounce","connectToPrevious":true}},{"type":"done","payload":{"message":"Done — press ▶!"}}]
-Short reply here.`;
+Done — press ▶!`;
 
 function normalizeShape(s) {
     if (!s || typeof s !== 'object') return null;
@@ -475,7 +477,95 @@ function validateActions(rawActions) {
     return out;
 }
 
-module.exports = function createAiSimulatorHelpHandlers({ openRouterChatCompletion, apiResponse, getOpenRouterKeys }) {
+function buildMessages(reqBody) {
+    const message = String(reqBody?.message || '').trim().slice(0, 8000);
+    const isContinue = !!reqBody?.continue;
+    const lastNeed = String(reqBody?.lastNeed || '').slice(0, 40);
+    const projectSummary = String(reqBody?.projectSummary || '').slice(0, 4000);
+    const history = Array.isArray(reqBody?.history) ? reqBody.history.slice(-12) : [];
+
+    const userContent = [
+        isContinue
+            ? `CONTINUE after the user completed: ${lastNeed || 'asset upload'}. Finish remaining setup. Do not re-request the same asset.`
+            : `User request: ${message}`,
+        projectSummary ? `\nCurrent project summary:\n${projectSummary}` : '',
+        '\nStart with a short human status line, then VEELEARN_SIM_ACTIONS_JSON: then actions.'
+    ].join('');
+
+    const messages = [
+        { role: 'system', content: SIM_SYSTEM },
+        ...history
+            .filter((h) => h && (h.role === 'user' || h.role === 'assistant') && h.content)
+            .map((h) => ({
+                role: h.role,
+                content: String(h.content).slice(0, 4000)
+            })),
+        { role: 'user', content: userContent }
+    ];
+
+    return { message, isContinue, messages };
+}
+
+function finalizeSimResult(raw, message) {
+    let parsed = extractActionsAndReply(raw);
+    let actions = validateActions(parsed.actions);
+    let reply = parsed.reply;
+    let usedFallback = false;
+
+    if (!actions.length) {
+        usedFallback = true;
+        actions = validateActions(fallbackBounceActions(message || 'simulation'));
+        reply =
+            reply ||
+            'The model did not return build actions, so I placed a working starter simulation you can expand.';
+    }
+
+    if (!reply) {
+        reply = usedFallback
+            ? 'Starter simulation placed. Press ▶ to run.'
+            : `Placing ${actions.length} studio actions…`;
+    }
+
+    return {
+        reply,
+        actions,
+        actionCount: actions.length,
+        usedFallback,
+        rawPreview: String(raw || '').slice(0, 800)
+    };
+}
+
+function openRouterErrorResponse(apiResponse, res, e) {
+    console.error('ai simulator help openrouter:', e.message);
+    if (e.code === 'OPENROUTER_NOT_CONFIGURED') {
+        return apiResponse(res, 503, 'AI is not configured (missing OpenRouter keys).');
+    }
+    if (e.code === 'OPENROUTER_RATE_LIMITED' || e.status === 429) {
+        return apiResponse(
+            res,
+            429,
+            'AI is temporarily rate-limited. Please wait about a minute and try again.'
+        );
+    }
+    return apiResponse(res, 502, e.message || 'AI service failed');
+}
+
+function sseWrite(res, event, data) {
+    if (res.writableEnded) return;
+    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    if (typeof res.flush === 'function') {
+        try {
+            res.flush();
+        } catch (_) { /* ignore */ }
+    }
+}
+
+module.exports = function createAiSimulatorHelpHandlers({
+    openRouterChatCompletion,
+    openRouterChatCompletionStream,
+    apiResponse,
+    getOpenRouterKeys
+}) {
     return {
         async help(req, res) {
             const userId = req.user?.id;
@@ -486,73 +576,38 @@ module.exports = function createAiSimulatorHelpHandlers({ openRouterChatCompleti
                 return apiResponse(res, 503, 'AI is not configured (missing OpenRouter keys).');
             }
 
-            const message = String(req.body?.message || '').trim().slice(0, 8000);
-            const isContinue = !!req.body?.continue;
-            const lastNeed = String(req.body?.lastNeed || '').slice(0, 40);
-            const projectSummary = String(req.body?.projectSummary || '').slice(0, 4000);
-            const history = Array.isArray(req.body?.history) ? req.body.history.slice(-12) : [];
-
+            const { message, isContinue, messages } = buildMessages(req.body);
             if (!message && !isContinue) {
                 return apiResponse(res, 400, 'Message required');
             }
 
-            const userContent = [
-                isContinue
-                    ? `CONTINUE after the user completed: ${lastNeed || 'asset upload'}. Finish remaining setup. Do not re-request the same asset.`
-                    : `User request: ${message}`,
-                projectSummary ? `\nCurrent project summary:\n${projectSummary}` : '',
-                '\nEmit VEELEARN_SIM_ACTIONS_JSON: then actions.'
-            ].join('');
-
-            const messages = [
-                { role: 'system', content: SIM_SYSTEM },
-                ...history
-                    .filter((h) => h && (h.role === 'user' || h.role === 'assistant') && h.content)
-                    .map((h) => ({
-                        role: h.role,
-                        content: String(h.content).slice(0, 4000)
-                    })),
-                { role: 'user', content: userContent }
-            ];
-
             let raw = '';
             try {
+                // Keep under common reverse-proxy idle timeouts (~60s). Prefer /stream.
                 raw = await openRouterChatCompletion(messages, {
                     temperature: 0.25,
-                    max_tokens: 5500,
-                    budgetMs: 55000,
-                    timeoutMs: 60000
+                    max_tokens: 4500,
+                    budgetMs: 32000,
+                    timeoutMs: 35000
                 });
             } catch (e) {
-                console.error('ai simulator help openrouter:', e.message);
-                if (e.code === 'OPENROUTER_NOT_CONFIGURED') {
-                    return apiResponse(res, 503, 'AI is not configured (missing OpenRouter keys).');
-                }
-                if (e.code === 'OPENROUTER_RATE_LIMITED' || e.status === 429) {
-                    return apiResponse(
-                        res,
-                        429,
-                        'AI is temporarily rate-limited. Please wait about a minute and try again.'
-                    );
-                }
-                return apiResponse(res, 502, e.message || 'AI service failed');
+                return openRouterErrorResponse(apiResponse, res, e);
             }
 
-            let parsed = extractActionsAndReply(raw);
-            let actions = validateActions(parsed.actions);
-            let reply = parsed.reply;
+            let actions = validateActions(extractActionsAndReply(raw).actions);
 
+            // One short retry only — long double-calls were closing proxy connections.
             if (!actions.length) {
-                console.warn('[sim-ai] zero actions on first pass; retrying. preview:', String(raw).slice(0, 240));
+                console.warn('[sim-ai] zero actions on first pass; short retry. preview:', String(raw).slice(0, 240));
                 try {
-                    const retryRaw = await openRouterChatCompletion(
+                    raw = await openRouterChatCompletion(
                         [
                             { role: 'system', content: SIM_SYSTEM },
                             {
                                 role: 'user',
                                 content: [
                                     'CRITICAL RETRY: Your previous reply had NO executable actions.',
-                                    'Output ONLY:',
+                                    'Start with one short status line, then:',
                                     'VEELEARN_SIM_ACTIONS_JSON:',
                                     'then a JSON array starting with draw_asset / ensure_sprite / add_block.',
                                     'Do NOT write a paragraph claiming you built it — emit real actions.',
@@ -561,39 +616,134 @@ module.exports = function createAiSimulatorHelpHandlers({ openRouterChatCompleti
                                 ].join('\n')
                             }
                         ],
-                        { temperature: 0.1, max_tokens: 4500, budgetMs: 45000 }
+                        { temperature: 0.1, max_tokens: 3500, budgetMs: 22000, timeoutMs: 25000 }
                     );
-                    raw = retryRaw;
-                    parsed = extractActionsAndReply(retryRaw);
-                    actions = validateActions(parsed.actions);
-                    if (parsed.reply) reply = parsed.reply;
                 } catch (retryErr) {
                     console.warn('[sim-ai] retry failed:', retryErr.message);
                 }
             }
 
-            let usedFallback = false;
-            if (!actions.length) {
-                usedFallback = true;
-                actions = validateActions(fallbackBounceActions(message || 'simulation'));
-                reply =
-                    reply ||
-                    'The model did not return build actions, so I placed a working starter simulation you can expand.';
+            return apiResponse(res, 200, 'OK', finalizeSimResult(raw, message));
+        },
+
+        async helpStream(req, res) {
+            const userId = req.user?.id;
+            if (!userId) {
+                return apiResponse(res, 401, 'Authentication required');
             }
 
-            if (!reply) {
-                reply = usedFallback
-                    ? 'Starter simulation placed. Press ▶ to run.'
-                    : `Placing ${actions.length} studio actions…`;
+            const keys = typeof getOpenRouterKeys === 'function' ? getOpenRouterKeys() : [];
+            if (!keys.length) {
+                return apiResponse(res, 503, 'AI is not configured (missing OpenRouter keys).');
             }
 
-            return apiResponse(res, 200, 'OK', {
-                reply,
-                actions,
-                actionCount: actions.length,
-                usedFallback,
-                rawPreview: String(raw).slice(0, 800)
-            });
+            const streamFn =
+                typeof openRouterChatCompletionStream === 'function'
+                    ? openRouterChatCompletionStream
+                    : null;
+            if (!streamFn) {
+                return apiResponse(res, 501, 'Streaming not available on this server build.');
+            }
+
+            const { message, isContinue, messages } = buildMessages(req.body);
+            if (!message && !isContinue) {
+                return apiResponse(res, 400, 'Message required');
+            }
+
+            res.status(200);
+            res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+            res.setHeader('Cache-Control', 'no-cache, no-transform');
+            res.setHeader('Connection', 'keep-alive');
+            res.setHeader('X-Accel-Buffering', 'no');
+            if (typeof res.flushHeaders === 'function') res.flushHeaders();
+
+            const keepAlive = setInterval(() => {
+                if (res.writableEnded) return;
+                try {
+                    res.write(': keepalive\n\n');
+                    if (typeof res.flush === 'function') res.flush();
+                } catch (_) { /* ignore */ }
+            }, 8000);
+
+            const cleanup = () => {
+                clearInterval(keepAlive);
+            };
+
+            req.on('close', cleanup);
+
+            try {
+                sseWrite(res, 'status', { phase: 'generating' });
+
+                // Stream human-visible tokens until the JSON marker; then suppress JSON noise.
+                let raw = '';
+                let suppressJson = false;
+                let lineBuf = '';
+
+                raw = await streamFn(messages, {
+                    temperature: 0.25,
+                    max_tokens: 4500,
+                    budgetMs: 90000,
+                    timeoutMs: 90000,
+                    onDelta: (delta) => {
+                        raw += delta;
+                        if (suppressJson) return;
+
+                        lineBuf += delta;
+                        const marker = 'VEELEARN_SIM_ACTIONS_JSON:';
+                        const mi = lineBuf.indexOf(marker);
+                        if (mi >= 0) {
+                            const before = lineBuf.slice(0, mi);
+                            if (before) sseWrite(res, 'token', { text: before });
+                            suppressJson = true;
+                            lineBuf = '';
+                            return;
+                        }
+
+                        // Flush complete lines / chunks that clearly aren't the marker yet
+                        if (lineBuf.length > 48 && !marker.startsWith(lineBuf.trim().slice(0, 12))) {
+                            // Keep a short tail in case marker straddles chunks
+                            const flushLen = Math.max(0, lineBuf.length - 40);
+                            if (flushLen > 0) {
+                                sseWrite(res, 'token', { text: lineBuf.slice(0, flushLen) });
+                                lineBuf = lineBuf.slice(flushLen);
+                            }
+                        }
+                    }
+                });
+
+                if (!suppressJson && lineBuf) {
+                    sseWrite(res, 'token', { text: lineBuf });
+                    lineBuf = '';
+                }
+
+                let parsed = extractActionsAndReply(raw);
+                let actions = validateActions(parsed.actions);
+
+                if (!actions.length) {
+                    console.warn('[sim-ai stream] zero actions; using fallback. preview:', String(raw).slice(0, 240));
+                }
+
+                const result = finalizeSimResult(raw, message);
+                sseWrite(res, 'result', result);
+            } catch (e) {
+                console.error('ai simulator help stream:', e.message);
+                const code =
+                    e.code === 'OPENROUTER_NOT_CONFIGURED'
+                        ? 503
+                        : e.code === 'OPENROUTER_RATE_LIMITED' || e.status === 429
+                          ? 429
+                          : 502;
+                sseWrite(res, 'error', {
+                    status: code,
+                    message:
+                        code === 429
+                            ? 'AI is temporarily rate-limited. Please wait about a minute and try again.'
+                            : e.message || 'AI service failed'
+                });
+            } finally {
+                cleanup();
+                if (!res.writableEnded) res.end();
+            }
         }
     };
 };

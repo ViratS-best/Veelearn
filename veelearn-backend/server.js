@@ -16,7 +16,7 @@ const util = require('util');
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const axios = require('axios');
-const { openRouterChatCompletion, getOpenRouterKeys } = require('./openrouter');
+const { openRouterChatCompletion, openRouterChatCompletionStream, getOpenRouterKeys } = require('./openrouter');
 const { debug, info, warn, error } = require('./logger');
 // path is already required above
 
@@ -1211,6 +1211,7 @@ const aiEditorHelpHandlers = createAiEditorHelpHandlers({
 const createAiSimulatorHelpHandlers = require('./ai-simulator-help-handlers');
 const aiSimulatorHelpHandlers = createAiSimulatorHelpHandlers({
     openRouterChatCompletion,
+    openRouterChatCompletionStream,
     apiResponse,
     getOpenRouterKeys
 });
@@ -7534,6 +7535,20 @@ app.post('/api/ai/simulator-help', aiSimulatorHelpLimiter, authenticateToken, (r
     aiSimulatorHelpHandlers.help(req, res).catch((e) => {
         console.error('ai simulator help:', e);
         apiResponse(res, 500, 'Simulator AI error');
+    });
+});
+
+app.post('/api/ai/simulator-help/stream', aiSimulatorHelpLimiter, authenticateToken, (req, res) => {
+    aiSimulatorHelpHandlers.helpStream(req, res).catch((e) => {
+        console.error('ai simulator help stream:', e);
+        if (!res.headersSent) {
+            apiResponse(res, 500, 'Simulator AI stream error');
+        } else if (!res.writableEnded) {
+            try {
+                res.write(`event: error\ndata: ${JSON.stringify({ message: 'Simulator AI stream error' })}\n\n`);
+            } catch (_) { /* ignore */ }
+            res.end();
+        }
     });
 });
 
