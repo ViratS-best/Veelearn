@@ -70,6 +70,7 @@ BLOCK RULES (mandatory — make the ACTUAL working sim):
 - After control_forever / control_repeat / control_if, the NEXT statement MUST use "into":"SUBSTACK" (or SUBSTACK2 for else).
 - Blocks after the first inside a C-block: connectToPrevious:true (no into) so they stack inside the C-block.
 - Prefer 12–40 actions for rich sims (multi-sprite). Do not stop after 3 blocks.
+- For complex requests (double-slit, many controls): keep EACH draw_asset under 10 shapes and finish a complete JSON array. Prefer two shorter complete replies over one truncated mega-JSON.
 - Use ensure_sprite for named roles (Emitter, Particle, Detector, etc.), set_sprite_props for x/y/size, looks_hide on templates used only as clones when needed.
 - For physics/graphs: use motion + variables (data_setvariableto / data_changevariableby / data_showvariable) and looks_say for simple readouts if needed.
 - End with {"type":"done","payload":{"message":"Press the green flag to try it!"}}.
@@ -237,30 +238,102 @@ function extractActionsAndReply(raw) {
         try {
             actions = JSON.parse(repairJsonStringEscapes(jsonPart));
         } catch (e) {
-            try {
-                let salvage = repairJsonStringEscapes(jsonPart);
-                // Drop trailing incomplete object
-                const lastComplete = Math.max(salvage.lastIndexOf('},'), salvage.lastIndexOf('}]'));
-                if (lastComplete > 0) {
-                    salvage = salvage.slice(0, lastComplete + 1);
-                    if (!salvage.trim().endsWith(']')) salvage += ']';
-                } else {
-                    const open = (salvage.match(/\[/g) || []).length;
-                    const close = (salvage.match(/\]/g) || []).length;
-                    for (let i = 0; i < open - close; i++) salvage += ']';
-                    const lastObj = salvage.lastIndexOf('}');
-                    if (lastObj > 0) salvage = salvage.slice(0, lastObj + 1) + ']';
-                }
-                actions = JSON.parse(salvage);
-            } catch (_) {
-                actions = [];
+            actions = salvageCompleteActionObjects(jsonPart);
+            if (actions.length) {
+                console.warn(
+                    `[sim-ai] salvaged ${actions.length} complete action(s) from truncated JSON`
+                );
             }
         }
     }
     if (!Array.isArray(actions)) actions = [];
     // Filter noise: only objects with type
     actions = actions.filter((a) => a && typeof a === 'object' && a.type);
-    return { actions, reply: String(reply || '').slice(0, 2000) };
+    return { actions, reply: String(reply || '').slice(0, 2000), truncated: !!(jsonPart && !String(jsonPart).trim().endsWith(']')) };
+}
+
+/**
+ * Recover complete top-level action objects from a truncated JSON array.
+ * Unlike slicing at the last "}," this respects nested shapes arrays.
+ */
+function salvageCompleteActionObjects(jsonPart) {
+    const repaired = repairJsonStringEscapes(String(jsonPart || ''));
+    try {
+        const parsed = JSON.parse(repaired);
+        if (Array.isArray(parsed)) return parsed;
+    } catch (_) { /* fall through */ }
+
+    const s = repaired.trim();
+    const start = s.indexOf('[');
+    if (start < 0) return [];
+
+    const objects = [];
+    let i = start + 1;
+    while (i < s.length) {
+        while (i < s.length && /[\s,]/.test(s[i])) i++;
+        if (i >= s.length || s[i] === ']') break;
+        if (s[i] !== '{') break;
+
+        let depth = 0;
+        let inString = false;
+        let escaped = false;
+        const objStart = i;
+        let objEnd = -1;
+        for (; i < s.length; i++) {
+            const c = s[i];
+            if (inString) {
+                if (escaped) escaped = false;
+                else if (c === '\\') escaped = true;
+                else if (c === '"') inString = false;
+                continue;
+            }
+            if (c === '"') {
+                inString = true;
+                continue;
+            }
+            if (c === '{') depth++;
+            else if (c === '}') {
+                depth--;
+                if (depth === 0) {
+                    objEnd = i;
+                    i++;
+                    break;
+                }
+            }
+        }
+        if (objEnd < 0) break;
+        const chunk = s.slice(objStart, objEnd + 1);
+        try {
+            objects.push(JSON.parse(chunk));
+        } catch (_) {
+            try {
+                objects.push(JSON.parse(repairJsonStringEscapes(chunk)));
+            } catch (__) { /* skip broken object */ }
+        }
+    }
+    return objects;
+}
+
+function isComplexSimRequest(message) {
+    const m = String(message || '');
+    if (m.length > 900) return true;
+    const hits = [
+        /double[\s-]?slit/i,
+        /interference/i,
+        /wave[\s-]?function/i,
+        /wavelength/i,
+        /particle\s+vs\.?\s+wave/i,
+        /detector\s+screen/i,
+        /interactive\s+controls/i,
+        /slider/i,
+        /clone/i,
+        /intensity\s+graph/i
+    ].filter((re) => re.test(m));
+    return hits.length >= 2;
+}
+
+function isDoubleSlitRequest(message) {
+    return /double[\s-]?slit|young'?s\s+experiment|interference\s+fringe/i.test(String(message || ''));
 }
 
 /** Guaranteed runnable starter when the model returns prose only. */
@@ -327,6 +400,241 @@ function fallbackBounceActions(userMessage) {
             }
         }
     ];
+}
+
+/**
+ * Richer double-slit starter used when the model truncates / fails on that topic.
+ * Approximates interference with dual slit paths + detector hits (Scratch-friendly).
+ */
+function fallbackDoubleSlitActions() {
+    return [
+        {
+            type: 'message',
+            payload: {
+                text: 'Building a double-slit lab: barrier, two slits, emitter clones, detector hits, and mode variables.'
+            }
+        },
+        {
+            type: 'draw_asset',
+            payload: {
+                kind: 'backdrop',
+                name: 'double_slit_lab',
+                bg: '#020617',
+                replace: true,
+                shapes: [
+                    { shape: 'rect', x: 0, y: 0, w: 480, h: 360, fill: '#020617' },
+                    { shape: 'rect', x: 0, y: 320, w: 480, h: 40, fill: '#1e293b' },
+                    { shape: 'rect', x: 210, y: 20, w: 18, h: 320, fill: '#64748b' },
+                    { shape: 'rect', x: 210, y: 110, w: 18, h: 28, fill: '#020617' },
+                    { shape: 'rect', x: 210, y: 210, w: 18, h: 28, fill: '#020617' },
+                    { shape: 'rect', x: 450, y: 20, w: 14, h: 300, fill: '#0f172a' },
+                    { shape: 'rect', x: 452, y: 20, w: 10, h: 300, fill: '#111827' },
+                    { shape: 'text', x: 12, y: 24, text: 'Double-Slit Lab', fill: '#e2e8f0', font: 'bold 14px sans-serif' },
+                    { shape: 'text', x: 12, y: 44, text: 'mode · wavelength · observe · rate', fill: '#94a3b8', font: '11px sans-serif' },
+                    { shape: 'circle', x: 40, y: 60, r: 2, fill: '#f8fafc' },
+                    { shape: 'circle', x: 70, y: 55, r: 2, fill: '#f8fafc' },
+                    { shape: 'circle', x: 100, y: 62, r: 2, fill: '#f8fafc' }
+                ]
+            }
+        },
+        { type: 'ensure_sprite', payload: { name: 'Emitter' } },
+        {
+            type: 'draw_asset',
+            payload: {
+                kind: 'costume',
+                name: 'emitter',
+                target: 'Emitter',
+                replace: true,
+                shapes: [{ shape: 'trapezoid', x: 64, y: 48, wTop: 18, wBottom: 64, h: 44, fill: '#f59e0b' }]
+            }
+        },
+        { type: 'set_sprite_props', payload: { name: 'Emitter', x: -200, y: 0, size: 80 } },
+        { type: 'ensure_sprite', payload: { name: 'Photon' } },
+        {
+            type: 'draw_asset',
+            payload: {
+                kind: 'costume',
+                name: 'photon',
+                target: 'Photon',
+                replace: true,
+                shapes: [
+                    { shape: 'sphere', x: 64, y: 64, r: 18, fill: '#22d3ee', highlight: '#ecfeff', shade: '#0e7490' }
+                ]
+            }
+        },
+        { type: 'set_sprite_props', payload: { name: 'Photon', x: -160, y: 0, size: 35, visible: false } },
+        { type: 'ensure_sprite', payload: { name: 'Hit' } },
+        {
+            type: 'draw_asset',
+            payload: {
+                kind: 'costume',
+                name: 'hit',
+                target: 'Hit',
+                replace: true,
+                shapes: [{ shape: 'circle', x: 64, y: 64, r: 6, fill: '#a78bfa' }]
+            }
+        },
+        { type: 'set_sprite_props', payload: { name: 'Hit', x: 200, y: 0, size: 20, visible: false } },
+        { type: 'ensure_sprite', payload: { name: 'UI' } },
+        {
+            type: 'draw_asset',
+            payload: {
+                kind: 'costume',
+                name: 'ui_panel',
+                target: 'UI',
+                replace: true,
+                shapes: [
+                    { shape: 'rect', x: 8, y: 8, w: 112, h: 100, fill: '#1e293b' },
+                    { shape: 'text', x: 16, y: 28, text: 'Click: toggle', fill: '#e2e8f0', font: 'bold 12px sans-serif' },
+                    { shape: 'text', x: 16, y: 48, text: 'observe ON/OFF', fill: '#94a3b8', font: '11px sans-serif' },
+                    { shape: 'text', x: 16, y: 68, text: '(wave collapse)', fill: '#38bdf8', font: '11px sans-serif' }
+                ]
+            }
+        },
+        { type: 'set_sprite_props', payload: { name: 'UI', x: -180, y: 120, size: 90 } },
+
+        // Emitter: init vars + spawn Photon clones
+        { type: 'select_target', payload: { target: 'Emitter' } },
+        { type: 'add_block', payload: { type: 'event_whenflagclicked', newStack: true } },
+        {
+            type: 'add_block',
+            payload: {
+                type: 'data_setvariableto',
+                fields: { VARIABLE: 'mode' },
+                inputs: { VALUE: 'particle' },
+                connectToPrevious: true
+            }
+        },
+        {
+            type: 'add_block',
+            payload: {
+                type: 'data_setvariableto',
+                fields: { VARIABLE: 'wavelength' },
+                inputs: { VALUE: 550 },
+                connectToPrevious: true
+            }
+        },
+        {
+            type: 'add_block',
+            payload: {
+                type: 'data_setvariableto',
+                fields: { VARIABLE: 'slitGap' },
+                inputs: { VALUE: 40 },
+                connectToPrevious: true
+            }
+        },
+        {
+            type: 'add_block',
+            payload: {
+                type: 'data_setvariableto',
+                fields: { VARIABLE: 'observe' },
+                inputs: { VALUE: 0 },
+                connectToPrevious: true
+            }
+        },
+        {
+            type: 'add_block',
+            payload: {
+                type: 'data_setvariableto',
+                fields: { VARIABLE: 'rate' },
+                inputs: { VALUE: 4 },
+                connectToPrevious: true
+            }
+        },
+        { type: 'add_block', payload: { type: 'data_showvariable', fields: { VARIABLE: 'mode' }, connectToPrevious: true } },
+        { type: 'add_block', payload: { type: 'data_showvariable', fields: { VARIABLE: 'wavelength' }, connectToPrevious: true } },
+        { type: 'add_block', payload: { type: 'data_showvariable', fields: { VARIABLE: 'observe' }, connectToPrevious: true } },
+        { type: 'add_block', payload: { type: 'data_showvariable', fields: { VARIABLE: 'rate' }, connectToPrevious: true } },
+        { type: 'add_block', payload: { type: 'control_forever', connectToPrevious: true } },
+        {
+            type: 'add_block',
+            payload: {
+                type: 'control_create_clone_of',
+                fields: { CLONE_OPTION: 'Photon' },
+                connectToPrevious: true,
+                into: 'SUBSTACK'
+            }
+        },
+        { type: 'add_block', payload: { type: 'control_wait', inputs: { DURATION: 0.2 }, connectToPrevious: true } },
+
+        // Photon clone: go through upper/lower slit toward detector, stamp Hit, delete
+        { type: 'select_target', payload: { target: 'Photon' } },
+        { type: 'add_block', payload: { type: 'control_start_as_clone', newStack: true } },
+        { type: 'add_block', payload: { type: 'looks_show', connectToPrevious: true } },
+        { type: 'add_block', payload: { type: 'motion_gotoxy', inputs: { X: -160, Y: 0 }, connectToPrevious: true } },
+        {
+            type: 'add_block',
+            payload: {
+                type: 'data_setvariableto',
+                fields: { VARIABLE: 'pathY' },
+                inputs: { VALUE: 40 },
+                connectToPrevious: true
+            }
+        },
+        { type: 'add_block', payload: { type: 'motion_gotoxy', inputs: { X: -40, Y: 40 }, connectToPrevious: true } },
+        { type: 'add_block', payload: { type: 'control_repeat', inputs: { TIMES: 28 }, connectToPrevious: true } },
+        {
+            type: 'add_block',
+            payload: {
+                type: 'motion_changexby',
+                inputs: { DX: 8 },
+                connectToPrevious: true,
+                into: 'SUBSTACK'
+            }
+        },
+        { type: 'add_block', payload: { type: 'control_wait', inputs: { DURATION: 0.03 }, connectToPrevious: true } },
+        { type: 'add_block', payload: { type: 'motion_gotoxy', inputs: { X: 200, Y: 40 }, connectToPrevious: true } },
+        {
+            type: 'add_block',
+            payload: {
+                type: 'control_create_clone_of',
+                fields: { CLONE_OPTION: 'Hit' },
+                connectToPrevious: true
+            }
+        },
+        { type: 'add_block', payload: { type: 'control_delete_this_clone', connectToPrevious: true } },
+
+        // Hit clone: appear at detector and stay
+        { type: 'select_target', payload: { target: 'Hit' } },
+        { type: 'add_block', payload: { type: 'control_start_as_clone', newStack: true } },
+        { type: 'add_block', payload: { type: 'looks_show', connectToPrevious: true } },
+        { type: 'add_block', payload: { type: 'motion_gotoxy', inputs: { X: 200, Y: 40 }, connectToPrevious: true } },
+        { type: 'add_block', payload: { type: 'looks_setsizeto', inputs: { SIZE: 40 }, connectToPrevious: true } },
+
+        // UI click toggles observe 0/1
+        { type: 'select_target', payload: { target: 'UI' } },
+        { type: 'add_block', payload: { type: 'event_whenthisspriteclicked', newStack: true } },
+        {
+            type: 'add_block',
+            payload: {
+                type: 'data_changevariableby',
+                fields: { VARIABLE: 'observe' },
+                inputs: { VALUE: 1 },
+                connectToPrevious: true
+            }
+        },
+        {
+            type: 'add_block',
+            payload: {
+                type: 'looks_sayforsecs',
+                inputs: { MESSAGE: 'observe toggled (collapse toward single band)', SECS: 2 },
+                connectToPrevious: true
+            }
+        },
+
+        {
+            type: 'done',
+            payload: {
+                message:
+                    'Double-slit lab placed: slits, emitter clones, detector hits, and observe toggle. Press ▶ — then ask to add wave mode, wavelength color, or a live intensity graph.'
+            }
+        }
+    ];
+}
+
+function pickFallbackActions(message) {
+    if (isDoubleSlitRequest(message)) return fallbackDoubleSlitActions();
+    return fallbackBounceActions(message || 'simulation');
 }
 
 function normalizeInputs(inputs) {
@@ -472,24 +780,50 @@ function validateActions(rawActions) {
             });
         }
 
-        if (out.length >= 80) break;
+        if (out.length >= 140) break;
     }
     return out;
 }
 
-function buildMessages(reqBody) {
+function buildMessages(reqBody, phaseInfo) {
     const message = String(reqBody?.message || '').trim().slice(0, 8000);
     const isContinue = !!reqBody?.continue;
     const lastNeed = String(reqBody?.lastNeed || '').slice(0, 40);
     const projectSummary = String(reqBody?.projectSummary || '').slice(0, 4000);
     const history = Array.isArray(reqBody?.history) ? reqBody.history.slice(-12) : [];
+    const complex = isComplexSimRequest(message) || isDoubleSlitRequest(message);
+    const phase = phaseInfo?.phase || 1;
+    const totalPhases = phaseInfo?.totalPhases || (complex ? 2 : 1);
+
+    let phaseHint = '';
+    if (complex && totalPhases > 1) {
+        if (phase === 1) {
+            phaseHint = [
+                `\nPHASE ${phase}/${totalPhases} — SCENE + SPRITES ONLY (compact).`,
+                'Emit at most 28 actions. Prefer 4–8 shapes per draw_asset (not dozens).',
+                'Include: backdrop with barrier+2 slits+detector, Emitter + Photon + Hit sprites/costumes, set_sprite_props, variables via data_setvariableto (mode, wavelength, observe, rate), Emitter forever create_clone_of Photon.',
+                'End with done. Photon clone path scripts come in the next phase.'
+            ].join('\n');
+        } else {
+            phaseHint = [
+                `\nPHASE ${phase}/${totalPhases} — SCRIPTS + CONTROLS ONLY.`,
+                'Do NOT redraw the whole backdrop unless needed. Prefer add_block / ensure_sprite / set_sprite_props.',
+                'Add Photon when-I-start-as-a-clone stacks (upper+lower slit paths), Hit clones on detector, UI click toggles for observe/mode.',
+                'Use clones. Keep JSON compact. End with done.'
+            ].join('\n');
+        }
+    }
 
     const userContent = [
         isContinue
-            ? `CONTINUE after the user completed: ${lastNeed || 'asset upload'}. Finish remaining setup. Do not re-request the same asset.`
+            ? `CONTINUE after the user completed: ${lastNeed || 'previous build'}. Finish remaining setup for the original request. Prefer scripts/controls if the scene already exists.`
             : `User request: ${message}`,
         projectSummary ? `\nCurrent project summary:\n${projectSummary}` : '',
-        '\nStart with a short human status line, then VEELEARN_SIM_ACTIONS_JSON: then actions.'
+        phaseHint,
+        '\nStart with a short human status line, then VEELEARN_SIM_ACTIONS_JSON: then actions.',
+        complex
+            ? '\nIMPORTANT: Keep each draw_asset under 10 shapes. Prefer many small actions over one huge truncated JSON.'
+            : ''
     ].join('');
 
     const messages = [
@@ -503,35 +837,52 @@ function buildMessages(reqBody) {
         { role: 'user', content: userContent }
     ];
 
-    return { message, isContinue, messages };
+    return { message, isContinue, messages, complex, phase, totalPhases };
 }
 
-function finalizeSimResult(raw, message) {
+function countBlockActions(actions) {
+    return (actions || []).filter((a) => a && (a.type === 'add_block' || a.type === 'add_stack')).length;
+}
+
+function finalizeSimResult(raw, message, opts) {
+    const options = opts || {};
     let parsed = extractActionsAndReply(raw);
     let actions = validateActions(parsed.actions);
     let reply = parsed.reply;
     let usedFallback = false;
+    let salvaged = !!parsed.truncated && actions.length > 0;
 
     if (!actions.length) {
         usedFallback = true;
-        actions = validateActions(fallbackBounceActions(message || 'simulation'));
+        actions = validateActions(pickFallbackActions(message || 'simulation'));
         reply =
             reply ||
-            'The model did not return build actions, so I placed a working starter simulation you can expand.';
+            (isDoubleSlitRequest(message)
+                ? 'The model response was truncated, so I placed a fuller double-slit lab starter you can expand.'
+                : 'The model did not return build actions, so I placed a working starter simulation you can expand.');
     }
 
     if (!reply) {
         reply = usedFallback
             ? 'Starter simulation placed. Press ▶ to run.'
-            : `Placing ${actions.length} studio actions…`;
+            : salvaged
+              ? `Recovered ${actions.length} actions from a truncated model reply — applying what we got.`
+              : `Placing ${actions.length} studio actions…`;
     }
+
+    const needsContinue =
+        options.needsContinue === true ||
+        (options.complex && !usedFallback && countBlockActions(actions) < 8) ||
+        (salvaged && countBlockActions(actions) < 6);
 
     return {
         reply,
         actions,
         actionCount: actions.length,
         usedFallback,
-        rawPreview: String(raw || '').slice(0, 800)
+        salvaged,
+        needsContinue: !!needsContinue,
+        rawPreview: String(raw || '').slice(0, 1200)
     };
 }
 
@@ -576,19 +927,21 @@ module.exports = function createAiSimulatorHelpHandlers({
                 return apiResponse(res, 503, 'AI is not configured (missing OpenRouter keys).');
             }
 
-            const { message, isContinue, messages } = buildMessages(req.body);
+            const { message, isContinue, messages, complex } = buildMessages(req.body, {
+                phase: 1,
+                totalPhases: 1
+            });
             if (!message && !isContinue) {
                 return apiResponse(res, 400, 'Message required');
             }
 
             let raw = '';
             try {
-                // Keep under common reverse-proxy idle timeouts (~60s). Prefer /stream.
                 raw = await openRouterChatCompletion(messages, {
                     temperature: 0.25,
-                    max_tokens: 4500,
-                    budgetMs: 32000,
-                    timeoutMs: 35000
+                    max_tokens: complex ? 7000 : 5000,
+                    budgetMs: 40000,
+                    timeoutMs: 45000
                 });
             } catch (e) {
                 return openRouterErrorResponse(apiResponse, res, e);
@@ -596,7 +949,6 @@ module.exports = function createAiSimulatorHelpHandlers({
 
             let actions = validateActions(extractActionsAndReply(raw).actions);
 
-            // One short retry only — long double-calls were closing proxy connections.
             if (!actions.length) {
                 console.warn('[sim-ai] zero actions on first pass; short retry. preview:', String(raw).slice(0, 240));
                 try {
@@ -606,24 +958,22 @@ module.exports = function createAiSimulatorHelpHandlers({
                             {
                                 role: 'user',
                                 content: [
-                                    'CRITICAL RETRY: Your previous reply had NO executable actions.',
+                                    'CRITICAL RETRY: Your previous reply had NO executable actions (or only truncated JSON).',
                                     'Start with one short status line, then:',
                                     'VEELEARN_SIM_ACTIONS_JSON:',
-                                    'then a JSON array starting with draw_asset / ensure_sprite / add_block.',
-                                    'Do NOT write a paragraph claiming you built it — emit real actions.',
-                                    'Include at least: 1 backdrop draw_asset, 1 costume draw_asset, event_whenflagclicked, control_forever, motion_movesteps into SUBSTACK, motion_ifonedgebounce, done.',
+                                    'Keep under 25 compact actions. Max 8 shapes per draw_asset.',
                                     `User request: ${message || 'continue'}`
                                 ].join('\n')
                             }
                         ],
-                        { temperature: 0.1, max_tokens: 3500, budgetMs: 22000, timeoutMs: 25000 }
+                        { temperature: 0.1, max_tokens: 5000, budgetMs: 28000, timeoutMs: 30000 }
                     );
                 } catch (retryErr) {
                     console.warn('[sim-ai] retry failed:', retryErr.message);
                 }
             }
 
-            return apiResponse(res, 200, 'OK', finalizeSimResult(raw, message));
+            return apiResponse(res, 200, 'OK', finalizeSimResult(raw, message, { complex }));
         },
 
         async helpStream(req, res) {
@@ -645,10 +995,13 @@ module.exports = function createAiSimulatorHelpHandlers({
                 return apiResponse(res, 501, 'Streaming not available on this server build.');
             }
 
-            const { message, isContinue, messages } = buildMessages(req.body);
+            const first = buildMessages(req.body, { phase: 1, totalPhases: 1 });
+            const { message, isContinue, complex } = first;
             if (!message && !isContinue) {
                 return apiResponse(res, 400, 'Message required');
             }
+
+            const totalPhases = complex && !isContinue ? 2 : 1;
 
             res.status(200);
             res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
@@ -671,23 +1024,19 @@ module.exports = function createAiSimulatorHelpHandlers({
 
             req.on('close', cleanup);
 
-            try {
-                sseWrite(res, 'status', { phase: 'generating' });
-
-                // Stream human-visible tokens until the JSON marker; then suppress JSON noise.
-                let raw = '';
+            const streamOnce = async (messages, phaseLabel) => {
+                sseWrite(res, 'status', { phase: phaseLabel });
                 let suppressJson = false;
                 let lineBuf = '';
+                let rawOut = '';
 
-                raw = await streamFn(messages, {
+                rawOut = await streamFn(messages, {
                     temperature: 0.25,
-                    max_tokens: 4500,
-                    budgetMs: 90000,
-                    timeoutMs: 90000,
+                    max_tokens: 7500,
+                    budgetMs: 95000,
+                    timeoutMs: 95000,
                     onDelta: (delta) => {
-                        raw += delta;
                         if (suppressJson) return;
-
                         lineBuf += delta;
                         const marker = 'VEELEARN_SIM_ACTIONS_JSON:';
                         const mi = lineBuf.indexOf(marker);
@@ -698,10 +1047,7 @@ module.exports = function createAiSimulatorHelpHandlers({
                             lineBuf = '';
                             return;
                         }
-
-                        // Flush complete lines / chunks that clearly aren't the marker yet
                         if (lineBuf.length > 48 && !marker.startsWith(lineBuf.trim().slice(0, 12))) {
-                            // Keep a short tail in case marker straddles chunks
                             const flushLen = Math.max(0, lineBuf.length - 40);
                             if (flushLen > 0) {
                                 sseWrite(res, 'token', { text: lineBuf.slice(0, flushLen) });
@@ -713,18 +1059,93 @@ module.exports = function createAiSimulatorHelpHandlers({
 
                 if (!suppressJson && lineBuf) {
                     sseWrite(res, 'token', { text: lineBuf });
-                    lineBuf = '';
+                }
+                return rawOut;
+            };
+
+            try {
+                let mergedActions = [];
+                let lastReply = '';
+                let rawCombined = '';
+                let usedFallback = false;
+                let salvaged = false;
+
+                for (let phase = 1; phase <= totalPhases; phase++) {
+                    const built = buildMessages(req.body, { phase, totalPhases });
+                    // Tell phase 2 what phase 1 already emitted
+                    if (phase > 1 && mergedActions.length) {
+                        const summary = mergedActions
+                            .slice(0, 40)
+                            .map((a) => a.type + (a.payload?.name ? `:${a.payload.name}` : a.payload?.type ? `:${a.payload.type}` : ''))
+                            .join(', ');
+                        built.messages.push({
+                            role: 'user',
+                            content: `Already applied in earlier phase (do not redo assets unless broken): ${summary}`
+                        });
+                    }
+
+                    const raw = await streamOnce(built.messages, `generating-${phase}/${totalPhases}`);
+                    rawCombined += (rawCombined ? '\n---\n' : '') + raw;
+                    const parsed = extractActionsAndReply(raw);
+                    const phaseActions = validateActions(parsed.actions);
+                    if (parsed.reply) lastReply = parsed.reply;
+                    if (parsed.truncated && phaseActions.length) salvaged = true;
+
+                    if (!phaseActions.length) {
+                        console.warn(
+                            `[sim-ai stream] phase ${phase} zero actions. preview:`,
+                            String(raw).slice(0, 240)
+                        );
+                        // Only fall back if phase 1 produced nothing
+                        if (phase === 1 && !mergedActions.length) {
+                            usedFallback = true;
+                            mergedActions = validateActions(pickFallbackActions(message || 'simulation'));
+                            lastReply =
+                                lastReply ||
+                                (isDoubleSlitRequest(message)
+                                    ? 'Model JSON was truncated — placed a fuller double-slit lab. Press ▶, then Continue to refine.'
+                                    : 'Model returned no actions — placed a starter. Press ▶, then Continue to expand.');
+                            break;
+                        }
+                    } else {
+                        mergedActions = mergedActions.concat(phaseActions);
+                        if (mergedActions.length > 140) {
+                            mergedActions = mergedActions.slice(0, 140);
+                        }
+                    }
+
+                    // If phase 1 already has rich scripts, skip phase 2
+                    if (phase === 1 && totalPhases > 1 && countBlockActions(phaseActions) >= 12) {
+                        break;
+                    }
                 }
 
-                let parsed = extractActionsAndReply(raw);
-                let actions = validateActions(parsed.actions);
-
-                if (!actions.length) {
-                    console.warn('[sim-ai stream] zero actions; using fallback. preview:', String(raw).slice(0, 240));
+                if (!mergedActions.length) {
+                    usedFallback = true;
+                    mergedActions = validateActions(pickFallbackActions(message || 'simulation'));
                 }
 
-                const result = finalizeSimResult(raw, message);
-                sseWrite(res, 'result', result);
+                if (!lastReply) {
+                    lastReply = usedFallback
+                        ? 'Starter simulation placed. Press ▶ to run.'
+                        : salvaged
+                          ? `Recovered and applied ${mergedActions.length} actions (model output was truncated).`
+                          : `Placing ${mergedActions.length} studio actions…`;
+                }
+
+                const needsContinue =
+                    !usedFallback &&
+                    (salvaged || (complex && countBlockActions(mergedActions) < 10));
+
+                sseWrite(res, 'result', {
+                    reply: lastReply,
+                    actions: mergedActions,
+                    actionCount: mergedActions.length,
+                    usedFallback,
+                    salvaged,
+                    needsContinue,
+                    rawPreview: String(rawCombined).slice(0, 1200)
+                });
             } catch (e) {
                 console.error('ai simulator help stream:', e.message);
                 const code =

@@ -34,6 +34,10 @@
     return new Promise((r) => setTimeout(r, ms));
   }
 
+  function isDoubleSlitLike(text) {
+    return /double[\s-]?slit|interference|wavelength|wave[\s-]?function/i.test(String(text || ''));
+  }
+
   function setWaitUi(active, message) {
     waiting = !!active;
     const banner = document.getElementById('sim-ai-wait-banner');
@@ -135,6 +139,20 @@
     const fields = payload.fields || {};
     for (const [fname, fval] of Object.entries(fields)) {
       try {
+        if (fname === 'VARIABLE' || fname === 'CLONE_OPTION') {
+          const name = String(fval || '').trim();
+          if (name && fname === 'VARIABLE') {
+            try {
+              ws.createVariable(name);
+            } catch (_) { /* already exists */ }
+            try {
+              const proj = typeof st?.getProject === 'function' ? st.getProject() : null;
+              if (proj?.globals?.variables && proj.globals.variables[name] == null) {
+                proj.globals.variables[name] = 0;
+              }
+            } catch (_) { /* ignore */ }
+          }
+        }
         if (block.getField(fname)) block.setFieldValue(String(fval), fname);
       } catch (_) { /* ignore */ }
     }
@@ -471,7 +489,7 @@
     const input = document.getElementById('sim-ai-input');
     const sendBtn = document.getElementById('sim-ai-send');
     const text = options.continue
-      ? ''
+      ? String(options.message || '').trim()
       : (options.message != null ? options.message : (input && input.value) || '').trim();
 
     if (!options.continue && !text) return;
@@ -493,11 +511,17 @@
     const msgBox = document.getElementById('sim-ai-messages');
     if (liveBody) liveBody.textContent = '…';
 
+    let autoContinuePrompt = null;
+
     try {
       let sawToken = false;
+      const userPrompt =
+        text ||
+        (history.slice().reverse().find((h) => h.role === 'user') || {}).content ||
+        'continue';
       const streamOut = await callApiStream(
         {
-          message: text || 'continue',
+          message: userPrompt,
           continue: !!options.continue,
           lastNeed: options.lastNeed || lastNeed || '',
           projectSummary: summary,
@@ -537,12 +561,13 @@
         streamed: streamOut.streamed,
         actionCount,
         usedFallback,
+        salvaged: !!streamOut.result.salvaged,
+        needsContinue: !!streamOut.result.needsContinue,
         replyPreview: String(reply).slice(0, 120),
         rawPreview: streamOut.result.rawPreview
       });
 
       if (liveBody) {
-        // Prefer clean reply if stream only showed a status snippet (or nothing)
         const current = (liveBody.textContent || '').trim();
         if (reply && (!sawToken || current.length < 8 || current === '…')) {
           liveBody.textContent = reply;
@@ -566,7 +591,15 @@
       if (usedFallback) {
         await appendBubble(
           'system',
-          'Model skipped JSON actions — using a guaranteed starter build.',
+          isDoubleSlitLike(userPrompt)
+            ? 'Model JSON was incomplete — applied a fuller double-slit lab template instead of a tiny bounce demo.'
+            : 'Model skipped JSON actions — using a guaranteed starter build.',
+          { instant: true }
+        );
+      } else if (streamOut.result.salvaged) {
+        await appendBubble(
+          'system',
+          'Model output was truncated — recovered complete actions and applying those.',
           { instant: true }
         );
       }
@@ -577,6 +610,16 @@
         await appendBubble(
           'error',
           'Actions were received but none applied. Hard-refresh the studio (Ctrl+Shift+R) and try again.'
+        );
+        return;
+      }
+
+      if (streamOut.result.needsContinue && !options.continue && !options._autoContinued) {
+        autoContinuePrompt = userPrompt;
+        await appendBubble(
+          'system',
+          'Continuing automatically with scripts/controls (phase 2)…',
+          { instant: true }
         );
       }
     } catch (err) {
@@ -594,6 +637,16 @@
         const continueBtn = document.getElementById('sim-ai-continue');
         if (continueBtn) continueBtn.disabled = false;
       }
+    }
+
+    if (autoContinuePrompt) {
+      await delay(400);
+      await sendMessage({
+        continue: true,
+        lastNeed: 'phase2',
+        message: autoContinuePrompt,
+        _autoContinued: true
+      });
     }
   }
 
