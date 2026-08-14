@@ -46,6 +46,15 @@
     }
   }
 
+  function normalizeGuess(value) {
+    return String(value || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[,.\s]+/g, ' ')
+      .replace(/^\$+|\$+$/g, '')
+      .trim();
+  }
+
   function applyFlow(el, extra) {
     if (typeof window.applyFlowEmbedStyles === 'function') {
       window.applyFlowEmbedStyles(el, extra || '');
@@ -202,7 +211,9 @@
        <label>Step 2</label><textarea id="vl-step-2" rows="2" placeholder="Main work"></textarea>
        <label>Step 3</label><textarea id="vl-step-3" rows="2" placeholder="Conclusion"></textarea>
        <label>Prediction check (optional)</label>
-       <input type="text" id="vl-step-pred" placeholder="What do you think happens next?" />`,
+       <input type="text" id="vl-step-pred" placeholder="What do you think happens next?" />
+       <label>Expected answer (optional)</label>
+       <input type="text" id="vl-step-answer" placeholder="e.g. 50" />`,
       () => {
         const steps = [1, 2, 3]
           .map((n) => document.getElementById(`vl-step-${n}`).value.trim())
@@ -213,7 +224,8 @@
         }
         startPlace('vl-steps', {
           steps,
-          prompt: document.getElementById('vl-step-pred').value.trim()
+          prompt: document.getElementById('vl-step-pred').value.trim(),
+          answer: document.getElementById('vl-step-answer').value.trim()
         });
         return true;
       }
@@ -355,7 +367,7 @@
       kind === 'strategy'
         ? '💡'
         : kind === 'mascot'
-          ? `<img src="${MASCOT_SRC}" alt="" class="vl-callout-mascot" />`
+          ? `<img src="${MASCOT_SRC}" alt="" class="vl-callout-mascot-img" />`
           : '⚠️';
     const label = kind === 'strategy' ? 'Test strategy' : kind === 'mascot' ? 'Mascot tip' : 'Watch out';
     return `<div class="vl-callout-icon">${icon}</div>
@@ -369,6 +381,7 @@
     el.dataset.vlId = uid('steps');
     el.dataset.vlSteps = encodeData(data.steps || []);
     el.dataset.vlPrompt = data.prompt || '';
+    el.dataset.vlAnswer = data.answer || '';
     applyFlow(el, '');
     const steps = data.steps || [];
     el.innerHTML = `<div class="vl-embed-label">Step reveal (${steps.length} steps)</div>
@@ -472,11 +485,12 @@
     el.dataset.vlHydrated = '1';
     const steps = decodeData(el.dataset.vlSteps) || [];
     const prompt = el.dataset.vlPrompt || '';
+    const expected = (el.dataset.vlAnswer || '').trim();
     if (!steps.length) return;
     let shown = 0;
     let predicted = !prompt;
     el.innerHTML = `<div class="vl-embed-label">Worked steps</div>
-      ${prompt ? `<div class="vl-step-pred"><label>${esc(prompt)}</label><input type="text" class="vl-step-pred-input" placeholder="Your guess" /><button type="button" class="vl-step-pred-btn">Check</button></div>` : ''}
+      ${prompt ? `<div class="vl-step-pred"><label>${esc(prompt)}</label><input type="text" class="vl-step-pred-input" placeholder="Your guess" /><button type="button" class="vl-step-pred-btn">Check</button><p class="vl-step-pred-result" hidden></p></div>` : ''}
       <ol class="vl-step-list"></ol>
       <button type="button" class="vl-step-next">Show next step</button>
       <p class="vl-step-done" hidden>All steps revealed.</p>`;
@@ -499,12 +513,50 @@
     };
     if (prompt) {
       nextBtn.disabled = true;
-      el.querySelector('.vl-step-pred-btn').addEventListener('click', () => {
+      const resultEl = el.querySelector('.vl-step-pred-result');
+      const input = el.querySelector('.vl-step-pred-input');
+      const checkBtn = el.querySelector('.vl-step-pred-btn');
+      const finishCheck = (ok) => {
         predicted = true;
         nextBtn.disabled = false;
         const box = el.querySelector('.vl-step-pred');
         if (box) box.classList.add('vl-step-pred-done');
+        if (input) input.disabled = true;
+        if (checkBtn) checkBtn.disabled = true;
+        if (resultEl) {
+          resultEl.hidden = false;
+          resultEl.className = `vl-step-pred-result ${ok === true ? 'ok' : ok === false ? 'bad' : 'ok'}`;
+          if (ok === true) resultEl.textContent = 'Correct! Now tap to see each step.';
+          else if (ok === false) resultEl.textContent = expected
+            ? `Not quite. A good answer is ${expected}. Tap to see each step.`
+            : 'Nice try. Tap to see each step.';
+          else resultEl.textContent = 'Nice! Now tap to see each step.';
+        }
+      };
+      checkBtn.addEventListener('click', () => {
+        const guess = (input && input.value) || '';
+        if (!String(guess).trim()) {
+          if (resultEl) {
+            resultEl.hidden = false;
+            resultEl.className = 'vl-step-pred-result bad';
+            resultEl.textContent = 'Type a guess first.';
+          }
+          return;
+        }
+        if (!expected) {
+          finishCheck(null);
+          return;
+        }
+        finishCheck(normalizeGuess(guess) === normalizeGuess(expected));
       });
+      if (input) {
+        input.addEventListener('keydown', (ev) => {
+          if (ev.key === 'Enter') {
+            ev.preventDefault();
+            checkBtn.click();
+          }
+        });
+      }
     }
     nextBtn.addEventListener('click', () => {
       if (!predicted) return;
@@ -533,10 +585,15 @@
           )
           .join('')}</div>
       </div>
-      <p class="vl-match-status">Click a left item, then its match.</p>
-      <button type="button" class="vl-match-check" hidden>Check matches</button>`;
+      <p class="vl-match-status">Click a left item, then its match.</p>`;
     let selectedL = null;
         const matched = new Set();
+        const status = el.querySelector('.vl-match-status');
+        const setStatus = (text, kind) => {
+          status.textContent = text;
+          status.classList.remove('ok', 'bad');
+          if (kind) status.classList.add(kind);
+        };
         el.querySelectorAll('.vl-match-l').forEach((btn) => {
       btn.addEventListener('click', () => {
         el.querySelectorAll('.vl-match-l').forEach((b) => b.classList.remove('selected'));
@@ -556,9 +613,16 @@
           btn.classList.add('vl-match-ok');
           leftBtn.disabled = true;
           btn.disabled = true;
+          if (matched.size === pairs.length) {
+            setStatus('All correct! Perfect match.', 'ok');
+            awardXp('matching', el.dataset.vlId);
+          } else {
+            setStatus(`Correct! ${matched.size} of ${pairs.length} matched.`, 'ok');
+          }
         } else {
           leftBtn.classList.add('vl-match-bad');
           btn.classList.add('vl-match-bad');
+          setStatus('Not a match. Try again.', 'bad');
           setTimeout(() => {
             leftBtn.classList.remove('vl-match-bad', 'selected');
             btn.classList.remove('vl-match-bad');
@@ -566,10 +630,6 @@
         }
         selectedL = null;
         el.querySelectorAll('.vl-match-l').forEach((b) => b.classList.remove('selected'));
-        if (matched.size === pairs.length) {
-          el.querySelector('.vl-match-status').textContent = 'Perfect match!';
-          awardXp('matching', el.dataset.vlId);
-        }
       });
     });
     typeset(el);
