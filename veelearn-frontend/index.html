@@ -11,7 +11,7 @@
   <title>Veelearn — AI-Assisted STEM Learning | Free Courses, Simulations & Volunteer Hours</title>
   <!-- Resource Hints for Performance -->
   <link rel="preload" href="styles.css" as="style">
-  <link rel="preload" href="script.js?v=27" as="script">
+  <link rel="preload" href="script.js?v=28" as="script">
   <!-- Heavy marketing pages are loaded on demand (no prefetch storm) -->
   <link rel="stylesheet" href="styles.css?v=4" />
   <link rel="stylesheet" href="styles-redesign.css" />
@@ -1141,10 +1141,10 @@
   <script src="ai-typewriter.js?v=1" defer></script>
   <script src="learner-shell.js?v=6" defer></script>
   <script src="learner-gamification.js?v=10" defer></script>
-  <script src="course-interactive-blocks.js?v=3" defer></script>
-  <script src="course-boss-battle.js?v=3" defer></script>
+  <script src="course-interactive-blocks.js?v=4" defer></script>
+  <script src="course-boss-battle.js?v=4" defer></script>
   <script src="course-progress.js?v=1" defer></script>
-  <script src="script.js?v=27" defer></script>
+  <script src="script.js?v=28" defer></script>
   <script src="course-editor-ux.js?v=1" defer></script>
   <script>
     function loadScriptOnce(src) {
@@ -1169,7 +1169,7 @@
         if (typeof setupAiEditorHelp === 'function') setupAiEditorHelp();
       }
       if (kind === 'server' || kind === 'all') await loadScriptOnce('server-loading.js');
-      if (kind === 'widgets' || kind === 'all') await loadScriptOnce('widget-engine.js?v=10');
+      if (kind === 'widgets' || kind === 'all') await loadScriptOnce('widget-engine.js?v=11');
     };
     // Idle-load server status + AI editor help after first paint
     const idleLoad = () => {
