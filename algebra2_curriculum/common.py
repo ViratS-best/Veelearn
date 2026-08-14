@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import math
-import re
 
 
 def page_break():
@@ -40,179 +39,33 @@ def callout(kind: str, title: str, body: str, bg: str, border: str) -> str:
     )
 
 
-def _plain(text: str) -> str:
-    return re.sub(r"<[^>]+>", "", text or "").strip()
+def _as_html(text: str) -> str:
+    text = (text or "").strip()
+    if not text:
+        return ""
+    if text.startswith("<"):
+        return text
+    return f"<p>{text}</p>"
 
 
-def enrich_why(short: str) -> str:
-    core = _plain(short)
-    return (
-        f"<p><strong>Big idea:</strong> {core}</p>"
-        "<p><strong>Why Algebra 2 cares:</strong> Later units (logs, rationals, trig) assume you can move "
-        "between graphs, equations, and words without losing meaning. If you only memorize steps, a tiny "
-        "wording change on a quiz will break the whole solution.</p>"
-        "<p><strong>What good looks like:</strong> You can explain the idea in plain English, show a tiny "
-        "numeric example, and name which tool you used (factor, complete the square, substitution, "
-        "property of exponents/logs, etc.).</p>"
-        "<p><strong>Practice habit:</strong> After each solved example, cover the answer and reteach the steps "
-        "out loud. If you cannot name why a step is legal, reread that part before the quick practice.</p>"
-    )
+def why_box(_title: str, body: str) -> str:
+    return _as_html(body)
 
 
-def enrich_think(short: str) -> str:
-    core = _plain(short)
-    return (
-        f"<p><strong>Your plan on paper:</strong> {core}</p>"
-        "<p><strong>Step-by-step routine (do this every time):</strong></p>"
-        "<ol>"
-        "<li>Rewrite the goal in one sentence: <em>I am solving / graphing / simplifying ___</em>.</li>"
-        "<li>Underline constraints: domain, undefined points, extraneous roots, integer requirements.</li>"
-        "<li>Choose the tool: factor, formula, complete square, substitution, property of exponents/logs, etc.</li>"
-        "<li>Box intermediate results (discriminant, rewritten form, restricted values).</li>"
-        "<li>Check: plug back in, check domain, and ask if the answer size/sign makes sense.</li>"
-        "</ol>"
-        "<p><strong>If you feel stuck:</strong> Replace awkward numbers with friendlier ones that keep the same "
-        "structure, solve the tiny version, then return to the real numbers with the same outline.</p>"
-    )
-
-
-def _watch_extra(title: str) -> str:
-    t = title.lower()
-    if "extraneous" in t or "domain" in t or "undefined" in t:
-        return (
-            "<p><strong>Extra detail:</strong> Squaring both sides, clearing denominators, or taking even roots "
-            "can create fake solutions. Always list the domain / allowed values first, solve, then test every "
-            "candidate in the <em>original</em> equation.</p>"
-        )
-    if "sign" in t or "factor" in t or "distribut" in t:
-        return (
-            "<p><strong>Extra detail:</strong> Most Algebra 2 sign errors come from distributing a negative "
-            "across parentheses or dropping a factor when canceling. Expand carefully, then factor back to check.</p>"
-        )
-    if "log" in t or "exponent" in t:
-        return (
-            "<p><strong>Extra detail:</strong> Log and exponential properties only apply when bases and arguments "
-            "are valid. Write the domain (argument $>0$, base $>0$ and $\\neq 1$) before using any property.</p>"
-        )
-    if "complex" in t or "imaginary" in t:
-        return (
-            "<p><strong>Extra detail:</strong> Treat $i$ like a variable with the rule $i^2=-1$. Combine like terms "
-            "(reals with reals, imaginaries with imaginaries). Do not “cancel $i$” casually across equations.</p>"
-        )
-    return (
-        "<p><strong>Extra detail:</strong> Invent a 10-second story of a student who falls for this trap. "
-        "If you can tell that story, you will catch it earlier on quizzes and tests.</p>"
-    )
-
-
-def _strategy_extra(title: str) -> str:
-    t = title.lower()
-    if "box" in t or "intermediate" in t:
-        return (
-            "<p><strong>Boxing habit:</strong> Label boxes like <code>a=</code>, <code>b=</code>, <code>c=</code>, "
-            "<code>Δ=</code>, <code>domain</code>, <code>candidate roots</code>. Combine only after every piece is boxed.</p>"
-        )
-    if "graph" in t or "transform" in t:
-        return (
-            "<p><strong>Graph habit:</strong> Start from a parent function, list transformations in order "
-            "(horizontal shifts/scales first as written inside, then vertical), then plot 3–5 key points.</p>"
-        )
-    if "check" in t or "plug" in t or "verify" in t:
-        return (
-            "<p><strong>Verify habit:</strong> Substitute every proposed solution into the original equation. "
-            "For inequalities, test a point in each interval. For graphs, check intercepts and end behavior.</p>"
-        )
-    return (
-        "<p><strong>Make the play automatic:</strong> Write the strategy name at the top of your scratch paper, "
-        "then execute it without skipping steps. Algebra 2 rewards clean outlines more than last-second inspiration.</p>"
-    )
-
-
-def enrich_watch(title: str, short: str) -> str:
-    core = _plain(short)
-    return (
-        f"<p><strong>The trap called &quot;{title}&quot;:</strong> {core}</p>"
-        "<p><strong>Why this trap shows up so often:</strong> Under time pressure, students jump to a familiar "
-        "formula before checking domain, structure, or whether the equation was changed illegally "
-        "(squaring, canceling a variable factor, etc.).</p>"
-        f"{_watch_extra(title)}"
-        "<p><strong>Warning signs:</strong> a solution that makes a denominator zero, a negative under an even root "
-        "in the reals, a log of a non-positive number, or an answer that fails a quick plug-in check.</p>"
-        "<p><strong>How to dodge it:</strong></p>"
-        "<ul>"
-        "<li>State domain / restrictions before solving.</li>"
-        "<li>Name the legal move you are about to use (factor, square, take log, etc.).</li>"
-        "<li>Box middle results so factors do not disappear.</li>"
-        "<li>Plug every candidate into the original problem.</li>"
-        "</ul>"
-        "<p><strong>Repair move:</strong> Keep the wrong work visible. Write a corrected outline beside it, then "
-        "recompute. Comparing the two outlines teaches faster than erasing everything.</p>"
-    )
-
-
-def enrich_strategy(title: str, short: str) -> str:
-    core = _plain(short)
-    return (
-        f"<p><strong>Strategy — {title}:</strong> {core}</p>"
-        "<p><strong>How to use it in Algebra 2:</strong> Treat this like a coach play. Practice it slowly in the "
-        "lesson until it feels automatic, then use it on homework and tests.</p>"
-        f"{_strategy_extra(title)}"
-        "<p><strong>Concrete scratch-paper actions:</strong></p>"
-        "<ol>"
-        f"<li>Write the strategy name at the top: {title}.</li>"
-        "<li>List what must not be lost (domain, coefficients, rewritten form, key points).</li>"
-        "<li>Box every intermediate result and label it.</li>"
-        "<li>Finish the algebra, then verify.</li>"
-        "<li>Ask: Did I answer the original question (solve vs simplify vs graph)?</li>"
-        "</ol>"
-        "<p><strong>When to move on:</strong> If after a minute you still cannot name the structure "
-        "(quadratic? rational? exponential?), rewrite the problem in simpler words before guessing a tool.</p>"
-    )
-
-
-def enrich_checklist_item(item: str) -> str:
-    core = _plain(item)
-    skill = core[2:] if core.lower().startswith("i ") else core
-    return (
-        f"<p><strong>Goal:</strong> {core}</p>"
-        f"<p><em>How I prove I am ready:</em> I can teach &quot;{skill}&quot; with a tiny example, "
-        f"explain why each step is allowed, and name a common trap.</p>"
-        f"<p><em>30-second self-test:</em> Cover the solved examples. Can I restate the idea, invent one Easy "
-        f"example, and spot one rushed mistake? If not, return to the walkthroughs before the 5 quick problems.</p>"
-    )
-
-
-def why_box(title: str, body: str) -> str:
-    return callout("Why this matters", title, enrich_why(body), "#f0f9ff", "#7dd3fc")
-
-
-def think_box(title: str, body: str) -> str:
-    return callout("How to think about it", title, enrich_think(body), "#f5f3ff", "#c4b5fd")
+def think_box(_title: str, body: str) -> str:
+    return _as_html(body)
 
 
 def watch_out(title: str, body: str) -> str:
-    return callout("Watch out", title, enrich_watch(title, body), "#fffbeb", "#fcd34d")
+    return callout("Common mistake", title, _as_html(body), "#fffbeb", "#fcd34d")
 
 
-def strategy_tip(title: str, body: str) -> str:
-    return callout("Test strategy", title, enrich_strategy(title, body), "#ecfdf5", "#6ee7b7")
+def strategy_tip(_title: str, _body: str) -> str:
+    return ""
 
 
-def check_yourself(items) -> str:
-    lis = "".join(
-        f'<li style="background:#e0f2fe;border-radius:10px;padding:12px 14px;margin:10px 0;">'
-        f"{enrich_checklist_item(i)}</li>"
-        for i in items
-    )
-    return (
-        '<div style="background:#f8fafc;border:1px dashed #94a3b8;border-radius:12px;'
-        'padding:16px;margin:16px 0;">'
-        "<h4>Check yourself before moving on</h4>"
-        "<p>Do not just nod at these. For each bullet, speak an example out loud. "
-        "If you cannot, go back to the solved examples before the quick practice.</p>"
-        f"<ul style='list-style:none;padding-left:0;'>{lis}</ul>"
-        "</div>"
-    )
+def check_yourself(_items) -> str:
+    return ""
 
 
 def mini_practice_heading(concept_name: str) -> str:
@@ -233,7 +86,6 @@ def end_practice_heading() -> str:
         "<li><strong>Problems 31–40:</strong> Hard / chapter test &amp; multi-step</li>"
         "<li><strong>Problems 41–50:</strong> Stretch / honors Algebra 2 &amp; early Precalculus / SAT Math</li>"
         "</ul>"
-        "<p>Take your time. Algebra 2 skill is built by explaining each transformation out loud.</p>"
     )
 
 
@@ -274,34 +126,19 @@ def concept_block(
     checklist,
     quiz_start: int,
 ):
-    bridge = (
-        "<p><strong>Before the examples:</strong> Read each walkthrough like a tutor is beside you. "
-        "Pause after every step and ask “Why is this step legal?” "
-        "Examples get harder on purpose so you see the same idea under more pressure.</p>"
-    )
-    after = (
-        "<p><strong>After the examples:</strong> Cover the final answers and reteach one Easy and one Hard example "
-        "without looking. Then read the Watch out and Test strategy boxes carefully — they are full explanations, "
-        "not slogans. Only then attempt the 5 quick problems.</p>"
-    )
     parts = [
         page_break(),
         f"<h2>{title}</h2>",
         p(*intro_paras),
-        why_box("Keep this in mind", why),
-        think_box("A clear plan", think),
-        bridge,
+        why_box("", why),
+        think_box("", think),
         examples_html,
-        after,
     ]
     if watch:
         parts.append(watch_out(watch[0], watch[1]))
-    if tip:
-        parts.append(strategy_tip(tip[0], tip[1]))
-    parts.append(check_yourself(checklist))
     parts.append(mini_practice_heading(title))
     parts.append(slots_range(quiz_start, 5))
-    return "\n".join(parts)
+    return "\n".join(part for part in parts if part)
 
 
 def make_question(text, correct, distractors, explanation, idx, points=1):
@@ -391,12 +228,9 @@ def unit_shell(title: str, audience: str, roadmap_items, body_html: str, final_s
     return f"""
 <h1>{title}</h1>
 <p><strong>Audience:</strong> {audience}</p>
-<p>This unit is written for <strong>10th-grade Algebra 2</strong> students. We go slowly and explain every idea
-in clear language with LaTeX. Read each section fully. Do the 5 quick problems after each idea.
-Then finish the 50-problem set at the end (Easy → Stretch).</p>
-{why_box("You are building lasting skill",
-    "Algebra 2 is the bridge from Algebra 1 procedures to Precalculus and college math. "
-    "If you understand why each rewrite is legal, hard multi-step problems stop feeling like magic.")}
+<p>This unit is written for <strong>10th-grade Algebra 2</strong> students. Each idea is explained in
+clear language with LaTeX, then shown in fully worked examples. After the examples you will see a
+common mistake for that idea, then 5 quick problems. A 50-problem set at the end goes from Easy to Stretch.</p>
 <h2>What you will learn in this unit</h2>
 {ol(roadmap_items)}
 {body_html}

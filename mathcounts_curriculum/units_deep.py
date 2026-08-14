@@ -20,8 +20,6 @@ from .common import (
     pie_divisible,
     lattice_paths,
     fib,
-    why_box,
-    think_box,
     p,
 )
 
@@ -501,11 +499,11 @@ def build_master():
 <h1>MathCounts Counting & Combinatorics</h1>
 <p><strong>For:</strong> grades 6–8 preparing for <strong>MathCounts</strong> (Chapter, State, National) and
 <strong>AMC 8 / early AMC 10</strong>.</p>
-{why_box("Why this master course exists",
-    "<p>School classes rarely teach contest counting as its own deep skill. This path goes slowly and thoroughly: "
-    "after every idea you get 5 practice checks, and every unit ends with 50 problems from easy to National/AMC 10 stretch.</p>")}
+<p>School classes rarely teach contest counting as its own topic. These eight units go through the main tools
+with long explanations, fully worked examples, a specific common mistake after each idea, 5 quick problems,
+and a 50-problem set from Easy to National / AMC 10 stretch.</p>
 {page_break()}
-<h2>How to use the eight units</h2>
+<h2>The eight units</h2>
 <ol>
 <li>Unit 1 — Counting Principles (product, sum, complement)</li>
 <li>Unit 2 — Permutations &amp; Arrangements</li>
@@ -516,12 +514,7 @@ def build_master():
 <li>Unit 7 — Paths, Recursion &amp; Sequences</li>
 <li>Unit 8 — Contest Mixed Sets &amp; Strategy</li>
 </ol>
-{think_box("Study plan",
-    "<p>Do one concept per sitting: read every paragraph, study each solved example until you can reteach it, "
-    "then complete the 5 quick problems. End the week with the unit’s 50-problem set (stop at Hard if needed; return later for National stretch).</p>")}
-{page_break()}
-<h2>Mindset</h2>
-<p>Counting rewards patience. Speed comes after clarity. If an answer feels like a lucky guess, rewind and explain the why.</p>
-<p>Welcome mistakes on practice — but in the lessons themselves, every worked example is checked carefully so you can trust the steps.</p>
+<p>Work the units in order. Later counting problems stack earlier tools: product and complement first,
+then permutations and combinations, then casework, stars and bars, inclusion-exclusion, and paths.</p>
 """
 

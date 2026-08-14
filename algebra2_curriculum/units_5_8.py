@@ -18,8 +18,6 @@ from .common import (
     renumber,
     near_str,
     p,
-    why_box,
-    think_box,
 )
 
 
@@ -2589,14 +2587,12 @@ def build_master():
 <p><strong>For:</strong> <strong>grade 10 Algebra 2</strong> students who want a deep, patient path through the
 full year — every idea explained in plain language with LaTeX, every concept followed by quick practice, and
 every unit finished off with a 50-problem set that climbs from Easy to Stretch/Honors difficulty.</p>
-{why_box("Why this master course exists",
-    "<p>Algebra 2 is the bridge between the procedures you memorized in Algebra 1 and the reasoning you will "
-    "need in Precalculus, Calculus, and standardized tests like the SAT and ACT. Many classes move quickly and "
-    "leave gaps in rational expressions, radicals, logarithms, and trig foundations. This path goes slowly and "
-    "thoroughly on purpose: after every idea you get quick practice checks, and every unit ends with a full "
-    "50-problem set from easy to honors-level stretch.</p>")}
+<p>Algebra 2 connects Algebra 1 procedures to Precalculus, Calculus, and tests like the SAT. These eight units
+cover functions, quadratics, complex numbers, polynomials, rationals, radicals, exponentials and logs, then
+sequences and trigonometry. Each concept has long explanations, fully worked examples, a specific common
+mistake, 5 quick problems, and a 50-problem set from Easy to Stretch.</p>
 {page_break()}
-<h2>How to use the eight units</h2>
+<h2>The eight units</h2>
 <ol>
 <li>Unit 1 — Functions, Domain &amp; Transformations</li>
 <li>Unit 2 — Quadratic Functions &amp; Equations</li>
@@ -2607,31 +2603,18 @@ every unit finished off with a 50-problem set that climbs from Easy to Stretch/H
 <li>Unit 7 — Exponential &amp; Logarithmic Functions</li>
 <li>Unit 8 — Sequences, Series &amp; Trig Foundations</li>
 </ol>
-<p>The units build on each other in a deliberate order. Factoring and equation-solving from Units 1–4 support
-the rational-expression work in Unit 5, and radicals in Unit 6 lead naturally into rational exponents, which
-connect directly to the exponential functions in Unit 7. Unit 8 closes the year by previewing sequences, series,
-and the trigonometry that will anchor Precalculus.</p>
-{think_box("Study plan",
-    "<p>Work through one concept per sitting: read every paragraph slowly, study each solved example until you "
-    "can reteach it out loud without looking, and only then attempt the 5 quick practice problems for that "
-    "concept. End each week by finishing that unit's 50-problem set — pace yourself through Easy and Medium "
-    "first, then return for Hard and Stretch once the ideas feel solid. A realistic pace is one unit every "
-    "one to two weeks, depending on how much time you have outside of class.</p>")}
+<p>The units build on each other. Factoring and equation-solving from Units 1–4 support
+the rational-expression work in Unit 5, and radicals in Unit 6 lead into rational exponents, which
+connect to the exponential functions in Unit 7. Unit 8 closes with sequences, series,
+and the trigonometry that Precalculus uses next.</p>
 {page_break()}
-<h2>Mindset for a full year of Algebra 2</h2>
-<p>Algebra 2 rewards patience far more than speed. Every new topic — rational expressions, radicals, logarithms,
-sequences, trigonometry — is built from a small number of core moves you already know: factor, find a common
-denominator, isolate a variable, check a candidate solution against a domain. Recognizing those familiar moves
-underneath unfamiliar-looking notation is what separates students who feel like every unit is a fresh mountain
-from students who feel like every unit is the same mountain in slightly different clothing.</p>
+<h2>What shows up again and again</h2>
+<p>Most Algebra 2 topics reuse the same moves: factor, find a common
+denominator, isolate a variable, and check a candidate against a domain. Rational equations, radical equations,
+and logarithmic equations all produce extra (extraneous) solutions if you skip the domain check.</p>
 <p>Extraneous solutions show up in rational equations, radical equations, and logarithmic equations throughout
-this course. Get comfortable with the habit of writing down domain restrictions before you solve and checking
-every candidate afterward — it is not extra work bolted onto the "real" algebra, it is a core part of solving
-these equation types correctly.</p>
-<p>Finally, explain your steps out loud, especially on the solved examples. If you can teach a concept to an
-imaginary classmate in plain language, including naming the tool you used and why each step was legal, you own
-that skill well enough to use it under test pressure. If you cannot yet explain a step, that is exactly the
-sign to reread that section before moving on to the practice problems.</p>
+this course. Domain restrictions belong in the solution: write them before you solve, then check every candidate
+in the original equation.</p>
 """
 
 
