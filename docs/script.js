@@ -2196,6 +2196,7 @@ function setupCourseEditorListeners() {
 
     // Rich text editor toolbar
     setupRichTextEditor();
+    if (window.CourseInteractiveBlocks?.setup) window.CourseInteractiveBlocks.setup();
 }
 
 function setupRichTextEditor() {
@@ -2208,6 +2209,9 @@ function setupRichTextEditor() {
             const command = button.dataset.command;
             const id = button.id;
 
+            if (id === "insert-add-block" || button.hasAttribute("data-vl-block")) {
+                return;
+            }
             if (id === "insert-math-simulator") {
                 showMarketplaceSelector("math");
             } else if (id === "insert-coding-simulator") {
@@ -4128,6 +4132,10 @@ function createNewCourse() {
     updatePageControls();
 
     startCourseTimer(0);
+    const bossEl = document.getElementById('course-boss-battle');
+    const heartsEl = document.getElementById('course-hearts-mode');
+    if (bossEl) bossEl.checked = false;
+    if (heartsEl) heartsEl.checked = false;
     if (typeof window.onCourseEditorOpened === 'function') window.onCourseEditorOpened({ isNew: true });
 }
 
@@ -4146,6 +4154,15 @@ function editCourse(courseId) {
             course.description || "";
         const videoEl = document.getElementById("course-video-url");
         if (videoEl) videoEl.value = course.video_url || "";
+
+        let g = course.gamification || {};
+        if (!g.bossBattle && course.gamification_json) {
+            try { g = JSON.parse(course.gamification_json); } catch (_) { g = {}; }
+        }
+        const bossEl = document.getElementById('course-boss-battle');
+        const heartsEl = document.getElementById('course-hearts-mode');
+        if (bossEl) bossEl.checked = !!g.bossBattle;
+        if (heartsEl) heartsEl.checked = !!g.hearts;
 
         // Load course type (Master vs Single)
         loadCourseTypeForEdit(idNum);
@@ -4232,6 +4249,14 @@ function editCourse(courseId) {
                 }
             });
 
+            editor.querySelectorAll('.vl-embed-remove').forEach((btn) => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const block = btn.closest('.vl-callout, .vl-step-reveal, .vl-matching, .vl-graph-embed');
+                    if (block && confirm('Remove this block?')) block.remove();
+                });
+            });
+
             document.getElementById("dashboard-section").style.display = "none";
             document.getElementById("course-editor-section").style.display = "block";
             if (typeof normalizeAbsoluteEmbeds === 'function') normalizeAbsoluteEmbeds(editor);
@@ -4309,6 +4334,12 @@ function saveCourse(action = "draft", options = {}) {
     // Set course status based on action
     const status = action === "pending" ? "pending" : "draft";
 
+    if (action === "pending" && window.CourseInteractiveBlocks?.checkPublishGate) {
+        if (!window.CourseInteractiveBlocks.checkPublishGate(coursePages)) {
+            return Promise.resolve(false);
+        }
+    }
+
     if (window.logger) {
         window.logger.debug(`\n=== SAVE COURSE DEBUG ===`);
         window.logger.debug(`Action: ${action}`);
@@ -4338,7 +4369,11 @@ function saveCourse(action = "draft", options = {}) {
         status: status,
         creation_time: courseTimer.totalSeconds,
         video_url: videoUrl || null,
-        course_type: courseType
+        course_type: courseType,
+        gamification_json: JSON.stringify({
+            bossBattle: !!document.getElementById('course-boss-battle')?.checked,
+            hearts: !!document.getElementById('course-hearts-mode')?.checked
+        })
     };
 
     // Already replaced above
@@ -4572,6 +4607,17 @@ async function viewCourse(courseId, assignmentId = null, forceRegular = false) {
             // Convert simulator buttons for this page
             convertSimulatorButtonsForViewer(course.id, course);
 
+            if (window.CourseInteractiveBlocks?.hydrateViewer) {
+                window.CourseInteractiveBlocks.hydrateViewer(document.getElementById('course-content-display') || viewerContent);
+            }
+            if (window.CourseBossBattle?.init) {
+                window.CourseBossBattle.init(course, courseQuestions);
+            }
+            if (window.CourseProgress?.onPageShown) {
+                window.CourseProgress.setContext({ courseId: course.id });
+                window.CourseProgress.onPageShown(index, viewerPages.length, { courseId: course.id });
+            }
+
             // Render LaTeX - CRITICAL: Must wait for MathJax to be fully loaded
             if (window.MathJax && window.MathJax.typesetPromise) {
                 try {
@@ -4600,6 +4646,11 @@ async function viewCourse(courseId, assignmentId = null, forceRegular = false) {
 
         // Hydrate simulator placeholders (converts editor buttons to Run buttons)
         hydrateSimulatorPlaceholders();
+
+        if (window.CourseInteractiveBlocks?.hydrateViewer) {
+            window.CourseInteractiveBlocks.hydrateViewer(document.getElementById('course-viewer-content'));
+        }
+        if (window.CourseBossBattle?.applyGates) window.CourseBossBattle.applyGates();
 
         // Re-attach listeners for quizzes
         document.querySelectorAll(".quiz-submit-btn").forEach((btn) => {
@@ -5234,6 +5285,14 @@ function setupQuizModalListeners() {
                     openQuizModal(parseInt(questionId));
                 }
             }
+
+            const removeEmbed = e.target.closest('.vl-embed-remove');
+            if (removeEmbed) {
+                e.preventDefault();
+                e.stopPropagation();
+                const block = removeEmbed.closest('.vl-callout, .vl-step-reveal, .vl-matching, .vl-graph-embed');
+                if (block && confirm('Remove this block?')) block.remove();
+            }
         });
     }
 }
@@ -5261,6 +5320,8 @@ function openQuizModal(questionId = null) {
             // Load blocks into simulator editor if using it
             document.getElementById('quiz-explanation').value = question.explanation || '';
             document.getElementById('quiz-points').value = question.points;
+            const diffEl = document.getElementById('quiz-difficulty');
+            if (diffEl) diffEl.value = question.difficulty || 'easy';
 
             if (question.question_type === 'multiple_choice' && question.options) {
                 const optionsList = document.getElementById('quiz-options-list');
@@ -5303,6 +5364,8 @@ function resetQuizForm() {
     document.getElementById('quiz-correct-answer').value = '';
     document.getElementById('quiz-explanation').value = '';
     document.getElementById('quiz-points').value = '10';
+    const diffEl = document.getElementById('quiz-difficulty');
+    if (diffEl) diffEl.value = 'easy';
 
     const optionsList = document.getElementById('quiz-options-list');
     if (optionsList) {
@@ -5326,6 +5389,7 @@ async function saveQuizQuestion() {
     let correctAnswer = document.getElementById('quiz-correct-answer').value.trim();
     const explanation = document.getElementById('quiz-explanation').value.trim();
     const points = parseInt(document.getElementById('quiz-points').value);
+    const difficulty = document.getElementById('quiz-difficulty')?.value || 'easy';
 
     let options = null;
 
@@ -5384,6 +5448,7 @@ async function saveQuizQuestion() {
         correct_answer: correctAnswer,
         explanation: explanation,
         points: points,
+        difficulty: difficulty,
         order_index: courseQuestions.length
     };
 
@@ -6588,6 +6653,17 @@ async function loadUnitContent(unit) {
                 if (typeof hydrateSimulatorPlaceholders === 'function') {
                     hydrateSimulatorPlaceholders();
                 }
+
+                if (window.CourseInteractiveBlocks?.hydrateViewer) {
+                    window.CourseInteractiveBlocks.hydrateViewer(contentEl);
+                }
+                if (window.CourseBossBattle?.init) {
+                    window.CourseBossBattle.init(unitCourse, courseQuestions);
+                }
+                if (window.CourseProgress) {
+                    window.CourseProgress.setContext({ courseId: unit.child_course_id, unitId: unit.unit_id });
+                    window.CourseProgress.onUnitQuizzesProgress();
+                }
                 
                 // Re-attach quiz submit listeners (setupViewerInteractions is local to viewCourse,
                 // so we inline the equivalent here)
@@ -6658,8 +6734,11 @@ async function completeCurrentUnit() {
         const result = await response.json();
         
         if (result.success) {
-            // Update local state
             courseUnits[currentUnitIndex].completed = true;
+            if (window.LearnerGamification?.applyAward && result.data) {
+                window.LearnerGamification.applyAward(result.data);
+            }
+            if (window.CourseProgress?.celebrate) window.CourseProgress.celebrate();
             
             if (result.data?.all_units_complete) {
                 alert("🎉 Congratulations! You've completed the Master Course!");
@@ -6901,7 +6980,7 @@ function createQuizQuestionElement(question, index) {
     questionDiv.innerHTML = `
     <div class="quiz-question-header">
       <div class="quiz-question-text">Question ${index + 1}: ${escapeHtml(question.question_text)}</div>
-      <div class="quiz-points">${question.points} pts</div>
+      <div class="quiz-points">${question.points} pts${question.difficulty ? ` · ${escapeHtml(question.difficulty === 'stretch' ? 'SAT Stretch' : question.difficulty)}` : ''}</div>
     </div>
     ${optionsHTML}
     <button class="quiz-submit-btn" data-question-id="${question.id}">Submit Answer</button>
@@ -6944,7 +7023,7 @@ async function submitQuizAnswer(questionId) {
     }
 
     try {
-        const response = await fetch(`${API_BASE_URL}/api/courses/${currentEditingCourseId}/questions/${questionId}/answer`, {
+        const response = await fetch(`${API_BASE_URL}/api/courses/${currentViewingCourseId || currentEditingCourseId}/questions/${questionId}/answer`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -6966,15 +7045,19 @@ async function submitQuizAnswer(questionId) {
           <div>✅ Correct!</div>
           ${result.data.explanation ? `<div class="quiz-explanation">${escapeHtml(result.data.explanation)}</div>` : ''}
         `;
+                if (question) question._answeredCorrect = true;
                 if (window.LearnerGamification?.onQuizCorrect) {
-                    window.LearnerGamification.onQuizCorrect(questionId);
+                    window.LearnerGamification.onQuizCorrect(questionId, result.data);
                 }
+                if (window.CourseBossBattle?.onAnswer) window.CourseBossBattle.onAnswer(questionId, true, result.data);
+                if (window.CourseProgress?.onUnitQuizzesProgress) window.CourseProgress.onUnitQuizzesProgress();
             } else {
                 feedbackDiv.className = 'quiz-feedback incorrect';
                 feedbackDiv.innerHTML = `
           <div>❌ Incorrect. The correct answer is: ${escapeHtml(result.data.correct_answer)}</div>
           ${result.data.explanation ? `<div class="quiz-explanation">${escapeHtml(result.data.explanation)}</div>` : ''}
         `;
+                if (window.CourseBossBattle?.onAnswer) window.CourseBossBattle.onAnswer(questionId, false, result.data);
             }
 
             const submitBtn = feedbackDiv.previousElementSibling;
@@ -8103,7 +8186,7 @@ function applyFlowEmbedStyles(el, extraCss) {
 
 function normalizeAbsoluteEmbeds(editor) {
     if (!editor) return;
-    editor.querySelectorAll('.simulator-block, .phet-sim-wrapper, .quiz-question-placeholder').forEach((el) => {
+    editor.querySelectorAll('.simulator-block, .phet-sim-wrapper, .quiz-question-placeholder, .vl-callout, .vl-step-reveal, .vl-matching, .vl-graph-embed').forEach((el) => {
         const styleAttr = el.getAttribute('style') || '';
         const computedPos = (el.style.position || '').toLowerCase();
         const looksAbsolute =
@@ -8145,7 +8228,7 @@ function resolveEditorBlockAnchor(editor, node) {
     if (!editor || !node) return null;
     let el = node.nodeType === Node.TEXT_NODE ? node.parentElement : node;
     const blockSel =
-        '.quiz-question-placeholder, .simulator-block, .phet-sim-wrapper, p, h1, h2, h3, h4, h5, h6, li, blockquote, pre, table, hr, div';
+        '.quiz-question-placeholder, .simulator-block, .phet-sim-wrapper, .vl-callout, .vl-step-reveal, .vl-matching, .vl-graph-embed, p, h1, h2, h3, h4, h5, h6, li, blockquote, pre, table, hr, div';
     while (el && el !== editor) {
         if (el.matches && el.matches(blockSel)) {
             let top = el;
@@ -8328,6 +8411,8 @@ function handleEditorClick(e) {
         insertQuizPlaceholderAtPosition(placementData.id, placementData.text);
     } else if (placementType === 'phet-simulator') {
         insertPhetSimAtPosition(placementData);
+    } else if (window.CourseInteractiveBlocks?.insertAtPlacement) {
+        window.CourseInteractiveBlocks.insertAtPlacement(placementType, placementData);
     }
 
     cancelPlacementMode();
@@ -9740,6 +9825,9 @@ window.changePage = changePage;
 window.updatePageControls = updatePageControls;
 window.cancelPlacementMode = cancelPlacementMode;
 window.normalizeAbsoluteEmbeds = normalizeAbsoluteEmbeds;
+window.startPlacementMode = startPlacementMode;
+window.insertNodeInDocumentFlow = insertNodeInDocumentFlow;
+window.applyFlowEmbedStyles = applyFlowEmbedStyles;
 Object.defineProperty(window, 'currentPageIndex', {
     get() { return currentPageIndex; },
     set(v) { currentPageIndex = v; },
@@ -9749,6 +9837,13 @@ Object.defineProperty(window, 'isPlacementMode', {
     get() { return isPlacementMode; },
     configurable: true
 });
+try {
+    Object.defineProperty(window, 'currentViewingCourseId', {
+        get() { return currentViewingCourseId; },
+        set(v) { currentViewingCourseId = v; },
+        configurable: true
+    });
+} catch (_) { /* already defined */ }
 window.__veelearnPushCourse = function (course) {
     if (!course || !course.id) return;
     if (!myCourses.some((c) => c.id === course.id)) myCourses.push(course);

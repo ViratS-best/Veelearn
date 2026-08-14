@@ -1874,3 +1874,152 @@ select:focus {
   border-left-color: var(--info);
   color: #67e8f9;
 }
+
+/* Fun course creator embeds */
+.editor-toolbar-dropdown {
+  position: relative;
+  display: inline-flex;
+}
+.editor-toolbar-dropdown-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 40;
+  min-width: 240px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px;
+  box-shadow: var(--shadow-md, 0 8px 24px rgba(0,0,0,.35));
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.editor-toolbar-dropdown-panel[hidden] {
+  display: none;
+}
+.editor-toolbar-dropdown-panel button {
+  width: 100%;
+  justify-content: flex-start;
+  border-radius: 8px;
+}
+.vl-word-tip {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid var(--warning);
+  color: #fbbf24;
+  font-size: 0.9rem;
+}
+.vl-editor-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  margin: 6px 0;
+  cursor: pointer;
+  color: var(--text-light);
+}
+.vl-callout,
+.vl-step-reveal,
+.vl-matching,
+.vl-graph-embed {
+  position: relative;
+  margin: 1.1em 0;
+  padding: 16px 18px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+}
+.vl-callout {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.vl-callout-trap { border-left: 5px solid #f59e0b; background: rgba(245, 158, 11, 0.08); }
+.vl-callout-strategy { border-left: 5px solid #10b981; background: rgba(16, 185, 129, 0.08); }
+.vl-callout-mascot { border-left: 5px solid #6366f1; background: rgba(99, 102, 241, 0.1); }
+.vl-callout-icon { font-size: 1.4rem; flex-shrink: 0; }
+.vl-callout-mascot { width: 42px; height: 42px; }
+.vl-callout-body h4 { margin: 0 0 6px; }
+.vl-callout-body p { margin: 0; }
+.vl-embed-remove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: none;
+  background: #e53e3e;
+  color: #fff;
+  cursor: pointer;
+}
+.vl-embed-label { font-weight: 700; margin-bottom: 8px; color: var(--primary); }
+.vl-step-next, .vl-match-check, .vl-step-pred-btn {
+  margin-top: 10px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  background: var(--primary);
+  color: #fff;
+  cursor: pointer;
+}
+.vl-step-item { margin: 8px 0; }
+.vl-match-board { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.vl-match-chip {
+  display: block;
+  width: 100%;
+  margin: 6px 0;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-dark);
+  color: var(--text-light);
+  cursor: pointer;
+  text-align: left;
+}
+.vl-match-chip.selected { outline: 2px solid var(--primary); }
+.vl-match-ok { background: rgba(16, 185, 129, 0.25); border-color: #10b981; }
+.vl-match-bad { background: rgba(239, 68, 68, 0.2); }
+.vl-graph-host, .vl-graph-host iframe {
+  width: 100%;
+  min-height: 320px;
+  border: 0;
+  border-radius: 10px;
+}
+.vl-match-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.vl-match-row input { flex: 1; }
+.vl-boss-hud, .vl-progress-ring-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+.vl-hearts { letter-spacing: 2px; color: #ef4444; font-size: 1.2rem; }
+.vl-boss-stage { font-weight: 800; }
+.vl-diff-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: #dbeafe;
+  color: #1e3a8a;
+}
+.vl-diff-badge[data-diff="medium"] { background: #fef3c7; color: #92400e; }
+.vl-diff-badge[data-diff="hard"] { background: #fee2e2; color: #991b1b; }
+.vl-diff-badge[data-diff="stretch"] { background: #ffedd5; color: #9a3412; }
+.vl-boss-locked { position: relative; opacity: 0.55; }
+.vl-boss-lock-msg {
+  margin-top: 8px;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+.vl-progress-ring { width: 64px; height: 64px; }
+.vl-ring-bg { fill: none; stroke: #334155; stroke-width: 3.5; }
+.vl-ring-fg { fill: none; stroke: #6366f1; stroke-width: 3.5; stroke-linecap: round; }
+.vl-ring-text { font-size: 8px; text-anchor: middle; fill: var(--text-light); font-weight: 700; }

@@ -43,6 +43,10 @@
           <img src="${ASSET}/gem.svg" alt="" />
           <span id="ls-gems-count">0</span>
         </div>
+        <div class="ls-xp-block" title="Experience">
+          <div class="ls-xp-meta"><span id="ls-xp-level">Lv 1</span><span id="ls-xp-count">0 XP</span></div>
+          <div class="ls-xp-track"><div class="ls-xp-fill" id="ls-xp-fill"></div></div>
+        </div>
         <nav class="ls-nav" id="ls-nav-top">
           <button type="button" class="ls-nav-btn active" data-ls-nav="dashboard"><span class="ls-nav-icon">${NAV_ICONS.dashboard}</span>Dashboard</button>
           <button type="button" class="ls-nav-btn" data-ls-nav="achievements"><span class="ls-nav-icon">${NAV_ICONS.achievements}</span>Achievements</button>
@@ -505,6 +509,15 @@
     if (nameEl) nameEl.textContent = profile.displayName || 'Learner';
     const gemsEl = document.getElementById('ls-gems-count');
     if (gemsEl) gemsEl.textContent = String(profile.gems ?? 0);
+    const xpLevel = document.getElementById('ls-xp-level');
+    const xpCount = document.getElementById('ls-xp-count');
+    const xpFill = document.getElementById('ls-xp-fill');
+    if (xpLevel) xpLevel.textContent = `Lv ${profile.level || 1}`;
+    if (xpCount) xpCount.textContent = `${profile.xp || 0} XP`;
+    if (xpFill) {
+      const into = ((profile.xp || 0) % 100);
+      xpFill.style.width = `${into}%`;
+    }
     const shell = document.getElementById('learner-shell');
     if (shell && profile.dashboardTheme) {
       shell.setAttribute('data-learner-theme', profile.dashboardTheme);
