@@ -839,21 +839,8 @@
       const exprs = params.expressions || [];
       const colors = ['#e74c3c', '#3498db', '#2ecc71', '#e67e22'];
       let plotted = false;
-      exprs.forEach((ex, i) => {
-        if (isParamAssignment(ex)) return;
-        try {
-          const fn = compileExpr(ex, ['x']);
-          board.create('functiongraph', [(x) => fn(x, state)], {
-            strokeColor: colors[i % colors.length],
-            strokeWidth: 2
-          });
-          plotted = true;
-        } catch (err) {
-          console.warn('function_plot expr failed', ex, err);
-        }
-      });
-      // Vertex form y = a(x-h)^2+k when sliders provide a/h/k and no curve plotted
-      if (!plotted && state.a != null && (state.h != null || state.k != null)) {
+      const useVertex = state.a != null && state.h != null && state.k != null && state.b == null;
+      if (useVertex) {
         board.create(
           'functiongraph',
           [
@@ -867,8 +854,21 @@
           { strokeColor: '#e74c3c', strokeWidth: 3 }
         );
         plotted = true;
+      } else {
+        exprs.forEach((ex, i) => {
+          if (isParamAssignment(ex)) return;
+          try {
+            const fn = compileExpr(ex, ['x']);
+            board.create('functiongraph', [(x) => fn(x, state)], {
+              strokeColor: colors[i % colors.length],
+              strokeWidth: 2
+            });
+            plotted = true;
+          } catch (err) {
+            console.warn('function_plot expr failed', ex, err);
+          }
+        });
       }
-      // Default quadratic when sliders provide a/b/c but no expressions
       if (!plotted && (state.a != null || state.b != null || state.c != null)) {
         board.create(
           'functiongraph',
@@ -1002,6 +1002,9 @@
       };
     } catch (err) {
       console.warn('Desmos unavailable, falling back to function_plot', err);
+      if (st.a == null) st.a = 1;
+      if (st.h == null) st.h = 0;
+      if (st.k == null) st.k = 0;
       const fallback = Object.assign({}, spec, {
         behavior: Object.assign({}, spec.behavior, {
           preset: 'function_plot',
@@ -1010,7 +1013,7 @@
           })
         })
       });
-      return mountJsxPreset(host, fallback, Object.assign({ a: 1, h: 0, k: 0 }, st), hook || { _update: null });
+      return mountJsxPreset(host, fallback, st, hook || { _update: null });
     }
   }
 
@@ -1524,7 +1527,7 @@
       return { destroy() {} };
     }
     const opts = options || {};
-    const state = Object.assign({}, spec.state || {});
+    const state = spec.state || {};
     const { card, viewHost, controls, outputsEl } = buildCard(spec);
     container.appendChild(card);
 

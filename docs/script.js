@@ -4649,14 +4649,6 @@ async function viewCourse(courseId, assignmentId = null, forceRegular = false) {
             window.CourseInteractiveBlocks.hydrateViewer(document.getElementById('course-viewer-content'));
         }
         if (window.CourseBossBattle?.applyGates) window.CourseBossBattle.applyGates();
-
-        // Re-attach listeners for quizzes
-        document.querySelectorAll(".quiz-submit-btn").forEach((btn) => {
-            btn.addEventListener("click", (e) => {
-                const questionId = e.target.dataset.questionId;
-                submitQuizAnswer(questionId, courseId);
-            });
-        });
     }
 
     // Setup viewer pagination controls
@@ -6665,15 +6657,6 @@ async function loadUnitContent(unit) {
                     window.CourseProgress.onUnitQuizzesProgress();
                 }
                 
-                // Re-attach quiz submit listeners (setupViewerInteractions is local to viewCourse,
-                // so we inline the equivalent here)
-                document.querySelectorAll('.quiz-submit-btn').forEach((btn) => {
-                    btn.addEventListener('click', (e) => {
-                        const questionId = e.target.dataset.questionId;
-                        submitQuizAnswer(questionId, unit.child_course_id);
-                    });
-                });
-                
                 // MathJax render
                 setTimeout(async () => {
                     if (window.MathJax && window.MathJax.typesetPromise) {
@@ -6990,10 +6973,16 @@ function createQuizQuestionElement(question, index) {
     return questionDiv;
 }
 
+const quizSubmitInFlight = new Set();
+
 async function submitQuizAnswer(questionId) {
+    const qid = String(questionId);
+    if (quizSubmitInFlight.has(qid)) return;
+    quizSubmitInFlight.add(qid);
     console.log(`Submitting answer for question ${questionId}`);
-    const question = courseQuestions.find(q => q.id === parseInt(questionId));
+    const question = courseQuestions.find(q => q.id === parseInt(questionId, 10));
     if (!question) {
+        quizSubmitInFlight.delete(qid);
         console.error(`Question ${questionId} not found in courseQuestions`, courseQuestions);
         return;
     }
@@ -7011,6 +7000,7 @@ async function submitQuizAnswer(questionId) {
     } else {
         const selectedOption = document.querySelector(`input[name="question-${questionId}"]:checked`);
         if (!selectedOption) {
+            quizSubmitInFlight.delete(qid);
             alert('Please select an answer');
             return;
         }
@@ -7018,6 +7008,7 @@ async function submitQuizAnswer(questionId) {
     }
 
     if (!userAnswer) {
+        quizSubmitInFlight.delete(qid);
         alert('Please provide an answer');
         return;
     }
@@ -7074,6 +7065,8 @@ async function submitQuizAnswer(questionId) {
     } catch (error) {
         console.error('Error submitting answer:', error);
         alert('Error submitting answer. Please try again.');
+    } finally {
+        quizSubmitInFlight.delete(qid);
     }
 }
 

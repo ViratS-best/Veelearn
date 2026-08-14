@@ -292,6 +292,14 @@
     if (isCorrect && q) q._answeredCorrect = true;
 
     if (!isCorrect && state.heartsEnabled) {
+      const now = Date.now();
+      if (state._lastWrongId === Number(questionId) && now - (state._lastWrongAt || 0) < 1000) {
+        recomputeUnlocks();
+        applyGates();
+        return;
+      }
+      state._lastWrongId = Number(questionId);
+      state._lastWrongAt = now;
       state.hearts = Math.max(0, state.hearts - 1);
       renderHud();
       if (state.hearts <= 0) {

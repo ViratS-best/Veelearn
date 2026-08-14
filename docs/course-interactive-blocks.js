@@ -623,8 +623,10 @@
       val.className = 'vl-graph-slider-val';
       val.textContent = String(state[d.key]);
       input.addEventListener('input', () => {
-        state[d.key] = Number(input.value);
-        val.textContent = String(state[d.key]);
+        const n = Number(input.value);
+        state[d.key] = n;
+        if (graphRuntime && graphRuntime.state) graphRuntime.state[d.key] = n;
+        val.textContent = String(n);
         if (graphRuntime && typeof graphRuntime.update === 'function') graphRuntime.update();
       });
       row.appendChild(label);
