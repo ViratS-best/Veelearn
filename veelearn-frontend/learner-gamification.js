@@ -78,7 +78,13 @@
       .map((c) => {
         const title = c.title || c.course_title || 'Course';
         const id = c.course_id || c.id;
-        return `<li><div><strong>${esc(title)}</strong></div>
+        const total = c.total_units;
+        const done = c.completed_units;
+        const pct = total ? Math.round((Number(done || 0) / Number(total)) * 100) : (c.progress_percentage != null ? Number(c.progress_percentage) : null);
+        const prog = pct != null
+          ? `<div class="ls-enroll-prog"><span>${pct}%</span><div class="ls-enroll-track"><div class="ls-enroll-fill" style="width:${pct}%"></div></div></div>`
+          : '';
+        return `<li><div><strong>${esc(title)}</strong>${prog}</div>
           <button type="button" class="ls-btn-primary" data-open="${id}">Open</button></li>`;
       })
       .join('');
@@ -155,9 +161,7 @@
   async function checkin() {
     const data = await api('/api/learner/checkin', { method: 'POST', body: '{}' });
     if (data.success && data.data) {
-      if (!data.data.alreadyCheckedIn && data.data.gemsAwarded > 0) {
-        showGemToast(data.data.gemsAwarded, 'Daily streak bonus!');
-      }
+      applyAward(data.data);
       await refreshProfile();
     }
     return data;
@@ -170,6 +174,37 @@
     toast.innerHTML = `<img src="${asset('gem')}" alt="" /><span>+${amount} gems${label ? ` — ${esc(label)}` : ''}</span>`;
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 2800);
+  }
+
+  function showXpToast(amount, label) {
+    const toast = document.createElement('div');
+    toast.className = 'ls-gem-toast ls-xp-toast';
+    toast.innerHTML = `<span>+${amount} XP${label ? ` — ${esc(label)}` : ''}</span>`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2600);
+  }
+
+  function showBadgeToast(badge) {
+    const toast = document.createElement('div');
+    toast.className = 'ls-gem-toast';
+    const label = typeof badge === 'string' ? badge : badge.label || badge.id;
+    toast.innerHTML = `<span>Badge unlocked: ${esc(label)}</span>`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3200);
+  }
+
+  function applyAward(data) {
+    if (!data) return;
+    if (profileCache) {
+      if (typeof data.gems === 'number') profileCache.gems = data.gems;
+      if (typeof data.xp === 'number') profileCache.xp = data.xp;
+      if (typeof data.level === 'number') profileCache.level = data.level;
+      if (typeof data.lifetimeGems === 'number') profileCache.lifetimeGems = data.lifetimeGems;
+    }
+    window.LearnerShell?.updateProfileUI?.(profileCache);
+    if (data.xpAwarded > 0) showXpToast(data.xpAwarded);
+    if (data.gemsAwarded > 0) showGemToast(data.gemsAwarded);
+    (data.newBadges || []).forEach(showBadgeToast);
   }
 
   function celebrateCorrect() {
@@ -199,17 +234,18 @@
     }, 1600);
   }
 
-  async function onQuizCorrect(questionId) {
+  async function onQuizCorrect(questionId, serverData) {
     celebrateCorrect();
+    if (serverData && (serverData.xpAwarded || serverData.gemsAwarded)) {
+      applyAward(serverData);
+      return;
+    }
     try {
       const data = await api('/api/learner/reward-quiz', {
         method: 'POST',
         body: JSON.stringify({ questionId })
       });
-      if (data.success && data.data?.gemsAwarded > 0) {
-        showGemToast(data.data.gemsAwarded, `${data.data.multiplier || 1}x streak`);
-        await refreshProfile();
-      }
+      if (data.success && data.data) applyAward(data.data);
     } catch (e) {
       console.error('reward-quiz', e);
     }
@@ -445,13 +481,15 @@
       return;
     }
     const p = profileCache;
-    const badges = [
-      { id: 'first', label: 'First spark', ok: (p.quizCorrect || 0) >= 1 },
-      { id: 'streak3', label: '3-day streak', ok: (p.currentStreak || 0) >= 3 || (p.longestStreak || 0) >= 3 },
-      { id: 'streak7', label: 'Week warrior', ok: (p.longestStreak || 0) >= 7 },
-      { id: 'quiz20', label: '20 correct', ok: (p.quizCorrect || 0) >= 20 },
-      { id: 'gems100', label: '100 gems earned', ok: (p.gems || 0) >= 100 }
-    ];
+    const badges = Array.isArray(p.badges) && p.badges.length
+      ? p.badges
+      : [
+          { id: 'first', label: 'First spark', earned: (p.quizCorrect || 0) >= 1 },
+          { id: 'streak3', label: '3-day streak', earned: (p.currentStreak || 0) >= 3 || (p.longestStreak || 0) >= 3 },
+          { id: 'streak7', label: 'Week warrior', earned: (p.longestStreak || 0) >= 7 },
+          { id: 'quiz20', label: '20 correct', earned: (p.quizCorrect || 0) >= 20 },
+          { id: 'gems100', label: '100 gems earned', earned: (p.lifetimeGems || p.gems || 0) >= 100 }
+        ];
     pane.innerHTML = `
       <div class="ls-ach-header">
         <div>
@@ -478,13 +516,18 @@
         </div>
         <div class="ls-metric">
           <img src="${asset('gem')}" alt="" />
+          <div class="val">${p.xp || 0}</div>
+          <div class="label">XP · Lv ${p.level || 1}</div>
+        </div>
+        <div class="ls-metric">
+          <img src="${asset('gem')}" alt="" />
           <div class="val">${p.gems || 0}</div>
           <div class="label">Gems · ${p.streakMultiplier || 1}x quiz bonus</div>
         </div>
       </div>
       <div class="ls-badges">
         ${badges
-          .map((b) => `<span class="ls-badge ${b.ok ? '' : 'locked'}">${esc(b.label)}</span>`)
+          .map((b) => `<span class="ls-badge ${b.earned || b.ok ? '' : 'locked'}">${esc(b.label)}</span>`)
           .join('')}
       </div>
     `;
@@ -786,6 +829,9 @@
     onQuizCorrect,
     celebrateCorrect,
     showGemToast,
+    showXpToast,
+    showBadgeToast,
+    applyAward,
     loadDashboardAi,
     sendDashboardAi,
     renderAchievements,

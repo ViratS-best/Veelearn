@@ -22,6 +22,32 @@ const STORE_SEED = [
 const BASE_QUIZ_GEMS = 5;
 const STREAK_CHECKIN_GEMS = 10;
 const MAX_STREAK_MULT = 3;
+const XP_PER_LEVEL = 100;
+
+const XP_KINDS = {
+    page: { xp: 8, gems: 0 },
+    matching: { xp: 12, gems: 2 },
+    step_reveal: { xp: 12, gems: 2 },
+    unit: { xp: 50, gems: 15 },
+    master: { xp: 100, gems: 30 },
+    checkin: { xp: 15, gems: 0 }
+};
+
+const BADGE_CATALOG = [
+    { id: 'first', label: 'First spark' },
+    { id: 'streak3', label: '3-day streak' },
+    { id: 'streak7', label: 'Week warrior' },
+    { id: 'quiz20', label: '20 correct' },
+    { id: 'gems100', label: '100 gems earned' },
+    { id: 'domain_master', label: 'Domain Master' },
+    { id: 'zero_error', label: 'Zero-Error Streak' },
+    { id: 'stretch_champion', label: 'Stretch Champion' },
+    { id: 'transformation_virtuoso', label: 'Transformation Virtuoso' }
+];
+
+function xpLevel(xp) {
+    return Math.floor(Math.max(0, parseInt(xp, 10) || 0) / XP_PER_LEVEL) + 1;
+}
 
 /** Calendar day as YYYY-MM-DD (UTC — Render servers run UTC). */
 function calendarDayUTC(offsetDays = 0) {
@@ -115,11 +141,126 @@ function createLearnerGamificationHandlers({ query, apiResponse, sendEmail }) {
     async function getProfileRow(userId) {
         const rows = await query(
             `SELECT id, email, name, display_name, gems, current_streak, longest_streak,
-                    last_active_date, avatar_config, dashboard_theme, role
+                    last_active_date, avatar_config, dashboard_theme, role,
+                    xp, lifetime_gems, current_correct_streak, best_correct_streak
              FROM users WHERE id = ? LIMIT 1`,
             [userId]
         );
         return rows[0] || null;
+    }
+
+    async function getBadges(userId) {
+        try {
+            return await query('SELECT badge_id, earned_at FROM user_badges WHERE user_id = ?', [userId]);
+        } catch (_) {
+            return [];
+        }
+    }
+
+    async function grantBadge(userId, badgeId) {
+        try {
+            const result = await query(
+                'INSERT IGNORE INTO user_badges (user_id, badge_id) VALUES (?, ?)',
+                [userId, badgeId]
+            );
+            const header = Array.isArray(result) ? result[0] : result;
+            return (header?.affectedRows || 0) > 0;
+        } catch (_) {
+            return false;
+        }
+    }
+
+    async function evaluateBadges(userId, extras) {
+        const row = await getProfileRow(userId);
+        const stats = await quizStats(userId);
+        const owned = new Set((await getBadges(userId)).map((b) => b.badge_id));
+        const unlocked = [];
+        const tryGrant = async (id) => {
+            if (owned.has(id)) return;
+            if (await grantBadge(userId, id)) {
+                owned.add(id);
+                const meta = BADGE_CATALOG.find((b) => b.id === id);
+                unlocked.push({ id, label: meta ? meta.label : id });
+            }
+        };
+
+        if ((stats.correct || 0) >= 1) await tryGrant('first');
+        if ((row?.current_streak || 0) >= 3 || (row?.longest_streak || 0) >= 3) await tryGrant('streak3');
+        if ((row?.longest_streak || 0) >= 7) await tryGrant('streak7');
+        if ((stats.correct || 0) >= 20) await tryGrant('quiz20');
+        if ((row?.lifetime_gems || 0) >= 100) await tryGrant('gems100');
+        if ((row?.best_correct_streak || 0) >= 5 || (row?.current_correct_streak || 0) >= 5) {
+            await tryGrant('zero_error');
+        }
+        if (extras?.unitComplete) await tryGrant('domain_master');
+        const title = String(extras?.unitTitle || '');
+        if (extras?.unitComplete && /function|transform/i.test(title)) {
+            await tryGrant('transformation_virtuoso');
+        } else if (extras?.unitComplete && extras?.firstUnitFallback) {
+            await tryGrant('transformation_virtuoso');
+        }
+        if (extras?.stretchCorrectCount >= 3) await tryGrant('stretch_champion');
+        return unlocked;
+    }
+
+    async function stretchCorrectCount(userId) {
+        try {
+            const rows = await query(
+                `SELECT COUNT(*) AS c FROM user_quiz_attempts uqa
+                 JOIN course_questions cq ON cq.id = uqa.question_id
+                 WHERE uqa.user_id = ? AND uqa.is_correct = 1 AND cq.difficulty = 'stretch'`,
+                [userId]
+            );
+            return rows[0]?.c || 0;
+        } catch (_) {
+            return 0;
+        }
+    }
+
+    async function awardEvent(userId, eventKey, xp, gems, extras) {
+        const key = String(eventKey || '').slice(0, 191);
+        if (!key) return { xpAwarded: 0, gemsAwarded: 0, alreadyRewarded: true, newBadges: [] };
+        let inserted = false;
+        try {
+            const result = await query(
+                'INSERT IGNORE INTO user_xp_events (user_id, event_key, xp, gems) VALUES (?, ?, ?, ?)',
+                [userId, key, xp || 0, gems || 0]
+            );
+            const header = Array.isArray(result) ? result[0] : result;
+            inserted = (header?.affectedRows || 0) > 0;
+        } catch (e) {
+            console.error('awardEvent insert:', e.message);
+            return { xpAwarded: 0, gemsAwarded: 0, alreadyRewarded: true, newBadges: [] };
+        }
+        if (!inserted) {
+            const row = await getProfileRow(userId);
+            return {
+                xpAwarded: 0,
+                gemsAwarded: 0,
+                alreadyRewarded: true,
+                xp: row?.xp || 0,
+                gems: row?.gems || 0,
+                level: xpLevel(row?.xp || 0),
+                newBadges: []
+            };
+        }
+        await query(
+            `UPDATE users SET xp = COALESCE(xp,0) + ?, gems = COALESCE(gems,0) + ?,
+                    lifetime_gems = COALESCE(lifetime_gems,0) + ?
+             WHERE id = ?`,
+            [xp || 0, gems || 0, gems || 0, userId]
+        );
+        const newBadges = await evaluateBadges(userId, extras || {});
+        const row = await getProfileRow(userId);
+        return {
+            xpAwarded: xp || 0,
+            gemsAwarded: gems || 0,
+            alreadyRewarded: false,
+            xp: row?.xp || 0,
+            gems: row?.gems || 0,
+            level: xpLevel(row?.xp || 0),
+            newBadges
+        };
     }
 
     async function getInventory(userId) {
@@ -139,6 +280,45 @@ function createLearnerGamificationHandlers({ query, apiResponse, sendEmail }) {
         };
     }
 
+    async function applyQuizReward(userId, questionId, isCorrect, difficulty) {
+        if (!isCorrect) {
+            await query('UPDATE users SET current_correct_streak = 0 WHERE id = ?', [userId]);
+            const row = await getProfileRow(userId);
+            return {
+                xpAwarded: 0,
+                gemsAwarded: 0,
+                xp: row?.xp || 0,
+                gems: row?.gems || 0,
+                level: xpLevel(row?.xp || 0),
+                newBadges: []
+            };
+        }
+        const row = await getProfileRow(userId);
+        const streak = (row?.current_correct_streak || 0) + 1;
+        await query(
+            `UPDATE users SET current_correct_streak = ?,
+                    best_correct_streak = GREATEST(COALESCE(best_correct_streak,0), ?)
+             WHERE id = ?`,
+            [streak, streak, userId]
+        );
+        const isStretch = String(difficulty || '') === 'stretch';
+        const mult = streakMultiplier(row?.current_streak || 0);
+        let gems = BASE_QUIZ_GEMS * mult;
+        if (isStretch) gems *= 2;
+        const xpAmt = isStretch ? 25 : 10;
+        const stretchCount = await stretchCorrectCount(userId);
+        const awarded = await awardEvent(userId, `quiz:${questionId}`, xpAmt, gems, {
+            stretchCorrectCount: stretchCount
+        });
+        try {
+            await query(
+                'UPDATE user_quiz_attempts SET gems_awarded = 1 WHERE user_id = ? AND question_id = ?',
+                [userId, questionId]
+            );
+        } catch (_) { /* column may not exist yet */ }
+        return awarded;
+    }
+
     return {
         async ensureReady() {
             await ensureStoreSeeded();
@@ -151,11 +331,16 @@ function createLearnerGamificationHandlers({ query, apiResponse, sendEmail }) {
             if (!row) return apiResponse(res, 404, 'User not found');
             const inv = await getInventory(userId);
             const stats = await quizStats(userId);
+            const badges = await getBadges(userId);
+            const owned = new Set(badges.map((b) => b.badge_id));
             return apiResponse(res, 200, 'OK', {
                 id: row.id,
                 displayName: displayNameFromUser(row),
                 email: row.email,
                 gems: row.gems || 0,
+                lifetimeGems: row.lifetime_gems || 0,
+                xp: row.xp || 0,
+                level: xpLevel(row.xp || 0),
                 currentStreak: row.current_streak || 0,
                 longestStreak: row.longest_streak || 0,
                 lastActiveDate: row.last_active_date,
@@ -164,7 +349,12 @@ function createLearnerGamificationHandlers({ query, apiResponse, sendEmail }) {
                 inventory: inv.map((i) => i.item_id),
                 quizCorrect: stats.correct,
                 quizTotal: stats.total,
-                streakMultiplier: streakMultiplier(row.current_streak || 0)
+                streakMultiplier: streakMultiplier(row.current_streak || 0),
+                badges: BADGE_CATALOG.map((b) => ({
+                    id: b.id,
+                    label: b.label,
+                    earned: owned.has(b.id)
+                }))
             });
         },
 
@@ -198,9 +388,10 @@ function createLearnerGamificationHandlers({ query, apiResponse, sendEmail }) {
 
             // Atomic guard: only award if still not checked in today (stops refresh races)
             const result = await query(
-                `UPDATE users SET gems = ?, current_streak = ?, longest_streak = ?, last_active_date = ?
+                `UPDATE users SET gems = ?, lifetime_gems = COALESCE(lifetime_gems,0) + ?,
+                        current_streak = ?, longest_streak = ?, last_active_date = ?
                  WHERE id = ? AND (last_active_date IS NULL OR last_active_date < ?)`,
-                [newGems, current, longest, today, userId, today]
+                [newGems, gemsAwarded, current, longest, today, userId, today]
             );
 
             const header = Array.isArray(result) ? result[0] : result;
@@ -216,13 +407,19 @@ function createLearnerGamificationHandlers({ query, apiResponse, sendEmail }) {
                 });
             }
 
+            const xpResult = await awardEvent(userId, `checkin:${today}`, XP_KINDS.checkin.xp, 0);
+            const badges = await evaluateBadges(userId, {});
             return apiResponse(res, 200, 'Streak updated', {
                 gems: newGems,
                 currentStreak: current,
                 longestStreak: longest,
                 gemsAwarded,
+                xpAwarded: xpResult.xpAwarded || 0,
+                xp: xpResult.xp,
+                level: xpResult.level,
                 alreadyCheckedIn: false,
-                streakMultiplier: streakMultiplier(current)
+                streakMultiplier: streakMultiplier(current),
+                newBadges: badges
             });
         },
 
@@ -253,23 +450,119 @@ function createLearnerGamificationHandlers({ query, apiResponse, sendEmail }) {
                 });
             }
 
-            const row = await getProfileRow(userId);
-            const mult = streakMultiplier(row?.current_streak || 0);
-            const gemsAwarded = BASE_QUIZ_GEMS * mult;
-            const newGems = (row?.gems || 0) + gemsAwarded;
-
-            await query('UPDATE users SET gems = ? WHERE id = ?', [newGems, userId]);
+            const qRows = await query('SELECT difficulty FROM course_questions WHERE id = ? LIMIT 1', [questionId]);
+            const awarded = await applyQuizReward(userId, questionId, true, qRows[0]?.difficulty);
             await query(
                 'UPDATE user_quiz_attempts SET gems_awarded = 1 WHERE user_id = ? AND question_id = ?',
                 [userId, questionId]
             );
 
             return apiResponse(res, 200, 'Gems awarded', {
-                gems: newGems,
-                gemsAwarded,
-                multiplier: mult,
-                alreadyRewarded: false
+                gems: awarded.gems,
+                gemsAwarded: awarded.gemsAwarded,
+                xpAwarded: awarded.xpAwarded,
+                xp: awarded.xp,
+                level: awarded.level,
+                multiplier: streakMultiplier((await getProfileRow(userId))?.current_streak || 0),
+                alreadyRewarded: awarded.alreadyRewarded,
+                newBadges: awarded.newBadges
             });
+        },
+
+        async applyQuizReward(userId, questionId, isCorrect, difficulty) {
+            return applyQuizReward(userId, questionId, isCorrect, difficulty);
+        },
+
+        async awardForUnit(userId, unitId, unitTitle, allComplete, parentCourseId) {
+            const unitAward = await awardEvent(userId, `unit:${unitId}`, XP_KINDS.unit.xp, XP_KINDS.unit.gems, {
+                unitComplete: true,
+                unitTitle: unitTitle || '',
+                firstUnitFallback: true
+            });
+            let masterAward = { xpAwarded: 0, gemsAwarded: 0, newBadges: [] };
+            if (allComplete && parentCourseId) {
+                masterAward = await awardEvent(
+                    userId,
+                    `master:${parentCourseId}`,
+                    XP_KINDS.master.xp,
+                    XP_KINDS.master.gems,
+                    { unitComplete: true, unitTitle: unitTitle || '' }
+                );
+            }
+            return {
+                xpAwarded: (unitAward.xpAwarded || 0) + (masterAward.xpAwarded || 0),
+                gemsAwarded: (unitAward.gemsAwarded || 0) + (masterAward.gemsAwarded || 0),
+                xp: masterAward.xp || unitAward.xp,
+                gems: masterAward.gems || unitAward.gems,
+                level: masterAward.level || unitAward.level,
+                newBadges: [...(unitAward.newBadges || []), ...(masterAward.newBadges || [])]
+            };
+        },
+
+        async awardXp(req, res) {
+            const kind = String(req.body?.kind || '');
+            const amounts = XP_KINDS[kind];
+            if (!amounts) return apiResponse(res, 400, 'Invalid kind');
+            const userId = req.user.id;
+            const courseId = parseInt(req.body?.courseId, 10) || 0;
+            const pageIndex = parseInt(req.body?.pageIndex, 10);
+            const blockId = String(req.body?.blockId || '').slice(0, 80);
+            const unitId = parseInt(req.body?.unitId, 10) || 0;
+            let key = '';
+            if (kind === 'page') key = `page:${courseId}:${Number.isNaN(pageIndex) ? 0 : pageIndex}`;
+            else if (kind === 'matching') key = `matching:${courseId}:${blockId}`;
+            else if (kind === 'step_reveal') key = `step:${courseId}:${blockId}`;
+            else if (kind === 'unit') key = `unit:${unitId}`;
+            else if (kind === 'master') key = `master:${courseId}`;
+            else if (kind === 'checkin') key = `checkin:${todayUTC()}`;
+            else return apiResponse(res, 400, 'Invalid kind');
+            const extras = {
+                unitComplete: kind === 'unit' || kind === 'master',
+                unitTitle: String(req.body?.unitTitle || '')
+            };
+            const result = await awardEvent(userId, key, amounts.xp, amounts.gems, extras);
+            return apiResponse(res, 200, 'OK', result);
+        },
+
+        async getBossState(req, res) {
+            const userId = req.user.id;
+            const courseId = parseInt(req.params.courseId, 10);
+            if (!courseId) return apiResponse(res, 400, 'courseId required');
+            let rows = [];
+            try {
+                rows = await query(
+                    'SELECT hearts, unlocked_json FROM user_boss_state WHERE user_id = ? AND course_id = ? LIMIT 1',
+                    [userId, courseId]
+                );
+            } catch (_) {
+                rows = [];
+            }
+            if (!rows.length) {
+                return apiResponse(res, 200, 'OK', {
+                    hearts: 3,
+                    unlocked: { easy: true, medium: false, hard: false }
+                });
+            }
+            let unlocked = { easy: true, medium: false, hard: false };
+            try {
+                unlocked = Object.assign(unlocked, JSON.parse(rows[0].unlocked_json || '{}'));
+            } catch (_) { /* keep defaults */ }
+            return apiResponse(res, 200, 'OK', { hearts: rows[0].hearts, unlocked });
+        },
+
+        async saveBossState(req, res) {
+            const userId = req.user.id;
+            const courseId = parseInt(req.params.courseId, 10);
+            if (!courseId) return apiResponse(res, 400, 'courseId required');
+            const hearts = Math.max(0, Math.min(3, parseInt(req.body?.hearts, 10)));
+            const unlocked = JSON.stringify(req.body?.unlocked || {});
+            await query(
+                `INSERT INTO user_boss_state (user_id, course_id, hearts, unlocked_json)
+                 VALUES (?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE hearts = VALUES(hearts), unlocked_json = VALUES(unlocked_json)`,
+                [userId, courseId, Number.isNaN(hearts) ? 3 : hearts, unlocked]
+            );
+            return apiResponse(res, 200, 'Saved');
         },
 
         async storeCatalog(req, res) {
@@ -431,4 +724,4 @@ function createLearnerGamificationHandlers({ query, apiResponse, sendEmail }) {
     };
 }
 
-module.exports = { createLearnerGamificationHandlers, STORE_SEED, streakMultiplier };
+module.exports = { createLearnerGamificationHandlers, STORE_SEED, streakMultiplier, xpLevel, BADGE_CATALOG };

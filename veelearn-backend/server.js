@@ -431,6 +431,55 @@ const initializeDatabase = async () => {
         `);
         info('✓ Learner store/inventory/feedback tables ready');
 
+        await addColumn('users', 'xp', 'INT DEFAULT 0');
+        await addColumn('users', 'lifetime_gems', 'INT DEFAULT 0');
+        await addColumn('users', 'current_correct_streak', 'INT DEFAULT 0');
+        await addColumn('users', 'best_correct_streak', 'INT DEFAULT 0');
+        await addColumn('courses', 'gamification_json', 'TEXT NULL');
+        await addColumn('course_questions', 'difficulty', 'VARCHAR(16) NULL');
+        info('✓ XP / difficulty / gamification columns ready');
+
+        await query(`
+            CREATE TABLE IF NOT EXISTS user_xp_events (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                event_key VARCHAR(191) NOT NULL,
+                xp INT DEFAULT 0,
+                gems INT DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY uniq_user_event (user_id, event_key),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                INDEX idx_xp_user (user_id)
+            )
+        `);
+        await query(`
+            CREATE TABLE IF NOT EXISTS user_badges (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                badge_id VARCHAR(64) NOT NULL,
+                earned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY uniq_user_badge (user_id, badge_id),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        `);
+        await query(`
+            CREATE TABLE IF NOT EXISTS user_boss_state (
+                user_id INT NOT NULL,
+                course_id INT NOT NULL,
+                hearts INT DEFAULT 3,
+                unlocked_json TEXT NULL,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (user_id, course_id),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        `);
+        info('✓ XP events / badges / boss state tables ready');
+        try {
+            await query(`UPDATE users SET lifetime_gems = gems WHERE COALESCE(lifetime_gems, 0) = 0 AND COALESCE(gems, 0) > 0`);
+        } catch (e) {
+            console.error('[WARN] lifetime_gems backfill:', e.message);
+        }
+
         // ===== COURSE NESTING SYSTEM MIGRATIONS =====
         
         // Migration: Add course_type column to courses table
@@ -3263,7 +3312,7 @@ app.put('/api/superadmin/users/:id/role', authenticateToken, authorize('superadm
 
 // ===== COURSE ROUTES =====
 app.post('/api/courses', authenticateToken, writeLimiter, (req, res) => {
-    const { title, description, content, blocks, status, creation_time, grade_level, video_url, course_type } = req.body;
+    const { title, description, content, blocks, status, creation_time, grade_level, video_url, course_type, gamification_json } = req.body;
     const creator_id = req.user.id;
 
     debug('📝 CREATE COURSE DEBUG:');
@@ -3301,8 +3350,8 @@ app.post('/api/courses', authenticateToken, writeLimiter, (req, res) => {
     debug('  Database:', dbConfig.database);
     debug('  Host:', dbConfig.host);
 
-    const insertCourseQuery = 'INSERT INTO courses (title, description, content, blocks, creator_id, status, creation_time, grade_level, video_url, course_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
-    db.query(insertCourseQuery, [title, description || '', content || '', blocksJson, creator_id, courseStatus, creationTime, gradeLevelValue, video_url || null, course_type || 'single'], (err, result) => {
+    const insertCourseQuery = 'INSERT INTO courses (title, description, content, blocks, creator_id, status, creation_time, grade_level, video_url, course_type, gamification_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+    db.query(insertCourseQuery, [title, description || '', content || '', blocksJson, creator_id, courseStatus, creationTime, gradeLevelValue, video_url || null, course_type || 'single', gamification_json ? (typeof gamification_json === 'string' ? gamification_json : JSON.stringify(gamification_json)) : null], (err, result) => {
         if (err) {
             console.error('❌ Error creating course:', err);
             return apiResponse(res, 500, 'Server error creating course', { details: err.message });
@@ -3792,10 +3841,16 @@ app.post('/api/courses/units/:unitId/complete', authenticateToken, (req, res) =>
                 FROM course_enrollment_progress
                 WHERE user_id = ? AND course_id = ?
             `, [userId, unit.parent_course_id], (err, countResults) => {
-                if (err) return;
+                if (err) {
+                    return apiResponse(res, 200, 'Unit completed successfully', {
+                        unit_complete: true,
+                        all_units_complete: false
+                    });
+                }
 
                 const { total, completed } = countResults[0];
-                if (total > 0 && completed >= total) {
+                const allDone = total > 0 && completed >= total;
+                if (allDone) {
                     db.query(`
                         INSERT INTO course_views (user_id, course_id, completed)
                         VALUES (?, ?, TRUE)
@@ -3803,9 +3858,24 @@ app.post('/api/courses/units/:unitId/complete', authenticateToken, (req, res) =>
                     `, [userId, unit.parent_course_id], () => {});
                 }
 
-                apiResponse(res, 200, 'Unit completed successfully', {
-                    unit_complete: true,
-                    all_units_complete: total > 0 && completed >= total
+                db.query('SELECT title FROM courses WHERE id = ?', [unit.child_course_id], async (tErr, tRows) => {
+                    let awards = {};
+                    try {
+                        awards = await learnerGamification.awardForUnit(
+                            userId,
+                            unitId,
+                            tRows && tRows[0] ? tRows[0].title : '',
+                            allDone,
+                            unit.parent_course_id
+                        );
+                    } catch (e) {
+                        console.error('Unit XP award failed:', e.message);
+                    }
+                    apiResponse(res, 200, 'Unit completed successfully', {
+                        unit_complete: true,
+                        all_units_complete: allDone,
+                        ...awards
+                    });
                 });
             });
         }
@@ -4035,7 +4105,7 @@ app.get('/api/courses/:id', authenticateToken, (req, res) => {
     debug('  Database:', dbConfig.database);
 
     const query = `
-        SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time, grade_level, video_url, course_type
+        SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time, grade_level, video_url, course_type, gamification_json
         FROM courses
         WHERE id = ?
     `;
@@ -4053,13 +4123,32 @@ app.get('/api/courses/:id', authenticateToken, (req, res) => {
 
         const course = results[0];
 
-        if (userRole === 'superadmin' || userRole === 'admin' || parseInt(course.creator_id) === parseInt(userId)) {
-            return apiResponse(res, 200, 'Course fetched successfully', course);
-        } else if (course.status === 'approved') {
-            return apiResponse(res, 200, 'Course fetched successfully', course);
-        } else {
+        const sendCourse = (payload) => {
+            if (userRole === 'superadmin' || userRole === 'admin' || parseInt(payload.creator_id) === parseInt(userId)) {
+                return apiResponse(res, 200, 'Course fetched successfully', payload);
+            } else if (payload.status === 'approved') {
+                return apiResponse(res, 200, 'Course fetched successfully', payload);
+            }
             return apiResponse(res, 403, 'Access denied. You do not have permission to view this course');
-        }
+        };
+
+        db.query('SELECT COUNT(*) as c FROM course_questions WHERE course_id = ?', [courseId], (qErr, qRows) => {
+            const count = (!qErr && qRows && qRows[0]) ? qRows[0].c : 0;
+            let settings = {};
+            try {
+                settings = course.gamification_json ? JSON.parse(course.gamification_json) : {};
+            } catch (_) {
+                settings = {};
+            }
+            if (!course.gamification_json && count >= 50) {
+                settings.bossBattle = true;
+                settings.hearts = true;
+                settings.inferred = true;
+            }
+            course.gamification = settings;
+            course.question_count = count;
+            sendCourse(course);
+        });
     });
 });
 
@@ -4067,7 +4156,7 @@ app.get('/api/courses/:id', authenticateToken, (req, res) => {
 app.put('/api/courses/:id', authenticateToken, writeLimiter, (req, res) => {
     const courseId = req.params.id;
     const userId = req.user.id;
-    const { title, description, content, blocks, status, creation_time, grade_level, video_url, course_type } = req.body;
+    const { title, description, content, blocks, status, creation_time, grade_level, video_url, course_type, gamification_json } = req.body;
 
     debug('📝 UPDATE COURSE DEBUG:');
     debug('  Course ID:', courseId);
@@ -4152,6 +4241,14 @@ app.put('/api/courses/:id', authenticateToken, writeLimiter, (req, res) => {
         if (course_type !== undefined) {
             updateQuery += ', course_type = ?';
             params.push(course_type);
+        }
+
+        if (gamification_json !== undefined) {
+            const gVal = gamification_json
+                ? (typeof gamification_json === 'string' ? gamification_json : JSON.stringify(gamification_json))
+                : null;
+            updateQuery += ', gamification_json = ?';
+            params.push(gVal);
         }
 
         updateQuery += ' WHERE id = ?';
@@ -4372,7 +4469,7 @@ app.get('/api/users/:userId/courses', authenticateToken, (req, res) => {
         return apiResponse(res, 403, 'Access denied. You can only view your own courses');
     }
 
-    const query = 'SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time, created_at, grade_level, video_url, course_type FROM courses WHERE creator_id = ? ORDER BY COALESCE(created_at, creation_time) DESC';
+    const query = 'SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time, created_at, grade_level, video_url, course_type, gamification_json FROM courses WHERE creator_id = ? ORDER BY COALESCE(created_at, creation_time) DESC';
     db.query(query, [userId], (err, results) => {
         if (err) {
             // Fallback if created_at / course_type columns missing on older DBs
@@ -4404,7 +4501,7 @@ app.get('/api/users/:userId/courses', authenticateToken, (req, res) => {
 app.get('/api/my-courses', authenticateToken, (req, res) => {
     const userId = req.user.id;
     const query =
-        'SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time, created_at, grade_level, video_url, course_type FROM courses WHERE creator_id = ? ORDER BY COALESCE(created_at, creation_time) DESC';
+        'SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time, created_at, grade_level, video_url, course_type, gamification_json FROM courses WHERE creator_id = ? ORDER BY COALESCE(created_at, creation_time) DESC';
     db.query(query, [userId], (err, results) => {
         if (err) {
             if (/Unknown column/i.test(String(err.message || err))) {
@@ -6207,7 +6304,7 @@ app.get('/api/simulators/:id/versions/:versionNumber', (req, res) => {
 app.post('/api/courses/:courseId/questions', authenticateToken, (req, res) => {
     const courseId = req.params.courseId;
     const userId = req.user.id;
-    const { question_text, question_type, options, correct_answer, explanation, points, order_index } = req.body;
+    const { question_text, question_type, options, correct_answer, explanation, points, order_index, difficulty } = req.body;
 
     // Verify user owns the course
     db.query('SELECT creator_id FROM courses WHERE id = ?', [courseId], (err, results) => {
@@ -6225,14 +6322,15 @@ app.post('/api/courses/:courseId/questions', authenticateToken, (req, res) => {
         // Insert question
         const insertQuery = `
             INSERT INTO course_questions 
-            (course_id, question_text, question_type, options, correct_answer, explanation, points, order_index)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            (course_id, question_text, question_type, options, correct_answer, explanation, points, order_index, difficulty)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
         const optionsJson = options ? JSON.stringify(options) : null;
+        const diffVal = ['easy', 'medium', 'hard', 'stretch'].includes(difficulty) ? difficulty : null;
 
         db.query(insertQuery, [
             courseId, question_text, question_type || 'multiple_choice',
-            optionsJson, correct_answer, explanation, points || 1, order_index || 0
+            optionsJson, correct_answer, explanation, points || 1, order_index || 0, diffVal
         ], (err, result) => {
             if (err) {
                 console.error('Error creating question:', err);
@@ -6250,20 +6348,38 @@ app.get('/api/courses/:courseId/questions', authenticateToken, (req, res) => {
 
     const query = `
         SELECT id, course_id, question_text, question_type, options, correct_answer, 
-               explanation, points, order_index, created_at
+               explanation, points, order_index, difficulty, created_at
         FROM course_questions
         WHERE course_id = ?
         ORDER BY order_index ASC, created_at ASC
     `;
 
     db.query(query, [courseId], (err, results) => {
+        if (err && /Unknown column 'difficulty'/i.test(err.message || '')) {
+            const fallback = `
+                SELECT id, course_id, question_text, question_type, options, correct_answer, 
+                       explanation, points, order_index, created_at
+                FROM course_questions
+                WHERE course_id = ?
+                ORDER BY order_index ASC, created_at ASC
+            `;
+            return db.query(fallback, [courseId], (err2, results2) => {
+                if (err2) {
+                    console.error('Error fetching questions:', err2);
+                    return apiResponse(res, 500, 'Server error fetching questions');
+                }
+                sendQuestions(results2);
+            });
+        }
         if (err) {
             console.error('Error fetching questions:', err);
             return apiResponse(res, 500, 'Server error fetching questions');
         }
+        sendQuestions(results);
+    });
 
-        // Parse options JSON
-        const questions = results.map(q => {
+    function sendQuestions(results) {
+        const questions = (results || []).map(q => {
             if (q.options && typeof q.options === 'string') {
                 try {
                     q.options = JSON.parse(q.options);
@@ -6273,16 +6389,33 @@ app.get('/api/courses/:courseId/questions', authenticateToken, (req, res) => {
             }
             return q;
         });
+        const n = questions.length;
+        if (n >= 50) {
+            questions.forEach((q, i) => {
+                if (n >= 80 && i < 30) {
+                    q.concept_drill = true;
+                    if (!q.difficulty) q.difficulty = 'easy';
+                    return;
+                }
+                q.finale = true;
+                if (q.difficulty) return;
+                const fi = n >= 80 ? i - 30 : i;
+                if (fi < 15) q.difficulty = 'easy';
+                else if (fi < 30) q.difficulty = 'medium';
+                else if (fi < 40) q.difficulty = 'hard';
+                else q.difficulty = 'stretch';
+            });
+        }
 
         apiResponse(res, 200, 'Questions fetched successfully', questions);
-    });
+    }
 });
 
 // Update quiz question
 app.put('/api/courses/:courseId/questions/:questionId', authenticateToken, (req, res) => {
     const { courseId, questionId } = req.params;
     const userId = req.user.id;
-    const { question_text, question_type, options, correct_answer, explanation, points, order_index } = req.body;
+    const { question_text, question_type, options, correct_answer, explanation, points, order_index, difficulty } = req.body;
 
     // Verify user owns the course
     db.query('SELECT creator_id FROM courses WHERE id = ?', [courseId], (err, results) => {
@@ -6300,14 +6433,15 @@ app.put('/api/courses/:courseId/questions/:questionId', authenticateToken, (req,
         const updateQuery = `
             UPDATE course_questions
             SET question_text = ?, question_type = ?, options = ?, correct_answer = ?, 
-                explanation = ?, points = ?, order_index = ?
+                explanation = ?, points = ?, order_index = ?, difficulty = ?
             WHERE id = ? AND course_id = ?
         `;
         const optionsJson = options ? JSON.stringify(options) : null;
+        const diffVal = ['easy', 'medium', 'hard', 'stretch'].includes(difficulty) ? difficulty : (difficulty || null);
 
         db.query(updateQuery, [
             question_text, question_type, optionsJson, correct_answer,
-            explanation, points, order_index, questionId, courseId
+            explanation, points, order_index, diffVal, questionId, courseId
         ], (err, result) => {
             if (err) {
                 console.error('Error updating question:', err);
@@ -6359,7 +6493,7 @@ app.post('/api/courses/:courseId/questions/:questionId/answer', authenticateToke
     const { user_answer } = req.body;
 
     // Get the question to check correct answer
-    db.query('SELECT question_type, correct_answer, explanation FROM course_questions WHERE id = ?', [questionId], (err, results) => {
+    db.query('SELECT question_type, correct_answer, explanation, difficulty FROM course_questions WHERE id = ?', [questionId], (err, results) => {
         if (err) {
             console.error('Error fetching question:', err);
             return apiResponse(res, 500, 'Server error');
@@ -6402,16 +6536,35 @@ app.post('/api/courses/:courseId/questions/:questionId/answer', authenticateToke
             attempted_at = CURRENT_TIMESTAMP
         `;
 
-        db.query(insertQuery, [userId, questionId, user_answer, isCorrect], (err, result) => {
+        db.query(insertQuery, [userId, questionId, user_answer, isCorrect], async (err, result) => {
             if (err) {
                 console.error('Error recording answer:', err);
                 return apiResponse(res, 500, 'Server error recording answer');
             }
 
+            let rewards = { xpAwarded: 0, gemsAwarded: 0, newBadges: [] };
+            try {
+                rewards = await learnerGamification.applyQuizReward(
+                    userId,
+                    questionId,
+                    isCorrect,
+                    question.difficulty
+                );
+            } catch (e) {
+                console.error('Quiz XP award failed:', e.message);
+            }
+
             apiResponse(res, 200, 'Answer submitted successfully', {
                 is_correct: isCorrect,
                 correct_answer: question.correct_answer,
-                explanation: question.explanation
+                explanation: question.explanation,
+                difficulty: question.difficulty || null,
+                xpAwarded: rewards.xpAwarded || 0,
+                gemsAwarded: rewards.gemsAwarded || 0,
+                xp: rewards.xp,
+                gems: rewards.gems,
+                level: rewards.level,
+                newBadges: rewards.newBadges || []
             });
         });
     });
@@ -7455,6 +7608,24 @@ app.post('/api/learner/reward-quiz', authenticateToken, writeLimiter, (req, res)
     learnerGamification.rewardQuiz(req, res).catch((e) => {
         console.error('learner reward-quiz:', e);
         return apiResponse(res, 500, 'Reward failed');
+    });
+});
+app.post('/api/learner/award-xp', authenticateToken, writeLimiter, (req, res) => {
+    learnerGamification.awardXp(req, res).catch((e) => {
+        console.error('learner award-xp:', e);
+        return apiResponse(res, 500, 'Award failed');
+    });
+});
+app.get('/api/learner/boss-state/:courseId', authenticateToken, (req, res) => {
+    learnerGamification.getBossState(req, res).catch((e) => {
+        console.error('learner boss-state:', e);
+        return apiResponse(res, 500, 'Failed to load boss state');
+    });
+});
+app.post('/api/learner/boss-state/:courseId', authenticateToken, writeLimiter, (req, res) => {
+    learnerGamification.saveBossState(req, res).catch((e) => {
+        console.error('learner save boss-state:', e);
+        return apiResponse(res, 500, 'Failed to save boss state');
     });
 });
 app.get('/api/learner/store', authenticateToken, (req, res) => {

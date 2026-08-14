@@ -60,11 +60,22 @@ def think_box(_title: str, body: str) -> str:
 
 
 def watch_out(title: str, body: str) -> str:
-    return callout("Common mistake", title, _as_html(body), "#fffbeb", "#fcd34d")
+    body_html = _as_html(body)
+    return (
+        '<div class="vl-callout vl-callout-trap" data-vl-kind="trap">'
+        '<div class="vl-callout-icon">⚠️</div>'
+        f'<div class="vl-callout-body"><h4>Common mistake: {title}</h4>{body_html}</div>'
+        "</div>"
+    )
 
 
-def strategy_tip(_title: str, _body: str) -> str:
-    return ""
+def strategy_tip(title: str, body: str) -> str:
+    return (
+        '<div class="vl-callout vl-callout-strategy" data-vl-kind="strategy">'
+        '<div class="vl-callout-icon">💡</div>'
+        f'<div class="vl-callout-body"><h4>Test strategy: {title}</h4>{_as_html(body)}</div>'
+        "</div>"
+    )
 
 
 def check_yourself(_items) -> str:
@@ -139,6 +150,8 @@ def concept_block(
     ]
     if watch:
         parts.append(watch_out(watch[0], watch[1]))
+    if tip:
+        parts.append(strategy_tip(tip[0], tip[1]))
     parts.append(mini_practice_heading(title))
     parts.append(slots_range(quiz_start, 5))
     return "\n".join(part for part in parts if part)

@@ -1031,6 +1031,12 @@
                     await skillAddMarketplaceSim(payload);
                     await appendBubble('system', 'Added marketplace simulation.');
                     await unitDelay();
+                } else if (type === 'add_callout' || type === 'add_matching' || type === 'add_step_reveal' || type === 'add_graph') {
+                    if (window.CourseInteractiveBlocks?.insertAtPlacement) {
+                        const kindMap = { add_callout: 'vl-callout', add_matching: 'vl-matching', add_step_reveal: 'vl-steps', add_graph: 'vl-graph' };
+                        window.CourseInteractiveBlocks.insertAtPlacement(kindMap[type], payload);
+                    }
+                    await unitDelay();
                 } else if (type === 'suggest_sims') renderSimSuggestions(payload);
                 else if (type === 'validate_report') renderValidateFindings(payload.findings || []);
             } catch (err) {

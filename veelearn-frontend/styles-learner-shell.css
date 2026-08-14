@@ -292,9 +292,31 @@ body.learner-shell-active #learner-shell {
   font-size: 0.9rem;
 }
 
-.ls-gems-pill img {
-  width: 22px;
-  height: 22px;
+.ls-xp-block {
+  margin: 4px 8px 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--ls-accent-soft);
+  color: var(--ls-text);
+}
+.ls-xp-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+.ls-xp-track {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.12);
+  overflow: hidden;
+}
+.ls-xp-fill {
+  height: 100%;
+  width: 0%;
+  background: #6366f1;
+  transition: width 0.35s ease;
 }
 
 .ls-profile {
@@ -1005,7 +1027,9 @@ body.learner-shell-active #learner-shell {
   100% { transform: translate(var(--dx), var(--dy)) scale(1.2); opacity: 0; }
 }
 
-.ls-gem-toast {
+.ls-enroll-prog { margin-top: 6px; font-size: 0.75rem; color: var(--ls-muted, #64748b); }
+.ls-enroll-track { height: 6px; border-radius: 999px; background: rgba(0,0,0,0.1); overflow: hidden; margin-top: 4px; }
+.ls-enroll-fill { height: 100%; background: #6366f1; }
   position: fixed;
   top: 24px;
   left: 50%;

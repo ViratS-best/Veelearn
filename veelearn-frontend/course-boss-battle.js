@@ -1,0 +1,257 @@
+/**
+ * Boss Battle + Hearts for unit finales.
+ * Concept drills stay open; finale questions are stage-gated.
+ */
+(function () {
+  const STAGE_NEED = { easy: 10, medium: 8 };
+  let state = {
+    courseId: null,
+    hearts: 3,
+    heartsEnabled: false,
+    bossEnabled: false,
+    unlocked: { easy: true, medium: false, hard: false },
+    questions: []
+  };
+
+  function apiBase() {
+    return typeof window.API_BASE_URL === 'string' ? window.API_BASE_URL : '';
+  }
+
+  function token() {
+    return localStorage.getItem('token') || (typeof window.authToken === 'string' ? window.authToken : '');
+  }
+
+  async function api(path, opts) {
+    const res = await fetch(`${apiBase()}${path}`, {
+      credentials: 'include',
+      headers: Object.assign(
+        { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
+        (opts && opts.headers) || {}
+      ),
+      ...opts
+    });
+    return res.json().catch(() => ({}));
+  }
+
+  function parseSettings(course, questionCount) {
+    let settings = {};
+    const raw = course && (course.gamification || course.gamification_json);
+    if (raw) {
+      try {
+        settings = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      } catch (_) {
+        settings = {};
+      }
+    }
+    if ((raw == null || raw === '') && questionCount >= 50) {
+      settings.bossBattle = settings.bossBattle !== false;
+      settings.hearts = settings.hearts !== false;
+      settings.inferred = true;
+    }
+    return settings;
+  }
+
+  function isFinale(q) {
+    return q && q.finale !== false && q.concept_drill !== true && q._conceptDrill !== true;
+  }
+
+  function difficultyOf(q) {
+    return (q && q.difficulty) || 'easy';
+  }
+
+  function countCorrect(diff) {
+    const qs = (window.courseQuestions || state.questions || []).filter(
+      (q) => isFinale(q) && difficultyOf(q) === diff
+    );
+    return qs.filter((q) => q._answeredCorrect).length;
+  }
+
+  function recomputeUnlocks() {
+    const easyOk = countCorrect('easy') >= STAGE_NEED.easy;
+    const medOk = countCorrect('medium') >= STAGE_NEED.medium;
+    state.unlocked.medium = easyOk;
+    state.unlocked.hard = easyOk && medOk;
+  }
+
+  function stageAllowed(diff) {
+    if (!state.bossEnabled) return true;
+    if (diff === 'easy') return true;
+    if (diff === 'medium') return state.unlocked.medium;
+    return state.unlocked.hard;
+  }
+
+  function ensureHud() {
+    let hud = document.getElementById('vl-boss-hud');
+    if (hud) return hud;
+    const viewer = document.getElementById('course-viewer-section');
+    const header = viewer && viewer.querySelector('.viewer-header');
+    hud = document.createElement('div');
+    hud.id = 'vl-boss-hud';
+    hud.className = 'vl-boss-hud';
+    if (header) header.appendChild(hud);
+    else if (viewer) viewer.prepend(hud);
+    return hud;
+  }
+
+  function renderHud() {
+    if (!state.bossEnabled && !state.heartsEnabled) {
+      const el = document.getElementById('vl-boss-hud');
+      if (el) el.hidden = true;
+      return;
+    }
+    const hud = ensureHud();
+    hud.hidden = false;
+    const hearts = state.heartsEnabled
+      ? `<span class="vl-hearts" aria-label="${state.hearts} hearts">${'❤'.repeat(Math.max(0, state.hearts))}${'♡'.repeat(Math.max(0, 3 - state.hearts))}</span>`
+      : '';
+    let stageLabel = 'Warm-up';
+    if (state.unlocked.hard) stageLabel = 'Final Boss — Hard + Stretch';
+    else if (state.unlocked.medium) stageLabel = 'Stage 2 — Medium';
+    else if (state.bossEnabled) stageLabel = 'Stage 1 — Easy (solve 10 to unlock)';
+    hud.innerHTML = `${hearts}<span class="vl-boss-stage">${stageLabel}</span>
+      <span class="vl-boss-progress">Easy ${countCorrect('easy')}/${STAGE_NEED.easy} · Medium ${countCorrect('medium')}/${STAGE_NEED.medium}</span>`;
+  }
+
+  function applyGates(root) {
+    const host =
+      root ||
+      document.getElementById('course-content-display') ||
+      document.getElementById('course-viewer-content');
+    if (!host || !state.bossEnabled) return;
+    recomputeUnlocks();
+    host.querySelectorAll('.quiz-question[data-question-id], .quiz-question-placeholder[data-question-id]').forEach(
+      (el) => {
+        const id = parseInt(el.dataset.questionId, 10);
+        const q = (window.courseQuestions || []).find((x) => Number(x.id) === id);
+        if (!q || !isFinale(q)) return;
+        const diff = difficultyOf(q);
+        const allowed = stageAllowed(diff);
+        el.classList.toggle('vl-boss-locked', !allowed);
+        let lock = el.querySelector('.vl-boss-lock-msg');
+        if (!allowed) {
+          if (!lock) {
+            lock = document.createElement('div');
+            lock.className = 'vl-boss-lock-msg';
+            el.appendChild(lock);
+          }
+          lock.textContent =
+            diff === 'medium'
+              ? 'Locked — solve 10 Easy finale problems to unlock Stage 2.'
+              : 'Locked — defeat Stage 2 (8 Medium) to face the Final Boss.';
+          el.querySelectorAll('input, button.quiz-submit-btn').forEach((n) => {
+            n.disabled = true;
+          });
+        } else if (lock) {
+          lock.remove();
+        }
+        let badge = el.querySelector('.vl-diff-badge');
+        if (!badge) {
+          badge = document.createElement('span');
+          badge.className = 'vl-diff-badge';
+          const header = el.querySelector('.quiz-question-header') || el;
+          header.appendChild(badge);
+        }
+        badge.dataset.diff = diff;
+        badge.textContent = diff === 'stretch' ? 'SAT / Honors Stretch' : diff;
+      }
+    );
+    renderHud();
+  }
+
+  async function persist() {
+    if (!state.courseId) return;
+    try {
+      await api(`/api/learner/boss-state/${state.courseId}`, {
+        method: 'POST',
+        body: JSON.stringify({
+          hearts: state.hearts,
+          unlocked: state.unlocked
+        })
+      });
+    } catch (_) {
+      /* ignore */
+    }
+  }
+
+  async function init(course, questions) {
+    const qs = questions || window.courseQuestions || [];
+    const settings = parseSettings(course, qs.length);
+    state.courseId = course && (course.id || course.child_course_id);
+    state.questions = qs;
+    state.bossEnabled = !!settings.bossBattle;
+    state.heartsEnabled = !!settings.hearts;
+    state.hearts = 3;
+    state.unlocked = { easy: true, medium: false, hard: false };
+
+    if (state.courseId && (state.bossEnabled || state.heartsEnabled)) {
+      try {
+        const data = await api(`/api/learner/boss-state/${state.courseId}`);
+        if (data.success && data.data) {
+          if (typeof data.data.hearts === 'number') state.hearts = data.data.hearts;
+          if (data.data.unlocked) state.unlocked = Object.assign(state.unlocked, data.data.unlocked);
+        }
+      } catch (_) {
+        /* ignore */
+      }
+    }
+
+    qs.forEach((q) => {
+      if (q.already_correct || q._answeredCorrect) q._answeredCorrect = true;
+    });
+    recomputeUnlocks();
+    applyGates();
+    renderHud();
+  }
+
+  function showHint(explanation) {
+    const existing = document.getElementById('vl-heart-hint');
+    if (existing) existing.remove();
+    const modal = document.createElement('div');
+    modal.id = 'vl-heart-hint';
+    modal.className = 'modal';
+    modal.style.display = 'block';
+    const teaser = String(explanation || 'Re-read the last example, then try a simpler number first.')
+      .slice(0, 240);
+    modal.innerHTML = `<div class="modal-content" style="max-width:480px;">
+      <h2>Out of hearts</h2>
+      <p>Take this hint, then continue with 1 heart restored.</p>
+      <p class="vl-hint-body">${teaser}${teaser.length >= 240 ? '…' : ''}</p>
+      <div class="modal-actions"><button type="button" id="vl-heart-ok">Got it — restore 1 HP</button></div>
+    </div>`;
+    document.body.appendChild(modal);
+    modal.querySelector('#vl-heart-ok').addEventListener('click', () => {
+      state.hearts = 1;
+      modal.remove();
+      renderHud();
+      persist();
+    });
+  }
+
+  function onAnswer(questionId, isCorrect, extra) {
+    const q = (window.courseQuestions || []).find((x) => Number(x.id) === Number(questionId));
+    if (isCorrect && q) q._answeredCorrect = true;
+
+    if (!isCorrect && state.heartsEnabled) {
+      state.hearts = Math.max(0, state.hearts - 1);
+      if (state.hearts <= 0) {
+        showHint((extra && extra.explanation) || (q && q.explanation));
+      }
+    }
+
+    recomputeUnlocks();
+    applyGates();
+    persist();
+
+    if (isCorrect && extra && extra.xpAwarded) {
+      /* toast handled by LearnerGamification */
+    }
+  }
+
+  window.CourseBossBattle = {
+    init,
+    applyGates,
+    onAnswer,
+    parseSettings,
+    getState: () => state
+  };
+})();
