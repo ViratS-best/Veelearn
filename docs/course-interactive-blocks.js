@@ -576,14 +576,16 @@
   }
 
   async function hydrateGraph(el) {
-    if (el.dataset.vlHydrated === '1') return;
-    el.dataset.vlHydrated = '1';
+    if (el.querySelector('.vl-graph-sliders')) return;
     const spec = decodeData(el.dataset.vlGraph) || {};
-    const mount = document.createElement('div');
-    mount.className = 'vl-graph-host';
+    const isUrl = spec.mode === 'url' && spec.url && isSafeGraphUrl(spec.url);
     el.innerHTML = '';
-    el.appendChild(mount);
-    if (spec.mode === 'url' && spec.url && isSafeGraphUrl(spec.url)) {
+    el.dataset.vlHydrated = '1';
+
+    if (isUrl) {
+      const mount = document.createElement('div');
+      mount.className = 'vl-graph-host';
+      el.appendChild(mount);
       const iframe = document.createElement('iframe');
       iframe.src = toEmbedUrl(spec.url);
       iframe.title = 'Interactive graph';
@@ -592,6 +594,50 @@
       mount.appendChild(iframe);
       return;
     }
+
+    const state = Object.assign({ a: 1, h: 0, k: 0 }, spec.state || {});
+    const sliderPanel = document.createElement('div');
+    sliderPanel.className = 'vl-graph-sliders';
+    const eq = document.createElement('p');
+    eq.style.cssText = 'margin:0 0 8px;font-weight:800;';
+    eq.textContent = 'y = a(x − h)² + k';
+    sliderPanel.appendChild(eq);
+    const defs = [
+      { key: 'a', label: 'a (stretch / flip)', min: -5, max: 5, step: 0.1 },
+      { key: 'h', label: 'h (left / right)', min: -10, max: 10, step: 0.5 },
+      { key: 'k', label: 'k (up / down)', min: -10, max: 10, step: 0.5 }
+    ];
+    let graphRuntime = null;
+    defs.forEach((d) => {
+      const row = document.createElement('div');
+      row.className = 'vl-graph-slider-row';
+      const label = document.createElement('label');
+      label.textContent = d.label;
+      const input = document.createElement('input');
+      input.type = 'range';
+      input.min = String(d.min);
+      input.max = String(d.max);
+      input.step = String(d.step);
+      input.value = String(state[d.key]);
+      const val = document.createElement('span');
+      val.className = 'vl-graph-slider-val';
+      val.textContent = String(state[d.key]);
+      input.addEventListener('input', () => {
+        state[d.key] = Number(input.value);
+        val.textContent = String(state[d.key]);
+        if (graphRuntime && typeof graphRuntime.update === 'function') graphRuntime.update();
+      });
+      row.appendChild(label);
+      row.appendChild(input);
+      row.appendChild(val);
+      sliderPanel.appendChild(row);
+    });
+    el.appendChild(sliderPanel);
+
+    const mount = document.createElement('div');
+    mount.className = 'vl-graph-host';
+    el.appendChild(mount);
+
     try {
       if (typeof window.__veelearnLoadHeavy === 'function') {
         await window.__veelearnLoadHeavy('widgets');
@@ -601,23 +647,17 @@
     }
     const eng = window.VeelearnWidgetEngine;
     if (eng && typeof eng.mountWidget === 'function') {
-      const exprs = spec.expressions || ['y=a(x-h)^2+k'];
-      const joined = exprs.join(' ');
-      const isQuad =
-        spec.mode === 'quadratic' || /a\s*\(\s*x\s*-\s*h\s*\)\s*\^\s*2/i.test(joined);
-      const quadInputs = [
-        { key: 'a', type: 'slider', label: 'a (stretch)', min: -5, max: 5, step: 0.1 },
-        { key: 'h', type: 'slider', label: 'h (left / right)', min: -10, max: 10, step: 0.5 },
-        { key: 'k', type: 'slider', label: 'k (up / down)', min: -10, max: 10, step: 0.5 }
-      ];
-      await eng.mountWidget(mount, {
-        title: isQuad ? 'y = a(x − h)² + k' : 'Dynamic graph',
-        state: Object.assign({ a: 1, h: 0, k: 0 }, spec.state || {}),
-        inputs: isQuad ? quadInputs : spec.inputs || [],
+      const exprs = spec.expressions && spec.expressions.length
+        ? spec.expressions
+        : ['y=a(x-h)^2+k'];
+      graphRuntime = await eng.mountWidget(mount, {
+        title: 'y = a(x − h)² + k',
+        state,
+        inputs: [],
         view: { width: 640, height: 380 },
         behavior: {
           preset: 'desmos_graph',
-          params: { expressions: exprs }
+          params: { expressions: exprs.filter((ex) => !/^\s*[ahk]\s*=/i.test(String(ex))) }
         }
       });
     } else {

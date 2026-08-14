@@ -497,15 +497,8 @@ section {
 
 /* ===== ACCESSIBILITY ===== */
 
-@media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-    }
-}
+/* Reduced motion used to force animation-duration: 0.01ms on every element,
+   which made loading, celebrations, and page transitions flash instantly. */
 
 /* Focus visible for keyboard navigation */
 :focus-visible {
