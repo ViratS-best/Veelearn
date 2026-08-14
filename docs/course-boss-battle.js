@@ -21,6 +21,14 @@
     return localStorage.getItem('token') || (typeof window.authToken === 'string' ? window.authToken : '');
   }
 
+  function escapeHtml(str) {
+    return String(str || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
   async function api(path, opts) {
     const res = await fetch(`${apiBase()}${path}`, {
       credentials: 'include',
@@ -33,7 +41,7 @@
     return res.json().catch(() => ({}));
   }
 
-  function parseSettings(course, questionCount) {
+  function parseSettings(course, questionCount, parentCourse) {
     let settings = {};
     const raw = course && (course.gamification || course.gamification_json);
     if (raw) {
@@ -41,6 +49,17 @@
         settings = typeof raw === 'string' ? JSON.parse(raw) : raw;
       } catch (_) {
         settings = {};
+      }
+    }
+    const parent = parentCourse || (typeof window.currentMasterCourse === 'object' ? window.currentMasterCourse : null);
+    const parentRaw = parent && parent !== course && (parent.gamification || parent.gamification_json);
+    if (parentRaw && !settings.hearts && !settings.bossBattle) {
+      try {
+        const p = typeof parentRaw === 'string' ? JSON.parse(parentRaw) : parentRaw;
+        if (p.hearts) settings.hearts = true;
+        if (p.bossBattle) settings.bossBattle = true;
+      } catch (_) {
+        /* ignore */
       }
     }
     if ((raw == null || raw === '') && questionCount >= 50) {
@@ -83,13 +102,19 @@
   function ensureHud() {
     let hud = document.getElementById('vl-boss-hud');
     if (hud) return hud;
-    const viewer = document.getElementById('course-viewer-section');
-    const header = viewer && viewer.querySelector('.viewer-header');
     hud = document.createElement('div');
     hud.id = 'vl-boss-hud';
     hud.className = 'vl-boss-hud';
-    if (header) header.appendChild(hud);
-    else if (viewer) viewer.prepend(hud);
+    const content =
+      document.getElementById('course-viewer-content') || document.querySelector('.viewer-content');
+    const viewer = document.getElementById('course-viewer-section');
+    if (content && content.parentNode) {
+      content.parentNode.insertBefore(hud, content);
+    } else if (viewer) {
+      viewer.prepend(hud);
+    } else {
+      document.body.appendChild(hud);
+    }
     return hud;
   }
 
@@ -102,14 +127,33 @@
     const hud = ensureHud();
     hud.hidden = false;
     const hearts = state.heartsEnabled
-      ? `<span class="vl-hearts" aria-label="${state.hearts} hearts">${'❤'.repeat(Math.max(0, state.hearts))}${'♡'.repeat(Math.max(0, 3 - state.hearts))}</span>`
+      ? `<span class="vl-hearts" aria-label="${state.hearts} hearts left">${'❤'.repeat(
+          Math.max(0, state.hearts)
+        )}${'♡'.repeat(Math.max(0, 3 - state.hearts))}</span>
+         <span class="vl-hearts-label">${state.hearts} HP</span>`
       : '';
-    let stageLabel = 'Warm-up';
-    if (state.unlocked.hard) stageLabel = 'Final Boss — Hard + Stretch';
-    else if (state.unlocked.medium) stageLabel = 'Stage 2 — Medium';
-    else if (state.bossEnabled) stageLabel = 'Stage 1 — Easy (solve 10 to unlock)';
-    hud.innerHTML = `${hearts}<span class="vl-boss-stage">${stageLabel}</span>
-      <span class="vl-boss-progress">Easy ${countCorrect('easy')}/${STAGE_NEED.easy} · Medium ${countCorrect('medium')}/${STAGE_NEED.medium}</span>`;
+    let stageLabel = '';
+    let progress = '';
+    if (state.bossEnabled) {
+      if (state.unlocked.hard) stageLabel = 'Final Boss — Hard + Stretch';
+      else if (state.unlocked.medium) stageLabel = 'Stage 2 — Medium';
+      else stageLabel = 'Stage 1 — Easy (solve 10 to unlock)';
+      progress = `<span class="vl-boss-progress">Easy ${countCorrect('easy')}/${STAGE_NEED.easy} · Medium ${countCorrect(
+        'medium'
+      )}/${STAGE_NEED.medium}</span>`;
+    } else if (state.heartsEnabled) {
+      stageLabel = 'Hearts mode — miss 3 times to get a hint';
+    }
+    hud.innerHTML = `${hearts}<span class="vl-boss-stage">${stageLabel}</span>${progress}`;
+  }
+
+  function flashHeartsToast(msg) {
+    document.querySelectorAll('.vl-heart-toast').forEach((el) => el.remove());
+    const toast = document.createElement('div');
+    toast.className = 'vl-heart-toast';
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2800);
   }
 
   function applyGates(root) {
@@ -117,7 +161,10 @@
       root ||
       document.getElementById('course-content-display') ||
       document.getElementById('course-viewer-content');
-    if (!host || !state.bossEnabled) return;
+    if (!host || !state.bossEnabled) {
+      renderHud();
+      return;
+    }
     recomputeUnlocks();
     host.querySelectorAll('.quiz-question[data-question-id], .quiz-question-placeholder[data-question-id]').forEach(
       (el) => {
@@ -173,21 +220,28 @@
     }
   }
 
-  async function init(course, questions) {
+  async function init(course, questions, extras) {
     const qs = questions || window.courseQuestions || [];
-    const settings = parseSettings(course, qs.length);
-    state.courseId = course && (course.id || course.child_course_id);
+    const parent = (extras && extras.parent) || null;
+    const settings = parseSettings(course, qs.length, parent);
+    const nextId = course && (course.id || course.child_course_id);
+    const sameCourse = state.courseId != null && String(state.courseId) === String(nextId);
+    const keepHearts = sameCourse ? state.hearts : 3;
+
+    state.courseId = nextId;
     state.questions = qs;
     state.bossEnabled = !!settings.bossBattle;
     state.heartsEnabled = !!settings.hearts;
-    state.hearts = 3;
-    state.unlocked = { easy: true, medium: false, hard: false };
+    state.hearts = keepHearts;
+    if (!sameCourse) {
+      state.unlocked = { easy: true, medium: false, hard: false };
+    }
 
     if (state.courseId && (state.bossEnabled || state.heartsEnabled)) {
       try {
         const data = await api(`/api/learner/boss-state/${state.courseId}`);
         if (data.success && data.data) {
-          if (typeof data.data.hearts === 'number') state.hearts = data.data.hearts;
+          if (!sameCourse && typeof data.data.hearts === 'number') state.hearts = data.data.hearts;
           if (data.data.unlocked) state.unlocked = Object.assign(state.unlocked, data.data.unlocked);
         }
       } catch (_) {
@@ -208,23 +262,27 @@
     if (existing) existing.remove();
     const modal = document.createElement('div');
     modal.id = 'vl-heart-hint';
-    modal.className = 'modal';
-    modal.style.display = 'block';
-    const teaser = String(explanation || 'Re-read the last example, then try a simpler number first.')
-      .slice(0, 240);
-    modal.innerHTML = `<div class="modal-content" style="max-width:480px;">
+    modal.className = 'vl-heart-hint-overlay';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    const teaser = String(explanation || 'Re-read the last example, then try a simpler number first.').slice(0, 240);
+    modal.innerHTML = `<div class="vl-heart-hint-card">
       <h2>Out of hearts</h2>
-      <p>Take this hint, then continue with 1 heart restored.</p>
-      <p class="vl-hint-body">${teaser}${teaser.length >= 240 ? '…' : ''}</p>
-      <div class="modal-actions"><button type="button" id="vl-heart-ok">Got it — restore 1 HP</button></div>
+      <p>You missed 3 questions. Here’s a hint — then continue with 1 heart restored.</p>
+      <p class="vl-hint-body">${escapeHtml(teaser)}${teaser.length >= 240 ? '…' : ''}</p>
+      <button type="button" id="vl-heart-ok" class="vl-heart-ok-btn">Got it — restore 1 HP</button>
     </div>`;
     document.body.appendChild(modal);
-    modal.querySelector('#vl-heart-ok').addEventListener('click', () => {
-      state.hearts = 1;
-      modal.remove();
-      renderHud();
-      persist();
-    });
+    const ok = modal.querySelector('#vl-heart-ok');
+    if (ok) {
+      ok.addEventListener('click', () => {
+        state.hearts = 1;
+        modal.remove();
+        renderHud();
+        persist();
+      });
+      ok.focus();
+    }
   }
 
   function onAnswer(questionId, isCorrect, extra) {
@@ -233,18 +291,17 @@
 
     if (!isCorrect && state.heartsEnabled) {
       state.hearts = Math.max(0, state.hearts - 1);
+      renderHud();
       if (state.hearts <= 0) {
         showHint((extra && extra.explanation) || (q && q.explanation));
+      } else {
+        flashHeartsToast(`${state.hearts} heart${state.hearts === 1 ? '' : 's'} left`);
       }
     }
 
     recomputeUnlocks();
     applyGates();
     persist();
-
-    if (isCorrect && extra && extra.xpAwarded) {
-      /* toast handled by LearnerGamification */
-    }
   }
 
   window.CourseBossBattle = {

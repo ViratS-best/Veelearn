@@ -1998,8 +1998,69 @@ select:focus {
   margin-top: 12px;
   flex-wrap: wrap;
 }
-.vl-hearts { letter-spacing: 2px; color: #ef4444; font-size: 1.2rem; }
+.vl-boss-hud {
+  position: sticky;
+  top: 8px;
+  z-index: 40;
+  background: #0f172a;
+  color: #fff;
+  padding: 12px 16px;
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.28);
+  margin: 0 0 16px;
+}
+.vl-hearts { letter-spacing: 3px; color: #f87171; font-size: 1.65rem; line-height: 1; }
+.vl-hearts-label { font-weight: 800; color: #fecaca; }
 .vl-boss-stage { font-weight: 800; }
+.vl-heart-toast {
+  position: fixed;
+  top: 18%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100050;
+  background: #7f1d1d;
+  color: #fff;
+  font-weight: 800;
+  padding: 12px 20px;
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  pointer-events: none;
+}
+.vl-heart-hint-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100060;
+  background: rgba(15, 23, 42, 0.62);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.vl-heart-hint-card {
+  background: #fff;
+  color: #0f172a;
+  max-width: 480px;
+  width: 100%;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.28);
+}
+.vl-heart-hint-card h2 { margin: 0 0 8px; color: #991b1b; }
+.vl-hint-body {
+  background: #fff7ed;
+  border-left: 4px solid #f97316;
+  padding: 10px 12px;
+  margin: 12px 0 18px;
+}
+.vl-heart-ok-btn {
+  background: #dc2626;
+  color: #fff;
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
 .vl-diff-badge {
   display: inline-block;
   margin-left: 8px;

@@ -4458,29 +4458,27 @@ async function viewCourse(courseId, assignmentId = null, forceRegular = false) {
         availableCourses.find((c) => Number(c.id) === idNum) ||
         pendingCourses.find((c) => Number(c.id) === idNum);
 
-    // Learner shell often has empty local lists — hydrate from API
-    if (!course || course.content == null || course.content === undefined) {
-        try {
-            const token = authToken || localStorage.getItem("token") || "";
-            const res = await fetch(`${API_BASE_URL}/api/courses/${idNum}`, {
-                headers: token ? { Authorization: `Bearer ${token}` } : {},
-                credentials: "include"
-            });
-            const data = await res.json();
-            if (data.success && data.data) {
-                const full = { ...data.data, id: Number(data.data.id) };
-                if (course) {
-                    Object.assign(course, full);
-                } else {
-                    course = full;
-                    if (!availableCourses.some((c) => Number(c.id) === idNum)) {
-                        availableCourses.push(course);
-                    }
+    // Always overlay the latest course (gamification, content) from the API
+    try {
+        const token = authToken || localStorage.getItem("token") || "";
+        const res = await fetch(`${API_BASE_URL}/api/courses/${idNum}`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+            credentials: "include"
+        });
+        const data = await res.json();
+        if (data.success && data.data) {
+            const full = { ...data.data, id: Number(data.data.id) };
+            if (course) {
+                Object.assign(course, full);
+            } else {
+                course = full;
+                if (!availableCourses.some((c) => Number(c.id) === idNum)) {
+                    availableCourses.push(course);
                 }
             }
-        } catch (err) {
-            console.error("Failed to fetch course for view:", err);
         }
+    } catch (err) {
+        console.error("Failed to fetch course for view:", err);
     }
 
     if (assignmentId && course) {
@@ -4611,7 +4609,7 @@ async function viewCourse(courseId, assignmentId = null, forceRegular = false) {
                 window.CourseInteractiveBlocks.hydrateViewer(document.getElementById('course-content-display') || viewerContent);
             }
             if (window.CourseBossBattle?.init) {
-                window.CourseBossBattle.init(course, courseQuestions);
+                window.CourseBossBattle.init(course, courseQuestions, { parent: currentMasterCourse });
             }
             if (window.CourseProgress?.onPageShown) {
                 window.CourseProgress.setContext({ courseId: course.id });
@@ -6419,6 +6417,7 @@ async function viewCreatorMasterCoursePreview(courseId) {
         
         const course = courseResult.data;
         currentMasterCourse = course;
+        window.currentMasterCourse = course;
         currentViewingCourseId = courseId;
 
         // Load units directly (creator doesn't need enrollment)
@@ -6512,6 +6511,7 @@ async function loadMasterCourseView(courseId) {
         
         const course = courseResult.data;
         currentMasterCourse = course;
+        window.currentMasterCourse = course;
         
         // Load units and progress
         const progressResponse = await fetch(`${API_BASE_URL}/api/users/enrollments/${courseId}/progress`, {
@@ -6658,7 +6658,7 @@ async function loadUnitContent(unit) {
                     window.CourseInteractiveBlocks.hydrateViewer(contentEl);
                 }
                 if (window.CourseBossBattle?.init) {
-                    window.CourseBossBattle.init(unitCourse, courseQuestions);
+                    window.CourseBossBattle.init(unitCourse, courseQuestions, { parent: currentMasterCourse });
                 }
                 if (window.CourseProgress) {
                     window.CourseProgress.setContext({ courseId: unit.child_course_id, unitId: unit.unit_id });

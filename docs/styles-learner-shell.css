@@ -650,24 +650,35 @@ body.learner-shell-active #learner-shell {
 }
 
 .ls-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
   margin-top: 28px;
 }
 
 .ls-badge {
   background: var(--ls-card);
   border: 1px solid var(--ls-border);
-  border-radius: 999px;
-  padding: 8px 14px;
+  border-radius: 16px;
+  padding: 14px 16px;
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   color: var(--ls-text);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ls-badge .ls-badge-how {
+  font-weight: 500;
+  font-size: 0.8rem;
+  color: var(--ls-muted, #64748b);
+  line-height: 1.35;
 }
 
 .ls-badge.locked {
-  opacity: 0.45;
+  opacity: 0.72;
+  background: rgba(148, 163, 184, 0.12);
 }
 
 /* Store / enrolled / settings */
@@ -1018,18 +1029,26 @@ body.learner-shell-active #learner-shell {
 
 .ls-emoji-particle {
   position: absolute;
-  font-size: 28px;
-  animation: lsBurst 1.4s ease-out forwards;
+  left: 50%;
+  top: 42%;
+  font-size: 48px;
+  line-height: 1;
+  transform: translate(-50%, -50%);
+  animation: lsBurst 2.8s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
 }
 
 @keyframes lsBurst {
-  0% { transform: translate(0, 0) scale(0.4); opacity: 1; }
-  100% { transform: translate(var(--dx), var(--dy)) scale(1.2); opacity: 0; }
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 0; }
+  8% { transform: translate(-50%, -50%) scale(1.35); opacity: 1; }
+  38% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.9); opacity: 0; }
 }
 
 .ls-enroll-prog { margin-top: 6px; font-size: 0.75rem; color: var(--ls-muted, #64748b); }
 .ls-enroll-track { height: 6px; border-radius: 999px; background: rgba(0,0,0,0.1); overflow: hidden; margin-top: 4px; }
 .ls-enroll-fill { height: 100%; background: #6366f1; }
+
+.ls-gem-toast {
   position: fixed;
   top: 24px;
   left: 50%;
