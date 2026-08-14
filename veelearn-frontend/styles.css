@@ -2084,3 +2084,56 @@ select:focus {
 .vl-ring-bg { fill: none; stroke: #334155; stroke-width: 3.5; }
 .vl-ring-fg { fill: none; stroke: #6366f1; stroke-width: 3.5; stroke-linecap: round; }
 .vl-ring-text { font-size: 8px; text-anchor: middle; fill: var(--text-light); font-weight: 700; }
+
+.vl-graph-sliders {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 14px 16px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  color: #0f172a;
+}
+.vl-graph-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.vl-graph-slider-row label {
+  min-width: 150px;
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+.vl-graph-slider-row input[type="range"] {
+  flex: 1;
+  accent-color: #4f46e5;
+  height: 8px;
+}
+.vl-graph-slider-val {
+  min-width: 3.2em;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.vl-widget-controls {
+  display: grid !important;
+  gap: 8px;
+  margin-top: 10px;
+}
+.vl-widget-control-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Keep loading, celebrations, and page transitions at authored speed.
+   (A global 0.01ms reduced-motion rule used to flatten every animation.) */
+.ls-emoji-particle {
+  animation-duration: 2.8s !important;
+}
+.loading-spinner,
+.btn-spinner {
+  animation-duration: 0.8s !important;
+}

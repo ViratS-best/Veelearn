@@ -161,17 +161,7 @@ a:focus-visible {
     }
 }
 
-/* Reduced motion support */
-@media (prefers-reduced-motion: reduce) {
-    * {
-        transition-duration: 0.01ms !important;
-        animation-duration: 0.01ms !important;
-    }
-
-    .skip-to-content {
-        transition: none;
-    }
-}
+/* Reduced motion: keep focus outlines; do not collapse every animation to 0.01ms. */
 
 /* Focus ring for custom components */
 .focus-ring {

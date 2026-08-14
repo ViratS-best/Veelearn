@@ -227,10 +227,12 @@
     const nextId = course && (course.id || course.child_course_id);
     const sameCourse = state.courseId != null && String(state.courseId) === String(nextId);
     const keepHearts = sameCourse ? state.hearts : 3;
+    const quizCount = qs.length;
 
     state.courseId = nextId;
     state.questions = qs;
-    state.bossEnabled = !!settings.bossBattle;
+    // Stage gates only make sense on a full finale (10+ questions)
+    state.bossEnabled = !!settings.bossBattle && quizCount >= 10;
     state.heartsEnabled = !!settings.hearts;
     state.hearts = keepHearts;
     if (!sameCourse) {

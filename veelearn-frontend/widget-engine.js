@@ -944,6 +944,19 @@
         });
         sliderKeys.add(inp.key);
       });
+      ['a', 'h', 'k'].forEach((key) => {
+        if (sliderKeys.has(key) || st[key] == null) return;
+        calc.setExpression({
+          id: `s_${key}`,
+          latex: `${key}=${st[key]}`,
+          sliderBounds: {
+            min: key === 'a' ? -5 : -10,
+            max: key === 'a' ? 5 : 10,
+            step: 0.1
+          }
+        });
+        sliderKeys.add(key);
+      });
       exprs.forEach((latex, i) => {
         let s = String(latex).trim();
         const assign = s.match(/^([A-Za-z])\s*=\s*(-?[\d.]+)$/);
@@ -968,6 +981,10 @@
       });
       if (hook) {
         hook._update = () => {
+          ['a', 'h', 'k'].forEach((key) => {
+            if (st[key] == null) return;
+            calc.setExpression({ id: `s_${key}`, latex: `${key}=${st[key]}` });
+          });
           (spec.inputs || []).forEach((inp) => {
             if (st[inp.key] == null) return;
             calc.setExpression({ id: `s_${inp.key}`, latex: `${inp.key}=${st[inp.key]}` });
@@ -1575,7 +1592,11 @@
         if (card.parentNode) card.parentNode.removeChild(card);
       },
       card,
-      state
+      state,
+      update() {
+        if (typeof hook._update === 'function') hook._update();
+        outputsApi.refresh();
+      }
     };
   }
 
