@@ -1,7 +1,6 @@
 """Shared helpers for Grade 1 math: simple English, new embeds, quizzes."""
 
-from __future__ import annotations
-
+import html
 import json
 import urllib.parse
 
@@ -58,14 +57,15 @@ def try_this(title: str, body: str) -> str:
     )
 
 
-def step_reveal(steps, prompt="", vid=""):
+def step_reveal(steps, prompt="", vid="", answer=""):
     steps = list(steps)
     data = encode_data(steps)
-    prompt_attr = f' data-vl-prompt="{prompt}"' if prompt else ""
+    prompt_attr = f' data-vl-prompt="{html.escape(prompt, quote=True)}"' if prompt else ""
+    ans_attr = f' data-vl-answer="{html.escape(str(answer), quote=True)}"' if answer else ""
     id_attr = f' data-vl-id="{vid}"' if vid else ""
     preview = "".join(f"<li>{s}</li>" for s in steps)
     return (
-        f'<div class="vl-step-reveal"{id_attr} data-vl-steps="{data}"{prompt_attr}>'
+        f'<div class="vl-step-reveal"{id_attr} data-vl-steps="{data}"{prompt_attr}{ans_attr}>'
         f'<div class="vl-embed-label">Tap to see each step</div>'
         f'<ol class="vl-step-preview">{preview}</ol></div>'
     )

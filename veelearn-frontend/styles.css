@@ -1936,14 +1936,35 @@ select:focus {
   display: flex;
   gap: 14px;
   align-items: flex-start;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  box-sizing: border-box;
 }
 .vl-callout-trap { border-left: 5px solid #f59e0b; background: rgba(245, 158, 11, 0.08); }
 .vl-callout-strategy { border-left: 5px solid #10b981; background: rgba(16, 185, 129, 0.08); }
 .vl-callout-mascot { border-left: 5px solid #6366f1; background: rgba(99, 102, 241, 0.1); }
-.vl-callout-icon { font-size: 1.4rem; flex-shrink: 0; }
-.vl-callout-mascot { width: 42px; height: 42px; }
+.vl-callout-icon { font-size: 1.4rem; flex-shrink: 0; line-height: 1; }
+.vl-callout-mascot-img,
+.vl-callout-icon img {
+  width: 42px;
+  height: 42px;
+  display: block;
+  object-fit: contain;
+}
+.vl-callout-body { flex: 1; min-width: 0; }
 .vl-callout-body h4 { margin: 0 0 6px; }
 .vl-callout-body p { margin: 0; }
+.vl-step-pred { margin-bottom: 10px; }
+.vl-step-pred-result {
+  margin: 8px 0 0;
+  font-weight: 800;
+}
+.vl-step-pred-result.ok,
+.vl-match-status.ok { color: #059669; }
+.vl-step-pred-result.bad,
+.vl-match-status.bad { color: #dc2626; }
+.vl-step-pred-done .vl-step-pred-input { opacity: 0.85; }
 .vl-embed-remove {
   position: absolute;
   top: 8px;

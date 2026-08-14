@@ -232,6 +232,7 @@ def build_unit1():
              "50 starts the next row of tens."],
             prompt="What number do you think comes after 49?",
             vid="g1u1-c2-steps",
+            answer="50",
         ),
         try_this("Use a chart", "A hundred chart is a map of numbers. Move right to add 1. Move down to add 10.")
         + phet_box("compare"),
@@ -765,6 +766,7 @@ def build_unit3():
              "7 + 2 = 9."],
             prompt="What do you think 7 + 2 is?",
             vid="g1u3-c2-steps",
+            answer="9",
         ),
         try_this("Bigger first", "Always start with the bigger addend. Counting on is shorter."),
         6,
