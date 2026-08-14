@@ -34,15 +34,15 @@ const XP_KINDS = {
 };
 
 const BADGE_CATALOG = [
-    { id: 'first', label: 'First spark' },
-    { id: 'streak3', label: '3-day streak' },
-    { id: 'streak7', label: 'Week warrior' },
-    { id: 'quiz20', label: '20 correct' },
-    { id: 'gems100', label: '100 gems earned' },
-    { id: 'domain_master', label: 'Domain Master' },
-    { id: 'zero_error', label: 'Zero-Error Streak' },
-    { id: 'stretch_champion', label: 'Stretch Champion' },
-    { id: 'transformation_virtuoso', label: 'Transformation Virtuoso' }
+    { id: 'first', label: 'First spark', how: 'Answer any quiz question correctly once.' },
+    { id: 'streak3', label: '3-day streak', how: 'Check in on 3 different days in a row.' },
+    { id: 'streak7', label: 'Week warrior', how: 'Keep a 7-day check-in streak.' },
+    { id: 'quiz20', label: '20 correct', how: 'Get 20 quiz questions correct in total.' },
+    { id: 'gems100', label: '100 gems earned', how: 'Earn 100 gems over your lifetime (spending does not reset this).' },
+    { id: 'domain_master', label: 'Domain Master', how: 'Finish any unit in a Master Course.' },
+    { id: 'zero_error', label: 'Zero-Error Streak', how: 'Get 5 quiz questions correct in a row.' },
+    { id: 'stretch_champion', label: 'Stretch Champion', how: 'Answer 3 Stretch (SAT / Honors) questions correctly.' },
+    { id: 'transformation_virtuoso', label: 'Transformation Virtuoso', how: 'Complete a functions / transformations unit, or finish your first unit.' }
 ];
 
 function xpLevel(xp) {
@@ -353,6 +353,7 @@ function createLearnerGamificationHandlers({ query, apiResponse, sendEmail }) {
                 badges: BADGE_CATALOG.map((b) => ({
                     id: b.id,
                     label: b.label,
+                    how: b.how || '',
                     earned: owned.has(b.id)
                 }))
             });

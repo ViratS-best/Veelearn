@@ -284,7 +284,8 @@
         }
         startPlace('vl-graph', {
           mode: 'quadratic',
-          expressions: ['a=1', 'h=0', 'k=0', 'y=a(x-h)^2+k']
+          expressions: ['y=a(x-h)^2+k'],
+          state: { a: 1, h: 0, k: 0 }
         });
         return true;
       }
@@ -600,11 +601,23 @@
     }
     const eng = window.VeelearnWidgetEngine;
     if (eng && typeof eng.mountWidget === 'function') {
+      const exprs = spec.expressions || ['y=a(x-h)^2+k'];
+      const joined = exprs.join(' ');
+      const isQuad =
+        spec.mode === 'quadratic' || /a\s*\(\s*x\s*-\s*h\s*\)\s*\^\s*2/i.test(joined);
+      const quadInputs = [
+        { key: 'a', type: 'slider', label: 'a (stretch)', min: -5, max: 5, step: 0.1 },
+        { key: 'h', type: 'slider', label: 'h (left / right)', min: -10, max: 10, step: 0.5 },
+        { key: 'k', type: 'slider', label: 'k (up / down)', min: -10, max: 10, step: 0.5 }
+      ];
       await eng.mountWidget(mount, {
-        title: 'Dynamic graph',
+        title: isQuad ? 'y = a(x − h)² + k' : 'Dynamic graph',
+        state: Object.assign({ a: 1, h: 0, k: 0 }, spec.state || {}),
+        inputs: isQuad ? quadInputs : spec.inputs || [],
+        view: { width: 640, height: 380 },
         behavior: {
           preset: 'desmos_graph',
-          params: { expressions: spec.expressions || ['y=a(x-h)^2+k', 'a=1', 'h=0', 'k=0'] }
+          params: { expressions: exprs }
         }
       });
     } else {

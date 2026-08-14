@@ -115,15 +115,35 @@
     if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
   }
 
+  /** Insert * for implied products like a(x-h) or 2x, without breaking sin(x). */
+  function insertImplicitMultiplication(raw) {
+    let s = String(raw);
+    s = s.replace(/(\d)\s*(?=[A-Za-z_(])/g, '$1*');
+    s = s.replace(/\)\s*(?=[A-Za-z_(\d])/g, ')*');
+    s = s.replace(/\b([A-Za-z])\(/g, (full, ch, offset, str) => {
+      const before = str.slice(Math.max(0, offset - 12), offset);
+      if (/[A-Za-z0-9_]$/.test(before)) return full;
+      return `${ch}*(`;
+    });
+    return s;
+  }
+
+  function isParamAssignment(expr) {
+    return /^\s*[A-Za-z]\s*=\s*-?[\d.]+\s*$/.test(String(expr || ''));
+  }
+
   /** Restricted math expression → fn(independentValue, state). State keys (a,b,…) bind from sliders. */
   function compileExpr(expr, independentVars) {
     const vars = independentVars && independentVars.length ? independentVars : ['x'];
-    const raw = String(expr || '')
-      .replace(/^\s*y\s*=\s*/i, '')
-      .replace(/\^/g, '**')
-      .replace(/π/gi, 'Math.PI')
-      .replace(/\bpi\b/gi, 'Math.PI')
-      .trim();
+    if (isParamAssignment(expr)) return () => NaN;
+    const raw = insertImplicitMultiplication(
+      String(expr || '')
+        .replace(/^\s*y\s*=\s*/i, '')
+        .replace(/\^/g, '**')
+        .replace(/π/gi, 'Math.PI')
+        .replace(/\bpi\b/gi, 'Math.PI')
+        .trim()
+    );
     if (!raw || /[;{}`\\]|<|>|script|function|=>|eval|window|document/i.test(raw)) {
       return () => NaN;
     }
@@ -820,6 +840,7 @@
       const colors = ['#e74c3c', '#3498db', '#2ecc71', '#e67e22'];
       let plotted = false;
       exprs.forEach((ex, i) => {
+        if (isParamAssignment(ex)) return;
         try {
           const fn = compileExpr(ex, ['x']);
           board.create('functiongraph', [(x) => fn(x, state)], {
@@ -831,6 +852,22 @@
           console.warn('function_plot expr failed', ex, err);
         }
       });
+      // Vertex form y = a(x-h)^2+k when sliders provide a/h/k and no curve plotted
+      if (!plotted && state.a != null && (state.h != null || state.k != null)) {
+        board.create(
+          'functiongraph',
+          [
+            (x) => {
+              const a = Number(state.a) || 0;
+              const h = Number(state.h) || 0;
+              const k = Number(state.k) || 0;
+              return a * (x - h) * (x - h) + k;
+            }
+          ],
+          { strokeColor: '#e74c3c', strokeWidth: 3 }
+        );
+        plotted = true;
+      }
       // Default quadratic when sliders provide a/b/c but no expressions
       if (!plotted && (state.a != null || state.b != null || state.c != null)) {
         board.create(
@@ -870,7 +907,8 @@
     return { board };
   }
 
-  async function mountDesmos(host, spec) {
+  async function mountDesmos(host, spec, state, hook) {
+    const st = state || spec.state || {};
     try {
       const Desmos = await ensureDesmos();
       if (!Desmos || typeof Desmos.GraphingCalculator !== 'function') {
@@ -880,21 +918,62 @@
       const el = document.createElement('div');
       el.style.width = '100%';
       el.style.height = '100%';
-      el.style.minHeight = '280px';
+      el.style.minHeight = '320px';
       host.appendChild(el);
       const calc = Desmos.GraphingCalculator(el, {
         expressions: true,
         settingsMenu: false,
         zoomButtons: true,
-        expressionsCollapsed: true
+        keypad: false,
+        expressionsCollapsed: false
       });
       const params = (spec.behavior && spec.behavior.params) || {};
       const exprs = params.expressions || [];
+      const sliderKeys = new Set();
+      (spec.inputs || []).forEach((inp) => {
+        if (inp.type !== 'slider' && inp.type !== 'number') return;
+        const v = st[inp.key] != null ? st[inp.key] : inp.min != null ? inp.min : 0;
+        calc.setExpression({
+          id: `s_${inp.key}`,
+          latex: `${inp.key}=${v}`,
+          sliderBounds: {
+            min: inp.min != null ? inp.min : -10,
+            max: inp.max != null ? inp.max : 10,
+            step: inp.step != null ? inp.step : 0.1
+          }
+        });
+        sliderKeys.add(inp.key);
+      });
       exprs.forEach((latex, i) => {
         let s = String(latex).trim();
+        const assign = s.match(/^([A-Za-z])\s*=\s*(-?[\d.]+)$/);
+        if (assign) {
+          const key = assign[1];
+          if (sliderKeys.has(key)) return;
+          if (st[key] == null) st[key] = Number(assign[2]);
+          calc.setExpression({
+            id: `s_${key}`,
+            latex: `${key}=${st[key]}`,
+            sliderBounds: {
+              min: key === 'a' ? -5 : -10,
+              max: key === 'a' ? 5 : 10,
+              step: 0.1
+            }
+          });
+          sliderKeys.add(key);
+          return;
+        }
         if (!/=/.test(s) && !/y/i.test(s)) s = `y=${s}`;
         calc.setExpression({ id: `e${i}`, latex: s.replace(/\*\*/g, '^') });
       });
+      if (hook) {
+        hook._update = () => {
+          (spec.inputs || []).forEach((inp) => {
+            if (st[inp.key] == null) return;
+            calc.setExpression({ id: `s_${inp.key}`, latex: `${inp.key}=${st[inp.key]}` });
+          });
+        };
+      }
       return {
         destroy() {
           try {
@@ -910,11 +989,11 @@
         behavior: Object.assign({}, spec.behavior, {
           preset: 'function_plot',
           params: Object.assign({}, (spec.behavior && spec.behavior.params) || {}, {
-            boundingbox: [-6, 6, 6, -6]
+            boundingbox: [-12, 10, 12, -10]
           })
         })
       });
-      return mountJsxPreset(host, fallback, Object.assign({}, spec.state || {}), { _update: null });
+      return mountJsxPreset(host, fallback, Object.assign({ a: 1, h: 0, k: 0 }, st), hook || { _update: null });
     }
   }
 
@@ -1458,7 +1537,7 @@
     try {
       const preset = spec.behavior.preset;
       if (preset === 'desmos_graph') {
-        Object.assign(runtime, await mountDesmos(viewHost, spec));
+        Object.assign(runtime, await mountDesmos(viewHost, spec, state, hook));
       } else if (preset === 'spinning_box' || preset === 'orbit_mesh' || preset === 'scene3d') {
         Object.assign(runtime, await mountThreePreset(viewHost, spec, state, hook));
       } else if (

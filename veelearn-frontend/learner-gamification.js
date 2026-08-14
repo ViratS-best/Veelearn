@@ -216,22 +216,20 @@
     }
     root.innerHTML = '';
     const emojis = ['🎉', '✨', '😄', '🌟', '💛', '🥳', '🔥', '👏', '🌈', '⭐'];
-    for (let i = 0; i < 36; i++) {
+    for (let i = 0; i < 28; i++) {
       const span = document.createElement('span');
       span.className = 'ls-emoji-particle';
       span.textContent = emojis[i % emojis.length];
-      const angle = (Math.PI * 2 * i) / 36;
-      const dist = 120 + Math.random() * 220;
-      span.style.left = '50%';
-      span.style.top = '45%';
+      const angle = (Math.PI * 2 * i) / 28;
+      const dist = 90 + Math.random() * 160;
       span.style.setProperty('--dx', `${Math.cos(angle) * dist}px`);
       span.style.setProperty('--dy', `${Math.sin(angle) * dist}px`);
-      span.style.animationDelay = `${Math.random() * 0.15}s`;
+      span.style.animationDelay = `${0.05 + Math.random() * 0.45}s`;
       root.appendChild(span);
     }
     setTimeout(() => {
-      root.innerHTML = '';
-    }, 1600);
+      if (root) root.innerHTML = '';
+    }, 3600);
   }
 
   async function onQuizCorrect(questionId, serverData) {
@@ -474,6 +472,18 @@
     }
   }
 
+  const BADGE_HOW = {
+    first: 'Answer any quiz question correctly once.',
+    streak3: 'Check in on 3 different days in a row (the streak counter on your dashboard).',
+    streak7: 'Keep a 7-day check-in streak. Longest streak counts even if you break later.',
+    quiz20: 'Get 20 quiz questions correct in total (not in a row).',
+    gems100: 'Earn 100 gems over your lifetime (spending them does not reset this).',
+    domain_master: 'Finish any unit in a Master Course.',
+    zero_error: 'Get 5 quiz questions correct in a row without a miss.',
+    stretch_champion: 'Answer 3 Stretch (SAT / Honors) questions correctly.',
+    transformation_virtuoso: 'Complete a functions / transformations unit, or finish your first unit.'
+  };
+
   function renderAchievements() {
     const pane = document.getElementById('ls-pane-achievements');
     if (!pane || !profileCache) {
@@ -527,7 +537,14 @@
       </div>
       <div class="ls-badges">
         ${badges
-          .map((b) => `<span class="ls-badge ${b.earned || b.ok ? '' : 'locked'}">${esc(b.label)}</span>`)
+          .map((b) => {
+            const earned = b.earned || b.ok;
+            const how = b.how || BADGE_HOW[b.id] || 'Keep learning to unlock this.';
+            return `<span class="ls-badge ${earned ? '' : 'locked'}">
+              <strong>${esc(b.label)}</strong>
+              <span class="ls-badge-how">${earned ? 'Unlocked' : esc(how)}</span>
+            </span>`;
+          })
           .join('')}
       </div>
     `;
