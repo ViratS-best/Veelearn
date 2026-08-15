@@ -2625,9 +2625,9 @@ function confirmLatexInsertion() {
     // Build final LaTeX string
     let finalLatex = latex;
     if (type === 'display') {
-        finalLatex = '$$' + latex + '$$';
+        finalLatex = '\\[' + latex + '\\]';
     } else {
-        finalLatex = '$' + latex + '$';
+        finalLatex = '\\(' + latex + '\\)';
     }
 
     // Get the content editor
@@ -2740,6 +2740,11 @@ function processLatexInEditor() {
         let lastIndex = 0;
 
         matches.forEach(match => {
+            const inner = (match[1] != null ? match[1] : match[2]) || "";
+            // "$5 is that $4" is money, not math. Leave it as plain text.
+            if (/^\s*-?\d/.test(inner) && !/\\[a-zA-Z]/.test(inner)) {
+                return;
+            }
             const fullMatch = match[0];
             const startIndex = match.index;
 
@@ -2749,11 +2754,12 @@ function processLatexInEditor() {
                 fragment.appendChild(document.createTextNode(textBefore));
             }
 
-            // Create LaTeX span
             const span = document.createElement('span');
             span.className = 'latex-equation';
             span.setAttribute('data-latex', 'true');
-            span.textContent = fullMatch;
+            span.textContent = match[1] != null
+                ? '\\[' + match[1] + '\\]'
+                : '\\(' + match[2] + '\\)';
             fragment.appendChild(span);
 
             lastIndex = startIndex + fullMatch.length;

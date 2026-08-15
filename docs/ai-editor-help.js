@@ -383,7 +383,7 @@
             editor.classList.remove('ai-latex-placement');
             editor.removeEventListener('click', handler, true);
 
-            const wrapped = pending.display ? `$$${pending.latex}$$` : `$${pending.latex}$`;
+            const wrapped = pending.display ? `\\[${pending.latex}\\]` : `\\(${pending.latex}\\)`;
             const span = document.createElement('span');
             span.className = 'latex-equation';
             span.dataset.latex = 'true';
@@ -503,7 +503,7 @@
             startLatexClickPlacement(latex, display);
             return;
         }
-        const wrapped = display ? `$$${latex}$$` : `$${latex}$`;
+        const wrapped = display ? `\\[${latex}\\]` : `\\(${latex}\\)`;
         const span = document.createElement('span');
         span.className = 'latex-equation';
         span.dataset.latex = 'true';
@@ -951,26 +951,17 @@
             return findings;
         }
 
-        const text = editor.innerText || '';
-        // Count unescaped $ that are not inside .latex-equation
-        const clone = editor.cloneNode(true);
-        clone.querySelectorAll('.latex-equation').forEach((n) => n.remove());
-        const raw = clone.innerText || '';
-        const dollarCount = (raw.match(/\$/g) || []).length;
-        if (dollarCount % 2 !== 0) {
-            findings.push('Unmatched $ delimiter in page text (possible broken inline LaTeX).');
-        }
-        const dd = (raw.match(/\$\$/g) || []).length;
-        if (dd % 2 !== 0) {
-            findings.push('Unmatched $$ delimiter in page text (possible broken display LaTeX).');
-        }
-
         editor.querySelectorAll('.latex-equation').forEach((el, i) => {
             const content = (el.textContent || '').trim();
-            if (!content || content === '$' || content === '$$') {
+            if (!content || content === '$' || content === '$$' || content === '\\(' || content === '\\[') {
                 findings.push(`Empty LaTeX equation node (#${i + 1}).`);
-            } else if (!/^\$[\s\S]+\$$/.test(content) && !/^\$\$[\s\S]+\$\$$/.test(content)) {
-                findings.push(`LaTeX node (#${i + 1}) missing $ / $$ delimiters.`);
+            } else if (
+                !/^\\\([\s\S]+\\\)$/.test(content) &&
+                !/^\\\[[\s\S]+\\\]$/.test(content) &&
+                !/^\$\$[\s\S]+\$\$$/.test(content) &&
+                !/^\$[\s\S]+\$$/.test(content)
+            ) {
+                findings.push(`LaTeX node (#${i + 1}) missing math delimiters.`);
             }
         });
 
