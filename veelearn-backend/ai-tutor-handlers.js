@@ -83,13 +83,14 @@ Rules (strict):
 - Give at most ONE clear next step: a question to ask themselves, a hint about which concept to review, or how to set up the problem.
 - If they demand the answer, briefly refuse and offer a learning step instead.
 - Keep text concise (under 180 words unless they ask for more detail on the method). Widget JSON does not count toward that limit.
-- Match their level. If they say they are in grades 1–3 / elementary / don't know basic math, do NOT suggest algebra, competition math, or advanced topics. Prefer AVAILABLE_COURSES whose grade_level and title/description match their request.
+- Match their level. If they say they are in grades 1–3 / elementary / don't know basic math, do NOT suggest algebra, competition math, Mathcounts, AMC, or advanced topics. Prefer AVAILABLE_COURSES whose grade_level and title/description match their request.
 - NEVER invent course titles. Only recommend courses that appear in AVAILABLE_COURSES. If the list is empty, say so and coach without naming fake courses.
 - Use LaTeX with $...$ or $$...$$ for math in your prose.
 
 Course recommendations (required when relevant):
-- When the learner asks for a course, says what they want to learn, mentions a grade/level, or is clearly looking for where to start, you MUST recommend 2–3 courses from AVAILABLE_COURSES (or 1 if only one fits).
-- Prefer higher like_count when several fit. Prefer matching grade_level. Mix single and master when both fit.
+- When the learner asks for a course, says what they want to learn, mentions a grade/level, or is clearly looking for where to start, you MUST recommend 1–3 courses from AVAILABLE_COURSES (or 1 if only one fits).
+- Fit the prompt FIRST. Then, among courses that actually fit, prefer the highest like_count. Never recommend a more-liked off-topic course (e.g. do not recommend Algebra or Mathcounts for "1st grade math").
+- AVAILABLE_COURSES already omits units that belong to a Master Course. Recommend the master, not its child units. Standalone courses that are not part of a master are OK.
 - Always end those turns with a new line exactly:
 VEELEARN_RECOMMEND_JSON:
 followed by a single JSON array like [{"courseId":123,"title":"Exact title from list","reason":"one short sentence"}].
@@ -535,7 +536,75 @@ function extractGradeHints(message) {
     if (/\b(2nd|second)\s*grade\b/.test(msg)) grades.add(2);
     if (/\b(3rd|third)\s*grade\b/.test(msg)) grades.add(3);
 
+    const gradeN = msg.matchAll(/\bgrade\s*(\d{1,2})\b/g);
+    for (const m of gradeN) {
+        const g = parseInt(m[1], 10);
+        if (!Number.isNaN(g) && g >= 1 && g <= 13) grades.add(g);
+    }
+
     return [...grades];
+}
+
+const ADVANCED_TOPIC_RE =
+    /\b(algebra(?:\s*[12])?|pre-?algebra|pre-?calc(?:ulus)?|calculus|trigonometry|trig|linear algebra|differential|mathcounts|math\s*counts|amc\s*8|amc\s*10|amc\s*12|aime|olympiad|competition math|ap calculus|sat math|honors algebra)\b/i;
+
+function gradeMentionRe(g) {
+    const ordinals = {
+        1: '1st|first',
+        2: '2nd|second',
+        3: '3rd|third',
+        4: '4th|fourth',
+        5: '5th|fifth',
+        6: '6th|sixth',
+        7: '7th|seventh',
+        8: '8th|eighth',
+        9: '9th|ninth',
+        10: '10th|tenth',
+        11: '11th|eleventh',
+        12: '12th|twelfth'
+    };
+    const ord = ordinals[g] || `${g}th`;
+    return new RegExp(`\\b(?:grade\\s*${g}|${ord}\\s*grade)\\b`, 'i');
+}
+
+function courseHaystack(course) {
+    return `${course.title || ''} ${course.desc_preview || course.description || ''}`.toLowerCase();
+}
+
+function courseFitsPrompt(message, course) {
+    const msg = String(message || '').toLowerCase();
+    const grades = extractGradeHints(msg);
+    const tokens = tokenizeForMatch(msg);
+    const hay = courseHaystack(course);
+    const title = String(course.title || '').toLowerCase();
+    const g = course.grade_level != null ? Number(course.grade_level) : null;
+
+    if (grades.length) {
+        const mentionsGrade =
+            (g != null && grades.includes(g)) ||
+            grades.some((wanted) => gradeMentionRe(wanted).test(hay));
+        if (!mentionsGrade) return false;
+        if (grades.every((x) => x <= 5) && ADVANCED_TOPIC_RE.test(hay)) return false;
+    } else if (ADVANCED_TOPIC_RE.test(msg) === false && ADVANCED_TOPIC_RE.test(hay) && /\b(grade|elementary|basic|beginner|1st|first)\b/.test(msg)) {
+        return false;
+    }
+
+    if (/\bmath/.test(msg) && !/\b(math|algebra|geometry|arithmetic|counting|number|fraction|calculus)\b/.test(hay)) {
+        return false;
+    }
+    if (/\bphysics\b/.test(msg) && !/\b(physics|mechanics|force|motion|energy|electric|magnet|wave)\b/.test(hay)) {
+        return false;
+    }
+    if (/\bchem/.test(msg) && !/\bchem/.test(hay)) {
+        return false;
+    }
+
+    let tokenHits = 0;
+    for (const t of tokens) {
+        if (title.includes(t) || hay.includes(t)) tokenHits += 1;
+    }
+    if (grades.length && (g != null && grades.includes(g))) return true;
+    return tokenHits > 0;
 }
 
 function tokenizeForMatch(text) {
@@ -902,58 +971,26 @@ function autoFallbackWidgets(message, historyBlob) {
 }
 
 /**
- * Server-side ranking when the model forgets VEELEARN_RECOMMEND_JSON.
+ * Rank courses that actually fit the prompt, then pick the most liked.
+ * Child units of masters are excluded from the catalog before this runs.
  */
 function fallbackRecommendations(message, catalog, limit = 3) {
     if (!catalog?.length) return [];
-    const msg = String(message || '').toLowerCase();
-    const grades = extractGradeHints(msg);
-    const tokens = tokenizeForMatch(msg);
+    const grades = extractGradeHints(message);
 
-    const scored = catalog.map((c) => {
-        const title = String(c.title || '').toLowerCase();
-        const desc = String(c.desc_preview || c.description || '').toLowerCase();
-        const hay = `${title} ${desc}`;
-        let score = Number(c.like_count) || 0;
+    const fits = catalog.filter((c) => courseFitsPrompt(message, c));
+    fits.sort((a, b) => (Number(b.like_count) || 0) - (Number(a.like_count) || 0));
+    const pick = fits.slice(0, limit);
 
-        for (const t of tokens) {
-            if (title.includes(t)) score += 12;
-            else if (hay.includes(t)) score += 6;
-        }
-
-        const g = c.grade_level != null ? Number(c.grade_level) : null;
-        if (grades.length && g != null && grades.includes(g)) score += 40;
-        else if (grades.length && g != null) {
-            const near = grades.some((x) => Math.abs(x - g) <= 1);
-            score += near ? 15 : -25;
-        }
-
-        if (grades.length && grades.every((x) => x <= 5)) {
-            if (/\b(algebra|calculus|competition|amc|amc\s*8|olympiad|trigonometry|linear algebra)\b/i.test(hay)) {
-                score -= 50;
-            }
-            if (/\b(addition|subtraction|counting|number|fraction|multiply|division|grade|elementary|basic)\b/i.test(hay)) {
-                score += 20;
-            }
-        }
-
-        return { course: c, score };
-    });
-
-    scored.sort((a, b) => b.score - a.score || (Number(b.course.like_count) || 0) - (Number(a.course.like_count) || 0));
-
-    const top = scored.filter((s) => s.score > 0).slice(0, limit);
-    const pick = top.length ? top : scored.slice(0, Math.min(limit, scored.length));
-
-    return pick.map(({ course: row }) => ({
+    return pick.map((row) => ({
         courseId: Number(row.id),
         title: row.title,
         courseType: row.course_type || 'single',
         gradeLevel: row.grade_level != null ? Number(row.grade_level) : null,
         likeCount: Number(row.like_count) || 0,
         reason: grades.length
-            ? `Matches what you asked for around grades ${grades.join('–')}.`
-            : 'A popular Veelearn course that fits what you asked about.'
+            ? `Most liked match for grades ${grades.join('–')} from what you asked.`
+            : 'Most liked Veelearn course that matches what you asked for.'
     }));
 }
 
@@ -1041,7 +1078,13 @@ function createAiTutorHandlers({ query, openRouterChatCompletion, apiResponse })
                  FROM courses c
                  WHERE c.status = 'approved'
                  AND c.id NOT IN (SELECT course_id FROM enrollments WHERE user_id = ?)
-                 ORDER BY IFNULL(c.like_count, 0) DESC, c.title ASC LIMIT 80`,
+                 AND NOT EXISTS (
+                     SELECT 1 FROM course_units cu
+                     WHERE cu.child_course_id = c.id AND cu.is_draft = FALSE
+                 )
+                 ORDER BY CASE WHEN c.course_type = 'master' THEN 0 ELSE 1 END,
+                          IFNULL(c.like_count, 0) DESC, c.title ASC
+                 LIMIT 250`,
                 [userId]
             );
 
@@ -1079,7 +1122,7 @@ function createAiTutorHandlers({ query, openRouterChatCompletion, apiResponse })
                 `Quiz attempts (all time): ${correctQ} correct of ${totalQ} recorded.`,
                 courseTitle ? `Current course context: "${courseTitle}" (id ${courseId}).` : 'No specific course context.',
                 profileSummary ? `Learning profile notes:\n${profileSummary}` : '',
-                `AVAILABLE_COURSES (not enrolled; suggest ONLY from this list; include grade_level when matching):\n${availableLines || '(none available)'}`
+                `AVAILABLE_COURSES (not enrolled; child units of masters are omitted — recommend the master instead; suggest ONLY from this list; include grade_level when matching):\n${availableLines || '(none available)'}`
             ]
                 .filter(Boolean)
                 .join('\n\n');
@@ -1240,10 +1283,11 @@ function createAiTutorHandlers({ query, openRouterChatCompletion, apiResponse })
                 }
             }
 
-            if (!recommendations.length && catalog.length && wantsCourseRecommendation(message) && !forceViz) {
-                recommendations = fallbackRecommendations(message, catalog, 3);
-                if (recommendations.length && !/veelearn course|recommended course|here are (a few )?courses/i.test(safeReply)) {
-                    safeReply = `${safeReply}\n\nI picked a few Veelearn courses that fit — tap View / Enroll below to open one.`.trim();
+            if (catalog.length && wantsCourseRecommendation(message) && !forceViz) {
+                const ranked = fallbackRecommendations(message, catalog, 3);
+                recommendations = ranked;
+                if (recommendations.length && !/veelearn course|recommended course|here are (a few )?courses|most liked/i.test(safeReply)) {
+                    safeReply = `${safeReply}\n\nI picked the most liked Veelearn course that matches what you asked for — tap View / Enroll below.`.trim();
                 }
             }
 

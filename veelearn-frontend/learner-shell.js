@@ -101,6 +101,7 @@
           </div>
           <p class="ls-ai-hint">I can help with questions and recommend single or master courses that fit you best.</p>
           <div id="ls-ai-recs"></div>
+          <div id="ls-created-courses" class="ls-created-section" hidden></div>
         </section>
 
         <section class="ls-pane" id="ls-pane-achievements" data-pane="achievements"></section>
@@ -339,52 +340,109 @@
     return null;
   }
 
+  async function fetchMyCreatedCourses() {
+    let courses = [];
+    const mine = await fetchJson('/api/my-courses');
+    if (mine.success && Array.isArray(mine.data)) {
+      courses = mine.data;
+    }
+
+    const uid = await resolveUserId();
+    if (!courses.length && uid != null) {
+      const owned = await fetchJson(`/api/users/${uid}/courses`);
+      if (owned.success && Array.isArray(owned.data)) {
+        courses = owned.data;
+      }
+    }
+
+    if (!courses.length) {
+      const data = await fetchJson('/api/courses');
+      const all = data.success ? data.data || [] : [];
+      if (uid != null) {
+        courses = all.filter((c) => courseOwnerId(c) === uid);
+      }
+    }
+
+    try {
+      const cached = Array.isArray(window.myCourses) ? window.myCourses : [];
+      if (cached.length) {
+        const byId = new Map(courses.map((c) => [Number(c.id), c]));
+        cached.forEach((c) => {
+          if (c && c.id != null && !byId.has(Number(c.id))) byId.set(Number(c.id), c);
+        });
+        courses = Array.from(byId.values());
+      }
+    } catch (_) { /* ignore */ }
+
+    courses = [...courses].sort(
+      (a, b) =>
+        new Date(b.created_at || b.creation_time || 0) -
+        new Date(a.created_at || a.creation_time || 0)
+    );
+    return courses;
+  }
+
+  function previewOwnedCourse(id, course) {
+    if (course && typeof window.__veelearnPushCourse === 'function') {
+      window.__veelearnPushCourse(course);
+    }
+    hideLearnerShell();
+    if (typeof window.previewCourse === 'function') window.previewCourse(id);
+    else if (typeof window.viewCourse === 'function') window.viewCourse(id);
+  }
+
+  async function renderCreatedCourses() {
+    const wrap = document.getElementById('ls-created-courses');
+    if (!wrap) return;
+    try {
+      const courses = await fetchMyCreatedCourses();
+      if (!courses.length) {
+        wrap.hidden = true;
+        wrap.innerHTML = '';
+        return;
+      }
+      wrap.hidden = false;
+      wrap.innerHTML = `
+        <h3 class="ls-section-title">Your courses</h3>
+        <p class="ls-section-sub">Hover a card and press play to preview. Open Course Creation to edit.</p>
+        <ul class="ls-created-grid">
+          ${courses
+            .map((c) => {
+              const status = esc(c.status || '');
+              return `<li class="ls-created-card" data-my-course="1" data-course-id="${c.id}">
+                <div class="ls-created-thumb">
+                  <span aria-hidden="true">🎓</span>
+                  <button type="button" class="ls-created-play" data-preview-course="${c.id}" aria-label="Preview ${esc(c.title || 'course')}">▶</button>
+                </div>
+                <div class="ls-created-body">
+                  <strong>${esc(c.title || 'Untitled')}</strong>
+                  ${status ? `<span class="ls-flyout-meta">${status}</span>` : ''}
+                </div>
+              </li>`;
+            })
+            .join('')}
+        </ul>`;
+      wrap.querySelectorAll('[data-preview-course]').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const id = parseInt(btn.getAttribute('data-preview-course'), 10);
+          const course = courses.find((c) => Number(c.id) === id);
+          previewOwnedCourse(id, course);
+        });
+      });
+    } catch (err) {
+      console.warn('renderCreatedCourses failed', err);
+      wrap.hidden = true;
+    }
+  }
+
   async function loadCourseFlyout() {
     const list = document.getElementById('ls-flyout-courses');
     if (!list) return;
     list.innerHTML = '<div class="ls-flyout-empty">Loading…</div>';
     try {
-      let courses = [];
-
-      // Prefer auth-scoped endpoint (no client user-id required)
-      const mine = await fetchJson('/api/my-courses');
-      if (mine.success && Array.isArray(mine.data)) {
-        courses = mine.data;
-      }
-
-      const uid = await resolveUserId();
-      if (!courses.length && uid != null) {
-        const owned = await fetchJson(`/api/users/${uid}/courses`);
-        if (owned.success && Array.isArray(owned.data)) {
-          courses = owned.data;
-        }
-      }
-
-      if (!courses.length) {
-        const data = await fetchJson('/api/courses');
-        const all = data.success ? data.data || [] : [];
-        if (uid != null) {
-          courses = all.filter((c) => courseOwnerId(c) === uid);
-        }
-      }
-
-      // Merge any courses already loaded by the legacy dashboard path
-      try {
-        const cached = Array.isArray(window.myCourses) ? window.myCourses : [];
-        if (cached.length) {
-          const byId = new Map(courses.map((c) => [Number(c.id), c]));
-          cached.forEach((c) => {
-            if (c && c.id != null && !byId.has(Number(c.id))) byId.set(Number(c.id), c);
-          });
-          courses = Array.from(byId.values());
-        }
-      } catch (_) { /* ignore */ }
-
-      courses = [...courses].sort(
-        (a, b) =>
-          new Date(b.created_at || b.creation_time || 0) -
-          new Date(a.created_at || a.creation_time || 0)
-      );
+      const courses = await fetchMyCreatedCourses();
 
       if (!courses.length) {
         list.innerHTML = '<div class="ls-flyout-empty">No courses yet — create one!</div>';
@@ -394,9 +452,12 @@
       list.innerHTML = courses
         .map((c) => {
           const status = c.status ? `<span class="ls-flyout-meta">${esc(c.status)}</span>` : '';
-          return `<button type="button" class="ls-flyout-item" data-edit-course="${c.id}" data-my-course="1">
-            <span class="ls-flyout-title">${esc(c.title || 'Untitled')}</span>${status}
-          </button>`;
+          return `<div class="ls-flyout-item" data-my-course="1">
+            <button type="button" class="ls-flyout-edit" data-edit-course="${c.id}">
+              <span class="ls-flyout-title">${esc(c.title || 'Untitled')}</span>${status}
+            </button>
+            <button type="button" class="ls-flyout-play" data-preview-course="${c.id}" aria-label="Preview ${esc(c.title || 'course')}">▶</button>
+          </div>`;
         })
         .join('');
 
@@ -428,6 +489,15 @@
           } else if (typeof window.deleteCourse === 'function') {
             window.deleteCourse(id);
           }
+        });
+      });
+      list.querySelectorAll('[data-preview-course]').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const id = parseInt(btn.getAttribute('data-preview-course'), 10);
+          const course = courses.find((c) => Number(c.id) === id);
+          previewOwnedCourse(id, course);
         });
       });
     } catch (err) {
@@ -494,7 +564,10 @@
     setActiveNav(paneName === 'help' ? 'help' : paneName === 'settings' ? 'settings' : paneName);
     showPane(paneName);
 
-    if (paneName === 'dashboard') window.LearnerGamification?.loadDashboardAi?.();
+    if (paneName === 'dashboard') {
+      window.LearnerGamification?.loadDashboardAi?.();
+      renderCreatedCourses();
+    }
     if (paneName === 'achievements') window.LearnerGamification?.renderAchievements?.();
     if (paneName === 'enrolled') window.LearnerGamification?.renderEnrolled?.();
     if (paneName === 'store') window.LearnerGamification?.renderStore?.();
@@ -543,6 +616,7 @@
     updateProfileUI,
     refreshCourseFlyout: () => loadCourseFlyout(),
     refreshSimFlyout: () => loadSimFlyout(),
+    renderCreatedCourses,
     isActive: () => document.body.classList.contains('learner-shell-active')
   };
 })();
