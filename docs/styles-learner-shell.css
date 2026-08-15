@@ -200,7 +200,7 @@ body.learner-shell-active #learner-shell {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
   border: none;
   background: var(--ls-input-bg, rgba(0, 0, 0, 0.03));
@@ -208,12 +208,58 @@ body.learner-shell-active #learner-shell {
   font: inherit;
   font-size: 0.82rem;
   font-weight: 700;
-  padding: 8px 10px;
+  padding: 4px 4px 4px 10px;
   border-radius: 10px;
   cursor: pointer;
   text-align: left;
   border: 1px solid transparent;
   transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.ls-flyout-item {
+  cursor: default;
+}
+
+.ls-flyout-edit {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+  padding: 6px 4px;
+}
+
+.ls-flyout-play {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(99, 102, 241, 0.18);
+  color: var(--ls-text);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease, background 0.12s ease;
+}
+
+.ls-flyout-item:hover .ls-flyout-play,
+.ls-flyout-item:focus-within .ls-flyout-play {
+  opacity: 1;
+}
+
+.ls-flyout-play:hover {
+  background: #6366f1;
+  color: #fff;
 }
 
 .ls-flyout-action {
@@ -260,6 +306,64 @@ body.learner-shell-active #learner-shell {
   color: var(--ls-muted);
   padding: 6px 8px;
   font-weight: 600;
+}
+
+.ls-created-section {
+  margin-top: 36px;
+}
+
+.ls-created-grid {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.ls-created-card {
+  background: var(--ls-card, #fff);
+  border: 1px solid var(--ls-border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--ls-shadow);
+}
+
+.ls-created-thumb {
+  position: relative;
+  height: 112px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+}
+
+.ls-created-play {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: rgba(15, 23, 42, 0.45);
+  color: #fff;
+  font-size: 36px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+.ls-created-card:hover .ls-created-play,
+.ls-created-card:focus-within .ls-created-play {
+  opacity: 1;
+}
+
+.ls-created-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .ls-nav-icon {
