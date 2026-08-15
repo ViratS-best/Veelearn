@@ -191,7 +191,7 @@ def upsert_master(cursor, creator_id):
     desc = (
         "Seventh-grade math master course: negative numbers, multiplying and dividing "
         "rationals, proportional relationships, percents, multi-step equations and "
-        "inequalities, circles and angle relationships, scale drawings with surface "
+        "two-variable systems, circles and angle relationships, scale drawings with surface "
         "area and volume, and statistics and probability. "
         "Clear words, diagrams, quizzes after every idea, and 50 practice problems per unit."
     )

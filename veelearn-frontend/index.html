@@ -1026,7 +1026,7 @@
   <script>
     window.MathJax = {
       tex: {
-        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        inlineMath: [['\\(', '\\)']],
         displayMath: [['$$', '$$'], ['\\[', '\\]']],
         processEscapes: true,
         processEnvironments: true
@@ -1041,6 +1041,32 @@
         displayIndent: '0em'
       },
       startup: {
+        ready() {
+          MathJax.startup.defaultReady();
+          const orig = MathJax.typesetPromise.bind(MathJax);
+          const toTexDelims = (raw) => {
+            const t = String(raw || "").trim();
+            if (t.startsWith("$$") && t.endsWith("$$") && t.length >= 4) {
+              return "\\[" + t.slice(2, -2) + "\\]";
+            }
+            if (t.startsWith("$") && t.endsWith("$") && t.length >= 2) {
+              return "\\(" + t.slice(1, -1) + "\\)";
+            }
+            return raw;
+          };
+          const rewrite = (root) => {
+            if (!root || !root.querySelectorAll) return;
+            root.querySelectorAll(".latex-equation").forEach((node) => {
+              const t = node.textContent || "";
+              if (t.includes("$")) node.textContent = toTexDelims(t);
+            });
+          };
+          MathJax.typesetPromise = (nodes) => {
+            const list = nodes && nodes.length ? nodes : [document.body];
+            list.forEach(rewrite);
+            return orig(nodes);
+          };
+        },
         pageReady: () => {
           console.log("✅ MathJax: Ready and configured");
           return window.MathJax.typesetPromise();
@@ -1144,7 +1170,7 @@
   <script src="course-interactive-blocks.js?v=5" defer></script>
   <script src="course-boss-battle.js?v=4" defer></script>
   <script src="course-progress.js?v=2" defer></script>
-  <script src="script.js?v=29" defer></script>
+  <script src="script.js?v=30" defer></script>
   <script src="course-editor-ux.js?v=1" defer></script>
   <script>
     function loadScriptOnce(src) {
@@ -1165,7 +1191,7 @@
       if (kind === 'battle' || kind === 'all') await loadScriptOnce('anime-battle-system.js');
       if (kind === 'blocks' || kind === 'all') await loadScriptOnce('block-templates-unified.js');
       if (kind === 'editor' || kind === 'all') {
-        await loadScriptOnce('ai-editor-help.js?v=13');
+        await loadScriptOnce('ai-editor-help.js?v=14');
         if (typeof setupAiEditorHelp === 'function') setupAiEditorHelp();
       }
       if (kind === 'server' || kind === 'all') await loadScriptOnce('server-loading.js');

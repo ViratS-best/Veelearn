@@ -4,7 +4,7 @@ from .common import (
     concept_block, solved, practice_slots, unit_shell, kid_tip, watch_out, try_this,
     step_reveal, matching, phet_box, balance_scale, inequality_line, circle_figure,
     angle_pair, scale_drawing, prism_net, volume_prism, spinner, probability_tree,
-    two_box_plots, page_break, mq, renumber,
+    two_box_plots, system_graph, page_break, mq, renumber,
 )
 
 
@@ -21,119 +21,135 @@ def _pack(items):
 def _u5_questions():
     items = [
         ("2x + 5 = 17. x = ?", "6", ["12", "22", "7"], "Subtract 5, divide by 2."),
-        ("3(x − 2) = 12. x = ?", "6", ["2", "4", "10"], "x−2=4, x=6."),
-        ("x/4 + 3 = 7. x = ?", "16", ["4", "10", "28"], "x/4=4, x=16."),
         ("5x − 4 = 3x + 8. x = ?", "6", ["4", "12", "2"], "2x=12."),
-        ("−2x = 10. x = ?", "−5", ["5", "−8", "12"], "Divide by −2."),
-        ("x + 3 > 8. x is…", "greater than 5", ["less than 5", "equal to 5", "greater than 11"], "Subtract 3."),
-        ("2x + 1 > 9. x > ?", "4", ["5", "8", "10"], "2x>8."),
-        ("−x > 4. x is…", "less than −4", ["greater than −4", "greater than 4", "less than 4"], "Multiply by −1; flip the inequality."),
-        ("3x + 2x − 7 = 8. x = ?", "3", ["15", "1", "5"], "5x=15."),
-        ("Distribute 2(x+4).", "2x+8", ["2x+4", "x+8", "2x+6"], "2 times each term."),
-        ("A solution of 2x=10 is…", "5", ["8", "12", "20"], "Makes it true."),
-        ("x − 6 = −2. x = ?", "4", ["−8", "8", "−4"], "Add 6."),
-        ("4x + 1 = 21. x = ?", "5", ["20", "6", "4"], "4x=20."),
-        ("x/3 = −5. x = ?", "−15", ["−2", "15", "2"], "×3."),
-        ("2x − 3 < 7. x < ?", "5", ["10", "4", "2"], "2x<10."),
-        ("x ≥ −1 includes…", "−1 and all greater", ["only numbers > −1", "only −1", "all less"], "Filled circle."),
-        ("Open circle on 4 means…", "4 is not a solution", ["4 is a solution", "only 4", "x=4"], "> or <."),
-        ("3 − x = 10. x = ?", "−7", ["7", "13", "−13"], "−x=7."),
-        ("Half of (x+6) is 5. x = ?", "4", ["4 as 16?", "11", "−1"], "(x+6)=10."),
-        ("Tickets $8 plus $2 fee: 8n+2=42. n=?", "5", ["40", "6", "4"], "8n=40."),
-        ("Like terms 4x+3+2x=?", "6x+3", ["9x", "6x+5", "4x+5"], "4x+2x."),
-        ("Undo ×(−3) by…", "dividing by −3", ["subtracting −3", "adding 3", "×(−3) again"], "Inverse."),
-        ("If you × both sides of x>2 by −1, you get…", "x < −2", ["x > −2", "x < 2", "x > 2"], "Flip."),
-        ("1.5x = 6. x=?", "4", ["4.5", "7.5", "9"], "÷1.5."),
-        ("2(x−1)+3=11. x=?", "5", ["4", "6", "9"], "2x−2+3=11."),
-        ("x+x+x=−12. x=?", "−4", ["4", "−12", "−36"], "3x=−12."),
-        ("An equation has…", "an equals sign", ["only <", "no variable", "only a graph"], "Two sides equal."),
-        ("Check x=6 in 2x+5=17: 12+5=?", "17", ["11", "23", "6"], "It checks."),
-        ("Perimeter 2L+2W=20, W=3. L=?", "7", ["14", "17", "4"], "2L+6=20."),
-        ("3x−x+4=4. x=?", "0", ["4", "2", "−4"], "2x=0."),
+        ("A system is…", "two equations with the same two unknowns", ["one equation", "only a graph with no numbers", "a percent"], "You need both true at once."),
+        ("The solution of a 2-variable system is…", "an ordered pair (x, y)", ["only x", "only y", "a percent"], "One pair that fits both."),
+        ("y = x + 1 and x + y = 5. The meeting point is…", "(2, 3)", ["(3, 2)", "(1, 5)", "(0, 5)"], "x=2, y=3."),
+        ("Does (2, 3) solve x + y = 5?", "yes, 2+3=5", ["no", "only if y=2", "only if x=3"], "Plug in."),
+        ("Does (1, 1) solve both y=x+1 and x+y=5?", "no", ["yes", "only the first", "only the second"], "1≠2, so it misses y=x+1."),
+        ("y = 2x and x + y = 9. x = ?", "3", ["9", "6", "2"], "x+2x=9, x=3."),
+        ("y = 2x and x + y = 9. y = ?", "6", ["3", "9", "18"], "y=2×3."),
+        ("x + y = 10 and x − y = 2. x = ?", "6", ["8", "4", "12"], "Add: 2x=12."),
+        ("x + y = 10 and x − y = 2. y = ?", "4", ["6", "8", "2"], "10−6=4."),
+        ("If x = 2 in 2x + y = 7, y = ?", "3", ["5", "9", "11"], "4+y=7."),
+        ("Substitution: from y=3x into x+y=8. x = ?", "2", ["8", "3", "5"], "x+3x=8."),
+        ("Elimination: 2x+y=8 and 2x+3y=12. Subtract. y = ?", "2", ["4", "8", "1"], "2y=4."),
+        ("After y=2 in 2x+y=8, x = ?", "3", ["6", "4", "10"], "2x=6."),
+        ("Parallel lines (same slope, different intercepts) have…", "no solution", ["one solution", "infinitely many", "exactly two"], "They never meet."),
+        ("The same line twice has…", "infinitely many solutions", ["no solution", "one solution", "x=0 only"], "Every point on the line works."),
+        ("Two crossing lines have…", "exactly one solution", ["none", "infinitely many", "three"], "One meeting point."),
+        ("3x + 2y = 12 and y = 3. x = ?", "2", ["3", "6", "9"], "3x+6=12."),
+        ("Adult tickets $8, child $5, 3 adults and c children cost $34. c = ?", "2", ["5", "8", "4"], "24+5c=34."),
+        ("x + 2y = 11, x = 3. y = ?", "4", ["8", "7", "14"], "3+2y=11."),
+        ("2x − y = 5, y = x. x = ?", "5", ["2", "10", "0"], "2x−x=5."),
+        ("x + y = 0, y = −3. x = ?", "3", ["−3", "0", "−6"], "x−3=0."),
+        ("To substitute y=4x into 3x+y=20 you write…", "3x+4x=20", ["3x+y=4x", "y=20", "3+4=20"], "Replace y."),
+        ("Add x+y=7 and x−y=1. You get…", "2x=8", ["2y=8", "2x=6", "x=7"], "y's cancel."),
+        ("The pair (0, 5) on x+y=5 means…", "x=0 and y=5", ["x=5 and y=0", "both zero", "x=5"], "Order is (x, y)."),
+        ("If 2x+3y=12 and x=0, y=?", "4", ["12", "6", "3"], "3y=12."),
+        ("A graph solution is where the lines…", "cross", ["are parallel", "end", "turn into a circle"], "The shared point."),
+        ("x=4, y=1. Check  x−y=3?", "yes, 4−1=3", ["no", "4+1=5", "only if y=4"], "It fits."),
+        ("Two numbers sum to 12 and differ by 4. Larger?", "8", ["4", "6", "16"], "x+y=12, x−y=4."),
     ]
     return _fill(_pack(items), 80, lambda i: mq(
-        f"Solve 2x + 1 = {2 * (i % 9 + 3) + 1}.", i % 9 + 3, "Subtract 1, then divide by 2.", i))
+        f"y = 2x and x + y = {3 * (i % 6 + 2)}. What is x?",
+        i % 6 + 2,
+        "x + 2x is 3x. Divide the total by 3.",
+        i,
+        distractors=[2 * (i % 6 + 2), 3 * (i % 6 + 2), (i % 6 + 2) + 1],
+    ))
 
 
 def build_unit5():
     title = "Seventh Grade Math Unit 5: Multi-Step Equations and Inequalities"
-    description = "Solve two-step and simple multi-step equations. Graph inequalities, flipping when multiplying by a negative."
+    description = (
+        "Solve multi-step one-variable equations, then systems of two equations in two variables "
+        "by graphing, substitution, and elimination."
+    )
     c1 = concept_block(
-        "1. Two-step equations",
+        "1. Multi-step one-variable equations",
         ["Undo in reverse order: peel addition/subtraction, then undo multiply/divide.",
          "2x + 5 = 17 → subtract 5 → 2x=12 → x=6.",
-         "x/4 + 3 = 7 → subtract 3 → x/4=4 → x=16.",
-         "Keep both sides balanced. Whatever you do to one side, do to the other.",
+         "5x − 4 = 3x + 8 → subtract 3x → 2x − 4 = 8 → x=6.",
+         "You need this skill before a system, because substitution turns two variables into one.",
          "Check by substituting. 2(6)+5 should be 17.",
-         "A story like 8n+2=42 is the same two-step machine."],
+         "Keep both sides balanced."],
         balance_scale("2x + 5", "17", title="2x + 5 = 17")
         + solved(1, "Solve 2x + 5 = 17.", ["Subtract 5: 2x=12.", "Divide by 2: x=6.", "Check: 12+5=17."], "6")
         + phet_box("expr"),
-        kid_tip("Undo the last thing first", "If x was multiplied, then 5 was added, subtract 5 first."),
+        kid_tip("One variable first", "A system will collapse to this kind of equation after you substitute."),
         1)
     c2 = concept_block(
-        "2. Distribute, then solve",
-        ["3(x−2)=12 → 3x−6=12, or divide both sides by 3 first: x−2=4, so x=6.",
-         "2(x+4)=2x+8. Distribute before you combine.",
-         "2(x−1)+3=11 → 2x−2+3=11 → 2x+1=11 → x=5.",
-         "Parentheses are a grouping. Clear them, then combine like terms.",
-         "Like terms: 4x+3+2x = 6x+3.",
-         "A perimeter 2L+2W=20 with W=3 gives L=7."],
-        solved(1, "Solve 3(x − 2) = 12.", ["Divide both sides by 3: x−2=4.", "Add 2: x=6.", "Check: 3(4)=12."], "6")
-        + matching([("2(x+4)", "2x+8"), ("3(x−2)=12", "x=6"), ("4x+2x", "6x"), ("8n+2=42", "n=5")], vid="g7u5-c2-match"),
+        "2. What a system is",
+        ["A system is two equations that must both be true, usually with x and y.",
+         "A solution is an ordered pair (x, y) that works in both equations at the same time.",
+         "Example: y = x + 1 and x + y = 5. The pair (2, 3) works: 3=2+1 and 2+3=5.",
+         "(1, 1) fits neither both: 1 is not 1+1.",
+         "On a graph, each equation is a line. The solution is where the two lines meet.",
+         "Two crossing lines → one solution. Parallel → none. Same line → infinitely many."],
+        system_graph()
+        + solved(1, "y = x + 1 and x + y = 5. Find the solution pair.",
+                 ["From the first, y is one more than x.", "Then x + (x+1) = 5, so 2x=4, x=2.",
+                  "y=3. The pair is (2, 3)."], "(2, 3)")
+        + matching([("solution of a system", "(x, y) pair"), ("two crossing lines", "one solution"),
+                    ("parallel lines", "no solution"), ("same line twice", "infinitely many")], vid="g7u5-c2-match"),
         6)
     c3 = concept_block(
-        "3. Variables on both sides",
-        ["5x−4=3x+8. Subtract 3x: 2x−4=8. Add 4: 2x=12. x=6.",
-         "Collect x-terms on one side and constants on the other.",
-         "3x−x+4=4 → 2x=0 → x=0.",
-         "If the x-terms cancel and the numbers disagree, there is no solution. If they agree, every number works. Seventh grade mostly has one solution.",
-         "Move the smaller x-coefficient to keep a positive coefficient when you can.",
-         "Always check in the original equation."],
-        solved(1, "Solve 5x − 4 = 3x + 8.", ["Subtract 3x: 2x−4=8.", "Add 4: 2x=12.", "x=6."], "6")
-        + step_reveal(["Collect x-terms.", "Collect constants.", "Undo ×.", "Substitute to check."], vid="g7u5-c3-steps"),
+        "3. Substitution",
+        ["If one equation already says y = …, plug that into the other equation.",
+         "y = 2x and x + y = 9 → x + 2x = 9 → 3x = 9 → x = 3, y = 6.",
+         "If you know x = 2 in 2x + y = 7, then 4 + y = 7, y = 3.",
+         "You are turning two variables into one, then finishing with a one-variable equation.",
+         "Always find both x and y. An answer that is only x is half-done.",
+         "Check the pair in BOTH original equations."],
+        solved(1, "Solve y = 2x and x + y = 9.",
+               ["Replace y: x + 2x = 9.", "3x = 9, so x = 3.", "y = 2×3 = 6. Pair (3, 6)."], "(3, 6)")
+        + step_reveal(["Solve one equation for a variable (or use it if it already is).",
+                       "Substitute into the other equation.", "Solve the one-variable equation.",
+                       "Back-substitute and check both originals."], vid="g7u5-c3-steps"),
         11)
     c4 = concept_block(
-        "4. Negatives in equations",
-        ["−2x=10 → x=−5. Divide by −2.",
-         "3−x=10 → −x=7 → x=−7.",
-         "x/3=−5 → x=−15.",
-         "The same inverse operations work. The signs come along for the ride.",
-         "If you divide by a negative, the side values flip sign, but for equations (not inequalities) you do not flip an inequality symbol — there isn't one.",
-         "Check: −2(−5)=10."],
-        solved(1, "Solve −2x = 10.", ["Divide both sides by −2.", "x=−5.", "Check: −2×(−5)=10."], "−5")
-        + watch_out("Forgetting the sign on x", "If 3−x=10, then x is not 7. Isolate −x first, then multiply by −1."),
+        "4. Elimination",
+        ["Line the equations up. Add or subtract so one variable cancels.",
+         "x + y = 10 and x − y = 2. Add: 2x = 12, so x = 6. Then y = 4.",
+         "2x + y = 8 and 2x + 3y = 12. Subtract: 2y = 4, so y = 2. Then 2x + 2 = 8, x = 3.",
+         "If the coefficients do not match, multiply one equation first so they do.",
+         "Adding cancels opposites (y and −y). Subtracting cancels matching terms (2x and 2x).",
+         "Write the ordered pair and check."],
+        solved(1, "Solve x + y = 10 and x − y = 2.",
+               ["Add to cancel y: 2x = 12.", "x = 6.", "6 + y = 10, so y = 4. Pair (6, 4)."], "(6, 4)")
+        + watch_out("Stopping after one variable", "Elimination gives x or y first. You still owe the other coordinate."),
         16)
     c5 = concept_block(
-        "5. Inequalities and the flip",
-        ["x+3>8 → x>5. Open circle, shade right.",
-         "2x+1>9 → x>4.",
-         "When you multiply or divide both sides by a negative, flip < to > (or ≥ to ≤).",
-         "−x>4 → multiply by −1 → x<−4.",
-         "x≥−1 includes −1 (filled circle) and everything greater.",
-         "Many numbers can be solutions. Check a test point from the shaded side."],
-        inequality_line(">", 5, title="x > 5")
-        + inequality_line("<", -4, title="After flipping: x < −4",
-                          caption="−x > 4 becomes x < −4 when you multiply by −1. Flip the symbol.")
-        + solved(1, "Solve −x > 4.", ["Multiply both sides by −1.", "Flip: x < −4.", "Test x=−5: −(−5)=5>4, true."], "x < −4"),
+        "5. How many solutions?",
+        ["Graph picture: crossing, parallel, or stacked on the same line.",
+         "After substitution or elimination, 3 = 3 with no variable left means infinitely many (same line).",
+         "3 = 7 with no variable left means no solution (parallel, never meet).",
+         "A leftover x = 4 means exactly one solution. Find y too.",
+         "Two numbers that sum to 12 and differ by 4: x+y=12, x−y=4 → (8, 4).",
+         "Always name the pair, or say none, or say infinitely many."],
+        inequality_line(">", 5, title="One-variable reminder: x > 5 is a set, not a pair",
+                        caption="Inequalities in one variable are rays. A 2-variable system solution is a point.")
+        + solved(1, "Two lines have the same slope but different intercepts. How many solutions?",
+                 ["Same steepness, shifted.", "They never meet.", "No solution."], "no solution"),
         21)
     c6 = concept_block(
-        "6. Equation and inequality stories",
-        ["Tickets $8 plus a $2 fee: 8n+2=42 → n=5 tickets.",
-         "'At least 10' is ≥. 'More than 10' is >.",
-         "Perimeter, age, and money stories become two-step equations.",
-         "Define the variable: let n be the number of tickets.",
-         "A check in the original story is better than a check in symbols alone.",
-         "If the story is a limit (no more than), you want an inequality."],
-        balance_scale("8n + 2", "42", title="8n + 2 = 42")
-        + solved(1, "Tickets cost $8 plus a $2 fee. You spend $42. How many tickets?",
-                 ["8n+2=42.", "8n=40.", "n=5."], "5 tickets")
-        + try_this("Define n first", "A sentence 'let n be…' stops you from solving for the wrong quantity."),
+        "6. Two-variable stories",
+        ["Let x be adults and y be children, or let x and y be two unknown numbers.",
+         "Adults 8 dollars, children 5 dollars: 3 adults and c children cost 34 dollars → 24 + 5c = 34 → c = 2.",
+         "Sum 12 and difference 4 is a system: x+y=12, x−y=4.",
+         "A graph check: does the story pair sit on both lines?",
+         "Define both variables in sentences before you write equations.",
+         "Finish with a pair that you can read back in words: 6 adults and 4 children, not just x=6."],
+        balance_scale("x + y", "10", title="x + y = 10 is one equation; you still need a second")
+        + solved(1, "Two numbers sum to 12 and differ by 4. What is the larger number?",
+                 ["x+y=12 and x−y=4.", "Add: 2x=16, x=8.", "y=4. Larger is 8."], "8")
+        + try_this("Two letters, two facts", "Each sentence in the story becomes one equation."),
         26)
     content = unit_shell(
         title,
-        ["Solve two-step equations", "Distribute, then solve", "Variables on both sides",
-         "Handle negatives", "Graph inequalities and flip when needed", "Translate stories"],
+        ["Multi-step one-variable equations", "What a system is", "Substitution",
+         "Elimination", "How many solutions", "Two-variable stories"],
         c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 50))
     return title, description, content, _u5_questions()
 
@@ -528,7 +544,7 @@ def build_unit8():
 def build_master():
     return f"""
 <h1>Seventh Grade Math</h1>
-<p>This is a full seventh-grade math path. Seventh grade <strong>builds a bridge from arithmetic to early algebra</strong>. You will work with negative numbers, multi-step equations, unit rates and proportions, circle measure, surface area, and chance.</p>
+<p>This is a full seventh-grade math path. Seventh grade <strong>builds a bridge from arithmetic to early algebra</strong>. You will work with negative numbers, two-variable systems, unit rates and proportions, circle measure, surface area, and chance.</p>
 <p>After each idea there are 5 quick questions. At the end of a unit there are 50 more. Hearts help you. Take your time.</p>
 {page_break()}
 <h2>The eight units</h2>
@@ -537,12 +553,12 @@ def build_master():
 <li>Unit 2 — Multiplying and Dividing Rational Numbers</li>
 <li>Unit 3 — Proportional Relationships</li>
 <li>Unit 4 — Percents</li>
-<li>Unit 5 — Multi-Step Equations and Inequalities</li>
+<li>Unit 5 — Multi-Step Equations and Two-Variable Systems</li>
 <li>Unit 6 — Circles and Angle Relationships</li>
 <li>Unit 7 — Scale Drawings, Surface Area, and Volume</li>
 <li>Unit 8 — Statistics and Probability</li>
 </ol>
-<p>Negatives stretch the number line. Proportions lock two quantities together. Equations are a balance scale. Circles bring π. Nets wrap boxes. Probability counts what can happen.</p>
+<p>Negatives stretch the number line. Proportions lock two quantities together. A system is two equations and one ordered pair. Circles bring π. Nets wrap boxes. Probability counts what can happen.</p>
 {page_break()}
 <h2>How to learn</h2>
 <p>Hop on a number line. Keep both sides of an equation equal. Flip an inequality when you multiply by a negative. Use 3.14 for π unless a problem says otherwise. For chance, write favorable over total, then multiply along a tree for independent events.</p>

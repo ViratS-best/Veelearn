@@ -590,6 +590,42 @@ def proportional_graph(k=2, title="A proportional graph", caption=""):
     )
 
 
+def system_graph(title="A system: two lines, one meeting point", caption=""):
+    """Graph y = x + 1 and x + y = 5, which meet at (2, 3)."""
+    w, h = 280, 260
+    ox, oy = 40, 220
+    scale = 36
+    # y = x + 1: (0,1), (1,2), (2,3), (3,4)
+    # x + y = 5 => y = 5-x: (0,5), (1,4), (2,3), (3,2)
+    def pt(x, y):
+        return ox + x * scale, oy - y * scale
+
+    x1a, y1a = pt(0, 1)
+    x1b, y1b = pt(3.2, 4.2)
+    x2a, y2a = pt(0, 5)
+    x2b, y2b = pt(3.4, 1.6)
+    ix, iy = pt(2, 3)
+    svg = f"""
+<svg viewBox="0 0 {w} {h}" width="{w}" role="img" aria-label="{html.escape(title)}">
+  <line x1="{ox}" y1="{oy}" x2="250" y2="{oy}" stroke="#0f172a" stroke-width="2"/>
+  <line x1="{ox}" y1="{oy}" x2="{ox}" y2="16" stroke="#0f172a" stroke-width="2"/>
+  <text x="252" y="{oy + 4}" font-size="13" font-weight="700" fill="#1e3a8a">x</text>
+  <text x="{ox + 6}" y="16" font-size="13" font-weight="700" fill="#1e3a8a">y</text>
+  <line x1="{x1a}" y1="{y1a}" x2="{x1b}" y2="{y1b}" stroke="#4f46e5" stroke-width="3"/>
+  <line x1="{x2a}" y1="{y2a}" x2="{x2b}" y2="{y2b}" stroke="#dc2626" stroke-width="3"/>
+  <circle cx="{ix}" cy="{iy}" r="6" fill="#16a34a" stroke="#14532d" stroke-width="2"/>
+  <text x="{ix + 10}" y="{iy - 8}" font-size="12" font-weight="700">(2, 3)</text>
+  <text x="148" y="48" font-size="12" fill="#4f46e5">y = x + 1</text>
+  <text x="148" y="66" font-size="12" fill="#dc2626">x + y = 5</text>
+</svg>
+"""
+    return figure(
+        title,
+        svg,
+        caption or "The solution of a system is the point that sits on both lines. Here that point is (2, 3).",
+    )
+
+
 def circle_figure(radius=5, show="both", title="A circle", caption=""):
     cx, cy, r = 130, 110, 70
     bits = [
@@ -832,7 +868,7 @@ def concept_block(
 def unit_shell(title: str, roadmap_items, body_html: str, final_slots_html: str) -> str:
     return f"""
 <h1>{title}</h1>
-<p>This is <strong>seventh grade math</strong>. You are bridging arithmetic and early algebra. We work with negative numbers, proportions, multi-step equations, circles, surface area, and probability.</p>
+<p>This is <strong>seventh grade math</strong>. You are bridging arithmetic and early algebra. We work with negative numbers, proportions, multi-step equations, two-variable systems, circles, surface area, and probability.</p>
 <p>After each idea you get 5 quick questions. At the end you get a big practice set.</p>
 <h2>What we will learn</h2>
 {ol(roadmap_items)}

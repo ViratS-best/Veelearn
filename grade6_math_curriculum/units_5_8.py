@@ -286,23 +286,34 @@ def _u6_questions():
         ("2(3 + x) when x=1 is…", "8", ["7", "5", "6"], "2×4=8."),
         ("Combine 2a + 5 + 3a − 1.", "5a + 4", ["5a + 6", "6a + 4", "5a − 4"], "2a+3a=5a, 5−1=4."),
         ("If n is a number of packs, 4n is…", "4 times as many", ["n plus 4", "n minus 4", "4 only"], "Coefficient 4."),
+        ("Solve 2x + 1 = 9.", "4", ["8", "5", "10"], "Subtract 1, divide by 2."),
+        ("Solve 5x − 2 = 18.", "4", ["16", "20", "3"], "Add 2, divide by 5."),
+        ("Solve x/3 + 1 = 5.", "12", ["2", "4", "15"], "Subtract 1, multiply by 3."),
+        ("Solve 4x + 3 = 19.", "4", ["16", "22", "5"], "4x=16."),
+        ("Solve 3x − 5 = 10.", "5", ["15", "2", "8"], "3x=15."),
+        ("Solve 2x − 1 = 11.", "6", ["12", "5", "10"], "2x=12."),
+        ("A number times 2, plus 3, is 11. The number?", "4", ["7", "8", "14"], "2n+3=11."),
+        ("Solve 6 = 2x + 2.", "2", ["4", "8", "1"], "4=2x."),
+        ("Solve x/2 − 3 = 1.", "8", ["−4", "2", "4"], "x/2=4."),
+        ("Solve 7x = 21.", "3", ["14", "28", "7"], "Divide by 7."),
+        ("Undo +3 then ×2 by…", "subtract 3, then divide by 2", ["divide first", "add 3, then ×2", "subtract 2"], "Peel the last operation first."),
     ]
     for text, ans, dist, expl in items:
         qs.append(mq(text, ans, expl, idx, distractors=dist))
         idx += 1
     return _fill(qs, 80, lambda i: mq(
-        f"Solve x + {i % 7 + 2} = {i % 7 + 10}.",
-        8,
-        "Subtract the added number from both sides. Difference of the two constants is 8.",
+        f"Solve 2x + 1 = {2 * (i % 8 + 2) + 1}.",
+        i % 8 + 2,
+        "Subtract 1, then divide by 2.",
         i,
-        distractors=[i % 7 + 10, i % 7 + 2, 10],
+        distractors=[2 * (i % 8 + 2) + 1, i % 8 + 3, (i % 8 + 2) * 2],
     ))
 
 
 def build_unit6():
     title = "Sixth Grade Math Unit 6: Expressions, Equations, and Inequalities"
     description = (
-        "Write and evaluate expressions, solve one-step equations, and graph simple inequalities."
+        "Write and evaluate expressions, solve one-step and two-step single-variable equations, and graph simple inequalities."
     )
     c1 = concept_block(
         "1. Expressions and like terms",
@@ -367,6 +378,11 @@ def build_unit6():
                   "x = 7.",
                   "Check: 7 + 5 = 12."],
                  "7")
+        + solved(2, "Solve 2x + 1 = 9.",
+                 ["Subtract 1: 2x = 8.",
+                  "Divide by 2: x = 4.",
+                  "Check: 2×4 + 1 = 9."],
+                 "4")
         + step_reveal(
             ["Look at what is done to x.",
              "Do the inverse to both sides.",
@@ -377,12 +393,12 @@ def build_unit6():
         11,
     )
     c4 = concept_block(
-        "4. One-step equations of all four types",
+        "4. One-step and two-step equations",
         [
             "x + a = b → subtract a. x − a = b → add a.",
             "ax = b → divide by a. x/a = b → multiply by a.",
             "x − 4 = 9 → x = 13. x/2 = 7 → x = 14.",
-            "2x + 1 = 9 is two steps: subtract 1, then divide by 2, so x = 4. Sixth grade often stays one-step, but a short two-step is fair practice.",
+            "Two-step: undo add/subtract first, then undo multiply/divide. 2x + 1 = 9 → x = 4. 5x − 2 = 18 → x = 4. x/3 + 1 = 5 → x = 12.",
             "Fractions and decimals are allowed: the same inverse still works.",
             "If both sides are swapped, 6 = 2x is still x = 3.",
         ],
@@ -391,9 +407,14 @@ def build_unit6():
                 "Divide both sides by 3.",
                 "x = 6. Check: 3×6=18."],
                "6")
+        + solved(2, "Solve 5x − 2 = 18.",
+                 ["Add 2: 5x = 20.",
+                  "Divide by 5: x = 4.",
+                  "Check: 5×4 − 2 = 18."],
+                 "4")
         + matching(
             [("x + 5 = 12", "x = 7"), ("3x = 18", "x = 6"),
-             ("x − 4 = 9", "x = 13"), ("x/2 = 7", "x = 14")],
+             ("2x + 1 = 9", "x = 4"), ("x/3 + 1 = 5", "x = 12")],
             vid="g6u6-c4-match",
         ),
         try_this("Name the inverse out loud", "Say 'this equation adds 5, so I subtract 5 from both sides.'"),
@@ -452,7 +473,7 @@ def build_unit6():
             "Simplify expressions and like terms",
             "Write expressions from words",
             "See equations as a balance",
-            "Solve one-step equations",
+            "Solve one-step and two-step equations",
             "Graph inequalities",
             "Translate algebra stories",
         ],
