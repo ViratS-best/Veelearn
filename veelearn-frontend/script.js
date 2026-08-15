@@ -3832,7 +3832,10 @@ function renderUserCourses(searchText) {
             li.setAttribute("data-my-course", "1");
 
             li.innerHTML = `
-        <div class="course-card-image" style="font-size: 40px; height: 120px;">🎓</div>
+        <div class="course-card-image" style="font-size: 40px; height: 120px;">
+          🎓
+          <button type="button" class="course-card-play" aria-label="Preview ${escapeHtml(course.title)}" onclick="event.stopPropagation(); previewCourse(${course.id})">▶</button>
+        </div>
         <div class="course-card-content">
           <div class="course-card-title">${escapeHtml(course.title)}</div>
           <div class="course-card-status" style="background: ${course.status === "pending" ? "rgba(255,152,0,0.1)" : "rgba(74,222,128,0.1)"}; color: ${course.status === "pending" ? "#ff9800" : "var(--success)"}">${escapeHtml(course.status?.toUpperCase()) || "UNKNOWN"}</div>
@@ -4506,7 +4509,18 @@ async function viewCourse(courseId, assignmentId = null, forceRegular = false) {
     }
 
     // Check if user is enrolled in this course (but NOT the creator - creators aren't "enrolled")
-    const isEnrolledStudent = !isCreator && myCourses.some(c => Number(c.id) === idNum);
+    let enrolledFromCache = (window.LearnerGamification?.getEnrolledIds?.() || []).some(
+        (id) => Number(id) === idNum
+    );
+    if (!isCreator && !enrolledFromCache && typeof window.LearnerGamification?.fetchEnrollments === 'function') {
+        try {
+            const list = await window.LearnerGamification.fetchEnrollments();
+            enrolledFromCache = (list || []).some((c) => Number(c.course_id || c.id) === idNum);
+        } catch (_) { /* ignore */ }
+    }
+    const isEnrolledStudent = !isCreator && (
+        myCourses.some(c => Number(c.id) === idNum) || enrolledFromCache
+    );
     
     if (isEnrolledStudent && !forceRegular) {
         // Use enhanced navigation for enrolled students (supports master courses)
@@ -4612,8 +4626,11 @@ async function viewCourse(courseId, assignmentId = null, forceRegular = false) {
                 window.CourseBossBattle.init(course, courseQuestions, { parent: currentMasterCourse });
             }
             if (window.CourseProgress?.onPageShown) {
-                window.CourseProgress.setContext({ courseId: course.id });
-                window.CourseProgress.onPageShown(index, viewerPages.length, { courseId: course.id });
+                window.CourseProgress.setContext({ courseId: course.id, unitId: null });
+                window.CourseProgress.onPageShown(index, viewerPages.length, { courseId: course.id, unitId: null });
+                if (window.CourseProgress.onUnitQuizzesProgress) {
+                    window.CourseProgress.onUnitQuizzesProgress();
+                }
             }
 
             // Render LaTeX - CRITICAL: Must wait for MathJax to be fully loaded
@@ -6654,6 +6671,8 @@ async function loadUnitContent(unit) {
                 }
                 if (window.CourseProgress) {
                     window.CourseProgress.setContext({ courseId: unit.child_course_id, unitId: unit.unit_id });
+                    const saved = Number(unit.progress_percentage);
+                    if (Number.isFinite(saved) && saved > 0) window.CourseProgress.setRing(saved);
                     window.CourseProgress.onUnitQuizzesProgress();
                 }
                 
@@ -6781,7 +6800,10 @@ async function loadCourseQuestions(courseId) {
 
         const result = await response.json();
         if (result.success) {
-            courseQuestions = result.data;
+            courseQuestions = (result.data || []).map((q) => {
+                if (q.previously_correct || q.already_correct) q._answeredCorrect = true;
+                return q;
+            });
             console.log(`Loaded ${courseQuestions.length} questions for course ${courseId}`);
         }
     } catch (error) {

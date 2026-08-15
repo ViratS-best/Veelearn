@@ -437,6 +437,7 @@ const initializeDatabase = async () => {
         await addColumn('users', 'best_correct_streak', 'INT DEFAULT 0');
         await addColumn('courses', 'gamification_json', 'TEXT NULL');
         await addColumn('course_questions', 'difficulty', 'VARCHAR(16) NULL');
+        await addColumn('course_views', 'progress_percentage', 'DECIMAL(5,2) DEFAULT 0');
         info('✓ XP / difficulty / gamification columns ready');
 
         await query(`
@@ -3776,8 +3777,8 @@ app.put('/api/courses/units/:unitId/progress', authenticateToken, (req, res) => 
             db.query(`
                 INSERT INTO course_enrollment_progress (user_id, course_id, unit_id, progress_percentage)
                 VALUES (?, ?, ?, ?)
-                ON DUPLICATE KEY UPDATE progress_percentage = ?
-            `, [userId, unit.parent_course_id, unitId, progress_percentage, progress_percentage], 
+                ON DUPLICATE KEY UPDATE progress_percentage = GREATEST(COALESCE(progress_percentage, 0), VALUES(progress_percentage))
+            `, [userId, unit.parent_course_id, unitId, Math.max(0, Math.min(100, Number(progress_percentage) || 0))], 
             (err) => {
                 if (err) {
                     return apiResponse(res, 500, 'Server error updating progress');
@@ -3786,6 +3787,29 @@ app.put('/api/courses/units/:unitId/progress', authenticateToken, (req, res) => 
             });
         });
     });
+});
+
+// Save progress for a standalone (non-master-unit) course
+app.put('/api/courses/:courseId/progress', authenticateToken, (req, res) => {
+    const courseId = req.params.courseId;
+    const userId = req.user.id;
+    const pct = Math.max(0, Math.min(100, Number(req.body?.progress_percentage) || 0));
+
+    db.query(
+        `INSERT INTO course_views (user_id, course_id, progress_percentage, last_viewed)
+         VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+         ON DUPLICATE KEY UPDATE
+           progress_percentage = GREATEST(COALESCE(progress_percentage, 0), VALUES(progress_percentage)),
+           last_viewed = CURRENT_TIMESTAMP`,
+        [userId, courseId, pct],
+        (err) => {
+            if (err) {
+                console.error('Error updating course progress:', err);
+                return apiResponse(res, 500, 'Server error updating progress');
+            }
+            apiResponse(res, 200, 'Progress updated successfully', { progress_percentage: pct });
+        }
+    );
 });
 
 // Mark unit as complete
@@ -3816,9 +3840,9 @@ app.post('/api/courses/units/:unitId/complete', authenticateToken, (req, res) =>
 
         function completeUnit() {
             db.query(`
-                INSERT INTO course_enrollment_progress (user_id, course_id, unit_id, completed, completed_at)
-                VALUES (?, ?, ?, TRUE, CURRENT_TIMESTAMP)
-                ON DUPLICATE KEY UPDATE completed = TRUE, completed_at = CURRENT_TIMESTAMP
+                INSERT INTO course_enrollment_progress (user_id, course_id, unit_id, completed, completed_at, progress_percentage)
+                VALUES (?, ?, ?, TRUE, CURRENT_TIMESTAMP, 100)
+                ON DUPLICATE KEY UPDATE completed = TRUE, completed_at = CURRENT_TIMESTAMP, progress_percentage = 100
             `, [userId, unit.parent_course_id, unitId], (err) => {
                 if (err) {
                     return apiResponse(res, 500, 'Server error completing unit');
@@ -4004,7 +4028,13 @@ app.get('/api/users/enrollments/:courseId/progress', authenticateToken, (req, re
 
             const completedCount = units.filter(u => u.completed).length;
             const totalUnits = units.length;
-            const overallProgress = totalUnits > 0 ? Math.round((completedCount / totalUnits) * 100) : 0;
+            const overallProgress = totalUnits > 0
+                ? Math.round(units.reduce((sum, u) => {
+                    if (u.completed) return sum + 100;
+                    const p = Number(u.progress_percentage);
+                    return sum + (Number.isFinite(p) ? Math.max(0, Math.min(100, p)) : 0);
+                }, 0) / totalUnits)
+                : 0;
             const isComplete = totalUnits > 0 && completedCount === totalUnits;
 
             apiResponse(res, 200, 'Progress fetched successfully', {
@@ -4054,17 +4084,16 @@ app.get('/api/users/enrollments/enhanced', authenticateToken, (req, res) => {
     const query = `
         SELECT c.id, c.title, c.description, c.creator_id, c.course_type,
                e.enrolled_at, e.is_master_enrollment,
-               cv.completed, cv.view_duration_hours,
+               cv.completed, cv.view_duration_hours, cv.progress_percentage AS view_progress,
                CASE 
                    WHEN cv.completed = TRUE THEN 'completed'
-                   WHEN cv.view_duration_hours > 0 THEN 'in_progress'
+                   WHEN cv.view_duration_hours > 0 OR COALESCE(cv.progress_percentage, 0) > 0 THEN 'in_progress'
                    ELSE 'enrolled'
                END as enrollment_status,
                CASE 
                    WHEN c.course_type = 'master' THEN (
                        SELECT COUNT(*) FROM course_units cu 
-                       JOIN course_enrollment_progress cep ON cep.unit_id = cu.id 
-                       WHERE cu.parent_course_id = c.id AND cep.user_id = e.user_id
+                       WHERE cu.parent_course_id = c.id AND cu.is_draft = FALSE
                    )
                    ELSE NULL
                END as total_units,
@@ -4075,11 +4104,42 @@ app.get('/api/users/enrollments/enhanced', authenticateToken, (req, res) => {
                        WHERE cu.parent_course_id = c.id AND cep.user_id = e.user_id AND cep.completed = TRUE
                    )
                    ELSE NULL
-               END as completed_units
+               END as completed_units,
+               CASE
+                   WHEN c.course_type = 'master' THEN (
+                       SELECT ROUND(AVG(
+                           CASE WHEN cep.completed = TRUE THEN 100
+                                ELSE LEAST(100, GREATEST(0, COALESCE(cep.progress_percentage, 0)))
+                           END
+                       ))
+                       FROM course_units cu
+                       LEFT JOIN course_enrollment_progress cep
+                         ON cep.unit_id = cu.id AND cep.user_id = e.user_id
+                       WHERE cu.parent_course_id = c.id AND cu.is_draft = FALSE
+                   )
+                   ELSE COALESCE(
+                       cv.progress_percentage,
+                       (
+                           SELECT ROUND(100 * SUM(CASE WHEN uqa.is_correct = 1 THEN 1 ELSE 0 END)
+                                        / NULLIF(COUNT(*), 0))
+                           FROM course_questions cq
+                           LEFT JOIN user_quiz_attempts uqa
+                             ON uqa.question_id = cq.id AND uqa.user_id = e.user_id
+                           WHERE cq.course_id = c.id
+                       ),
+                       0
+                   )
+               END as progress_percentage
         FROM enrollments e
         JOIN courses c ON e.course_id = c.id
         LEFT JOIN course_views cv ON cv.user_id = e.user_id AND cv.course_id = c.id
         WHERE e.user_id = ?
+          AND NOT EXISTS (
+              SELECT 1 FROM course_units cu_child
+              INNER JOIN enrollments em
+                ON em.user_id = e.user_id AND em.course_id = cu_child.parent_course_id
+              WHERE cu_child.child_course_id = c.id AND cu_child.is_draft = FALSE
+          )
         ORDER BY e.enrolled_at DESC
     `;
 
@@ -5269,7 +5329,13 @@ app.get('/api/users/enrollments/:courseId/progress', authenticateToken, (req, re
 
             const completedCount = units.filter(u => u.completed).length;
             const totalUnits = units.length;
-            const overallProgress = totalUnits > 0 ? Math.round((completedCount / totalUnits) * 100) : 0;
+            const overallProgress = totalUnits > 0
+                ? Math.round(units.reduce((sum, u) => {
+                    if (u.completed) return sum + 100;
+                    const p = Number(u.progress_percentage);
+                    return sum + (Number.isFinite(p) ? Math.max(0, Math.min(100, p)) : 0);
+                }, 0) / totalUnits)
+                : 0;
             const isComplete = totalUnits > 0 && completedCount === totalUnits;
 
             apiResponse(res, 200, 'Progress fetched successfully', {
@@ -5310,8 +5376,8 @@ app.put('/api/courses/units/:unitId/progress', authenticateToken, (req, res) => 
             db.query(`
                 INSERT INTO course_enrollment_progress (user_id, course_id, unit_id, progress_percentage)
                 VALUES (?, ?, ?, ?)
-                ON DUPLICATE KEY UPDATE progress_percentage = ?
-            `, [userId, unit.parent_course_id, unitId, progress_percentage, progress_percentage], 
+                ON DUPLICATE KEY UPDATE progress_percentage = GREATEST(COALESCE(progress_percentage, 0), VALUES(progress_percentage))
+            `, [userId, unit.parent_course_id, unitId, Math.max(0, Math.min(100, Number(progress_percentage) || 0))], 
             (updateErr) => {
                 if (updateErr) {
                     return apiResponse(res, 500, 'Server error updating progress');
@@ -5441,17 +5507,16 @@ app.get('/api/users/enrollments/enhanced', authenticateToken, (req, res) => {
     const query = `
         SELECT c.id, c.title, c.description, c.creator_id, c.course_type,
                e.enrolled_at, e.is_master_enrollment,
-               cv.completed, cv.view_duration_hours,
+               cv.completed, cv.view_duration_hours, cv.progress_percentage AS view_progress,
                CASE 
                    WHEN cv.completed = TRUE THEN 'completed'
-                   WHEN cv.view_duration_hours > 0 THEN 'in_progress'
+                   WHEN cv.view_duration_hours > 0 OR COALESCE(cv.progress_percentage, 0) > 0 THEN 'in_progress'
                    ELSE 'enrolled'
                END as enrollment_status,
                CASE 
                    WHEN c.course_type = 'master' THEN (
                        SELECT COUNT(*) FROM course_units cu 
-                       JOIN course_enrollment_progress cep ON cep.unit_id = cu.id 
-                       WHERE cu.parent_course_id = c.id AND cep.user_id = e.user_id
+                       WHERE cu.parent_course_id = c.id AND cu.is_draft = FALSE
                    )
                    ELSE NULL
                END as total_units,
@@ -5462,11 +5527,42 @@ app.get('/api/users/enrollments/enhanced', authenticateToken, (req, res) => {
                        WHERE cu.parent_course_id = c.id AND cep.user_id = e.user_id AND cep.completed = TRUE
                    )
                    ELSE NULL
-               END as completed_units
+               END as completed_units,
+               CASE
+                   WHEN c.course_type = 'master' THEN (
+                       SELECT ROUND(AVG(
+                           CASE WHEN cep.completed = TRUE THEN 100
+                                ELSE LEAST(100, GREATEST(0, COALESCE(cep.progress_percentage, 0)))
+                           END
+                       ))
+                       FROM course_units cu
+                       LEFT JOIN course_enrollment_progress cep
+                         ON cep.unit_id = cu.id AND cep.user_id = e.user_id
+                       WHERE cu.parent_course_id = c.id AND cu.is_draft = FALSE
+                   )
+                   ELSE COALESCE(
+                       cv.progress_percentage,
+                       (
+                           SELECT ROUND(100 * SUM(CASE WHEN uqa.is_correct = 1 THEN 1 ELSE 0 END)
+                                        / NULLIF(COUNT(*), 0))
+                           FROM course_questions cq
+                           LEFT JOIN user_quiz_attempts uqa
+                             ON uqa.question_id = cq.id AND uqa.user_id = e.user_id
+                           WHERE cq.course_id = c.id
+                       ),
+                       0
+                   )
+               END as progress_percentage
         FROM enrollments e
         JOIN courses c ON e.course_id = c.id
         LEFT JOIN course_views cv ON cv.user_id = e.user_id AND cv.course_id = c.id
         WHERE e.user_id = ?
+          AND NOT EXISTS (
+              SELECT 1 FROM course_units cu_child
+              INNER JOIN enrollments em
+                ON em.user_id = e.user_id AND em.course_id = cu_child.parent_course_id
+              WHERE cu_child.child_course_id = c.id AND cu_child.is_draft = FALSE
+          )
         ORDER BY e.enrolled_at DESC
     `;
 
@@ -6344,26 +6440,31 @@ app.post('/api/courses/:courseId/questions', authenticateToken, (req, res) => {
 // Get all questions for a course
 app.get('/api/courses/:courseId/questions', authenticateToken, (req, res) => {
     const courseId = req.params.courseId;
+    const userId = req.user.id;
     debug(`DEBUG GET QUESTIONS: Course ${courseId}, User: ${req.user.id}, Role: ${req.user.role}`);
 
     const query = `
-        SELECT id, course_id, question_text, question_type, options, correct_answer, 
-               explanation, points, order_index, difficulty, created_at
-        FROM course_questions
-        WHERE course_id = ?
-        ORDER BY order_index ASC, created_at ASC
+        SELECT cq.id, cq.course_id, cq.question_text, cq.question_type, cq.options, cq.correct_answer, 
+               cq.explanation, cq.points, cq.order_index, cq.difficulty, cq.created_at,
+               CASE WHEN uqa.is_correct = 1 THEN 1 ELSE 0 END AS previously_correct
+        FROM course_questions cq
+        LEFT JOIN user_quiz_attempts uqa ON uqa.question_id = cq.id AND uqa.user_id = ?
+        WHERE cq.course_id = ?
+        ORDER BY cq.order_index ASC, cq.created_at ASC
     `;
 
-    db.query(query, [courseId], (err, results) => {
+    db.query(query, [userId, courseId], (err, results) => {
         if (err && /Unknown column 'difficulty'/i.test(err.message || '')) {
             const fallback = `
-                SELECT id, course_id, question_text, question_type, options, correct_answer, 
-                       explanation, points, order_index, created_at
-                FROM course_questions
-                WHERE course_id = ?
-                ORDER BY order_index ASC, created_at ASC
+                SELECT cq.id, cq.course_id, cq.question_text, cq.question_type, cq.options, cq.correct_answer, 
+                       cq.explanation, cq.points, cq.order_index, cq.created_at,
+                       CASE WHEN uqa.is_correct = 1 THEN 1 ELSE 0 END AS previously_correct
+                FROM course_questions cq
+                LEFT JOIN user_quiz_attempts uqa ON uqa.question_id = cq.id AND uqa.user_id = ?
+                WHERE cq.course_id = ?
+                ORDER BY cq.order_index ASC, cq.created_at ASC
             `;
-            return db.query(fallback, [courseId], (err2, results2) => {
+            return db.query(fallback, [userId, courseId], (err2, results2) => {
                 if (err2) {
                     console.error('Error fetching questions:', err2);
                     return apiResponse(res, 500, 'Server error fetching questions');
@@ -6387,6 +6488,8 @@ app.get('/api/courses/:courseId/questions', authenticateToken, (req, res) => {
                     q.options = [];
                 }
             }
+            q.previously_correct = Number(q.previously_correct) === 1;
+            if (q.previously_correct) q.already_correct = true;
             return q;
         });
         const n = questions.length;

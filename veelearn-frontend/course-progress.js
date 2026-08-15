@@ -120,7 +120,7 @@
     pageIndex = index;
     pageTotal = Math.max(1, total || 1);
     courseId = (opts && opts.courseId) || window.currentViewingCourseId || courseId;
-    unitId = (opts && opts.unitId) || unitId;
+    if (opts && 'unitId' in opts) unitId = opts.unitId;
     const pct = ((index + 1) / pageTotal) * 100;
     setRing(pct);
 
@@ -131,19 +131,30 @@
       if (result && result.xpAwarded > 0) celebrate();
     }
 
-    if (unitId && typeof window.updateUnitProgress === 'function') {
+    if (unitId && typeof window.updateUnitProgress === 'function' && Math.round(pct) > 0) {
       window.updateUnitProgress(unitId, Math.round(pct));
+    } else if (!unitId && courseId && Math.round(pct) > 0) {
+      api(`/api/courses/${courseId}/progress`, {
+        method: 'PUT',
+        body: JSON.stringify({ progress_percentage: Math.round(pct) })
+      }).catch(() => {});
     }
   }
 
   async function onUnitQuizzesProgress() {
     const qs = window.courseQuestions || [];
-    if (!qs.length || !unitId) return;
+    if (!qs.length) return;
     const answered = qs.filter((q) => q._answeredCorrect).length;
     const pct = Math.round((answered / qs.length) * 100);
+    if (pct <= 0) return;
     setRing(pct);
-    if (typeof window.updateUnitProgress === 'function') {
+    if (unitId && typeof window.updateUnitProgress === 'function') {
       window.updateUnitProgress(unitId, pct);
+    } else if (courseId) {
+      api(`/api/courses/${courseId}/progress`, {
+        method: 'PUT',
+        body: JSON.stringify({ progress_percentage: pct })
+      }).catch(() => {});
     }
   }
 
@@ -163,8 +174,8 @@
     celebrate,
     setRing,
     setContext(ctx) {
-      courseId = ctx.courseId != null ? ctx.courseId : courseId;
-      unitId = ctx.unitId != null ? ctx.unitId : unitId;
+      if (ctx && 'courseId' in ctx) courseId = ctx.courseId;
+      if (ctx && 'unitId' in ctx) unitId = ctx.unitId;
     }
   };
 })();

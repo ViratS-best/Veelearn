@@ -10,13 +10,26 @@ const STORE_SEED = [
     { item_id: 'theme_happy', item_type: 'theme', name: 'Happy', gem_cost: 55, asset_key: 'happy', description: 'Sunny yellow smiles' },
     { item_id: 'theme_hacker', item_type: 'theme', name: 'Hacker', gem_cost: 80, asset_key: 'hacker', description: 'Terminal green glow' },
     { item_id: 'theme_superhero', item_type: 'theme', name: 'Superhero', gem_cost: 100, asset_key: 'superhero', description: 'Comic-book power colors' },
+    { item_id: 'theme_midnight', item_type: 'theme', name: 'Midnight', gem_cost: 500, asset_key: 'midnight', description: 'Deep navy night sky' },
+    { item_id: 'theme_gold', item_type: 'theme', name: 'Gold Rush', gem_cost: 600, asset_key: 'gold', description: 'Gilded luxury dashboard' },
+    { item_id: 'theme_galaxy', item_type: 'theme', name: 'Galaxy', gem_cost: 850, asset_key: 'galaxy', description: 'Nebula purples and starlight' },
     { item_id: 'hat_blue', item_type: 'hat', name: 'Blue Cap', gem_cost: 25, asset_key: 'hat-blue', description: 'A comfy blue baseball cap' },
     { item_id: 'hat_crown', item_type: 'hat', name: 'Mini Crown', gem_cost: 60, asset_key: 'hat-crown', description: 'Feel like a learning champ' },
+    { item_id: 'hat_gold', item_type: 'hat', name: 'Golden Crown', gem_cost: 180, asset_key: 'hat-gold', description: 'A heavy gold crown with jewels' },
+    { item_id: 'hat_wizard', item_type: 'hat', name: 'Wizard Hat', gem_cost: 350, asset_key: 'hat-wizard', description: 'Star-speckled mage hat' },
     { item_id: 'glasses_round', item_type: 'glasses', name: 'Round Glasses', gem_cost: 30, asset_key: 'glasses-round', description: 'Scholarly round frames' },
+    { item_id: 'glasses_gold', item_type: 'glasses', name: 'Gold Specs', gem_cost: 220, asset_key: 'glasses-gold', description: 'Polished gold scholar frames' },
+    { item_id: 'glasses_star', item_type: 'glasses', name: 'Star Shades', gem_cost: 400, asset_key: 'glasses-star', description: 'Star-tinted legendary shades' },
     { item_id: 'shirt_green', item_type: 'shirt', name: 'Green Hoodie', gem_cost: 35, asset_key: 'shirt-green', description: 'Cozy green hoodie' },
     { item_id: 'shirt_hero', item_type: 'shirt', name: 'Hero Tee', gem_cost: 45, asset_key: 'shirt-hero', description: 'Superhero stripe tee' },
+    { item_id: 'shirt_royal', item_type: 'shirt', name: 'Royal Robe', gem_cost: 450, asset_key: 'shirt-royal', description: 'Velvet robe with gold trim' },
+    { item_id: 'shirt_armor', item_type: 'shirt', name: 'Knight Armor', gem_cost: 800, asset_key: 'shirt-armor', description: 'Shining plate for a true scholar-knight' },
     { item_id: 'cape_red', item_type: 'cape', name: 'Red Cape', gem_cost: 70, asset_key: 'cape-red', description: 'Whoosh into learning' },
-    { item_id: 'acc_star', item_type: 'accessory', name: 'Star Badge', gem_cost: 20, asset_key: 'acc-star', description: 'A shiny star pin' }
+    { item_id: 'cape_shadow', item_type: 'cape', name: 'Shadow Cape', gem_cost: 750, asset_key: 'cape-shadow', description: 'Midnight cloak of focus' },
+    { item_id: 'cape_galaxy', item_type: 'cape', name: 'Galaxy Cape', gem_cost: 900, asset_key: 'cape-galaxy', description: 'A swirling nebula on your back' },
+    { item_id: 'acc_star', item_type: 'accessory', name: 'Star Badge', gem_cost: 20, asset_key: 'acc-star', description: 'A shiny star pin' },
+    { item_id: 'acc_diamond', item_type: 'accessory', name: 'Diamond Pin', gem_cost: 1200, asset_key: 'acc-diamond', description: 'A cut diamond that catches every quiz win' },
+    { item_id: 'acc_wings', item_type: 'accessory', name: 'Phoenix Wings', gem_cost: 1500, asset_key: 'acc-wings', description: 'Legendary wings for the top 0.1%' }
 ];
 
 const BASE_QUIZ_GEMS = 5;
@@ -34,15 +47,37 @@ const XP_KINDS = {
 };
 
 const BADGE_CATALOG = [
-    { id: 'first', label: 'First spark', how: 'Answer any quiz question correctly once.' },
-    { id: 'streak3', label: '3-day streak', how: 'Check in on 3 different days in a row.' },
-    { id: 'streak7', label: 'Week warrior', how: 'Keep a 7-day check-in streak.' },
-    { id: 'quiz20', label: '20 correct', how: 'Get 20 quiz questions correct in total.' },
-    { id: 'gems100', label: '100 gems earned', how: 'Earn 100 gems over your lifetime (spending does not reset this).' },
-    { id: 'domain_master', label: 'Domain Master', how: 'Finish any unit in a Master Course.' },
-    { id: 'zero_error', label: 'Zero-Error Streak', how: 'Get 5 quiz questions correct in a row.' },
-    { id: 'stretch_champion', label: 'Stretch Champion', how: 'Answer 3 Stretch (SAT / Honors) questions correctly.' },
-    { id: 'transformation_virtuoso', label: 'Transformation Virtuoso', how: 'Complete a functions / transformations unit, or finish your first unit.' }
+    { id: 'first', label: 'First spark', how: 'Answer any quiz question correctly once.', stat: 'quizCorrect', goal: 1 },
+    { id: 'streak3', label: '3-day streak', how: 'Check in on 3 different days in a row.', stat: 'longestStreak', goal: 3 },
+    { id: 'streak7', label: 'Week warrior', how: 'Keep a 7-day check-in streak.', stat: 'longestStreak', goal: 7 },
+    { id: 'streak30', label: 'Monthly flame', how: 'Keep a 30-day check-in streak.', stat: 'longestStreak', goal: 30 },
+    { id: 'streak100', label: 'Century streak', how: 'Check in on 100 days in a row.', stat: 'longestStreak', goal: 100 },
+    { id: 'quiz20', label: '20 correct', how: 'Get 20 quiz questions correct in total.', stat: 'quizCorrect', goal: 20 },
+    { id: 'quiz100', label: 'Quiz century', how: 'Get 100 quiz questions correct.', stat: 'quizCorrect', goal: 100 },
+    { id: 'quiz500', label: 'Quiz scholar', how: 'Get 500 quiz questions correct.', stat: 'quizCorrect', goal: 500 },
+    { id: 'quiz1000', label: 'Quiz master', how: 'Get 1,000 quiz questions correct.', stat: 'quizCorrect', goal: 1000 },
+    { id: 'quiz10000', label: 'Quiz legend', how: 'Get 10,000 quiz questions correct.', stat: 'quizCorrect', goal: 10000 },
+    { id: 'gems100', label: '100 gems earned', how: 'Earn 100 gems over your lifetime (spending does not reset this).', stat: 'lifetimeGems', goal: 100 },
+    { id: 'gems500', label: 'Gem collector', how: 'Earn 500 gems over your lifetime.', stat: 'lifetimeGems', goal: 500 },
+    { id: 'gems1000', label: 'Gem hoarder', how: 'Earn 1,000 gems over your lifetime.', stat: 'lifetimeGems', goal: 1000 },
+    { id: 'gems5000', label: 'Treasure vault', how: 'Earn 5,000 gems over your lifetime.', stat: 'lifetimeGems', goal: 5000 },
+    { id: 'zero_error', label: 'Zero-Error Streak', how: 'Get 5 quiz questions correct in a row.', stat: 'quizRow', goal: 5 },
+    { id: 'quiz_row_10', label: 'On a roll', how: 'Get 10 quiz questions correct in a row.', stat: 'quizRow', goal: 10 },
+    { id: 'quiz_row_25', label: 'Unstoppable', how: 'Get 25 quiz questions correct in a row.', stat: 'quizRow', goal: 25 },
+    { id: 'quiz_row_50', label: 'Perfect storm', how: 'Get 50 quiz questions correct in a row.', stat: 'quizRow', goal: 50 },
+    { id: 'domain_master', label: 'Domain Master', how: 'Finish any unit in a Master Course.', stat: 'units', goal: 1 },
+    { id: 'units5', label: 'Unit crusher', how: 'Complete 5 units in Master Courses.', stat: 'units', goal: 5 },
+    { id: 'units25', label: 'Curriculum champion', how: 'Complete 25 units in Master Courses.', stat: 'units', goal: 25 },
+    { id: 'masters3', label: 'Triple crown', how: 'Finish 3 entire Master Courses.', stat: 'masters', goal: 3 },
+    { id: 'stretch_champion', label: 'Stretch Champion', how: 'Answer 3 Stretch (SAT / Honors) questions correctly.', stat: 'stretch', goal: 3 },
+    { id: 'stretch10', label: 'Honors hunter', how: 'Answer 10 Stretch questions correctly.', stat: 'stretch', goal: 10 },
+    { id: 'stretch50', label: 'SAT slayer', how: 'Answer 50 Stretch questions correctly.', stat: 'stretch', goal: 50 },
+    { id: 'level5', label: 'Rising star', how: 'Reach XP level 5.', stat: 'level', goal: 5 },
+    { id: 'level10', label: 'Seasoned learner', how: 'Reach XP level 10.', stat: 'level', goal: 10 },
+    { id: 'level25', label: 'XP titan', how: 'Reach XP level 25.', stat: 'level', goal: 25 },
+    { id: 'inventory10', label: 'Dressed for success', how: 'Own 10 items from the gem shop.', stat: 'inventory', goal: 10 },
+    { id: 'inventory20', label: 'Fashion icon', how: 'Own 20 items from the gem shop.', stat: 'inventory', goal: 20 },
+    { id: 'transformation_virtuoso', label: 'Transformation Virtuoso', how: 'Complete a functions / transformations unit, or finish your first unit.', stat: 'units', goal: 1 }
 ];
 
 function xpLevel(xp) {
@@ -118,17 +153,19 @@ function displayNameFromUser(row) {
 
 function createLearnerGamificationHandlers({ query, apiResponse, sendEmail }) {
     async function ensureStoreSeeded() {
-        const rows = await query('SELECT COUNT(*) AS c FROM store_items');
-        if ((rows[0]?.c || 0) > 0) return;
         for (const item of STORE_SEED) {
             await query(
                 `INSERT INTO store_items (item_id, item_type, name, description, gem_cost, asset_key)
                  VALUES (?, ?, ?, ?, ?, ?)
-                 ON DUPLICATE KEY UPDATE name = VALUES(name), gem_cost = VALUES(gem_cost)`,
+                 ON DUPLICATE KEY UPDATE
+                   name = VALUES(name),
+                   description = VALUES(description),
+                   gem_cost = VALUES(gem_cost),
+                   asset_key = VALUES(asset_key),
+                   item_type = VALUES(item_type)`,
                 [item.item_id, item.item_type, item.name, item.description, item.gem_cost, item.asset_key]
             );
         }
-        // Free warm theme for everyone is granted on first profile fetch
     }
 
     async function grantFreeDefaults(userId) {
@@ -170,9 +207,72 @@ function createLearnerGamificationHandlers({ query, apiResponse, sendEmail }) {
         }
     }
 
+    async function extraBadgeStats(userId) {
+        let unitsCompleted = 0;
+        let mastersCompleted = 0;
+        let inventoryCount = 0;
+        try {
+            const u = await query(
+                'SELECT COUNT(*) AS c FROM course_enrollment_progress WHERE user_id = ? AND completed = TRUE',
+                [userId]
+            );
+            unitsCompleted = Number(u[0]?.c || 0);
+        } catch (_) { /* table may be missing on older DBs */ }
+        try {
+            const m = await query(
+                `SELECT COUNT(*) AS c FROM enrollments e
+                 JOIN courses c ON c.id = e.course_id AND c.course_type = 'master'
+                 WHERE e.user_id = ?
+                   AND NOT EXISTS (
+                       SELECT 1 FROM course_units cu
+                       LEFT JOIN course_enrollment_progress cep
+                         ON cep.unit_id = cu.id AND cep.user_id = e.user_id
+                       WHERE cu.parent_course_id = c.id AND cu.is_draft = FALSE
+                         AND COALESCE(cep.completed, FALSE) = FALSE
+                   )
+                   AND EXISTS (
+                       SELECT 1 FROM course_units cu2
+                       WHERE cu2.parent_course_id = c.id AND cu2.is_draft = FALSE
+                   )`,
+                [userId]
+            );
+            mastersCompleted = Number(m[0]?.c || 0);
+        } catch (_) { /* ignore */ }
+        try {
+            const inv = await query('SELECT COUNT(*) AS c FROM user_inventory WHERE user_id = ?', [userId]);
+            inventoryCount = Number(inv[0]?.c || 0);
+        } catch (_) { /* ignore */ }
+        return {
+            unitsCompleted,
+            mastersCompleted,
+            inventoryCount,
+            stretchCorrect: await stretchCorrectCount(userId)
+        };
+    }
+
+    function badgeStatMap(row, stats, extra) {
+        return {
+            quizCorrect: Number(stats.correct || 0),
+            longestStreak: Math.max(Number(row?.current_streak || 0), Number(row?.longest_streak || 0)),
+            lifetimeGems: Number(row?.lifetime_gems || 0),
+            quizRow: Math.max(Number(row?.best_correct_streak || 0), Number(row?.current_correct_streak || 0)),
+            units: Number(extra.unitsCompleted || 0),
+            masters: Number(extra.mastersCompleted || 0),
+            stretch: Number(extra.stretchCorrect || 0),
+            level: xpLevel(row?.xp || 0),
+            inventory: Number(extra.inventoryCount || 0)
+        };
+    }
+
     async function evaluateBadges(userId, extras) {
         const row = await getProfileRow(userId);
         const stats = await quizStats(userId);
+        const extra = await extraBadgeStats(userId);
+        if (extras?.stretchCorrectCount != null) {
+            extra.stretchCorrect = Math.max(extra.stretchCorrect, Number(extras.stretchCorrectCount) || 0);
+        }
+        if (extras?.unitComplete) extra.unitsCompleted = Math.max(extra.unitsCompleted, 1);
+        const values = badgeStatMap(row, stats, extra);
         const owned = new Set((await getBadges(userId)).map((b) => b.badge_id));
         const unlocked = [];
         const tryGrant = async (id) => {
@@ -184,22 +284,15 @@ function createLearnerGamificationHandlers({ query, apiResponse, sendEmail }) {
             }
         };
 
-        if ((stats.correct || 0) >= 1) await tryGrant('first');
-        if ((row?.current_streak || 0) >= 3 || (row?.longest_streak || 0) >= 3) await tryGrant('streak3');
-        if ((row?.longest_streak || 0) >= 7) await tryGrant('streak7');
-        if ((stats.correct || 0) >= 20) await tryGrant('quiz20');
-        if ((row?.lifetime_gems || 0) >= 100) await tryGrant('gems100');
-        if ((row?.best_correct_streak || 0) >= 5 || (row?.current_correct_streak || 0) >= 5) {
-            await tryGrant('zero_error');
+        for (const b of BADGE_CATALOG) {
+            const current = Number(values[b.stat] || 0);
+            if (current >= (b.goal || 1)) await tryGrant(b.id);
         }
         if (extras?.unitComplete) await tryGrant('domain_master');
         const title = String(extras?.unitTitle || '');
         if (extras?.unitComplete && /function|transform/i.test(title)) {
             await tryGrant('transformation_virtuoso');
-        } else if (extras?.unitComplete && extras?.firstUnitFallback) {
-            await tryGrant('transformation_virtuoso');
         }
-        if (extras?.stretchCorrectCount >= 3) await tryGrant('stretch_champion');
         return unlocked;
     }
 
@@ -327,10 +420,13 @@ function createLearnerGamificationHandlers({ query, apiResponse, sendEmail }) {
         async profile(req, res) {
             const userId = req.user.id;
             await grantFreeDefaults(userId);
+            await evaluateBadges(userId, {});
             const row = await getProfileRow(userId);
             if (!row) return apiResponse(res, 404, 'User not found');
             const inv = await getInventory(userId);
             const stats = await quizStats(userId);
+            const extra = await extraBadgeStats(userId);
+            const values = badgeStatMap(row, stats, extra);
             const badges = await getBadges(userId);
             const owned = new Set(badges.map((b) => b.badge_id));
             return apiResponse(res, 200, 'OK', {
@@ -350,12 +446,20 @@ function createLearnerGamificationHandlers({ query, apiResponse, sendEmail }) {
                 quizCorrect: stats.correct,
                 quizTotal: stats.total,
                 streakMultiplier: streakMultiplier(row.current_streak || 0),
-                badges: BADGE_CATALOG.map((b) => ({
-                    id: b.id,
-                    label: b.label,
-                    how: b.how || '',
-                    earned: owned.has(b.id)
-                }))
+                badges: BADGE_CATALOG.map((b) => {
+                    const current = Number(values[b.stat] || 0);
+                    const goal = b.goal || 1;
+                    const percent = Math.min(100, Math.round((current / goal) * 100));
+                    return {
+                        id: b.id,
+                        label: b.label,
+                        how: b.how || '',
+                        earned: owned.has(b.id) || current >= goal,
+                        current,
+                        goal,
+                        percent
+                    };
+                })
             });
         },
 

@@ -681,6 +681,20 @@ body.learner-shell-active #learner-shell {
   background: rgba(148, 163, 184, 0.12);
 }
 
+.ls-badge-track {
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.28);
+  overflow: hidden;
+  margin-top: 2px;
+}
+
+.ls-badge-fill {
+  height: 100%;
+  background: #6366f1;
+  border-radius: 999px;
+}
+
 /* Store / enrolled / settings */
 .ls-section-title {
   font-size: 1.75rem;
@@ -1016,6 +1030,67 @@ body.learner-shell-active #learner-shell {
   --ls-card: #FFFFFF;
   --ls-input-bg: #FAFAFF;
   --ls-shadow: 0 8px 24px rgba(124, 58, 237, 0.1);
+}
+
+#learner-shell[data-learner-theme="midnight"] {
+  --ls-bg: #020617;
+  --ls-sidebar: #0B1220;
+  --ls-text: #E2E8F0;
+  --ls-muted: #94A3B8;
+  --ls-accent: #38BDF8;
+  --ls-accent-soft: rgba(56, 189, 248, 0.16);
+  --ls-btn: #0F172A;
+  --ls-btn-text: #F8FAFC;
+  --ls-btn-hover: #38BDF8;
+  --ls-btn-hover-text: #082F49;
+  --ls-active-bg: rgba(56, 189, 248, 0.18);
+  --ls-active-text: #7DD3FC;
+  --ls-user-bubble: #0F172A;
+  --ls-coach-bubble: #111827;
+  --ls-border: #1E293B;
+  --ls-card: #0F172A;
+  --ls-input-bg: #020617;
+  --ls-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+#learner-shell[data-learner-theme="gold"] {
+  --ls-bg: #FFFBEB;
+  --ls-sidebar: #FFFFFF;
+  --ls-text: #422006;
+  --ls-muted: #A16207;
+  --ls-accent: #D97706;
+  --ls-accent-soft: #FEF3C7;
+  --ls-btn: #78350F;
+  --ls-btn-hover: #F59E0B;
+  --ls-active-bg: #FDE68A;
+  --ls-active-text: #92400E;
+  --ls-user-bubble: #FEF3C7;
+  --ls-coach-bubble: #FFFBEB;
+  --ls-border: #FCD34D;
+  --ls-card: #FFFFFF;
+  --ls-input-bg: #FFFBEB;
+  --ls-shadow: 0 8px 24px rgba(217, 119, 6, 0.14);
+}
+
+#learner-shell[data-learner-theme="galaxy"] {
+  --ls-bg: #1E1B4B;
+  --ls-sidebar: #312E81;
+  --ls-text: #F5F3FF;
+  --ls-muted: #C4B5FD;
+  --ls-accent: #A78BFA;
+  --ls-accent-soft: rgba(167, 139, 250, 0.22);
+  --ls-btn: #4C1D95;
+  --ls-btn-text: #F5F3FF;
+  --ls-btn-hover: #EC4899;
+  --ls-btn-hover-text: #FFFFFF;
+  --ls-active-bg: rgba(236, 72, 153, 0.28);
+  --ls-active-text: #F9A8D4;
+  --ls-user-bubble: #3730A3;
+  --ls-coach-bubble: #1E1B4B;
+  --ls-border: #6366F1;
+  --ls-card: #312E81;
+  --ls-input-bg: #1E1B4B;
+  --ls-shadow: 0 8px 24px rgba(76, 29, 149, 0.45);
 }
 
 /* Celebration overlay */
@@ -1451,6 +1526,26 @@ body.course-viewer-active[data-learner-theme="superhero"] {
   --ls-accent: #7C3AED; --ls-accent-soft: #EDE9FE; --ls-btn: #1E1B4B; --ls-btn-hover: #EF4444;
   --ls-active-bg: #EDE9FE; --ls-active-text: #5B21B6; --ls-border: #DDD6FE; --ls-card: #FFFFFF;
   --ls-input-bg: #FAFAFF; --ls-shadow: 0 8px 24px rgba(124, 58, 237, 0.1);
+}
+body.course-viewer-active[data-learner-theme="midnight"] {
+  --ls-bg: #020617; --ls-sidebar: #0B1220; --ls-text: #E2E8F0; --ls-muted: #94A3B8;
+  --ls-accent: #38BDF8; --ls-accent-soft: rgba(56, 189, 248, 0.16); --ls-btn: #0F172A;
+  --ls-btn-hover: #38BDF8; --ls-active-bg: rgba(56, 189, 248, 0.18); --ls-active-text: #7DD3FC;
+  --ls-border: #1E293B; --ls-card: #0F172A; --ls-input-bg: #020617;
+  --ls-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+body.course-viewer-active[data-learner-theme="gold"] {
+  --ls-bg: #FFFBEB; --ls-sidebar: #FFFFFF; --ls-text: #422006; --ls-muted: #A16207;
+  --ls-accent: #D97706; --ls-accent-soft: #FEF3C7; --ls-btn: #78350F; --ls-btn-hover: #F59E0B;
+  --ls-active-bg: #FDE68A; --ls-active-text: #92400E; --ls-border: #FCD34D; --ls-card: #FFFFFF;
+  --ls-input-bg: #FFFBEB; --ls-shadow: 0 8px 24px rgba(217, 119, 6, 0.14);
+}
+body.course-viewer-active[data-learner-theme="galaxy"] {
+  --ls-bg: #1E1B4B; --ls-sidebar: #312E81; --ls-text: #F5F3FF; --ls-muted: #C4B5FD;
+  --ls-accent: #A78BFA; --ls-accent-soft: rgba(167, 139, 250, 0.22); --ls-btn: #4C1D95;
+  --ls-btn-hover: #EC4899; --ls-active-bg: rgba(236, 72, 153, 0.28); --ls-active-text: #F9A8D4;
+  --ls-border: #6366F1; --ls-card: #312E81; --ls-input-bg: #1E1B4B;
+  --ls-shadow: 0 8px 24px rgba(76, 29, 149, 0.45);
 }
 
 body.course-viewer-active #course-viewer-section {

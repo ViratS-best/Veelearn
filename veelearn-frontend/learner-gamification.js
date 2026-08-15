@@ -80,7 +80,13 @@
         const id = c.course_id || c.id;
         const total = c.total_units;
         const done = c.completed_units;
-        const pct = total ? Math.round((Number(done || 0) / Number(total)) * 100) : (c.progress_percentage != null ? Number(c.progress_percentage) : null);
+        let pct = null;
+        if (c.progress_percentage != null && c.progress_percentage !== '') {
+          pct = Math.round(Number(c.progress_percentage));
+        } else if (total) {
+          pct = Math.round((Number(done || 0) / Number(total)) * 100);
+        }
+        if (pct != null && !Number.isFinite(pct)) pct = null;
         const prog = pct != null
           ? `<div class="ls-enroll-prog"><span>${pct}%</span><div class="ls-enroll-track"><div class="ls-enroll-fill" style="width:${pct}%"></div></div></div>`
           : '';
@@ -112,18 +118,31 @@
     const map = {
       hat_blue: 'hat-blue',
       hat_crown: 'hat-crown',
+      hat_gold: 'hat-gold',
+      hat_wizard: 'hat-wizard',
       glasses_round: 'glasses-round',
+      glasses_gold: 'glasses-gold',
+      glasses_star: 'glasses-star',
       shirt_green: 'shirt-green',
       shirt_hero: 'shirt-hero',
+      shirt_royal: 'shirt-royal',
+      shirt_armor: 'shirt-armor',
       cape_red: 'cape-red',
+      cape_shadow: 'cape-shadow',
+      cape_galaxy: 'cape-galaxy',
       acc_star: 'acc-star',
+      acc_diamond: 'acc-diamond',
+      acc_wings: 'acc-wings',
       theme_warm: 'gem',
       theme_blue: 'gem',
       theme_red: 'gem',
       theme_cool: 'gem',
       theme_happy: 'gem',
       theme_hacker: 'gem',
-      theme_superhero: 'gem'
+      theme_superhero: 'gem',
+      theme_midnight: 'gem',
+      theme_gold: 'gem',
+      theme_galaxy: 'gem'
     };
     return asset(map[itemId] || 'gem');
   }
@@ -476,11 +495,33 @@
     first: 'Answer any quiz question correctly once.',
     streak3: 'Check in on 3 different days in a row (the streak counter on your dashboard).',
     streak7: 'Keep a 7-day check-in streak. Longest streak counts even if you break later.',
+    streak30: 'Keep a 30-day check-in streak.',
+    streak100: 'Check in on 100 days in a row.',
     quiz20: 'Get 20 quiz questions correct in total (not in a row).',
+    quiz100: 'Get 100 quiz questions correct.',
+    quiz500: 'Get 500 quiz questions correct.',
+    quiz1000: 'Get 1,000 quiz questions correct.',
+    quiz10000: 'Get 10,000 quiz questions correct.',
     gems100: 'Earn 100 gems over your lifetime (spending them does not reset this).',
+    gems500: 'Earn 500 gems over your lifetime.',
+    gems1000: 'Earn 1,000 gems over your lifetime.',
+    gems5000: 'Earn 5,000 gems over your lifetime.',
     domain_master: 'Finish any unit in a Master Course.',
+    units5: 'Complete 5 units in Master Courses.',
+    units25: 'Complete 25 units in Master Courses.',
+    masters3: 'Finish 3 entire Master Courses.',
     zero_error: 'Get 5 quiz questions correct in a row without a miss.',
+    quiz_row_10: 'Get 10 quiz questions correct in a row.',
+    quiz_row_25: 'Get 25 quiz questions correct in a row.',
+    quiz_row_50: 'Get 50 quiz questions correct in a row.',
     stretch_champion: 'Answer 3 Stretch (SAT / Honors) questions correctly.',
+    stretch10: 'Answer 10 Stretch questions correctly.',
+    stretch50: 'Answer 50 Stretch questions correctly.',
+    level5: 'Reach XP level 5.',
+    level10: 'Reach XP level 10.',
+    level25: 'Reach XP level 25.',
+    inventory10: 'Own 10 items from the gem shop.',
+    inventory20: 'Own 20 items from the gem shop.',
     transformation_virtuoso: 'Complete a functions / transformations unit, or finish your first unit.'
   };
 
@@ -494,17 +535,18 @@
     const badges = Array.isArray(p.badges) && p.badges.length
       ? p.badges
       : [
-          { id: 'first', label: 'First spark', earned: (p.quizCorrect || 0) >= 1 },
-          { id: 'streak3', label: '3-day streak', earned: (p.currentStreak || 0) >= 3 || (p.longestStreak || 0) >= 3 },
-          { id: 'streak7', label: 'Week warrior', earned: (p.longestStreak || 0) >= 7 },
-          { id: 'quiz20', label: '20 correct', earned: (p.quizCorrect || 0) >= 20 },
-          { id: 'gems100', label: '100 gems earned', earned: (p.lifetimeGems || p.gems || 0) >= 100 }
+          { id: 'first', label: 'First spark', earned: (p.quizCorrect || 0) >= 1, current: p.quizCorrect || 0, goal: 1 },
+          { id: 'streak3', label: '3-day streak', earned: (p.currentStreak || 0) >= 3 || (p.longestStreak || 0) >= 3, current: Math.max(p.currentStreak || 0, p.longestStreak || 0), goal: 3 },
+          { id: 'streak7', label: 'Week warrior', earned: (p.longestStreak || 0) >= 7, current: p.longestStreak || 0, goal: 7 },
+          { id: 'quiz20', label: '20 correct', earned: (p.quizCorrect || 0) >= 20, current: p.quizCorrect || 0, goal: 20 },
+          { id: 'gems100', label: '100 gems earned', earned: (p.lifetimeGems || p.gems || 0) >= 100, current: p.lifetimeGems || p.gems || 0, goal: 100 }
         ];
+    const unlocked = badges.filter((b) => b.earned || b.ok).length;
     pane.innerHTML = `
       <div class="ls-ach-header">
         <div>
           <h2>Achievements</h2>
-          <p>Your top achievements</p>
+          <p>${unlocked} of ${badges.length} unlocked</p>
         </div>
         <img src="${asset('achievements-hero')}" alt="" />
       </div>
@@ -540,9 +582,22 @@
           .map((b) => {
             const earned = b.earned || b.ok;
             const how = b.how || BADGE_HOW[b.id] || 'Keep learning to unlock this.';
+            const goal = Number(b.goal) || 0;
+            const current = Number(b.current) || 0;
+            const pct = b.percent != null
+              ? Math.max(0, Math.min(100, Math.round(Number(b.percent))))
+              : (goal > 0 ? Math.min(100, Math.round((current / goal) * 100)) : (earned ? 100 : 0));
+            const progressLabel = earned
+              ? 'Unlocked'
+              : (goal > 0 ? `${current.toLocaleString()} / ${goal.toLocaleString()} (${pct}%)` : how);
+            const bar = goal > 0
+              ? `<div class="ls-badge-track" aria-hidden="true"><div class="ls-badge-fill" style="width:${pct}%"></div></div>`
+              : '';
             return `<span class="ls-badge ${earned ? '' : 'locked'}">
               <strong>${esc(b.label)}</strong>
-              <span class="ls-badge-how">${earned ? 'Unlocked' : esc(how)}</span>
+              ${bar}
+              <span class="ls-badge-how">${esc(progressLabel)}</span>
+              ${earned ? '' : `<span class="ls-badge-how">${esc(how)}</span>`}
             </span>`;
           })
           .join('')}
@@ -860,6 +915,8 @@
     renderAvatarInto,
     onShellShown,
     getProfile: () => profileCache,
-    prefetchEnrollments: () => fetchEnrollments({ force: true })
+    prefetchEnrollments: () => fetchEnrollments({ force: true }),
+    fetchEnrollments,
+    getEnrolledIds: () => (Array.isArray(enrollmentsCache) ? enrollmentsCache.map((c) => c.course_id || c.id) : [])
   };
 })();
