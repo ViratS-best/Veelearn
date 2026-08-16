@@ -1,14 +1,18 @@
 """Render all Grade 8 ManimGL unit lessons to veelearn-frontend/videos/grade8."""
 from __future__ import annotations
 
+import os
+import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 REPO = ROOT.parent
 MANIM = REPO / ".venv-manim" / "Scripts" / "manimgl.exe"
 OUT = REPO / "veelearn-frontend" / "videos" / "grade8"
+STAGE = Path(os.environ.get("TEMP", str(ROOT / "out"))) / "veelearn-grade8"
 
 SCENES = [
     ("Unit1Exponents", "unit-1-exponents"),
@@ -22,7 +26,38 @@ SCENES = [
 ]
 
 
+def _unlink(path: Path, tries: int = 10) -> None:
+    for i in range(tries):
+        try:
+            path.unlink(missing_ok=True)
+            return
+        except OSError:
+            time.sleep(0.5 * (i + 1))
+    path.unlink(missing_ok=True)
+
+
+def clear_dir(folder: Path, name: str) -> None:
+    folder.mkdir(parents=True, exist_ok=True)
+    for extra in (f"{name}.mp4", f"{name}_temp.mp4", f"{name}.wav"):
+        _unlink(folder / extra)
+
+
+def publish(src: Path, dest: Path) -> None:
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    last_err = None
+    for i in range(12):
+        try:
+            _unlink(dest)
+            shutil.copy2(src, dest)
+            return
+        except OSError as err:
+            last_err = err
+            time.sleep(0.6 * (i + 1))
+    raise last_err
+
+
 def main():
+    STAGE.mkdir(parents=True, exist_ok=True)
     OUT.mkdir(parents=True, exist_ok=True)
     only = sys.argv[1:]
     scenes = SCENES
@@ -32,6 +67,7 @@ def main():
             print("No matching scenes", only)
             return 1
     for cls, name in scenes:
+        clear_dir(STAGE, name)
         cmd = [
             str(MANIM),
             str(ROOT / "scenes.py"),
@@ -41,7 +77,7 @@ def main():
             "--file_name",
             name,
             "--video_dir",
-            str(OUT),
+            str(STAGE),
             "-c",
             "#0b1020",
             "--config_file",
@@ -49,15 +85,17 @@ def main():
         ]
         print("\n===", name, "===")
         print(" ".join(cmd))
-        env = {k: v for k, v in __import__("os").environ.items()}
+        env = {k: v for k, v in os.environ.items()}
         env["PYTHONPATH"] = str(ROOT)
         env.pop("G8_SMOKE", None)
         proc = subprocess.run(cmd, cwd=str(ROOT), env=env)
-        if proc.returncode != 0:
-            print("FAILED", name, proc.returncode)
-            return proc.returncode
+        staged = STAGE / f"{name}.mp4"
+        if proc.returncode != 0 or not staged.exists():
+            print("FAILED", name, proc.returncode, "staged", staged.exists())
+            return proc.returncode or 1
         dest = OUT / f"{name}.mp4"
-        print("wrote", dest, "exists" if dest.exists() else "MISSING")
+        publish(staged, dest)
+        print("wrote", dest, dest.stat().st_size)
     return 0
 
 

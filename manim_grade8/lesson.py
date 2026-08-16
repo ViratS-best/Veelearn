@@ -1,23 +1,30 @@
-"""Kid-friendly no-voiceover lessons. Unique moving demo per beat — never the same 3-4-5 on loop."""
+﻿"""3Blue1Brown-style silent-brand lessons with generated voiceover.
+
+No course labels on screen. One idea at a time. Full scene wipe between beats
+so leftover graphics cannot overlap the next line.
+"""
 import os
 import re
 from pathlib import Path
 
+from decimal import Decimal
+
 from manimlib import *
 
-GOLD = "#fbbf24"
-TEAL = "#2dd4bf"
-BLUE = "#7dd3fc"
-CREAM = "#e8eef9"
-MUTED = "#94a3b8"
-PINK = "#f9a8d4"
-GREEN = "#86efac"
-RED = "#f87171"
-PANEL = "#151b2e"
-FONT = "Comic Sans MS"
-TITLE_FONT = "Segoe Script"
+from voice import ensure_voice, spoken
+
+GOLD = "#ffff00"
+TEAL = "#5cd6d6"
+BLUE = "#58c4dd"
+WHITE = "#ece6e2"
+GREY = "#888888"
+PINK = "#ff8080"
+GREEN = "#83c167"
+RED = "#ff6b6b"
+FONT = "Georgia"
+CREAM = WHITE
+MUTED = GREY
 SOUND_DIR = Path(__file__).resolve().parent / "sounds"
-SLOW = 1.7
 
 SUP_MAP = {
     "⁰": "0", "¹": "1", "²": "2", "³": "3", "⁴": "4",
@@ -30,49 +37,27 @@ PLAIN = {
     "→": "->", "←": "<-", "∞": "inf", "±": "+/-", "°": " deg",
     "−": "-", "–": "-",
 }
+SUP_CHARS = set(SUP_MAP)
+OPS = set("×÷·+=<>≤≥≠")
 
 
-def clean(text) -> str:
-    s = str(text)
+def caretify(text) -> str:
+    """Keep ^ for exponents so 10³ becomes 10^3, never '10 3'."""
+    s = str(text).replace("−", "-").replace("–", "-")
+    s = s.replace("×", " x ").replace("·", " x ").replace("÷", " / ").replace("√", "sqrt ")
     s = re.sub(
         r"[⁰¹²³⁴⁵⁶⁷⁸⁹ⁿ⁻]+",
-        lambda m: " to the " + "".join(SUP_MAP.get(c, c) for c in m.group(0)),
+        lambda m: "^" + "".join(SUP_MAP.get(c, c) for c in m.group(0)),
         s,
     )
-    s = re.sub(r"\^(\{)?(-?[0-9n]+|\w)(\})?", r" to the \2", s)
-    for src, dst in PLAIN.items():
-        s = s.replace(src, dst)
     return " ".join(s.split())
 
 
-def wrap(text, width=28):
-    words = clean(text).split()
-    lines, cur = [], ""
-    for word in words:
-        trial = (cur + " " + word).strip()
-        if len(trial) > width:
-            if cur:
-                lines.append(cur)
-            cur = word
-        else:
-            cur = trial
-    if cur:
-        lines.append(cur)
-    return "\n".join(lines) if lines else clean(text)
+def clean(text) -> str:
+    return caretify(text)
 
 
-def T(text, size=40, color=CREAM, width=26, font=TITLE_FONT):
-    raw = str(text)
-    body = wrap(raw, width) if "\n" not in raw else clean(raw)
-    mob = Text(body, font=font, font_size=size)
-    try:
-        mob.set_color(color)
-    except Exception:
-        pass
-    return mob
-
-
-def power_mob(base, exp, base_size=52, exp_size=28, base_color=CREAM, exp_color=GOLD):
+def power_mob(base, exp, base_size=52, exp_size=28, base_color=WHITE, exp_color=GOLD):
     b = Text(str(base), font=FONT, font_size=base_size).set_color(base_color)
     e = Text(str(exp), font=FONT, font_size=exp_size).set_color(exp_color)
     e.next_to(b.get_corner(UR), RIGHT, buff=0.04)
@@ -80,289 +65,355 @@ def power_mob(base, exp, base_size=52, exp_size=28, base_color=CREAM, exp_color=
     return VGroup(b, e)
 
 
-def chip(label, fill=GOLD):
-    txt = T(label, 26, fill, 40, font=TITLE_FONT)
-    box = RoundedRectangle(
-        width=max(txt.get_width() + 0.85, 3.4),
-        height=max(txt.get_height() + 0.32, 0.64),
-        corner_radius=0.18,
-    )
-    box.set_fill(fill, 0.22).set_stroke(fill, 3)
-    txt.move_to(box)
-    return VGroup(box, txt)
+def _read_atom(s, i):
+    n = len(s)
+    if i >= n:
+        return "", i
+    if s[i] == "(":
+        depth = 1
+        j = i + 1
+        while j < n and depth:
+            if s[j] == "(":
+                depth += 1
+            elif s[j] == ")":
+                depth -= 1
+            j += 1
+        return s[i:j], j
+    m = re.match(r"-?\d+(?:\.\d+)?", s[i:])
+    if m:
+        return m.group(0), i + m.end()
+    if s[i].isalpha():
+        return s[i], i + 1
+    return "", i
+
+
+def tokenize_math(text):
+    s = str(text).replace("−", "-").replace("–", "-")
+    i, n, out = 0, len(s), []
+    while i < n:
+        if s[i].isspace():
+            i += 1
+            continue
+        if s[i] == "√":
+            atom, i = _read_atom(s, i + 1)
+            out.append(("sqrt", atom or ""))
+            continue
+        if s.startswith("sqrt", i) and (i + 4 >= n or not s[i + 4].isalpha()):
+            i += 4
+            while i < n and s[i].isspace():
+                i += 1
+            atom, i = _read_atom(s, i)
+            out.append(("sqrt", atom or ""))
+            continue
+        if s[i] in OPS or s[i] == "/":
+            out.append(("op", s[i]))
+            i += 1
+            continue
+        # −3² is minus, then 3 squared — not the number -3
+        if s[i] == "-" and i + 1 < n and s[i + 1].isdigit():
+            look = i + 1
+            while look < n and (s[look].isdigit() or s[look] == "."):
+                look += 1
+            if look < n and (s[look] in SUP_CHARS or s[look] == "^"):
+                out.append(("op", "-"))
+                i += 1
+                continue
+        if s[i] == "(" or s[i].isdigit() or (
+            s[i] == "-" and i + 1 < n and s[i + 1].isdigit()
+        ):
+            atom, i = _read_atom(s, i)
+            exp = ""
+            if i < n and s[i] in SUP_CHARS:
+                while i < n and s[i] in SUP_CHARS:
+                    exp += SUP_MAP.get(s[i], s[i])
+                    i += 1
+            elif i < n and s[i] == "^":
+                m = re.match(r"-?[0-9n]+", s[i + 1:])
+                if m:
+                    exp = m.group(0)
+                    i += 1 + m.end()
+            out.append(("pow", atom, exp) if exp else ("txt", atom))
+            continue
+        m = re.match(r"[A-Za-z][A-Za-z']*", s[i:])
+        if m:
+            word = m.group(0)
+            i += m.end()
+            exp = ""
+            if len(word) == 1 and i < n and s[i] in SUP_CHARS:
+                while i < n and s[i] in SUP_CHARS:
+                    exp += SUP_MAP.get(s[i], s[i])
+                    i += 1
+            elif len(word) == 1 and i < n and s[i] == "^":
+                em = re.match(r"-?[0-9n]+", s[i + 1:])
+                if em:
+                    exp = em.group(0)
+                    i += 1 + em.end()
+            out.append(("pow", word, exp) if exp else ("txt", word))
+            continue
+        out.append(("txt", s[i]))
+        i += 1
+    return out
+
+
+def token_mob(tok, size, color, font=FONT):
+    kind = tok[0]
+    if kind == "pow":
+        return power_mob(tok[1], tok[2], size, max(14, int(size * 0.55)), color, GOLD)
+    if kind == "sqrt":
+        rad = Text("√", font=font, font_size=int(size * 1.2)).set_color(TEAL)
+        inner = Text(tok[1] or "", font=font, font_size=size).set_color(color)
+        return VGroup(rad, inner).arrange(RIGHT, buff=0.02, aligned_edge=DOWN)
+    if kind == "op":
+        shown = {"-": "−", "*": "×", "·": "×"}.get(tok[1], tok[1])
+        col = GOLD if tok[1] == "=" else (TEAL if tok[1] in "×÷·*" else color)
+        return Text(shown, font=font, font_size=size).set_color(col)
+    return Text(str(tok[1]), font=font, font_size=size).set_color(color)
+
+
+def formula(text, size=36, color=WHITE, max_width=12.0, font=FONT):
+    tokens = tokenize_math(text)
+    if not tokens:
+        return Text("", font=font, font_size=size).set_color(color)
+    pieces = [token_mob(tok, size, color, font) for tok in tokens]
+    rows, row, row_w, gap = [], [], 0.0, 0.12
+    for p in pieces:
+        w = p.get_width()
+        if row and row_w + gap + w > max_width:
+            rows.append(VGroup(*row).arrange(RIGHT, buff=gap, aligned_edge=DOWN))
+            row, row_w = [p], w
+        else:
+            row.append(p)
+            row_w = row_w + (gap if len(row) > 1 else 0) + w
+    if row:
+        rows.append(VGroup(*row).arrange(RIGHT, buff=gap, aligned_edge=DOWN))
+    return rows[0] if len(rows) == 1 else VGroup(*rows).arrange(DOWN, aligned_edge=LEFT, buff=0.16)
+
+
+def T(text, size=36, color=WHITE, width=40, font=FONT):
+    max_w = min(12.4, max(4.5, 0.30 * float(width)))
+    return formula(text, size, color, max_w, font)
 
 
 def has(text, *needles):
-    t = clean(text).lower()
+    t = caretify(text).lower()
     return any(n.lower() in t for n in needles)
+
+
+def parse_sci(text):
+    found = re.findall(r"([+-]?\d+(?:\.\d+)?)\s*[x*]\s*10\^(-?\d+)", caretify(text))
+    return [(a, int(e)) for a, e in found]
+
+
+def parse_power(text):
+    return re.findall(r"(\(-?\d+\)|[A-Za-z]|\d+)\^(-?\d+|n)", caretify(text))
+
+
+def extract_math(text):
+    chunks = re.split(r"(?<=[.!?])\s+", str(text).strip())
+    for chunk in chunks:
+        if "=" in chunk or any(c in chunk for c in "⁰¹²³⁴⁵⁶⁷⁸⁹√×^"):
+            return chunk.strip()
+    return str(text).strip()
+
+
+def sci_value(coeff, exp):
+    val = Decimal(str(coeff)) * (Decimal(10) ** int(exp))
+    shown = format(val, "f")
+    if "." in shown:
+        shown = shown.rstrip("0").rstrip(".")
+    return shown
+
+
+def expand_sci(coeff, exp):
+    return sci_value(coeff, exp)
 
 
 class LessonScene(Scene):
     unit_num = 1
-    unit_title = "Grade 8"
-    subtitle = "Pre-algebra"
+    unit_title = "Exponents"
+    subtitle = ""
     parts = []
 
     def construct(self):
-        self.body = VGroup()
+        self._voice_left = 0.0
+        self.bg = FullScreenRectangle()
+        self.bg.set_fill("#111111", 1).set_stroke(width=0)
+        self.add(self.bg)
         parts = list(self.parts)
         if os.environ.get("G8_SMOKE"):
             first = dict(parts[0])
             first["beats"] = list(first.get("beats", []))[:2]
             first["examples"] = list(first.get("examples", []))[:1]
             parts = [first]
-        self.build_stage()
-        self.build_chrome()
         self.intro()
         for i, part in enumerate(parts, 1):
             self.play_part(i, part)
         self.outro()
 
     def play(self, *args, **kwargs):
-        kwargs["run_time"] = float(kwargs.get("run_time", 1.0)) * SLOW
+        rt = float(kwargs.get("run_time", 1.0))
+        self._voice_left = max(0.0, self._voice_left - rt)
         return super().play(*args, **kwargs)
 
-    def hold(self, text="", extra=1.0):
-        n = len(clean(str(text)).split())
-        self.wait(min(8.0, extra + max(3.2, n * 0.6)))
+    def wait(self, duration=1.0, **kwargs):
+        self._voice_left = max(0.0, self._voice_left - float(duration))
+        return super().wait(duration, **kwargs)
 
-    def magic_in(self, mob, color=GOLD):
-        self.sfx("sparkle", -13)
-        self.play(GrowFromCenter(mob), run_time=0.7)
-        self.play(mob.animate.scale(1.2), run_time=0.32)
-        self.play(mob.animate.scale(1 / 1.2), run_time=0.28)
+    def narrate(self, text):
         try:
-            self.play(FlashAround(mob, color=color, run_time=0.45))
-        except Exception:
-            pass
+            path, dur = ensure_voice(text)
+            self.add_sound(str(path), gain=-3)
+            self._voice_left = max(self._voice_left, dur)
+            return dur
+        except Exception as err:
+            print("voice skipped:", err)
+            words = len(spoken(text).split())
+            self._voice_left = max(self._voice_left, max(2.4, words * 0.42))
+            return self._voice_left
 
-    def pulse(self, mob, amount=1.14):
-        self.play(mob.animate.scale(amount), run_time=0.32)
-        self.play(mob.animate.scale(1 / amount), run_time=0.28)
-        self.play(mob.animate.scale(1.08), run_time=0.22)
-        self.play(mob.animate.scale(1 / 1.08), run_time=0.22)
+    def rest(self):
+        self.wait(max(0.55, self._voice_left + 0.4))
+        self._voice_left = 0.0
 
-    def sfx(self, name, gain=-9):
+    def wipe(self, run_time=0.4):
+        fading = []
+        for mob in list(self.mobjects):
+            if mob is self.bg:
+                continue
+            if type(mob).__name__ in ("CameraFrame",):
+                continue
+            fading.append(mob)
+        if fading:
+            self.play(FadeOut(VGroup(*fading), shift=0.12 * DOWN), run_time=run_time)
+            self.remove(*fading)
+
+    def sfx(self, name, gain=-12):
         path = SOUND_DIR / f"{name}.wav"
         if path.exists():
             self.add_sound(str(path), gain=gain)
 
     def pop_flash(self, point, color=GOLD, radius=0.7):
-        self.sfx("pop", -12)
         self.play(Flash(point, color=color, flash_radius=radius,
-                        line_length=0.25, num_lines=14, run_time=0.4))
+                        line_length=0.22, num_lines=12, run_time=0.45))
 
     def morph_number(self, mob, nxt_text, size=56, color=GOLD):
-        nxt = T(nxt_text, size, color, 16).move_to(mob)
-        self.play(Transform(mob, nxt), run_time=0.55)
-        self.play(mob.animate.scale(1.18), run_time=0.18)
-        self.play(mob.animate.scale(1 / 1.18), run_time=0.18)
+        nxt = formula(nxt_text, size, color, 16).move_to(mob)
+        try:
+            self.play(Transform(mob, nxt), run_time=0.5)
+        except Exception:
+            self.play(FadeOut(mob), FadeIn(nxt), run_time=0.45)
+            return nxt
         return mob
 
-    def build_stage(self):
-        panel = RoundedRectangle(FRAME_WIDTH - 0.35, FRAME_HEIGHT - 1.55, corner_radius=0.22)
-        panel.set_fill("#101628", 1).set_stroke("#243049", 2)
-        panel.shift(0.08 * DOWN)
-        dots = VGroup()
-        rng = np.random.default_rng(self.unit_num + 11)
-        for _ in range(22):
-            d = Dot(radius=0.03)
-            d.set_fill([GOLD, TEAL, PINK][int(rng.integers(0, 3))], 0.2)
-            d.move_to([rng.uniform(-6.2, 6.2), rng.uniform(-3.1, 2.4), 0])
-            dots.add(d)
-        self.stage = VGroup(panel, dots)
-        self.add(self.stage)
-
-    def build_chrome(self):
-        bar = Rectangle(FRAME_WIDTH + 0.4, 0.72)
-        bar.set_fill(PANEL, 1).set_stroke(width=0)
-        bar.to_edge(UP, buff=0)
-        brand = Text("VEELEARN", font=TITLE_FONT, font_size=26).set_color(GOLD)
-        brand.to_edge(UL, buff=0.22).shift(0.04 * DOWN)
-        unit = Text(f"Grade 8  ·  Unit {self.unit_num}", font=FONT, font_size=20)
-        unit.set_color(MUTED).to_edge(UR, buff=0.22).shift(0.04 * DOWN)
-        rule = Line(LEFT * (FRAME_WIDTH / 2 - 0.3), RIGHT * (FRAME_WIDTH / 2 - 0.3))
-        rule.set_stroke(GOLD, 2.5, opacity=0.7).next_to(bar, DOWN, buff=0)
-        self.chrome = VGroup(bar, brand, unit, rule)
-        self.add(self.chrome)
-        self.pips = self.make_pips(0)
-        self.add(self.pips)
-
-    def make_pips(self, active):
-        n = max(len(self.parts), 1)
-        dots = VGroup()
-        for i in range(n):
-            d = Dot(radius=0.085 if i + 1 == active else 0.07)
-            if i + 1 == active:
-                d.set_fill(GOLD, 1)
-            elif i + 1 < active:
-                d.set_fill(TEAL, 1)
-            else:
-                d.set_fill(MUTED, 0.35)
-            dots.add(d)
-        dots.arrange(RIGHT, buff=0.16).to_edge(DOWN, buff=0.2)
-        return dots
-
-    def set_pips(self, active):
-        new = self.make_pips(active)
-        self.remove(self.pips)
-        self.add(new)
-        self.pips = new
-
-    def clear_body(self, run_time=0.28):
-        if len(self.body):
-            self.play(FadeOut(self.body, shift=0.18 * DOWN), run_time=run_time)
-        self.body = VGroup()
-
-    def keep(self, *mobs):
-        group = VGroup(*mobs)
-        self.body.add(group)
-        return group
+    def highlight(self, mob, color=GOLD):
+        try:
+            rect = SurroundingRectangle(mob, buff=0.12)
+            rect.set_stroke(color, 2)
+            self.play(ShowCreation(rect), run_time=0.45)
+            self.play(FadeOut(rect), run_time=0.35)
+        except Exception:
+            pass
 
     def intro(self):
-        self.sfx("whoosh", -8)
-        kicker = T("Eighth Grade Math", 28, TEAL, 36, font=TITLE_FONT)
-        title = Text(self.unit_title, font=TITLE_FONT, font_size=56).set_color(CREAM)
-        if title.get_width() > 12.2:
-            title.set_width(12.2)
-        under = Line(LEFT * 2.8, RIGHT * 2.8).set_stroke(GOLD, 6)
-        sub = T(self.subtitle, 30, MUTED, 36)
-        note = T("Read each line. We go slow on purpose.", 26, MUTED, 34)
-        stack = VGroup(kicker, title, under, sub, note).arrange(DOWN, buff=0.3)
-        stack.move_to(0.1 * UP)
-        self.keep(stack)
-        self.play(FadeIn(kicker, DOWN), run_time=0.55)
-        self.magic_in(title)
-        self.play(ShowCreation(under), FadeIn(sub, UP), run_time=0.7)
-        self.play(FadeIn(note), run_time=0.5)
-        self.pulse(title)
-        self.hold(self.unit_title, extra=1.6)
+        line = f"Let's build a clear picture of {self.unit_title}. {self.subtitle}."
+        self.narrate(line)
+        title = Text(self.unit_title, font=FONT, font_size=52).set_color(WHITE)
+        if title.get_width() > 12:
+            title.set_width(12)
+        under = Line(LEFT * 2.2, RIGHT * 2.2).set_stroke(GOLD, 4)
+        sub = T(self.subtitle, 28, GREY, 42)
+        stack = VGroup(title, under, sub).arrange(DOWN, buff=0.28).move_to(0.4 * UP)
+        self.play(Write(title), run_time=1.6)
+        self.play(ShowCreation(under), FadeIn(sub, 0.2 * UP), run_time=0.7)
+        self.rest()
 
-        self.clear_body(0.4)
-        head = T("In this lesson", 42, GOLD, 24, font=TITLE_FONT)
-        head.to_edge(UP, buff=1.12)
-        self.keep(head)
-        self.magic_in(head)
+        self.wipe()
+        self.narrate("Here is the path we will take. Each idea gets its own moving picture.")
         rows = VGroup()
         for i, part in enumerate(self.parts, 1):
-            num = Circle(radius=0.26).set_stroke(GOLD, 3).set_fill(GOLD, 0.18)
-            ntxt = T(str(i), 22, GOLD, 8).move_to(num)
-            label = T(part["title"], 30, CREAM, 32)
-            rows.add(VGroup(VGroup(num, ntxt), label).arrange(RIGHT, buff=0.22))
-        rows.arrange(DOWN, aligned_edge=LEFT, buff=0.2).next_to(head, DOWN, buff=0.34)
-        self.keep(rows)
-        self.sfx("pop", -12)
-        self.play(LaggedStart(*[GrowFromCenter(r) for r in rows], lag_ratio=0.18), run_time=2.2)
-        self.hold("In this lesson we cover six parts", extra=1.8)
+            n = Text(str(i) + ".", font=FONT, font_size=28).set_color(GOLD)
+            label = T(part["title"], 30, WHITE, 34)
+            rows.add(VGroup(n, label).arrange(RIGHT, buff=0.22))
+        rows.arrange(DOWN, aligned_edge=LEFT, buff=0.22).move_to(0.15 * DOWN)
+        self.play(LaggedStart(*[FadeIn(r, 0.2 * RIGHT) for r in rows], lag_ratio=0.14), run_time=2.4)
+        self.rest()
 
     def outro(self):
-        self.set_pips(len(self.parts) + 1)
-        self.clear_body()
-        self.sfx("success", -7)
-        mark = Text("YES!", font=TITLE_FONT, font_size=84).set_color(TEAL)
-        done = T("You finished this unit", 44, CREAM, 28, font=TITLE_FONT)
-        tip = T("Replay any part. Then try the quizzes.", 30, MUTED, 32)
-        stack = VGroup(mark, done, tip).arrange(DOWN, buff=0.36)
-        self.keep(stack)
-        self.magic_in(mark, TEAL)
-        self.play(FadeIn(done, UP), FadeIn(tip, UP), run_time=0.7)
-        self.pop_flash(mark.get_center(), TEAL, 1.3)
-        self.pulse(mark, 1.18)
-        self.hold("You finished this unit", extra=2.2)
-        self.play(FadeOut(self.body), FadeOut(self.chrome), FadeOut(self.pips), FadeOut(self.stage), run_time=0.8)
+        self.wipe()
+        self.narrate("That's the idea. Pause, rewind any step, and try a problem on your own.")
+        done = Text("Try a problem.", font=FONT, font_size=52).set_color(GOLD)
+        self.play(Write(done), run_time=1.2)
+        self.highlight(done, TEAL)
+        self.rest()
+        self.play(FadeOut(done), run_time=0.6)
 
     def play_part(self, index, part):
-        self.set_pips(index)
-        self.clear_body()
-        self.sfx("whoosh", -9)
-        badge = chip(f"Part {index} of {len(self.parts)}")
-        title = Text(part["title"], font=TITLE_FONT, font_size=52).set_color(CREAM)
-        if title.get_width() > 12.2:
-            title.set_width(12.2)
-        stack = VGroup(badge, title).arrange(DOWN, buff=0.3).move_to(0.15 * UP)
-        self.keep(stack)
-        self.play(FadeIn(badge, DOWN), run_time=0.5)
-        self.magic_in(title)
-        self.pulse(title)
-        self.hold(part["title"], extra=1.8)
+        self.wipe()
+        self.narrate(part["title"] + ". Watch how the pieces move.")
+        title = Text(part["title"], font=FONT, font_size=46).set_color(WHITE)
+        if title.get_width() > 12:
+            title.set_width(12)
+        self.play(Write(title), run_time=1.3)
+        self.highlight(title)
+        self.rest()
 
         visual_kind = part.get("visual")
-        beats = part.get("beats", [])
-        for bi, beat in enumerate(beats):
+        for bi, beat in enumerate(part.get("beats", [])):
             self.play_beat(beat, visual_kind, bi)
         examples = part.get("examples", [])[:1]
         if examples:
-            self.play_example(examples[0], visual_kind)
+            self.play_example(examples[0])
 
     def play_beat(self, beat, visual_kind, index):
-        self.clear_body(0.35)
-        self.sfx("click", -12)
-        cap = T(beat, 40, CREAM, 26)
-        if cap.get_height() > 1.7:
-            cap.set_height(1.7)
-        if cap.get_width() > 12.3:
-            cap.set_width(12.3)
-        cap.to_edge(UP, buff=0.95)
-        self.keep(cap)
-        self.magic_in(cap)
+        self.wipe()
+        self.narrate(beat)
         visual = self.animate_visual(visual_kind, index, beat)
         if visual is not None:
-            self.keep(visual)
-            self.pulse(visual)
-        self.hold(beat, extra=1.6)
+            try:
+                self.highlight(visual, TEAL)
+            except Exception:
+                pass
+        self.rest()
 
-    def play_example(self, ex, visual_kind):
-        self.clear_body(0.35)
-        self.sfx("pop", -10)
-        head_chip = chip("One example  ·  watch each step", TEAL)
-        problem = T(ex["problem"], 42, GOLD, 24, font=TITLE_FONT)
-        if problem.get_width() > 12.2:
-            problem.set_width(12.2)
-        head = VGroup(head_chip, problem).arrange(DOWN, buff=0.28)
-        head.to_edge(UP, buff=0.9)
-        self.keep(head)
-        self.play(FadeIn(head_chip, DOWN), run_time=0.5)
-        self.magic_in(problem)
-        self.hold(ex["problem"], extra=2.0)
+    def play_example(self, ex):
+        self.wipe()
+        problem = ex["problem"]
+        self.narrate("Here is a worked example. " + problem)
+        head = T("Worked example", 26, GOLD, 28)
+        head.to_edge(UP, buff=0.55)
+        self.play(FadeIn(head, 0.15 * DOWN), run_time=0.4)
+        prob = T(problem, 38, WHITE, 34)
+        if prob.get_width() > 12:
+            prob.set_width(12)
+        prob.next_to(head, DOWN, buff=0.35)
+        self.play(FadeIn(prob, 0.1 * UP), run_time=1.2)
+        self.highlight(prob)
+        self.rest()
 
-        stack = VGroup()
-        self.keep(stack)
+        stack = VGroup(prob)
         for si, step in enumerate(ex.get("steps", []), 1):
-            num = Circle(radius=0.3).set_stroke(GOLD, 3).set_fill(GOLD, 0.2)
-            ntxt = T(str(si), 26, GOLD, 6).move_to(num)
-            body = T(step, 36, CREAM, 22, font=TITLE_FONT)
-            if body.get_width() > 10.2:
-                body.set_width(10.2)
-            row = VGroup(VGroup(num, ntxt), body).arrange(RIGHT, buff=0.24)
-            if len(stack):
-                row.next_to(stack, DOWN, buff=0.26, aligned_edge=LEFT)
-            else:
-                row.next_to(head, DOWN, buff=0.38)
-                row.align_to(head, LEFT)
-                row.shift(0.15 * RIGHT)
+            self.narrate("Step " + str(si) + ". " + step)
+            n = Text(str(si) + ".", font=FONT, font_size=30).set_color(GOLD)
+            body = T(step, 32, WHITE, 32)
+            if body.get_width() > 10.4:
+                body.set_width(10.4)
+            row = VGroup(n, body).arrange(RIGHT, buff=0.2)
+            row.next_to(stack, DOWN, buff=0.32, aligned_edge=LEFT)
+            if row.get_bottom()[1] < -2.6:
+                self.play(stack.animate.scale(0.88).shift(0.35 * UP), run_time=0.35)
+                row.next_to(stack, DOWN, buff=0.28, aligned_edge=LEFT)
+            self.play(FadeIn(n, 0.15 * LEFT), FadeIn(body, 0.1 * UP), run_time=1.0)
             stack.add(row)
-            self.sfx("click", -14)
-            self.magic_in(row, TEAL)
-            self.hold(step, extra=1.8)
+            self.highlight(body, TEAL)
+            self.rest()
 
-        if len(stack) and stack.get_bottom()[1] < -2.15:
-            stack.scale(0.86)
-            stack.next_to(head, DOWN, buff=0.28)
-
-        ans_box = RoundedRectangle(width=12.0, height=1.15, corner_radius=0.22)
-        ans_box.set_fill("#14532d", 0.62).set_stroke(GREEN, 4)
-        ans_txt = T("Answer:  " + clean(ex["answer"]), 36, GREEN, 28, font=TITLE_FONT)
-        if ans_txt.get_width() > 11.2:
-            ans_txt.set_width(11.2)
-        ans_txt.move_to(ans_box)
-        ans = VGroup(ans_box, ans_txt).to_edge(DOWN, buff=0.58)
-        self.keep(ans)
-        self.sfx("ding", -7)
-        ans.shift(1.4 * UP)
-        self.play(ans.animate.shift(1.4 * DOWN), run_time=0.7, rate_func=rush_from)
-        self.pulse(ans, 1.12)
-        self.pop_flash(ans.get_center(), GREEN, 1.0)
-        self.hold(ex["answer"], extra=2.6)
+        self.narrate("So the answer is " + str(ex["answer"]) + ".")
+        ans = formula(ex["answer"], 40, GOLD, 11)
+        box = SurroundingRectangle(ans, buff=0.22)
+        box.set_stroke(GREEN, 3)
+        pack = VGroup(box, ans).to_edge(DOWN, buff=0.45)
+        self.play(FadeIn(pack, 0.4 * UP), run_time=0.7)
+        self.rest()
 
     def animate_visual(self, kind, beat_i, beat=""):
         makers = {
@@ -380,52 +431,87 @@ class LessonScene(Scene):
         fn = makers.get(kind)
         return fn(beat_i, beat) if fn else None
 
+
     def _card(self, txt, color=TEAL, w=1.35, h=0.95):
         r = RoundedRectangle(w, h, corner_radius=0.12)
         r.set_stroke(color, 3).set_fill(color, 0.14)
-        t = T(txt, 32, CREAM, 12, font=FONT)
+        t = formula(txt, 28, CREAM, max(0.9, w * 0.86))
+        if t.get_width() > w * 0.84:
+            t.set_width(w * 0.84)
+        if t.get_height() > h * 0.72:
+            t.set_height(h * 0.72)
         t.move_to(r)
         return VGroup(r, t)
 
-    # ----- exponents: a new multiply / sign / root story each beat -----
+    def demo_show_math(self, text, size=40):
+        chunk = extract_math(text)
+        mob = formula(chunk, size, WHITE, 12)
+        if mob.get_width() > 12.2:
+            mob.set_width(12.2)
+        mob.move_to(0.2 * DOWN)
+        self.play(FadeIn(mob, 0.15 * UP), run_time=0.7)
+        return mob
+
+    # ----- exponents: picture matches THIS beat's numbers -----
 
     def anim_exponent(self, beat_i, beat):
-        if has(beat, "parenthes", "inside the power", "(-3)"):
+        t = caretify(beat)
+        tl = t.lower()
+        if has(beat, "inside the power"):
             return self.demo_signed_square(True)
-        if has(beat, "-3 to the 2 = -9", "square 3 first", "then apply the minus"):
+        if has(beat, "square 3 first", "then apply the minus") or "-3^2 = -9" in t.replace(" ", ""):
             return self.demo_signed_square(False)
-        if has(beat, "root", "sqrt", "undoes"):
-            return self.demo_root_undo()
-        if has(beat, "irrational", "rational"):
+        if has(beat, "parenthes") and "(-3)" in t:
+            return self.demo_signed_square(True)
+        if has(beat, "irrational") or (has(beat, "rational") and "sqrt 2" in tl):
             return self.demo_rational_split()
-        if has(beat, "power of a power", "multiply exponents", "(2"):
+        if has(beat, "root", "sqrt", "undoes"):
+            m = re.search(r"sqrt\s*(\d+)", tl)
+            n = int(m.group(1)) if m else 81
+            root = int(round(n ** 0.5))
+            return self.demo_root_undo(n, root)
+        pop = re.search(r"\((\d+)\^(\d+)\)\^(\d+)", t)
+        if pop or has(beat, "power of a power"):
+            if pop:
+                return self.demo_power_of_power(pop.group(1), pop.group(2), pop.group(3))
             return self.demo_power_of_power()
-        if has(beat, "divide", "subtract exponents"):
+        prod = re.search(r"(\d+)\^(\d+)\s*x\s*\1\^(\d+)", t)
+        if prod:
+            return self.demo_product_rule(prod.group(1), prod.group(2), prod.group(3))
+        quot = re.search(r"(\d+)\^(\d+)\s*/\s*\1\^(\d+)", t)
+        if quot or has(beat, "subtract exponents"):
+            if quot:
+                return self.demo_quotient_rule(quot.group(1), quot.group(2), quot.group(3))
             return self.demo_quotient_rule()
-        if has(beat, "same base", "add exponents", "product"):
+        if has(beat, "coefficient") or re.search(r"\(\d+x", t):
+            return self.demo_coeff_product(beat)
+        if has(beat, "same base", "add exponents"):
             return self.demo_product_rule()
-        if has(beat, "coefficient"):
-            return self.demo_coeff_product()
-        variants = [self.demo_factor_stack, self.demo_signed_square, self.demo_root_undo,
-                    self.demo_power_of_power, self.demo_product_rule]
-        fn = variants[beat_i % len(variants)]
-        return fn(True) if fn is self.demo_signed_square else fn()
+        simple = re.search(r"(\d+)\^(\d+)", t)
+        if simple:
+            return self.demo_factor_stack(int(simple.group(1)), int(simple.group(2)))
+        return self.demo_show_math(beat)
 
-    def demo_factor_stack(self, bases=(2, 4), exp=None):
-        base = 4 if exp is None else bases[0]
-        cards = VGroup(self._card(str(base), TEAL), self._card("x " + str(base), BLUE),
-                       self._card("x " + str(base), PINK))
-        cards.arrange(RIGHT, buff=0.2).move_to(0.55 * DOWN)
-        prod = T(str(base), 48, GOLD, 10).next_to(cards, DOWN, buff=0.45)
+    def demo_factor_stack(self, base=4, exp=3):
+        base, exp = int(base), int(exp)
+        n = max(2, min(exp, 5))
+        cards = VGroup(self._card(str(base), TEAL, 1.2))
+        for i in range(n - 1):
+            cards.add(self._card("× " + str(base), BLUE if i % 2 == 0 else PINK, 1.35))
+        cards.arrange(RIGHT, buff=0.16).move_to(0.45 * DOWN)
+        running = base
+        prod = formula(str(base), 48, GOLD, 8).next_to(cards, DOWN, buff=0.4)
         self.sfx("pop", -12)
         self.play(GrowFromCenter(cards[0]), run_time=0.25)
         self.play(FadeIn(prod, UP), run_time=0.2)
-        self.play(FadeIn(cards[1], LEFT), run_time=0.25)
-        self.morph_number(prod, str(base * base), 48, GOLD)
-        self.play(FadeIn(cards[2], LEFT), run_time=0.25)
+        extras = list(cards)[1:]
+        for card in extras:
+            self.play(FadeIn(card, LEFT), run_time=0.22)
+            running *= base
+            prod = self.morph_number(prod, str(running), 48, GOLD)
         self.sfx("ding", -10)
-        self.morph_number(prod, str(base ** 3), 52, GOLD)
-        eq = VGroup(power_mob(str(base), "3"), T("= " + str(base ** 3), 32, GOLD, 12)).arrange(RIGHT, buff=0.15)
+        value = base ** exp
+        eq = VGroup(power_mob(str(base), str(exp)), formula("= " + str(value), 32, GOLD, 10)).arrange(RIGHT, buff=0.15)
         eq.next_to(prod, DOWN, buff=0.2)
         self.play(GrowFromCenter(eq), run_time=0.3)
         return VGroup(cards, prod, eq)
@@ -434,13 +520,13 @@ class LessonScene(Scene):
         if parens:
             left = self._card("(-3)", BLUE, 1.6)
             right = self._card("(-3)", PINK, 1.6)
-            result = T("9", 56, GREEN, 8)
-            tag = T("minus is INSIDE", 22, GREEN, 24)
+            result = formula("9", 56, GREEN, 8)
+            tag = formula("minus is INSIDE", 22, GREEN, 24)
         else:
             left = self._card("-", RED, 0.9)
-            right = self._card("3 x 3", TEAL, 1.7)
-            result = T("-9", 56, RED, 8)
-            tag = T("minus is OUTSIDE", 22, RED, 24)
+            right = self._card("3 × 3", TEAL, 1.7)
+            result = formula("-9", 56, RED, 8)
+            tag = formula("minus is OUTSIDE", 22, RED, 24)
         pair = VGroup(left, right).arrange(RIGHT, buff=0.9).move_to(0.5 * UP + 0.4 * DOWN)
         self.play(FadeIn(left, LEFT), FadeIn(right, RIGHT), run_time=0.35)
         self.sfx("thud", -10)
@@ -451,23 +537,23 @@ class LessonScene(Scene):
         self.pop_flash(result.get_center(), GREEN if parens else RED)
         return VGroup(left, right, result, tag)
 
-    def demo_root_undo(self):
+    def demo_root_undo(self, n=81, root=9):
         sq = Square(1.8).set_stroke(GOLD, 4).set_fill(GOLD, 0.1)
-        nine = T("9 x 9", 26, CREAM, 12).move_to(sq)
+        nine = formula(f"{root} × {root}", 26, CREAM, 12).move_to(sq)
         g = VGroup(sq, nine).move_to(0.2 * LEFT + 0.3 * DOWN)
         self.play(ShowCreation(sq), FadeIn(nine), run_time=0.4)
         arrow = Arrow(g.get_right(), g.get_right() + 2.2 * RIGHT, fill_color=TEAL, buff=0.1)
-        out = T("9", 52, TEAL, 8).next_to(arrow, RIGHT, buff=0.2)
-        lab = T("sqrt undoes a square", 20, GOLD, 28).next_to(g, DOWN, buff=0.35)
+        out = formula(str(root), 52, TEAL, 8).next_to(arrow, RIGHT, buff=0.2)
+        lab = formula(f"√{n} = {root}", 22, GOLD, 20).next_to(g, DOWN, buff=0.35)
         self.sfx("whoosh", -11)
         self.play(ShowCreation(arrow), GrowFromCenter(out), FadeIn(lab), run_time=0.5)
         return VGroup(g, arrow, out, lab)
 
     def demo_rational_split(self):
-        good = self._card("sqrt 16 = 4", TEAL, 3.2, 1.1)
-        bad = self._card("sqrt 2  never ends", PINK, 3.4, 1.1)
-        a = T("rational", 20, TEAL, 16)
-        b = T("irrational", 20, PINK, 16)
+        good = self._card("√16 = 4", TEAL, 3.2, 1.1)
+        bad = self._card("√2 never ends", PINK, 3.4, 1.1)
+        a = formula("rational", 20, TEAL, 16)
+        b = formula("irrational", 20, PINK, 16)
         good.move_to(3 * LEFT + 0.2 * DOWN)
         bad.move_to(3 * RIGHT + 0.2 * DOWN)
         a.next_to(good, DOWN, buff=0.2)
@@ -478,53 +564,62 @@ class LessonScene(Scene):
         self.play(good.animate.shift(0.12 * DOWN), bad.animate.shift(0.12 * DOWN), run_time=0.2)
         return VGroup(good, bad, a, b)
 
-    def demo_power_of_power(self):
-        inner = power_mob("2", "3", 42, 22)
+    def demo_power_of_power(self, base="2", inner="3", outer="4"):
+        inner, outer = str(inner), str(outer)
+        out_exp = str(int(inner) * int(outer))
+        inner_m = power_mob(str(base), inner, 42, 22)
         wrapb = RoundedRectangle(2.4, 1.6, corner_radius=0.14).set_stroke(BLUE, 3)
-        wrapb.move_to(inner)
-        g = VGroup(wrapb, inner).move_to(2.2 * LEFT + 0.2 * DOWN)
-        outer = T("to the 4", 26, GOLD, 16).next_to(g, UR, buff=0.1)
-        self.play(GrowFromCenter(g), FadeIn(outer), run_time=0.4)
+        wrapb.move_to(inner_m)
+        g = VGroup(wrapb, inner_m).move_to(2.2 * LEFT + 0.2 * DOWN)
+        outer_lab = formula("to the " + outer, 24, GOLD, 16).next_to(g, UR, buff=0.1)
+        self.play(GrowFromCenter(g), FadeIn(outer_lab), run_time=0.4)
         arrow = Arrow(g.get_right() + 0.3 * RIGHT, 1.3 * RIGHT, fill_color=GOLD, buff=0.05)
-        out = power_mob("2", "12", 48, 24)
+        out = power_mob(str(base), out_exp, 48, 24)
         out.move_to(3.1 * RIGHT + 0.15 * DOWN)
-        hint = T("3 x 4 = 12", 22, TEAL, 16).next_to(out, DOWN, buff=0.2)
+        hint = formula(f"{inner} × {outer} = {out_exp}", 22, TEAL, 16).next_to(out, DOWN, buff=0.2)
         self.sfx("whoosh", -11)
         self.play(ShowCreation(arrow), run_time=0.25)
         self.play(GrowFromCenter(out), FadeIn(hint), run_time=0.4)
         self.pop_flash(out.get_center())
-        return VGroup(g, outer, arrow, out, hint)
+        return VGroup(g, outer_lab, arrow, out, hint)
 
-    def demo_product_rule(self):
-        a = VGroup(power_mob("3", "2"), T("x", 28, MUTED, 4), power_mob("3", "4")).arrange(RIGHT, buff=0.18)
+    def demo_product_rule(self, base="3", e1="2", e2="4"):
+        e1, e2 = str(e1), str(e2)
+        total = str(int(e1) + int(e2))
+        a = VGroup(power_mob(str(base), e1), formula("×", 28, TEAL, 4), power_mob(str(base), e2)).arrange(RIGHT, buff=0.18)
         a.move_to(2.3 * LEFT + 0.2 * DOWN)
         self.play(FadeIn(a, LEFT), run_time=0.35)
-        plus = T("2 + 4 = 6", 24, TEAL, 16).next_to(a, DOWN, buff=0.3)
-        self.play(Write(plus), run_time=0.35)
+        plus = formula(f"{e1} + {e2} = {total}", 24, TEAL, 16).next_to(a, DOWN, buff=0.3)
+        self.play(FadeIn(plus), run_time=0.35)
         arrow = Arrow(ORIGIN, 1.4 * RIGHT, fill_color=GOLD)
-        out = power_mob("3", "6", 48, 24).move_to(3.0 * RIGHT + 0.15 * DOWN)
+        out = power_mob(str(base), total, 48, 24).move_to(3.0 * RIGHT + 0.15 * DOWN)
         self.sfx("ding", -10)
         self.play(ShowCreation(arrow), GrowFromCenter(out), run_time=0.45)
         return VGroup(a, plus, arrow, out)
 
-    def demo_quotient_rule(self):
-        a = VGroup(power_mob("5", "7"), T("/", 32, MUTED, 4), power_mob("5", "3")).arrange(RIGHT, buff=0.16)
+    def demo_quotient_rule(self, base="5", e1="7", e2="3"):
+        e1, e2 = str(e1), str(e2)
+        total = str(int(e1) - int(e2))
+        a = VGroup(power_mob(str(base), e1), formula("÷", 32, MUTED, 4), power_mob(str(base), e2)).arrange(RIGHT, buff=0.16)
         a.move_to(2.2 * LEFT + 0.2 * DOWN)
         self.play(FadeIn(a, UP), run_time=0.35)
-        minus = T("7 - 3 = 4", 24, PINK, 16).next_to(a, DOWN, buff=0.3)
-        self.play(Write(minus), run_time=0.3)
-        out = power_mob("5", "4", 48, 24).move_to(3.0 * RIGHT)
+        minus = formula(f"{e1} − {e2} = {total}", 24, PINK, 16).next_to(a, DOWN, buff=0.3)
+        self.play(FadeIn(minus), run_time=0.3)
+        out = power_mob(str(base), total, 48, 24).move_to(3.0 * RIGHT)
         self.play(GrowFromCenter(out), run_time=0.4)
         return VGroup(a, minus, out)
 
-    def demo_coeff_product(self):
-        left = T("(2x to the 3)(5x to the 2)", 26, CREAM, 32)
-        left.move_to(0.6 * UP)
-        self.play(FadeIn(left, DOWN), run_time=0.3)
-        nums = T("2 x 5 = 10", 28, TEAL, 20).move_to(1.3 * LEFT + 0.5 * DOWN)
-        vars_ = T("x to the 5", 28, GOLD, 16).move_to(2.2 * RIGHT + 0.5 * DOWN)
+    def demo_coeff_product(self, beat="(2x³)(5x²) = 10x⁵"):
+        left = formula(extract_math(beat), 32, CREAM, 12)
+        left.move_to(0.55 * UP)
+        if left.get_width() > 12:
+            left.set_width(12)
+        self.play(FadeIn(left, DOWN), run_time=0.35)
+        nums = formula("2 × 5 = 10", 28, TEAL, 16).move_to(1.5 * LEFT + 0.55 * DOWN)
+        vars_ = VGroup(formula("x³ × x² =", 26, GOLD, 12), power_mob("x", "5", 36, 20)).arrange(RIGHT, buff=0.12)
+        vars_.move_to(2.2 * RIGHT + 0.55 * DOWN)
         self.play(FadeIn(nums, LEFT), FadeIn(vars_, RIGHT), run_time=0.4)
-        out = T("10 x to the 5", 36, GREEN, 24).move_to(1.3 * DOWN)
+        out = formula("10x⁵", 40, GREEN, 12).move_to(1.35 * DOWN)
         self.sfx("ding", -10)
         self.play(GrowFromCenter(out), run_time=0.35)
         return VGroup(left, nums, vars_, out)
@@ -532,41 +627,46 @@ class LessonScene(Scene):
     # ----- scientific notation / zero & negative exponents -----
 
     def anim_sci(self, beat_i, beat):
-        if has(beat, "0 power", "to the 0", "nonzero"):
-            return self.demo_zero_power()
+        t = caretify(beat)
+        scis = parse_sci(beat)
         if has(beat, "do not read", "minus lives", "as -8"):
             return self.demo_not_negative_eight()
-        if has(beat, "negative exponent", "reciprocal", "1 /"):
-            return self.demo_negative_exp()
-        if has(beat, "flip", "1/2"):
+        if len(scis) >= 2 and has(beat, "larger", "compare", "beats"):
+            return self.demo_sci_compare(scis[0], scis[1])
+        if scis:
+            return self.demo_sci_expand(scis[0][0], scis[0][1])
+        if has(beat, "flip") or "(1/2)^-1" in t.replace(" ", ""):
             return self.demo_flip_fraction()
-        if has(beat, "32,000", "3.2", "scientific", "10 to the"):
-            return self.demo_sci_expand(4)
-        if has(beat, "left", "tiny", "negative"):
-            return self.demo_sci_expand(-3)
-        variants = [self.demo_zero_power, self.demo_negative_exp, self.demo_not_negative_eight,
-                    self.demo_sci_expand, self.demo_flip_fraction]
-        fn = variants[beat_i % 5]
-        return fn(4) if fn is self.demo_sci_expand else fn()
+        if has(beat, "nonzero") or re.search(r"(?<!10)\d+\^0\b", t) or re.search(r"\b7\^0\b", t):
+            m = re.search(r"(\d+)\^0", t)
+            return self.demo_zero_power(m.group(1) if m else "7")
+        if has(beat, "reciprocal", "negative exponent") or re.search(r"(?<!10)\d+\^-\d+", t):
+            m = re.search(r"(\d+)\^(-?\d+)", t)
+            if m and int(m.group(2)) < 0:
+                return self.demo_negative_exp(m.group(1), m.group(2))
+            return self.demo_negative_exp()
+        return self.demo_show_math(beat)
 
-    def demo_zero_power(self):
-        seven = power_mob("7", "0", 56, 28)
+    def demo_zero_power(self, base="7"):
+        seven = power_mob(str(base), "0", 56, 28)
         seven.move_to(2.2 * LEFT)
         self.play(GrowFromCenter(seven), run_time=0.35)
         arrow = Arrow(LEFT * 0.2, RIGHT * 0.9, fill_color=GOLD)
-        one = T("1", 64, GREEN, 6).move_to(2.4 * RIGHT)
-        why = T("anything (not 0) to the 0 is 1", 20, MUTED, 36).to_edge(DOWN, buff=1.15)
+        one = formula("1", 64, GREEN, 6).move_to(2.4 * RIGHT)
+        why = formula("anything (not 0) to the 0 is 1", 20, MUTED, 36).to_edge(DOWN, buff=1.15)
         self.sfx("ding", -9)
         self.play(ShowCreation(arrow), GrowFromCenter(one), FadeIn(why), run_time=0.5)
         self.play(WiggleOutThenIn(one, run_time=0.4, n_wiggles=4))
         return VGroup(seven, arrow, one, why)
 
-    def demo_negative_exp(self):
-        src = power_mob("2", "-3", 48, 26)
+    def demo_negative_exp(self, base="2", exp="-3"):
+        exp_i = abs(int(exp))
+        denom = int(base) ** exp_i
+        src = power_mob(str(base), str(exp), 48, 26)
         src.move_to(3.2 * LEFT)
         self.play(GrowFromCenter(src), run_time=0.3)
-        frac = T("1 / 8", 52, GOLD, 12).move_to(2.6 * RIGHT)
-        mid = T("flip me", 20, TEAL, 14)
+        frac = formula(f"1 / {denom}", 52, GOLD, 12).move_to(2.6 * RIGHT)
+        mid = formula("reciprocal", 20, TEAL, 14)
         self.sfx("whoosh", -10)
         self.play(src.animate.scale([-1, 1, 1]), run_time=0.4)
         self.play(FadeIn(frac, LEFT), FadeIn(mid, UP), run_time=0.35)
@@ -574,7 +674,7 @@ class LessonScene(Scene):
         return VGroup(src, frac, mid)
 
     def demo_not_negative_eight(self):
-        wrong = T("-8", 56, RED, 8).move_to(2.4 * LEFT)
+        wrong = formula("-8", 56, RED, 8).move_to(2.4 * LEFT)
         self.play(GrowFromCenter(wrong), run_time=0.3)
         self.sfx("wrong", -8)
         cross = VGroup(
@@ -582,53 +682,69 @@ class LessonScene(Scene):
             Line(wrong.get_corner(UR), wrong.get_corner(DL)),
         ).set_stroke(RED, 6)
         self.play(ShowCreation(cross), run_time=0.3)
-        right = T("1 / 8", 52, GREEN, 12).move_to(2.5 * RIGHT)
-        lab = T("the minus is in the exponent", 20, GOLD, 32).to_edge(DOWN, buff=1.15)
+        right = formula("1 / 8", 52, GREEN, 12).move_to(2.5 * RIGHT)
+        lab = formula("the minus is in the exponent", 20, GOLD, 32).to_edge(DOWN, buff=1.15)
         self.play(GrowFromCenter(right), FadeIn(lab), run_time=0.4)
         return VGroup(wrong, cross, right, lab)
 
     def demo_flip_fraction(self):
-        a = T("1/2", 48, CREAM, 10).move_to(2.4 * LEFT)
+        a = formula("1/2", 48, CREAM, 10).move_to(2.4 * LEFT)
         self.play(FadeIn(a), run_time=0.25)
         self.play(Rotate(a, PI), run_time=0.45)
-        b = T("2/1 = 2", 48, GOLD, 14).move_to(2.3 * RIGHT)
+        b = formula("2/1 = 2", 48, GOLD, 14).move_to(2.3 * RIGHT)
         self.sfx("pop", -11)
-        self.play(Transform(a.copy(), b), GrowFromCenter(b), run_time=0.4)
+        self.play(GrowFromCenter(b), run_time=0.4)
         return VGroup(a, b)
 
-    def demo_sci_expand(self, exp=4):
-        before = VGroup(T("3.2 x", 32, CREAM, 12), power_mob("10", str(exp), 32, 18)).arrange(RIGHT, buff=0.1)
-        before.move_to(1.6 * UP)
-        self.play(FadeIn(before, DOWN), run_time=0.3)
-        if exp >= 0:
-            digits = ["3", "2"] + ["0"] * exp
-            digits.insert(1 + exp, "")  # 32000
-            shown = T("32" + "0" * max(exp - 1, 0), 48, GOLD, 16)
-            zeros = VGroup(*[T("0", 40, TEAL, 4) for _ in range(max(exp, 1))])
-            zeros.arrange(RIGHT, buff=0.08).move_to(0.2 * DOWN)
-            self.sfx("whoosh", -11)
-            self.play(LaggedStart(*[FadeIn(z, UP) for z in zeros], lag_ratio=0.12), run_time=0.6)
-            shown.move_to(1.15 * DOWN)
-            self.play(GrowFromCenter(shown), run_time=0.3)
-            return VGroup(before, zeros, shown)
-        tiny = T("0.0032", 48, PINK, 16).move_to(0.2 * DOWN)
-        self.play(GrowFromCenter(tiny), run_time=0.4)
-        return VGroup(before, tiny)
+    def demo_sci_expand(self, coeff="3.2", exp=4):
+        exp = int(exp)
+        before = VGroup(
+            formula(str(coeff), 36, CREAM, 8),
+            formula("×", 32, TEAL, 4),
+            power_mob("10", str(exp), 36, 20),
+        ).arrange(RIGHT, buff=0.12)
+        before.move_to(1.45 * UP)
+        self.play(FadeIn(before, DOWN), run_time=0.35)
+        hops = formula(
+            ("hop decimal " + str(abs(exp)) + " places right") if exp >= 0
+            else ("hop decimal " + str(abs(exp)) + " places left"),
+            22, TEAL, 36,
+        )
+        hops.next_to(before, DOWN, buff=0.35)
+        self.play(FadeIn(hops), run_time=0.3)
+        shown = formula(expand_sci(coeff, exp), 52, GOLD if exp >= 0 else PINK, 16)
+        shown.move_to(0.85 * DOWN)
+        self.sfx("whoosh", -11)
+        self.play(GrowFromCenter(shown), run_time=0.45)
+        return VGroup(before, hops, shown)
 
-    # ----- equations: a moving scale, not the same 6x-7 pan -----
+    def demo_sci_compare(self, left, right):
+        a, e1 = left
+        b, e2 = right
+        m1 = VGroup(formula(str(a), 32, CREAM, 8), formula("×", 28, TEAL, 4), power_mob("10", str(e1), 32, 18)).arrange(RIGHT, buff=0.1)
+        m2 = VGroup(formula(str(b), 32, CREAM, 8), formula("×", 28, TEAL, 4), power_mob("10", str(e2), 32, 18)).arrange(RIGHT, buff=0.1)
+        pair = VGroup(m1, m2).arrange(DOWN, buff=0.55, aligned_edge=LEFT).move_to(0.2 * DOWN)
+        self.play(FadeIn(m1, LEFT), FadeIn(m2, RIGHT), run_time=0.45)
+        winner = m1 if e1 > e2 else m2
+        tag = formula("compare the power of 10 first", 22, GOLD, 36).to_edge(DOWN, buff=1.05)
+        self.highlight(winner, GOLD)
+        self.play(FadeIn(tag), run_time=0.3)
+        return VGroup(pair, tag)
+
+    # ----- equations: show THIS beat's equation -----
 
     def anim_balance(self, beat_i, beat):
-        if has(beat, "no solution", "never", "0 = 1", "0 = 5"):
-            return self.demo_no_solution()
-        if has(beat, "infinitely", "always", "identity", "0 = 0"):
-            return self.demo_identity()
-        if has(beat, "distribut", "parenthes"):
-            return self.demo_distribute()
-        if has(beat, "fraction", "divid"):
-            return self.demo_clear_fraction()
-        variants = [self.demo_scale, self.demo_distribute, self.demo_both_sides,
-                    self.demo_no_solution, self.demo_identity]
-        return variants[beat_i % 5]()
+        if has(beat, "no solution", "never true", "contradiction"):
+            return self.demo_no_solution(beat)
+        if has(beat, "identity", "every x", "infinitely"):
+            return self.demo_identity(beat)
+        if has(beat, "distribut") or "3(2x" in caretify(beat) or "3(x" in caretify(beat):
+            return self.demo_distribute(beat)
+        if has(beat, "fraction", "/3", "/2", "/4") or "0.5" in beat:
+            return self.demo_clear_fraction(beat)
+        if "=" in beat:
+            return self.demo_show_math(beat)
+        return self.demo_scale()
 
     def demo_scale(self):
         base = Line(LEFT * 2.4, RIGHT * 2.4).set_stroke(MUTED, 5)
@@ -647,74 +763,89 @@ class LessonScene(Scene):
         self.play(g.animate.rotate(0.1), run_time=0.2)
         return g
 
-    def demo_distribute(self):
-        before = T("3(x + 4)", 36, CREAM, 16).move_to(2.3 * LEFT)
-        self.play(FadeIn(before), run_time=0.25)
-        a = T("3x", 32, TEAL, 8).move_to(1.3 * RIGHT + 0.45 * UP)
-        b = T("12", 32, GOLD, 8).move_to(1.3 * RIGHT + 0.45 * DOWN)
-        self.play(FadeIn(a, LEFT), FadeIn(b, LEFT), run_time=0.35)
-        out = T("3x + 12", 36, GREEN, 16).move_to(1.1 * DOWN)
+    def demo_distribute(self, beat="3(x + 4) = 3x + 12"):
+        eq = formula(extract_math(beat), 34, CREAM, 12)
+        if eq.get_width() > 12:
+            eq.set_width(12)
+        eq.move_to(0.55 * UP)
+        self.play(FadeIn(eq), run_time=0.4)
+        out = formula("each term inside gets multiplied", 22, TEAL, 36).move_to(0.7 * DOWN)
         self.sfx("pop", -11)
-        self.play(GrowFromCenter(out), run_time=0.3)
-        return VGroup(before, a, b, out)
+        self.play(FadeIn(out), run_time=0.3)
+        return VGroup(eq, out)
 
-    def demo_both_sides(self):
-        eq = T("6x - 7  =  5x + 7", 32, CREAM, 28).move_to(0.7 * UP)
-        self.play(Write(eq), run_time=0.45)
-        step = T("subtract 5x from both sides", 22, TEAL, 36).move_to(ORIGIN)
+    def demo_both_sides(self, beat="6x - 7 = 5x + 7"):
+        eq = formula(extract_math(beat), 32, CREAM, 12).move_to(0.55 * UP)
+        if eq.get_width() > 12:
+            eq.set_width(12)
+        self.play(FadeIn(eq), run_time=0.45)
+        step = formula("keep both sides equal", 22, TEAL, 36)
         self.play(FadeIn(step, UP), run_time=0.3)
-        out = T("x = 14", 44, GOLD, 12).move_to(1.0 * DOWN)
-        self.sfx("ding", -10)
-        self.play(GrowFromCenter(out), run_time=0.35)
-        self.play(WiggleOutThenIn(out, run_time=0.4, n_wiggles=4))
-        return VGroup(eq, step, out)
+        return VGroup(eq, step)
 
-    def demo_no_solution(self):
-        eq = T("x + 1 = x + 4", 32, CREAM, 24).move_to(0.5 * UP)
+    def demo_no_solution(self, beat="x + 1 = x + 4"):
+        eq = formula(extract_math(beat), 32, CREAM, 12).move_to(0.5 * UP)
+        if eq.get_width() > 12:
+            eq.set_width(12)
         self.play(FadeIn(eq), run_time=0.3)
-        boom = T("0 = 3", 40, RED, 12)
-        self.play(TransformFromCopy(eq, boom), run_time=0.45)
-        no = T("no solution", 28, RED, 20).next_to(boom, DOWN, buff=0.3)
+        no = formula("no solution", 36, RED, 20).move_to(0.7 * DOWN)
         self.sfx("wrong", -9)
-        self.play(FadeIn(no), run_time=0.3)
-        return VGroup(eq, boom, no)
+        self.play(GrowFromCenter(no), run_time=0.35)
+        return VGroup(eq, no)
 
-    def demo_identity(self):
-        eq = T("2(x + 1) = 2x + 2", 30, CREAM, 28).move_to(0.5 * UP)
+    def demo_identity(self, beat="2(x + 1) = 2x + 2"):
+        eq = formula(extract_math(beat), 30, CREAM, 12).move_to(0.5 * UP)
+        if eq.get_width() > 12:
+            eq.set_width(12)
         self.play(FadeIn(eq), run_time=0.3)
-        yes = T("0 = 0  always true", 32, GREEN, 28).move_to(0.6 * DOWN)
+        yes = formula("always true", 32, GREEN, 20).move_to(0.6 * DOWN)
         self.sfx("success", -10)
         self.play(GrowFromCenter(yes), run_time=0.4)
         return VGroup(eq, yes)
 
-    def demo_clear_fraction(self):
-        eq = T("x / 4 + 3 = 7", 32, CREAM, 24).move_to(0.6 * UP)
+    def demo_clear_fraction(self, beat="(x + 2)/3 = 4"):
+        eq = formula(extract_math(beat), 32, CREAM, 12).move_to(0.55 * UP)
+        if eq.get_width() > 12:
+            eq.set_width(12)
         self.play(FadeIn(eq), run_time=0.3)
-        times = T("x 4 on every term", 22, TEAL, 24)
-        self.play(FadeIn(times), run_time=0.25)
-        out = T("x = 16", 44, GOLD, 12).move_to(1.0 * DOWN)
-        self.play(GrowFromCenter(out), run_time=0.35)
-        return VGroup(eq, times, out)
+        times = formula("multiply both sides to clear the denominator", 22, TEAL, 36)
+        self.play(FadeIn(times), run_time=0.3)
+        return VGroup(eq, times)
 
     # ----- slope: different lines each beat -----
 
     def anim_slope(self, beat_i, beat):
-        if has(beat, "horizontal", "slope 0"):
-            return self.demo_slope_line(0, "m = 0  flat")
         if has(beat, "vertical", "undefined"):
             return self.demo_vertical()
-        if has(beat, "negative", "falls"):
-            return self.demo_slope_line(-2, "m = -2  falls")
+        if has(beat, "horizontal") or has(beat, "slope 0"):
+            return self.demo_slope_line(0, "m = 0  flat")
         if has(beat, "parallel"):
             return self.demo_parallel()
         if has(beat, "perpendicular"):
             return self.demo_perp()
-        if has(beat, "y = mx", "intercept", "b ="):
-            return self.demo_slope_line(0.5, "y = (1/2)x + 1", intercept=1)
-        slopes = [(0.5, "m = 1/2  climb"), (-1, "m = -1  fall"),
-                  (0, "m = 0  flat"), (2, "m = 2  steep")]
-        m, lab = slopes[beat_i % 4]
-        return self.demo_slope_line(m, lab)
+        pts = re.findall(r"\(\s*(-?\d+)\s*,\s*(-?\d+)\s*\)", beat)
+        if len(pts) >= 2:
+            x1, y1 = int(pts[0][0]), int(pts[0][1])
+            x2, y2 = int(pts[1][0]), int(pts[1][1])
+            run = x2 - x1
+            rise = y2 - y1
+            m = (rise / run) if run else 0
+            b = y1 - m * x1
+            lab = f"m = {rise}/{run}" if run else "undefined"
+            return self.demo_slope_line(m, lab, intercept=b)
+        if has(beat, "negative", "falls"):
+            return self.demo_slope_line(-2, "m = -2  falls")
+        compact = caretify(beat).replace(" ", "")
+        mline = re.search(r"y=\(?(-?\d+(?:/\d+)?)\)?x\+(-?\d+)", compact)
+        if mline:
+            raw_m, raw_b = mline.group(1), mline.group(2)
+            if "/" in raw_m:
+                n, d = raw_m.split("/")
+                m = float(n) / float(d)
+            else:
+                m = float(raw_m)
+            return self.demo_slope_line(m, f"y = {raw_m}x + {raw_b}", intercept=float(raw_b))
+        return self.demo_show_math(beat)
 
     def demo_slope_line(self, m, label, intercept=1):
         axes = Axes((-1, 5), (-1, 5), height=3.2, width=3.6)
@@ -779,12 +910,11 @@ class LessonScene(Scene):
             return self.demo_curve()
         if has(beat, "machine", "f(x)", "notation"):
             return self.demo_machine()
-        variants = [self.demo_machine, self.demo_table, self.demo_curve, self.demo_vlt]
-        return variants[beat_i % 4]()
+        return self.demo_show_math(beat)
 
     def demo_machine(self):
         inn = self._card("x = 3", BLUE, 1.6, 0.75)
-        box = self._card("x 2 + 1", GOLD, 2.0, 1.1)
+        box = self._card("2x + 1", GOLD, 2.0, 1.1)
         out = self._card("7", TEAL, 1.3, 0.75)
         row = VGroup(inn, box, out).arrange(RIGHT, buff=0.7).move_to(0.2 * DOWN)
         a1 = Arrow(inn.get_right(), box.get_left(), buff=0.06, fill_color=GOLD)
@@ -839,9 +969,7 @@ class LessonScene(Scene):
             return self.demo_eliminate()
         if has(beat, "substitut"):
             return self.demo_substitute()
-        pts = [(2, 3), (1, 4), (3, 1), (0, 2)]
-        x, y = pts[beat_i % 4]
-        return self.demo_cross(x, y)
+        return self.demo_show_math(beat)
 
     def demo_cross(self, x, y):
         axes = Axes((-1, 5), (-1, 6), height=3.2, width=3.6)
@@ -914,17 +1042,7 @@ class LessonScene(Scene):
             return self.demo_missing_leg(5, 13)
         if has(beat, "9 + 16", "legs 3 and 4"):
             return self.demo_squares_on_sides(3, 4)
-        cycle = [
-            lambda: self.demo_right_intro(),
-            lambda: self.demo_squares_on_sides(3, 4),
-            lambda: self.demo_triangle(5, 12, "5-12-13"),
-            lambda: self.demo_triangle(8, 15, "8-15-17"),
-            lambda: self.demo_missing_leg(5, 13),
-            lambda: self.demo_triangle(6, 8, "6-8-10"),
-            lambda: self.demo_distance(),
-            lambda: self.demo_ladder(),
-        ]
-        return cycle[beat_i % len(cycle)]()
+        return self.demo_show_math(beat)
 
     def _tri_points(self, a, b, scale):
         return ORIGIN, a * scale * RIGHT, a * scale * RIGHT + b * scale * UP
@@ -1036,8 +1154,7 @@ class LessonScene(Scene):
             return self.demo_base_area()
         if has(beat, "height", "stack"):
             return self.demo_stack_height()
-        variants = [self.demo_cylinder, self.demo_base_area, self.demo_stack_height]
-        return variants[beat_i % 3]()
+        return self.demo_cylinder()
 
     def demo_cylinder(self):
         top = Ellipse(width=2.3, height=0.7).set_stroke(BLUE, 4).set_fill(BLUE, 0.18)
@@ -1132,15 +1249,15 @@ class LessonScene(Scene):
     # ----- roots on a number line -----
 
     def anim_roots(self, beat_i, beat):
-        if has(beat, "50"):
-            return self.demo_root_line(50, 7, 8)
-        if has(beat, "2"):
-            return self.demo_root_line(2, 1, 2)
-        if has(beat, "10"):
-            return self.demo_root_line(10, 3, 4)
-        spots = [(50, 7, 8), (2, 1, 2), (10, 3, 4), (8, 2, 3)]
-        n, a, b = spots[beat_i % 4]
-        return self.demo_root_line(n, a, b)
+        m = re.search(r"sqrt\s*(\d+)", caretify(beat).lower())
+        if m:
+            n = int(m.group(1))
+            lo = int(n ** 0.5)
+            hi = lo if lo * lo == n else lo + 1
+            if lo * lo == n:
+                lo, hi = max(lo - 1, 0), lo + 1
+            return self.demo_root_line(n, lo, hi)
+        return self.demo_show_math(beat)
 
     def demo_root_line(self, n, lo, hi):
         line = NumberLine((-1, 10), width=6.2).set_stroke(MUTED, 4)

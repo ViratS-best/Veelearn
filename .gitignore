@@ -49,6 +49,7 @@ temp/
 # Manim
 .venv-manim/
 manim_grade8/out/
+manim_grade8/voice/
 
 
 # Sensitive Files
