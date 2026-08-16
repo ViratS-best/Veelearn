@@ -273,8 +273,6 @@ def dry_check():
         for q in questions:
             assert q["correct_answer"] in q["options"], f"{title}: {q['correct_answer']} not in options"
             assert len(q["options"]) == 4, f"{title}: {len(q['options'])} options for {q['question_text'][:60]}"
-            if 'vl-q-diagram' not in (q["question_text"] or "") and '<svg' not in (q["question_text"] or ""):
-                raise AssertionError(f"{title}: missing diagram on Q{q.get('order_index')}")
             if bad.search(q["explanation"] or ""):
                 raise AssertionError(f"{title}: banned phrasing in explanation")
             if bad.search(q["question_text"] or ""):

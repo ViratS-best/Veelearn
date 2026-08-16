@@ -451,109 +451,120 @@ def _looks_hard(text: str) -> bool:
     return any(b in t for b in hard_bits) or t.count("and") >= 2
 
 
-def attach_visuals(unit_title: str, q: dict, idx: int) -> dict:
-    """Add a diagram (always when missing) and a forced scaffold when the strategy should be practiced."""
-    text = q.get("question_text") or ""
-    if 'class="vl-q-diagram"' in text or "class='vl-q-diagram'" in text:
-        diagram = ""
-    else:
-        diagram = pick_diagram(unit_title, text, q.get("correct_answer"))
-    if 'class="vl-scaffold"' in text:
-        sc = None
-    else:
-        sc = pick_scaffold(unit_title, text, q.get("correct_answer"), idx)
-    if diagram or sc:
-        q = dict(q)
-        q["question_text"] = wrap_prompt(text, diagram, scaffold_html(sc) if sc else "")
-    return q
+def has_kw(text: str, *phrases: str) -> bool:
+    """Word-boundary match so 'ratio' does not hit 'irrational'."""
+    t = (text or "").lower()
+    for phrase in phrases:
+        p = phrase.lower()
+        if " " in p or any(ch in p for ch in "/%"):
+            if p in t:
+                return True
+        elif re.search(rf"\b{re.escape(p)}\b", t):
+            return True
+    return False
 
 
-def pick_diagram(unit_title: str, text: str, answer) -> str:
-    t = (unit_title + " " + stem_key(text)).lower()
+def asks_for_tool(text: str) -> bool:
+    """True only when the stem tells the student to use a specific visual strategy."""
+    t = stem_key(text)
+    cues = (
+        "use a tape", "use the tape", "tape diagram", "draw a tape",
+        "ratio table", "make a ratio table", "fill the ratio table", "complete the ratio table",
+        "use a table", "make a table", "fill the table", "complete the table",
+        "number line", "use a number line", "on the number line", "mark on the line",
+        "ten-frame", "ten frame", "use a ten frame",
+        "plot the", "plot these", "graph the", "on the coordinate", "coordinate plane",
+        "draw a", "sketch a", "use a diagram", "use the diagram",
+        "venn diagram", "tree diagram", "slot diagram", "area model",
+        "use a balance", "balance scale",
+    )
+    if any(c in t for c in cues):
+        return True
+    return bool(re.search(r"\buse a[n]?\b.{0,40}\b(tape|table|line|frame|graph|diagram|model|grid|plane)\b", t))
+
+
+def diagram_for_context(unit_title: str, text: str, answer=None, *, require_tool: bool = False) -> str:
+    """Pick a matching figure. If require_tool, only when the text asks for a visual tool."""
+    blob = f"{unit_title} {stem_key(text)}"
+    if require_tool and not asks_for_tool(text) and not asks_for_tool(unit_title):
+        # Still allow when the surrounding lesson context names the tool clearly.
+        if not has_kw(blob, "tape diagram", "ratio table", "number line", "ten frame", "ten-frame",
+                      "coordinate plane", "venn", "tree diagram"):
+            return ""
+
     try:
         n = int(float(str(answer).replace(",", "").split()[0]))
     except (ValueError, TypeError, IndexError):
         n = None
 
-    if any(k in t for k in ("clock", "time", "hour", "minute")):
+    if has_kw(blob, "clock", "o'clock") or ("time" in blob and has_kw(blob, "hour", "minute")):
         return q_figure(svg_clock(3, 15), "Read the hour and minute hands.")
-    if any(k in t for k in ("coin", "money", "cent", "dollar", "nickel", "dime", "quarter")):
+    if has_kw(blob, "coin", "money", "cent", "dollar", "nickel", "dime", "quarter"):
         return q_figure(svg_coins([("25¢", 1, "#fde68a"), ("10¢", 2, "#e2e8f0"), ("5¢", 1, "#fdba74")]), "Coins in the problem.")
-    if any(k in t for k in ("ten frame", "counting", "how many", "stars", "apples")) and n is not None and 0 < n <= 20:
-        return q_figure(svg_ten_frame(n), f"Count the filled spaces: {n}.")
-    if "ten" in t and "one" in t:
+    if has_kw(blob, "ten frame", "ten-frame") or (has_kw(blob, "counting") and n is not None and 0 < n <= 20):
+        fill = n if n is not None and 0 < n <= 20 else 7
+        return q_figure(svg_ten_frame(fill), "Count the filled spaces.")
+    if has_kw(blob, "place value") or ("tens" in blob and "ones" in blob):
         return q_figure(svg_base10(3, 4), "Rods are tens. Small cubes are ones.")
-    if any(k in t for k in ("ratio", "tape", "concentrate", "for every")):
+    if has_kw(blob, "tape", "tape diagram", "ratio", "for every", "proportion", "unit rate"):
         return q_figure(svg_tape([2, 3], ["2", "3"]), "A tape diagram keeps the parts lined up.")
-    if any(k in t for k in ("percent", "%", "discount", "tax", "tip")):
+    if has_kw(blob, "percent", "%", "discount", "tax", "tip"):
         return q_figure(svg_percent_bar(25, 80), "The shaded bar is the percent of the whole.")
-    if any(k in t for k in ("fraction", "numerator", "denominator", "½", "1/")):
+    if has_kw(blob, "fraction", "numerator", "denominator", "½", "1/2", "1/3", "1/4"):
         return q_figure(svg_fraction_bar(3, 4), "Shaded parts over equal pieces.")
-    if any(k in t for k in ("integer", "number line", "negative", "before", "after", "greater")):
+    if has_kw(blob, "number line", "integer", "negative", "absolute value"):
         return q_figure(svg_number_line(-5, 10, marks=[(0, "0")]), "Move right to add. Move left to subtract.")
-    if any(k in t for k in ("slope", "coordinate", "quadrant", "plot", "vertex", "function", "graph", "linear", "point (")):
+    if has_kw(blob, "slope", "coordinate", "quadrant", "plot", "vertex", "linear graph", "coordinate plane"):
         return q_figure(svg_plane([(1, 2, "A"), (3, 6, "B")], line=(0, 0, 4, 8)), "Each point is an (x, y) pair.")
-    if any(k in t for k in ("pythag", "right triangle", "hypotenuse", "leg")):
+    if has_kw(blob, "pythag", "hypotenuse") or ("right" in blob and "triangle" in blob):
         return q_figure(svg_triangle(), "The square on the hypotenuse matches the two legs.")
-    if any(k in t for k in ("circle", "radius", "circumference", "diameter", "π", "pi")):
+    if has_kw(blob, "circle", "radius", "circumference", "diameter", "π", "pi"):
         return q_figure(svg_circle(), "Radius reaches from the center to the rim.")
-    if any(k in t for k in ("area", "perimeter", "rectangle", "length", "width")):
+    if has_kw(blob, "area", "perimeter", "rectangle", "surface area", "volume"):
         return q_figure(svg_rect(8, 5), "Area fills the inside. Perimeter walks the edge.")
-    if any(k in t for k in ("equation", "balance", "solve for", "both sides")):
+    if has_kw(blob, "equation", "balance", "solve for"):
         return q_figure(svg_balance("x + 3", "11"), "Both sides stay equal.")
-    if any(k in t for k in ("venn", "both", "neither", "inclusion")):
+    if has_kw(blob, "venn", "inclusion-exclusion", "inclusion"):
         return q_figure(svg_venn("A", "B", "only A", "only B", "both"), "The overlap is counted in both sets.")
-    if any(k in t for k in ("password", "pin", "slot", "digit", "outfit", "product rule", "permutation")):
+    if has_kw(blob, "password", "pin", "product rule", "permutation", "outfit"):
         return q_figure(svg_slots(["1st", "2nd", "3rd"]), "Fill each slot, then multiply.")
-    if any(k in t for k in ("tree", "casework", "branch")):
+    if has_kw(blob, "tree", "casework", "branch"):
         return q_figure(svg_tree([["start"], ["A", "B"], ["1", "2", "1", "2"]]), "Each branch is a case.")
-    if any(k in t for k in ("exponent", "scientific", "power", "root")):
+    if has_kw(blob, "exponent", "scientific notation") or (has_kw(blob, "power") and has_kw(blob, "base")):
         return q_figure(svg_dots(8, "#6366f1", 4, "2³ = 8"), "An exponent counts repeated factors.")
-    if n is not None and 0 < n <= 30:
-        return q_figure(svg_dots(min(n, 24)), "A picture of the amount.")
-    return q_figure(svg_number_line(0, 10, marks=[(5, "?")]), "Sketch the situation on a line or table.")
+    if has_kw(blob, "quadratic", "parabola"):
+        return q_figure(svg_plane([(0, 0, "O"), (1, 1, ""), (-1, 1, "")], line=None), "Parent parabola sketch.")
+    # Solved examples always need some picture when nothing else matched.
+    if not require_tool:
+        if n is not None and 0 < n <= 24:
+            return q_figure(svg_dots(n), "A picture of the amount.")
+        return q_figure(svg_number_line(0, 10, marks=[(5, "?")]), "Sketch the situation, then compute.")
+    return ""
+
+
+def pick_diagram(unit_title: str, text: str, answer) -> str:
+    """Quiz diagrams only when the question asks students to use a visual tool."""
+    if not asks_for_tool(text):
+        return ""
+    return diagram_for_context(unit_title, text, answer, require_tool=True)
 
 
 def pick_scaffold(unit_title: str, text: str, answer, idx: int) -> dict | None:
-    """Force a Khan-style step on many questions (tables, graphs, number lines)."""
-    t = (unit_title + " " + stem_key(text)).lower()
-    # About 45% of items, plus always on strategy-heavy topics.
-    force_topic = any(
-        k in t
-        for k in (
-            "ratio", "rate", "percent", "tape", "slope", "graph", "plot", "coordinate",
-            "number line", "integer", "function", "table", "proportion", "similar",
-            "scale", "unit rate",
-        )
-    )
-    if not force_topic and idx % 5 not in (1, 3):
+    """Force a Khan-style step only when the question says to use that strategy."""
+    t = stem_key(text)
+    if not asks_for_tool(text):
         return None
 
-    if any(k in t for k in ("ratio", "rate", "proportion", "for every", "tape")):
-        try:
-            a = int(float(str(answer).replace(",", "").split()[0]))
-        except (ValueError, TypeError, IndexError):
-            a = 15
-        left = 3
-        right0 = 5
-        # Build an equivalent-ratio table whose last cell is a.
-        k = max(1, a // right0) if right0 else 1
-        rows = [[left * m if m < 4 else None, right0 * m if m < 4 else a] for m in (1, 2, 3, k if k >= 4 else 4)]
-        # Simpler fixed table with last-right blank = answer when numeric
-        rows = [[2, 5], [4, 10], [6, 15], [8, None]]
-        answers = [[2, 5], [4, 10], [6, 15], [8, 20]]
-        if str(answer).replace(",", "").lstrip("-").replace(".", "", 1).isdigit() and int(float(str(answer).replace(",", ""))) in (10, 15, 20, 25, 28, 12):
-            # still a useful forced table even if answer is a different quantity
-            pass
+    if any(c in t for c in ("ratio table", "tape", "for every", "proportion", "unit rate")) or has_kw(t, "ratio"):
         return {
             "type": "ratio-table",
             "label": "Fill the ratio table first (like Khan Academy). Then answer.",
             "headers": ["First quantity", "Second quantity"],
-            "rows": rows,
-            "answers": answers,
+            "rows": [[2, 5], [4, 10], [6, 15], [8, None]],
+            "answers": [[2, 5], [4, 10], [6, 15], [8, 20]],
         }
 
-    if any(k in t for k in ("percent", "discount", "tax", "tip", "%")):
+    if has_kw(t, "percent", "%", "discount", "tax", "tip") or "percent table" in t:
         return {
             "type": "ratio-table",
             "label": "Complete the percent table (100% is the whole).",
@@ -562,7 +573,7 @@ def pick_scaffold(unit_title: str, text: str, answer, idx: int) -> dict | None:
             "answers": [[25, 20], [50, 40], [100, 80]],
         }
 
-    if any(k in t for k in ("slope", "graph", "plot", "coordinate", "linear", "function", "vertex", "line y")):
+    if any(c in t for c in ("plot", "coordinate", "graph these", "graph the")) or has_kw(t, "slope"):
         return {
             "type": "plot-points",
             "label": "Plot these 3 points on the grid, then answer.",
@@ -571,7 +582,7 @@ def pick_scaffold(unit_title: str, text: str, answer, idx: int) -> dict | None:
             "prompt": "Plot (0,1), (1,3), and (2,5).",
         }
 
-    if any(k in t for k in ("integer", "number line", "negative", "inequality", "before", "after")):
+    if "number line" in t or "ten frame" in t or "ten-frame" in t:
         try:
             v = int(float(str(answer).replace(",", "").split()[0]))
         except (ValueError, TypeError, IndexError):
@@ -587,28 +598,10 @@ def pick_scaffold(unit_title: str, text: str, answer, idx: int) -> dict | None:
             "answer": v if lo <= v <= hi else lo + 2,
         }
 
-    if any(k in t for k in ("permutation", "combination", "outfit", "product rule", "how many ways", "password", "pin")):
+    if any(c in t for c in ("make a table", "use a table", "fill the table", "xy table", "input-output")):
         return {
             "type": "xy-table",
-            "label": "Fill the slot table (choices in each position), then multiply.",
-            "headers": ["Slot", "Choices"],
-            "rows": [["1st", None], ["2nd", None], ["3rd", None]],
-            "answers": [["1st", 5], ["2nd", 4], ["3rd", 3]],
-        }
-
-    if any(k in t for k in ("equation", "solve", "x =", "balance")):
-        return {
-            "type": "xy-table",
-            "label": "Try 3 input values in a table before you choose.",
-            "headers": ["x", "value"],
-            "rows": [[0, None], [1, None], [2, None]],
-            "answers": [[0, 3], [1, 5], [2, 7]],
-        }
-
-    if idx % 7 == 0:
-        return {
-            "type": "ratio-table",
-            "label": "Fill the missing cells of this table, then answer.",
+            "label": "Fill the table first, then answer.",
             "headers": ["In", "Out"],
             "rows": [[1, 4], [2, None], [3, 12]],
             "answers": [[1, 4], [2, 8], [3, 12]],
@@ -616,66 +609,103 @@ def pick_scaffold(unit_title: str, text: str, answer, idx: int) -> dict | None:
     return None
 
 
-def lesson_insert_for(unit_title: str, heading: str) -> str:
-    t = (unit_title + " " + heading).lower()
-    if any(k in t for k in ("time", "clock")):
-        return lesson_figure(svg_clock(4, 20), "A clock face", "The short hand is hours. The long hand is minutes.")
-    if "money" in t or "coin" in t:
-        return lesson_figure(svg_coins([("Q", 1, "#fde68a"), ("D", 2, "#e2e8f0"), ("N", 1, "#fdba74")]), "Coins", "Skip-count to add money.")
-    if any(k in t for k in ("count", "ten frame", "number")):
-        return lesson_figure(svg_ten_frame(7), "Ten-frame", "Five on the top row, then more on the bottom.")
-    if "place value" in t or "tens and ones" in t or "million" in t:
-        return lesson_figure(svg_base10(4, 3), "Base-ten blocks", "A rod is 10. A small cube is 1.")
-    if "ratio" in t:
-        return lesson_figure(svg_tape([2, 5], ["2", "5"]), "Tape diagram", "Equal boxes. Count the boxes for each color.")
-    if "percent" in t or "rate" in t:
-        return lesson_figure(svg_percent_bar(40, 50) + svg_ratio_table(["cups", "price"], [[1, 3], [2, 6], [5, 15]]), "Percent bar and ratio table", "Scale both columns by the same number.")
-    if "fraction" in t:
-        return lesson_figure(svg_fraction_bar(2, 5), "Fraction bar", "2 of 5 equal pieces is 2/5.")
-    if "integer" in t or "negative" in t:
-        return lesson_figure(svg_number_line(-6, 6, marks=[(-2, "A"), (3, "B")]), "Integer number line", "Left of zero is negative.")
-    if "coordinate" in t or "slope" in t or "function" in t or "graph" in t:
-        return lesson_figure(svg_plane([(2, 3, "P")], line=(-3, -2, 4, 5)), "Coordinate plane", "x right, y up. Quadrant I is (+,+).")
-    if "pythag" in t or "triangle" in t:
-        return lesson_figure(svg_triangle(), "Right triangle", "a² + b² = c².")
-    if "circle" in t:
-        return lesson_figure(svg_circle(), "Circle", "C = 2πr. A = πr².")
-    if "area" in t or "volume" in t or "surface" in t or "prism" in t:
-        return lesson_figure(svg_rect(10, 4), "Rectangle model", "Area = length × width.")
-    if "equation" in t or "inequal" in t or "system" in t:
-        return lesson_figure(svg_balance("2x + 1", "9"), "Balance scale", "Do the same operation to both sides.")
-    if "exponent" in t or "scientific" in t:
-        return lesson_figure(svg_dots(16, per_row=4, label="4² = 16"), "Square numbers", "A square array shows a square exponent.")
-    if "count" in t or "combin" in t or "permut" in t or "stars" in t or "casework" in t:
-        return lesson_figure(svg_slots(["A", "B", "C"]) + svg_tree([["start"], ["red", "blue"], ["1", "2", "1", "2"]]), "Slots and a tree", "Slots for product rule. Branches for casework.")
-    if "venn" in t or "inclusion" in t:
-        return lesson_figure(svg_venn("math", "science", "12", "9", "5", "outside 4"), "Two-set Venn", "Add the pieces. Do not count the overlap twice.")
-    if "quadratic" in t or "parabola" in t or "vertex" in t:
-        return lesson_figure(svg_plane([(0, 0, "O"), (1, 1, ""), (-1, 1, "")], line=None), "Parent parabola sketch", "Vertex at the origin for y = x².")
-    if "log" in t or "exponential" in t:
-        return lesson_figure(svg_plane([(0, 1, "(0,1)"), (1, 2, "(1,2)")], line=(-1, 0.5, 3, 8)), "Exponential growth", "Through (0,1) when the constant term is 1.")
-    if "trig" in t or "sine" in t or "cosine" in t:
-        return lesson_figure(svg_circle(1), "Unit circle", "x = cos θ, y = sin θ.")
-    if "shape" in t or "angle" in t or "geometry" in t:
-        return lesson_figure(svg_rect(6, 6) + svg_triangle(5, 5, 6, False), "Shapes", "Count sides and look at square corners.")
-    return lesson_figure(svg_number_line(0, 12, marks=[(0, "start")]), "Picture the math", "Draw first. Then compute.")
+def attach_visuals(unit_title: str, q: dict, idx: int) -> dict:
+    """Attach a diagram/scaffold only when the quiz stem asks for that strategy."""
+    text = q.get("question_text") or ""
+    has_diagram = 'class="vl-q-diagram"' in text or "class='vl-q-diagram'" in text
+    has_scaffold = 'class="vl-scaffold"' in text
+    diagram = "" if has_diagram else pick_diagram(unit_title, text, q.get("correct_answer"))
+    sc = None if has_scaffold else pick_scaffold(unit_title, text, q.get("correct_answer"), idx)
+    if diagram or sc:
+        q = dict(q)
+        q["question_text"] = wrap_prompt(text, diagram, scaffold_html(sc) if sc else "")
+    return q
+
+
+def lesson_figure_for(unit_title: str, context: str) -> str:
+    """Lesson figure for solved examples / 'use a …' strategy lines (always try to match)."""
+    fig = diagram_for_context(unit_title, context, require_tool=False)
+    if not fig:
+        return ""
+    # Convert quiz-style figure into a lesson figure block.
+    if 'class="vl-q-diagram"' in fig:
+        inner = fig.replace('<div class="vl-q-diagram">', "").rsplit("</div>", 1)[0]
+        cap = ""
+        m = re.search(r'<p class="vl-q-caption">(.*?)</p>', inner, re.S)
+        if m:
+            cap = m.group(1)
+            inner = re.sub(r'<p class="vl-q-caption">.*?</p>', "", inner, flags=re.S)
+        return lesson_figure(inner, "Picture", cap or "Use this diagram while you work.")
+    return fig
 
 
 def polish_content(title: str, content: str) -> str:
-    """Insert a diagram after each lesson heading that does not already have one."""
+    """Add diagrams to solved examples and 'use a …' strategy parts — not to every heading."""
     if not content:
         return content
-    parts = re.split(r"(<h2>.*?</h2>)", content, flags=re.I | re.S)
-    out = []
-    for i, part in enumerate(parts):
-        out.append(part)
-        if re.match(r"<h2>", part, re.I):
-            heading = re.sub(r"<[^>]+>", "", part)
-            nxt = parts[i + 1] if i + 1 < len(parts) else ""
-            if re.search(r"<svg|vl-figure|phet-sim-wrapper", nxt, re.I):
-                continue
-            out.append(lesson_insert_for(title, heading))
-    return "".join(out)
+
+    def inject_into_solved(match: re.Match) -> str:
+        block = match.group(0)
+        if re.search(r"<svg|vl-figure|vl-q-diagram|phet-sim-wrapper", block, re.I):
+            return block
+        plain = re.sub(r"<[^>]+>", " ", block)
+        fig = lesson_figure_for(title, plain)
+        if not fig:
+            return block
+        # Place the figure right after the problem line when possible.
+        if re.search(r"<p><strong>Problem:</strong>", block, re.I):
+            return re.sub(
+                r"(<p><strong>Problem:</strong>.*?</p>)",
+                r"\1" + fig,
+                block,
+                count=1,
+                flags=re.I | re.S,
+            )
+        return block.replace("</h4>", "</h4>" + fig, 1)
+
+    content = re.sub(
+        r'<div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:12px;'
+        r'padding:18px;margin:18px 0;">.*?</div>',
+        inject_into_solved,
+        content,
+        flags=re.I | re.S,
+    )
+
+    def inject_strategy(match: re.Match) -> str:
+        block = match.group(0)
+        if re.search(r"<svg|vl-figure|vl-q-diagram", block, re.I):
+            return block
+        plain = re.sub(r"<[^>]+>", " ", block)
+        if not asks_for_tool(plain) and not has_kw(
+            plain, "tape", "table", "number line", "diagram", "graph", "plot", "ten frame", "model"
+        ):
+            return block
+        fig = lesson_figure_for(title, plain)
+        if not fig:
+            return block
+        return block.replace("</div></div>", fig + "</div></div>", 1) if "</div></div>" in block else block + fig
+
+    content = re.sub(
+        r'<div class="vl-callout vl-callout-strategy"[^>]*>.*?</div>\s*</div>',
+        inject_strategy,
+        content,
+        flags=re.I | re.S,
+    )
+
+    # Standalone "use a …" paragraphs that are not already next to a figure.
+    def inject_use_a(match: re.Match) -> str:
+        para = match.group(0)
+        # Skip if the next chunk already has a figure (cheap lookahead via surrounding).
+        if "vl-figure" in para or "<svg" in para:
+            return para
+        plain = re.sub(r"<[^>]+>", " ", para)
+        if not asks_for_tool(plain):
+            return para
+        fig = lesson_figure_for(title, plain)
+        return para + fig if fig else para
+
+    content = re.sub(r"<p>[^<]*\b[Uu]se a[n]?\b[^<]*</p>", inject_use_a, content)
+    return content
 
 
 def _to_full(item, idx):
