@@ -1,4 +1,5 @@
 """MathCounts / AMC deep curriculum package."""
+from curriculum_kit import polish_unit
 
 from .units_deep import build_unit1, build_master
 from .units_rest import build_unit2
@@ -13,7 +14,7 @@ from .units_more import (
 
 
 def all_units():
-    return [
+    return [polish_unit(*u) for u in (
         build_unit1(),
         build_unit2(),
         build_unit3(),
@@ -22,4 +23,4 @@ def all_units():
         build_unit6(),
         build_unit7(),
         build_unit8(),
-    ]
+    )]

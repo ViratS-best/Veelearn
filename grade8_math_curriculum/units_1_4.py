@@ -145,6 +145,7 @@ def build_unit1():
         ["Powers and roots", "Product, quotient, power rules", "Zero and negative exponents",
          "Scientific notation", "Compute with 10ⁿ", "Place roots on the number line"],
         c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 50), "unit-1-exponents.mp4")
+    return title, description, content, _u1_questions()
 
 
 def _u2_questions():
@@ -274,6 +275,7 @@ def build_unit2():
         ["Distribute in a multi-step equation", "Variables on both sides", "Fractions and decimals",
          "Infinitely many or none", "Hidden grouping", "Translate stories"],
         c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 50), "unit-2-equations.mp4")
+    return title, description, content, _u2_questions()
 
 
 def _u3_questions():
@@ -403,6 +405,7 @@ def build_unit3():
         ["Slope as rise over run", "y = mx + b", "Write an equation from points",
          "Parallel and perpendicular", "Intercepts and special lines", "Linear stories"],
         c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 50), "unit-3-slope.mp4")
+    return title, description, content, _u3_questions()
 
 
 def _u4_questions():
@@ -532,3 +535,4 @@ def build_unit4():
         ["One input, one output", "Function notation", "Linear functions",
          "Nonlinear functions", "Machines, tables, graphs", "Functions in context"],
         c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 50), "unit-4-functions.mp4")
+    return title, description, content, _u4_questions()

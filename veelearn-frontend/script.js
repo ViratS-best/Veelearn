@@ -1573,6 +1573,45 @@ function escapeHtml(unsafe) {
         .replace(/'/g, "&#039;");
 }
 
+const QUIZ_HTML_TAGS = new Set([
+    "DIV", "SPAN", "P", "STRONG", "EM", "B", "I", "U", "BR", "SMALL",
+    "SVG", "G", "PATH", "CIRCLE", "RECT", "LINE", "TEXT", "DEFS", "MARKER",
+    "POLYGON", "POLYLINE", "ELLIPSE", "TABLE", "THEAD", "TBODY", "TR", "TD", "TH",
+    "BUTTON", "INPUT", "LABEL"
+]);
+const QUIZ_HTML_ATTRS = /^(class|id|role|type|placeholder|value|min|max|step|inputmode|disabled|hidden|viewbox|width|height|x|y|cx|cy|r|rx|ry|fill|stroke|stroke-width|stroke-dasharray|text-anchor|font-size|font-weight|d|points|transform|x1|x2|y1|y2|marker-end|markerwidth|markerheight|refx|refy|orient|xmlns|style|aria-label|for|name)$/i;
+
+function sanitizeQuizHtml(unsafe) {
+    const wrap = document.createElement("div");
+    wrap.innerHTML = unsafe == null ? "" : String(unsafe);
+    wrap.querySelectorAll("script,iframe,object,embed,link,meta,style").forEach((el) => el.remove());
+    const walk = (node) => {
+        [...node.childNodes].forEach((child) => {
+            if (child.nodeType === 1) {
+                if (!QUIZ_HTML_TAGS.has(child.tagName)) {
+                    const kids = [...child.childNodes];
+                    child.replaceWith(...kids);
+                    kids.forEach((k) => { if (k.parentNode) walk(k.parentNode); });
+                    return;
+                }
+                [...child.attributes].forEach((attr) => {
+                    const n = attr.name.toLowerCase();
+                    if (n.startsWith("on") || n === "href" || n === "src" || n === "xlink:href") {
+                        child.removeAttribute(attr.name);
+                        return;
+                    }
+                    if (n.startsWith("data-")) return;
+                    if (!QUIZ_HTML_ATTRS.test(n)) child.removeAttribute(attr.name);
+                    if (n === "style" && /expression|javascript:/i.test(attr.value)) child.removeAttribute(attr.name);
+                });
+                walk(child);
+            }
+        });
+    };
+    walk(wrap);
+    return wrap.innerHTML;
+}
+
 function getYoutubeEmbedUrl(url) {
     if (!url) return null;
     let videoId = null;
@@ -6888,6 +6927,7 @@ function hydrateQuizPlaceholders() {
             }
 
             placeholder.replaceWith(questionEl);
+            hydrateQuizScaffolds(questionEl);
         } else {
             console.warn('Hydration failed for question ID:', questionId, 'courseQuestions:', courseQuestions);
             const unavailableEl = document.createElement('div');
@@ -6965,6 +7005,149 @@ async function renderQuizQuestionsInViewer(courseId) {
     hydrateQuizPlaceholders();
 }
 
+function hydrateQuizScaffolds(root) {
+    if (!root) return;
+    root.querySelectorAll(".vl-scaffold").forEach((el) => {
+        if (el.dataset.vlReady === "1") return;
+        el.dataset.vlReady = "1";
+        el.dataset.vlComplete = "0";
+        let spec = {};
+        try {
+            spec = JSON.parse(decodeURIComponent(el.dataset.vlSpec || "%7B%7D"));
+        } catch (err) {
+            spec = {};
+        }
+        const mount = el.querySelector(".vl-scaffold-mount");
+        const msg = el.querySelector(".vl-scaffold-msg");
+        const checkBtn = el.querySelector(".vl-scaffold-check");
+        const qRoot = el.closest(".quiz-question");
+        const submit = qRoot && qRoot.querySelector(".quiz-submit-btn");
+        if (submit) {
+            submit.disabled = true;
+            submit.textContent = "Finish the step first";
+        }
+        renderQuizScaffold(mount, spec);
+        if (checkBtn) {
+            checkBtn.addEventListener("click", () => {
+                const ok = gradeQuizScaffold(mount, spec);
+                el.dataset.vlComplete = ok ? "1" : "0";
+                if (msg) {
+                    msg.hidden = false;
+                    msg.textContent = ok
+                        ? "Step complete — now choose your answer."
+                        : "Not quite. Fix the table or points, then check again.";
+                    msg.className = "vl-scaffold-msg " + (ok ? "ok" : "bad");
+                }
+                if (ok && submit) {
+                    submit.disabled = false;
+                    submit.textContent = "Submit Answer";
+                }
+            });
+        }
+    });
+}
+
+function renderQuizScaffold(mount, spec) {
+    if (!mount) return;
+    const type = spec && spec.type;
+    if (type === "ratio-table" || type === "xy-table") {
+        const headers = spec.headers || ["A", "B"];
+        const rows = spec.rows || [];
+        let html = '<table class="vl-ratio-table"><thead><tr>';
+        headers.forEach((h) => { html += `<th>${escapeHtml(h)}</th>`; });
+        html += "</tr></thead><tbody>";
+        rows.forEach((row, ri) => {
+            html += "<tr>";
+            (row || []).forEach((cell, ci) => {
+                if (cell === null || cell === undefined || cell === "") {
+                    html += `<td><input class="vl-sc-cell" data-r="${ri}" data-c="${ci}" inputmode="numeric"></td>`;
+                } else {
+                    html += `<td>${escapeHtml(cell)}</td>`;
+                }
+            });
+            html += "</tr>";
+        });
+        html += "</tbody></table>";
+        mount.innerHTML = html;
+        return;
+    }
+    if (type === "plot-points") {
+        const lim = Number(spec.lim) || 8;
+        const prompt = spec.prompt || "Plot the required points.";
+        const size = 2 * lim + 1;
+        let cells = "";
+        for (let y = lim; y >= -lim; y--) {
+            for (let x = -lim; x <= lim; x++) {
+                const axis = x === 0 || y === 0 ? " axis" : "";
+                cells += `<button type="button" class="vl-plot-cell${axis}" data-x="${x}" data-y="${y}" aria-label="${x},${y}"></button>`;
+            }
+        }
+        mount.innerHTML = `<p class="vl-plot-prompt">${escapeHtml(prompt)}</p><div class="vl-plot-grid" style="grid-template-columns:repeat(${size},1fr)"></div><p class="vl-plot-picked"></p>`;
+        const grid = mount.querySelector(".vl-plot-grid");
+        grid.innerHTML = cells;
+        const picked = new Set();
+        const label = mount.querySelector(".vl-plot-picked");
+        grid.addEventListener("click", (e) => {
+            const btn = e.target.closest(".vl-plot-cell");
+            if (!btn) return;
+            const key = `${btn.dataset.x},${btn.dataset.y}`;
+            if (picked.has(key)) {
+                picked.delete(key);
+                btn.classList.remove("on");
+            } else {
+                picked.add(key);
+                btn.classList.add("on");
+            }
+            label.textContent = "Plotted: " + [...picked].join("  ");
+        });
+        mount._vlPicked = picked;
+        return;
+    }
+    if (type === "number-line") {
+        const lo = Number(spec.lo);
+        const hi = Number(spec.hi);
+        let html = '<div class="vl-nline">';
+        for (let v = lo; v <= hi; v++) {
+            html += `<button type="button" class="vl-nline-tick" data-v="${v}">${v}</button>`;
+        }
+        html += "</div>";
+        mount.innerHTML = html;
+        mount.addEventListener("click", (e) => {
+            const b = e.target.closest(".vl-nline-tick");
+            if (!b) return;
+            mount.querySelectorAll(".vl-nline-tick").forEach((x) => x.classList.remove("on"));
+            b.classList.add("on");
+            mount._vlVal = Number(b.dataset.v);
+        });
+    }
+}
+
+function gradeQuizScaffold(mount, spec) {
+    if (!mount || !spec) return true;
+    const type = spec.type;
+    if (type === "ratio-table" || type === "xy-table") {
+        const answers = spec.answers || [];
+        return [...mount.querySelectorAll(".vl-sc-cell")].every((inp) => {
+            const want = answers[Number(inp.dataset.r)] && answers[Number(inp.dataset.r)][Number(inp.dataset.c)];
+            const got = String(inp.value).trim();
+            if (got === "") return false;
+            const gn = Number(got);
+            const wn = Number(want);
+            if (!Number.isNaN(gn) && !Number.isNaN(wn)) return gn === wn;
+            return got === String(want);
+        });
+    }
+    if (type === "plot-points") {
+        const req = (spec.required || []).map((p) => `${p[0]},${p[1]}`).sort();
+        const got = [...(mount._vlPicked || [])].sort();
+        return req.length === got.length && req.every((k, i) => k === got[i]);
+    }
+    if (type === "number-line") {
+        return Number(mount._vlVal) === Number(spec.answer);
+    }
+    return true;
+}
+
 function createQuizQuestionElement(question, index) {
     const questionDiv = document.createElement('div');
     questionDiv.className = 'quiz-question';
@@ -6976,8 +7159,8 @@ function createQuizQuestionElement(question, index) {
         question.options.forEach((option, optIndex) => {
             optionsHTML += `
         <div class="quiz-option">
-          <input type="radio" name="question-${question.id}" id="q${question.id}-opt${optIndex}" value="${option}">
-          <label for="q${question.id}-opt${optIndex}">${option}</label>
+          <input type="radio" name="question-${question.id}" id="q${question.id}-opt${optIndex}" value="${escapeHtml(option)}">
+          <label for="q${question.id}-opt${optIndex}">${escapeHtml(option)}</label>
         </div>
       `;
         });
@@ -7017,7 +7200,7 @@ function createQuizQuestionElement(question, index) {
 
     questionDiv.innerHTML = `
     <div class="quiz-question-header">
-      <div class="quiz-question-text">Question ${index + 1}: ${escapeHtml(question.question_text)}</div>
+      <div class="quiz-question-text">Question ${index + 1}: ${sanitizeQuizHtml(question.question_text)}</div>
       <div class="quiz-points">${question.points} pts${question.difficulty ? ` · ${escapeHtml(question.difficulty === 'stretch' ? 'SAT Stretch' : question.difficulty)}` : ''}</div>
     </div>
     ${optionsHTML}
@@ -7035,6 +7218,13 @@ async function submitQuizAnswer(questionId) {
     if (quizSubmitInFlight.has(qid)) return;
     quizSubmitInFlight.add(qid);
     console.log(`Submitting answer for question ${questionId}`);
+    const questionRoot = document.querySelector(`.quiz-question[data-question-id="${questionId}"]`);
+    const scaffold = questionRoot && questionRoot.querySelector(".vl-scaffold");
+    if (scaffold && scaffold.getAttribute("data-vl-complete") !== "1") {
+        quizSubmitInFlight.delete(qid);
+        alert("Finish the required step first (fill the table, plot the points, or tap the number line).");
+        return;
+    }
     const question = courseQuestions.find(q => q.id === parseInt(questionId, 10));
     if (!question) {
         quizSubmitInFlight.delete(qid);

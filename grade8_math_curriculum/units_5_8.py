@@ -152,6 +152,7 @@ def build_unit5():
         ["Two equations, one pair", "Substitute a solved y", "Isolate, then substitute",
          "Fractions in a system", "None or infinitely many", "Stories"],
         c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 50), "unit-5-substitution.mp4")
+    return title, description, content, _u5_questions()
 
 
 def _u6_questions():
@@ -284,6 +285,7 @@ def build_unit6():
         ["Add to cancel", "Multiply first", "Negatives", "Same line or parallel",
          "Mix stories", "Pick a method"],
         c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 50), "unit-6-elimination.mp4")
+    return title, description, content, _u6_questions()
 
 
 def _u7_questions():
@@ -560,6 +562,7 @@ def build_unit8():
         ["Scatter and association", "Line of best fit", "Outliers",
          "Two-way tables", "Compare two groups", "Pick a display"],
         c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 50), "unit-8-data.mp4")
+    return title, description, content, _u8_questions()
 
 
 def build_master():

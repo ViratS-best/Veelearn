@@ -1481,7 +1481,9 @@ section.page-transition-out {
 .quiz-question-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 0.75rem;
   margin-bottom: var(--spacing-md);
 }
 
@@ -1490,6 +1492,135 @@ section.page-transition-out {
   color: var(--text-light);
   margin-bottom: var(--spacing-md);
   font-weight: 600;
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.quiz-question-text .vl-q-stem {
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.quiz-question-text .vl-q-diagram {
+  margin: 0.75rem 0 1rem;
+  padding: 0.75rem;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: #0f172a;
+  font-weight: 500;
+  overflow-x: auto;
+}
+
+.quiz-question-text .vl-q-diagram svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.quiz-question-text .vl-q-caption {
+  margin: 0.4rem 0 0;
+  font-size: 0.9rem;
+  color: #334155;
+  font-weight: 600;
+}
+
+.vl-scaffold {
+  margin: 0.85rem 0 1rem;
+  padding: 0.85rem;
+  border: 2px dashed #6366f1;
+  border-radius: 10px;
+  background: rgba(99, 102, 241, 0.08);
+  font-weight: 500;
+}
+
+.vl-scaffold-label {
+  font-size: 0.95rem;
+  margin-bottom: 0.6rem;
+  color: var(--text-light);
+}
+
+.vl-ratio-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 0.6rem;
+  background: #fff;
+  color: #0f172a;
+}
+
+.vl-ratio-table th,
+.vl-ratio-table td {
+  border: 1px solid #94a3b8;
+  padding: 0.45rem 0.5rem;
+  text-align: center;
+}
+
+.vl-ratio-table input.vl-sc-cell {
+  width: 4.5rem;
+  padding: 0.35rem;
+  text-align: center;
+  border: 1px solid #6366f1;
+  border-radius: 4px;
+}
+
+.vl-scaffold-check {
+  padding: 0.45rem 0.9rem;
+  background: #4f46e5;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.vl-scaffold-msg {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.vl-scaffold-msg.ok { color: #22c55e; }
+.vl-scaffold-msg.bad { color: #f87171; }
+
+.vl-plot-grid {
+  display: grid;
+  width: min(100%, 320px);
+  aspect-ratio: 1;
+  gap: 1px;
+  background: #cbd5e1;
+  border: 1px solid #334155;
+}
+
+.vl-plot-cell {
+  background: #fff;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.vl-plot-cell.axis { background: #e2e8f0; }
+.vl-plot-cell.on { background: #4f46e5; }
+
+.vl-nline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.vl-nline-tick {
+  min-width: 2rem;
+  padding: 0.35rem 0.4rem;
+  border: 1px solid #64748b;
+  background: #fff;
+  color: #0f172a;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.vl-nline-tick.on {
+  background: #4f46e5;
+  color: #fff;
+  border-color: #312e81;
 }
 
 .quiz-points {

@@ -164,8 +164,8 @@ def upsert_unit(cursor, title, description, content, questions, creator_id, rng)
         cursor.execute(
             """
             INSERT INTO course_questions
-            (course_id, question_text, question_type, options, correct_answer, explanation, points, order_index)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            (course_id, question_text, question_type, options, correct_answer, explanation, points, order_index, difficulty)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 course_id,
@@ -176,6 +176,7 @@ def upsert_unit(cursor, title, description, content, questions, creator_id, rng)
                 q["explanation"],
                 q["points"],
                 q["order_index"],
+                q.get("difficulty"),
             ),
         )
         cursor.execute("SELECT LAST_INSERT_ID() AS id")
@@ -272,10 +273,15 @@ def dry_check():
         for q in questions:
             assert q["correct_answer"] in q["options"], f"{title}: {q['correct_answer']} not in options"
             assert len(q["options"]) == 4, f"{title}: {len(q['options'])} options for {q['question_text'][:60]}"
+            if 'vl-q-diagram' not in (q["question_text"] or "") and '<svg' not in (q["question_text"] or ""):
+                raise AssertionError(f"{title}: missing diagram on Q{q.get('order_index')}")
             if bad.search(q["explanation"] or ""):
                 raise AssertionError(f"{title}: banned phrasing in explanation")
             if bad.search(q["question_text"] or ""):
                 raise AssertionError(f"{title}: banned phrasing in question")
+        stems = [re.sub(r"<[^>]+>", " ", q["question_text"] or "") for q in questions]
+        stems = [re.sub(r"\s+", " ", s).strip().lower() for s in stems]
+        assert len(stems) == len(set(stems)), f"{title}: duplicate question stems"
         total_lines_est += content.count("\n")
     print(f"DRY_CHECK OK: 8 units × {EXPECTED_Q} questions; teaching HTML ~{total_lines_est} lines.")
 

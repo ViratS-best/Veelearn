@@ -174,8 +174,8 @@ def upsert_unit(cursor, title, description, content, questions, creator_id, rng,
         cursor.execute(
             """
             INSERT INTO course_questions
-            (course_id, question_text, question_type, options, correct_answer, explanation, points, order_index)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            (course_id, question_text, question_type, options, correct_answer, explanation, points, order_index, difficulty)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 course_id,
@@ -186,6 +186,7 @@ def upsert_unit(cursor, title, description, content, questions, creator_id, rng,
                 q["explanation"],
                 q["points"],
                 q["order_index"],
+                q.get("difficulty"),
             ),
         )
         cursor.execute("SELECT LAST_INSERT_ID() AS id")
