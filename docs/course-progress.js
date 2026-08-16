@@ -124,6 +124,10 @@
     const pct = ((index + 1) / pageTotal) * 100;
     setRing(pct);
 
+    try {
+      if (courseId != null) localStorage.setItem(`vl:coursePage:${courseId}`, String(index));
+    } catch (_) { /* ignore */ }
+
     const key = `${courseId}:${index}`;
     if (courseId != null && !awardedPages.has(key)) {
       awardedPages.add(key);
@@ -133,10 +137,13 @@
 
     if (unitId && typeof window.updateUnitProgress === 'function' && Math.round(pct) > 0) {
       window.updateUnitProgress(unitId, Math.round(pct));
-    } else if (!unitId && courseId && Math.round(pct) > 0) {
+    } else if (!unitId && courseId && Math.round(pct) >= 0) {
       api(`/api/courses/${courseId}/progress`, {
         method: 'PUT',
-        body: JSON.stringify({ progress_percentage: Math.round(pct) })
+        body: JSON.stringify({
+          progress_percentage: Math.round(pct),
+          last_page_index: index
+        })
       }).catch(() => {});
     }
   }

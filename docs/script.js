@@ -4645,7 +4645,35 @@ async function viewCourse(courseId, assignmentId = null, forceRegular = false) {
 
     let currentViewerPageIndex = 0;
 
+    const pageStorageKey = `vl:coursePage:${course.id}`;
+
+    async function loadSavedViewerPage() {
+        let saved = 0;
+        try {
+            const local = localStorage.getItem(pageStorageKey);
+            if (local != null && local !== '') saved = Math.max(0, parseInt(local, 10) || 0);
+        } catch (_) { /* ignore */ }
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/courses/${course.id}/progress`, {
+                headers: { Authorization: `Bearer ${authToken}` },
+                credentials: 'include'
+            });
+            const json = await res.json();
+            if (json.success && json.data) {
+                const serverPage = Number(json.data.last_page_index);
+                if (Number.isFinite(serverPage) && serverPage >= 0) {
+                    saved = Math.max(saved, serverPage);
+                }
+            }
+        } catch (_) { /* ignore */ }
+        return Math.min(saved, Math.max(0, viewerPages.length - 1));
+    }
+
     const renderViewerPage = (index) => {
+        currentViewerPageIndex = index;
+        try {
+            localStorage.setItem(pageStorageKey, String(index));
+        } catch (_) { /* ignore */ }
         viewerContent.innerHTML = `
          <h1>${escapeHtml(course.title)}</h1>
          <p><strong>Description:</strong> ${escapeHtml(course.description || "No description")}</p>
@@ -4773,8 +4801,10 @@ async function viewCourse(courseId, assignmentId = null, forceRegular = false) {
         });
     }
 
-    // Render first page immediately
-    renderViewerPage(0);
+    // Resume at last saved page (server + localStorage)
+    loadSavedViewerPage().then((startPage) => {
+        renderViewerPage(startPage);
+    });
 
     // Set currentEditingCourseId for quiz answer submission
     currentEditingCourseId = courseId;
@@ -6747,6 +6777,32 @@ async function loadUnitContent(unit) {
                     if (Number.isFinite(saved) && saved > 0) window.CourseProgress.setRing(saved);
                     window.CourseProgress.onUnitQuizzesProgress();
                 }
+
+                // Restore scroll position within this unit
+                const scrollKey = `vl:courseScroll:${unit.child_course_id}`;
+                const restoreScroll = () => {
+                    try {
+                        const y = parseInt(localStorage.getItem(scrollKey) || '0', 10);
+                        if (y > 0) {
+                            const target = document.getElementById('course-viewer-section') || window;
+                            if (target === window) window.scrollTo(0, y);
+                            else target.scrollTop = y;
+                        }
+                    } catch (_) { /* ignore */ }
+                };
+                setTimeout(restoreScroll, 150);
+                const scrollSave = () => {
+                    try {
+                        const section = document.getElementById('course-viewer-section');
+                        const y = section ? section.scrollTop : (window.scrollY || 0);
+                        localStorage.setItem(scrollKey, String(y));
+                    } catch (_) { /* ignore */ }
+                };
+                window.addEventListener('scroll', scrollSave, { passive: true });
+                if (contentEl._vlScrollSave) {
+                    window.removeEventListener('scroll', contentEl._vlScrollSave);
+                }
+                contentEl._vlScrollSave = scrollSave;
                 
                 // MathJax render
                 setTimeout(async () => {
@@ -6873,7 +6929,13 @@ async function loadCourseQuestions(courseId) {
         const result = await response.json();
         if (result.success) {
             courseQuestions = (result.data || []).map((q) => {
-                if (q.previously_correct || q.already_correct) q._answeredCorrect = true;
+                if (q.previously_correct || q.already_correct || q.attempt_is_correct) {
+                    q._answeredCorrect = true;
+                }
+                if (q.user_answer != null && q.user_answer !== '') {
+                    q._savedAnswer = q.user_answer;
+                }
+                if (q.has_attempt) q._hasAttempt = true;
                 return q;
             });
             console.log(`Loaded ${courseQuestions.length} questions for course ${courseId}`);
@@ -6925,9 +6987,18 @@ function hydrateQuizPlaceholders() {
                     submitQuizAnswer(question.id);
                 });
             }
+            const redoBtn = questionEl.querySelector('.quiz-redo-btn');
+            if (redoBtn) {
+                redoBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    redoQuizQuestion(question.id);
+                });
+            }
 
             placeholder.replaceWith(questionEl);
             hydrateQuizScaffolds(questionEl);
+            applySavedQuizState(questionEl, question);
         } else {
             console.warn('Hydration failed for question ID:', questionId, 'courseQuestions:', courseQuestions);
             const unavailableEl = document.createElement('div');
@@ -7194,7 +7265,7 @@ function createQuizQuestionElement(question, index) {
         optionsHTML += '</div>';
     } else {
         optionsHTML = `
-      <input type="text" id="q${question.id}-answer" placeholder="Enter your answer" style="width: 100%; padding: 0.8em; margin: 1em 0; border: 1px solid var(--primary); border-radius: 4px; background: rgba(255,255,255,0.05); color: var(--light);">
+      <input type="text" id="q${question.id}-answer" class="quiz-text-answer" placeholder="Enter your answer" style="width: 100%; padding: 0.8em; margin: 1em 0; border: 1px solid var(--primary); border-radius: 4px; background: rgba(255,255,255,0.05); color: var(--light);">
     `;
     }
 
@@ -7204,11 +7275,172 @@ function createQuizQuestionElement(question, index) {
       <div class="quiz-points">${question.points} pts${question.difficulty ? ` · ${escapeHtml(question.difficulty === 'stretch' ? 'SAT Stretch' : question.difficulty)}` : ''}</div>
     </div>
     ${optionsHTML}
-    <button class="quiz-submit-btn" data-question-id="${question.id}">Submit Answer</button>
+    <div class="quiz-actions">
+      <button type="button" class="quiz-submit-btn" data-question-id="${question.id}">Submit Answer</button>
+      <button type="button" class="quiz-redo-btn" data-question-id="${question.id}" hidden>Redo</button>
+    </div>
     <div id="feedback-${question.id}" class="quiz-feedback" style="display: none;"></div>
   `;
 
     return questionDiv;
+}
+
+function setQuizInputsDisabled(questionRoot, disabled) {
+    if (!questionRoot) return;
+    questionRoot.querySelectorAll('input, textarea, select').forEach((el) => {
+        el.disabled = !!disabled;
+    });
+}
+
+function prefillQuizAnswer(questionRoot, question, saved) {
+    if (!questionRoot || saved == null || saved === '') return;
+    if (question.question_type === 'fill_in_blank_with_image') {
+        let obj = saved;
+        if (typeof saved === 'string') {
+            try { obj = JSON.parse(saved); } catch (_) { obj = null; }
+        }
+        if (obj && typeof obj === 'object') {
+            questionRoot.querySelectorAll('.quiz-part-input').forEach((input) => {
+                const key = input.dataset.part;
+                if (key != null && obj[key] != null) input.value = String(obj[key]);
+            });
+        }
+        return;
+    }
+    if (question.question_type === 'multiple_choice' || question.question_type === 'true_false') {
+        const radios = questionRoot.querySelectorAll(`input[name="question-${question.id}"]`);
+        const want = String(saved).trim().toLowerCase();
+        radios.forEach((r) => {
+            if (String(r.value).trim().toLowerCase() === want) r.checked = true;
+        });
+        return;
+    }
+    const text = questionRoot.querySelector(`#q${question.id}-answer`) || questionRoot.querySelector('.quiz-text-answer');
+    if (text) text.value = String(saved);
+}
+
+function applySavedQuizState(questionRoot, question) {
+    if (!questionRoot || !question) return;
+    const saved = question._savedAnswer != null ? question._savedAnswer : question.user_answer;
+    const submitBtn = questionRoot.querySelector('.quiz-submit-btn');
+    const redoBtn = questionRoot.querySelector('.quiz-redo-btn');
+    const feedbackDiv = questionRoot.querySelector(`#feedback-${question.id}`) || questionRoot.querySelector('.quiz-feedback');
+    const scaffold = questionRoot.querySelector('.vl-scaffold');
+
+    if (saved != null && saved !== '') {
+        prefillQuizAnswer(questionRoot, question, saved);
+    }
+
+    if (question._answeredCorrect) {
+        if (scaffold) {
+            scaffold.dataset.vlComplete = '1';
+            const checkBtn = scaffold.querySelector('.vl-scaffold-check');
+            if (checkBtn) {
+                checkBtn.disabled = true;
+                checkBtn.textContent = 'Step done';
+            }
+        }
+        setQuizInputsDisabled(questionRoot, true);
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Answered';
+        }
+        if (redoBtn) redoBtn.hidden = false;
+        if (feedbackDiv) {
+            feedbackDiv.style.display = 'block';
+            feedbackDiv.className = 'quiz-feedback correct';
+            feedbackDiv.innerHTML = `
+          <div>✅ Already answered correctly</div>
+          ${question.explanation ? `<div class="quiz-explanation">${escapeHtml(question.explanation)}</div>` : ''}
+        `;
+        }
+        return;
+    }
+
+    if (question._hasAttempt && saved != null && saved !== '') {
+        if (redoBtn) redoBtn.hidden = false;
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Try Again';
+        }
+    }
+}
+
+async function redoQuizQuestion(questionId) {
+    const qid = parseInt(questionId, 10);
+    const question = courseQuestions.find((q) => q.id === qid);
+    const courseId = currentViewingCourseId || currentEditingCourseId;
+    if (!courseId || !qid) return;
+    if (!confirm('Clear your saved answer for this question so you can redo it?')) return;
+
+    try {
+        const response = await fetch(
+            `${API_BASE_URL}/api/courses/${courseId}/questions/${qid}/attempt`,
+            {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${authToken}` },
+                credentials: 'include'
+            }
+        );
+        const result = await response.json();
+        if (!result.success) {
+            alert(result.message || 'Could not clear this answer');
+            return;
+        }
+
+        if (question) {
+            question._answeredCorrect = false;
+            question._hasAttempt = false;
+            question._savedAnswer = null;
+            question.user_answer = null;
+            question.previously_correct = false;
+            question.already_correct = false;
+        }
+
+        const questionRoot = document.querySelector(`.quiz-question[data-question-id="${qid}"]`);
+        if (questionRoot) {
+            setQuizInputsDisabled(questionRoot, false);
+            questionRoot.querySelectorAll('input[type="radio"]').forEach((r) => { r.checked = false; });
+            questionRoot.querySelectorAll('.quiz-part-input, .quiz-text-answer, input[type="text"]').forEach((el) => {
+                el.value = '';
+            });
+            const submitBtn = questionRoot.querySelector('.quiz-submit-btn');
+            const redoBtn = questionRoot.querySelector('.quiz-redo-btn');
+            const feedbackDiv = questionRoot.querySelector(`#feedback-${qid}`) || questionRoot.querySelector('.quiz-feedback');
+            const scaffold = questionRoot.querySelector('.vl-scaffold');
+            if (scaffold) {
+                scaffold.dataset.vlComplete = '0';
+                const checkBtn = scaffold.querySelector('.vl-scaffold-check');
+                if (checkBtn) {
+                    checkBtn.disabled = false;
+                    checkBtn.textContent = 'Check this step';
+                }
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Finish the step first';
+                }
+            } else if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Answer';
+            }
+            if (redoBtn) redoBtn.hidden = true;
+            if (feedbackDiv) {
+                feedbackDiv.style.display = 'none';
+                feedbackDiv.innerHTML = '';
+                feedbackDiv.className = 'quiz-feedback';
+            }
+        }
+
+        if (window.CourseProgress?.onUnitQuizzesProgress) {
+            window.CourseProgress.onUnitQuizzesProgress();
+        }
+        if (typeof loadEnrolledCourses === 'function') {
+            loadEnrolledCourses();
+        }
+    } catch (err) {
+        console.error('Error redoing quiz question:', err);
+        alert('Error clearing answer. Please try again.');
+    }
 }
 
 const quizSubmitInFlight = new Set();
@@ -7233,8 +7465,9 @@ async function submitQuizAnswer(questionId) {
     }
 
     let userAnswer;
-    if (question.question_type === 'short_answer') {
-        userAnswer = document.getElementById(`q${questionId}-answer`).value.trim();
+    if (question.question_type === 'short_answer' || (!question.question_type && questionRoot?.querySelector(`#q${questionId}-answer`))) {
+        const el = document.getElementById(`q${questionId}-answer`) || questionRoot?.querySelector('.quiz-text-answer');
+        userAnswer = (el && el.value || '').trim();
     } else if (question.question_type === 'fill_in_blank_with_image') {
         const partInputs = document.querySelectorAll(`.quiz-question[data-question-id="${questionId}"] .quiz-part-input`);
         let userAnswersObj = {};
@@ -7274,6 +7507,12 @@ async function submitQuizAnswer(questionId) {
         if (result.success) {
             const feedbackDiv = document.getElementById(`feedback-${questionId}`);
             feedbackDiv.style.display = 'block';
+            question._savedAnswer = userAnswer;
+            question.user_answer = userAnswer;
+            question._hasAttempt = true;
+
+            const redoBtn = questionRoot && questionRoot.querySelector('.quiz-redo-btn');
+            if (redoBtn) redoBtn.hidden = false;
 
             if (result.data.is_correct) {
                 feedbackDiv.className = 'quiz-feedback correct';
@@ -7281,12 +7520,14 @@ async function submitQuizAnswer(questionId) {
           <div>✅ Correct!</div>
           ${result.data.explanation ? `<div class="quiz-explanation">${escapeHtml(result.data.explanation)}</div>` : ''}
         `;
-                if (question) question._answeredCorrect = true;
+                question._answeredCorrect = true;
+                setQuizInputsDisabled(questionRoot, true);
                 if (window.LearnerGamification?.onQuizCorrect) {
                     window.LearnerGamification.onQuizCorrect(questionId, result.data);
                 }
                 if (window.CourseBossBattle?.onAnswer) window.CourseBossBattle.onAnswer(questionId, true, result.data);
                 if (window.CourseProgress?.onUnitQuizzesProgress) window.CourseProgress.onUnitQuizzesProgress();
+                if (typeof loadEnrolledCourses === 'function') loadEnrolledCourses();
             } else {
                 feedbackDiv.className = 'quiz-feedback incorrect';
                 feedbackDiv.innerHTML = `
@@ -7296,11 +7537,15 @@ async function submitQuizAnswer(questionId) {
                 if (window.CourseBossBattle?.onAnswer) window.CourseBossBattle.onAnswer(questionId, false, result.data);
             }
 
-            const submitBtn = feedbackDiv.previousElementSibling;
+            const submitBtn = questionRoot
+                ? questionRoot.querySelector('.quiz-submit-btn')
+                : (feedbackDiv && feedbackDiv.previousElementSibling);
             if (result.data.is_correct) {
-                submitBtn.disabled = true;
-                submitBtn.textContent = 'Answered';
-            } else {
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Answered';
+                }
+            } else if (submitBtn) {
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Try Again';
             }
@@ -7317,6 +7562,7 @@ async function submitQuizAnswer(questionId) {
 
 // Make functions globally accessible
 window.submitQuizAnswer = submitQuizAnswer;
+window.redoQuizQuestion = redoQuizQuestion;
 window.deleteQuizQuestion = deleteQuizQuestion;
 
 // ======= INTERACTIVE SLIDER CONFIGURATION =======
@@ -9117,16 +9363,20 @@ async function loadEnrolledCourses() {
 
             enrolledCoursesDiv.innerHTML = result.data
                 .map(course => {
-                    // Calculate questions answered correctly across all assignments
-                    const correctAnswers = course.submissions
-                        ? course.submissions.reduce((sum, s) => sum + (s.correct_answers || 0), 0)
-                        : 0;
-                    const totalQuestions = course.submissions
-                        ? course.submissions.reduce((sum, s) => sum + (s.total_questions || 0), 0)
-                        : 0;
+                    const correctAnswers = Number(course.correct_answers) >= 0 && course.total_questions != null
+                        ? Number(course.correct_answers) || 0
+                        : (course.submissions
+                            ? course.submissions.reduce((sum, s) => sum + (s.correct_answers || 0), 0)
+                            : 0);
+                    const totalQuestions = Number(course.total_questions) > 0
+                        ? Number(course.total_questions)
+                        : (course.submissions
+                            ? course.submissions.reduce((sum, s) => sum + (s.total_questions || 0), 0)
+                            : 0);
 
-                    // Use question-based progress as requested by user
-                    const questionProgress = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
+                    const questionProgress = Number.isFinite(Number(course.progress_percentage))
+                        ? Math.round(Number(course.progress_percentage))
+                        : (totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0);
 
                     // Determine status
                     let status = '⏳ Not Started';
@@ -9134,7 +9384,7 @@ async function loadEnrolledCourses() {
                     if (questionProgress >= 100) {
                         status = '✅ Completed';
                         statusColor = '#4caf50';
-                    } else if (questionProgress > 0) {
+                    } else if (questionProgress > 0 || correctAnswers > 0) {
                         status = '▶️ In Progress';
                         statusColor = '#2196f3';
                     }
@@ -9151,15 +9401,20 @@ async function loadEnrolledCourses() {
                         }
                     }
 
+                    const teacherLabel = course.teacher_email || course.creator_email || '—';
+                    const progressLabel = totalQuestions > 0
+                        ? `${correctAnswers}/${totalQuestions} questions correct (${questionProgress}%)`
+                        : `${questionProgress}% complete`;
+
                     return `
             <div style="background: #222; padding: 12px; border-radius: 4px; margin-bottom: 10px; border-left: 4px solid #667eea;">
               <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                 <div style="flex: 1;">
                   <strong>${escapeHtml(course.title)}</strong><br/>
-                  <small style="color: #999;">Teacher: ${escapeHtml(course.teacher_email)}</small><br/>
+                  <small style="color: #999;">Teacher: ${escapeHtml(teacherLabel)}</small><br/>
                   ${earliestDueDate ? `<small style="color: #ff9800; font-weight: bold;">⏰ Next Due: ${escapeHtml(earliestDueDate)}</small><br/>` : ''}
                   <small style="color: #ccc; margin-top: 5px;">
-                    📊 Progress: ${correctAnswers}/${totalQuestions} questions answered (${questionProgress}%)
+                    📊 Progress: ${escapeHtml(progressLabel)}
                   </small><br/>
                   <div style="margin-top: 8px; background: #111; border-radius: 4px; height: 20px; overflow: hidden;">
                     <div style="width: ${questionProgress}%; height: 100%; background: linear-gradient(90deg, #667eea, #764ba2); transition: width 0.3s ease; display: flex; align-items: center; justify-content: center;">
@@ -9168,7 +9423,7 @@ async function loadEnrolledCourses() {
                   </div>
                   <small style="color: ${statusColor}; margin-top: 5px; display: block; font-weight: bold;">${status}</small>
                 </div>
-                <button onclick="viewEnrolledCourse(${course.course_id})" class="primary-btn" style="padding: 8px 16px; white-space: nowrap;">👉 View</button>
+                <button onclick="viewEnrolledCourse(${course.course_id})" class="primary-btn" style="padding: 8px 16px; white-space: nowrap;">👉 Continue</button>
               </div>
             </div>
           `;
