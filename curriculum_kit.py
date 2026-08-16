@@ -451,6 +451,77 @@ def _looks_hard(text: str) -> bool:
     return any(b in t for b in hard_bits) or t.count("and") >= 2
 
 
+def _seed(text: str) -> int:
+    n = 17
+    for i, ch in enumerate(text or ""):
+        n = (n * 33 + ord(ch) + i) % 1_000_003
+    return n
+
+
+def _nums(text: str, limit: int = 12) -> list[int]:
+    """Pull signed integers from the stem (skip years-sized noise)."""
+    out = []
+    for m in re.finditer(r"(?<![A-Za-z])-?\d+(?:\.\d+)?(?![A-Za-z])", text or ""):
+        raw = m.group(0)
+        try:
+            v = float(raw)
+        except ValueError:
+            continue
+        if abs(v) > 10_000:
+            continue
+        iv = int(v) if abs(v - int(v)) < 1e-9 else int(round(v))
+        out.append(iv)
+        if len(out) >= limit:
+            break
+    return out
+
+
+def _pick_int(nums, seed, lo, hi, fallback=None):
+    pool = [n for n in nums if lo <= n <= hi]
+    if pool:
+        return pool[seed % len(pool)]
+    if fallback is not None:
+        return fallback
+    return lo + (seed % max(1, hi - lo + 1))
+
+
+def _parse_fraction(text: str):
+    m = re.search(r"(\d+)\s*/\s*(\d+)", text or "")
+    if m:
+        a, b = int(m.group(1)), int(m.group(2))
+        if b > 0:
+            return a, b
+    return None
+
+
+def _parse_ratio(text: str):
+    m = re.search(r"(\d+)\s*:\s*(\d+)(?:\s*:\s*(\d+))?", text or "")
+    if m:
+        parts = [int(m.group(1)), int(m.group(2))]
+        if m.group(3):
+            parts.append(int(m.group(3)))
+        return parts
+    return None
+
+
+def _parse_clock(text: str):
+    m = re.search(r"\b(\d{1,2})\s*:\s*(\d{2})\b", text or "")
+    if m:
+        h, mi = int(m.group(1)), int(m.group(2))
+        if 1 <= h <= 12 and 0 <= mi <= 59:
+            return h, mi
+    return None
+
+
+def _parse_points(text: str, lim: int = 8):
+    pts = []
+    for m in re.finditer(r"\(\s*(-?\d+)\s*,\s*(-?\d+)\s*\)", text or ""):
+        x, y = int(m.group(1)), int(m.group(2))
+        if abs(x) <= lim and abs(y) <= lim:
+            pts.append((x, y, f"({x},{y})"))
+    return pts
+
+
 def has_kw(text: str, *phrases: str) -> bool:
     """Word-boundary match so 'ratio' does not hit 'irrational'."""
     t = (text or "").lower()
@@ -484,61 +555,178 @@ def asks_for_tool(text: str) -> bool:
 
 
 def diagram_for_context(unit_title: str, text: str, answer=None, *, require_tool: bool = False) -> str:
-    """Pick a matching figure. If require_tool, only when the text asks for a visual tool."""
-    blob = f"{unit_title} {stem_key(text)}"
-    if require_tool and not asks_for_tool(text) and not asks_for_tool(unit_title):
-        # Still allow when the surrounding lesson context names the tool clearly.
+    """Pick a matching figure using numbers from this problem (not one fixed template)."""
+    raw = text or ""
+    blob = f"{unit_title} {stem_key(raw)}"
+    if require_tool and not asks_for_tool(raw) and not asks_for_tool(unit_title):
         if not has_kw(blob, "tape diagram", "ratio table", "number line", "ten frame", "ten-frame",
                       "coordinate plane", "venn", "tree diagram"):
             return ""
 
+    seed = _seed(blob)
+    nums = _nums(raw)
     try:
-        n = int(float(str(answer).replace(",", "").split()[0]))
-    except (ValueError, TypeError, IndexError):
-        n = None
+        ans = int(float(str(answer).replace(",", "").split()[0]))
+        nums = [ans] + [n for n in nums if n != ans]
+    except (ValueError, TypeError, IndexError, AttributeError):
+        ans = None
+
+    def n_at(i, lo, hi, default):
+        if i < len(nums) and lo <= nums[i] <= hi:
+            return nums[i]
+        return _pick_int(nums, seed + i * 17, lo, hi, default)
 
     if has_kw(blob, "clock", "o'clock") or ("time" in blob and has_kw(blob, "hour", "minute")):
-        return q_figure(svg_clock(3, 15), "Read the hour and minute hands.")
+        clk = _parse_clock(raw)
+        if clk:
+            h, mi = clk
+        else:
+            h = n_at(0, 1, 12, 1 + seed % 12)
+            mi = [0, 5, 10, 15, 20, 30, 45][(seed // 3) % 7]
+        return q_figure(svg_clock(h, mi), f"Clock showing about {h}:{mi:02d}.")
+
     if has_kw(blob, "coin", "money", "cent", "dollar", "nickel", "dime", "quarter"):
-        return q_figure(svg_coins([("25¢", 1, "#fde68a"), ("10¢", 2, "#e2e8f0"), ("5¢", 1, "#fdba74")]), "Coins in the problem.")
-    if has_kw(blob, "ten frame", "ten-frame") or (has_kw(blob, "counting") and n is not None and 0 < n <= 20):
-        fill = n if n is not None and 0 < n <= 20 else 7
-        return q_figure(svg_ten_frame(fill), "Count the filled spaces.")
+        q = max(0, min(4, n_at(0, 0, 4, 1 + seed % 3)))
+        d = max(0, min(5, n_at(1, 0, 5, seed % 4)))
+        n = max(0, min(5, n_at(2, 0, 5, (seed // 5) % 4)))
+        if q + d + n == 0:
+            q, d, n = 1, 2, 1
+        coins = []
+        if q:
+            coins.append(("25¢", q, "#fde68a"))
+        if d:
+            coins.append(("10¢", d, "#e2e8f0"))
+        if n:
+            coins.append(("5¢", n, "#fdba74"))
+        return q_figure(svg_coins(coins), "Coins from the problem.")
+
+    if has_kw(blob, "ten frame", "ten-frame") or (has_kw(blob, "counting") and ans is not None and 0 < abs(ans) <= 20):
+        fill = abs(ans) if ans is not None and 0 < abs(ans) <= 20 else abs(n_at(0, 1, 20, 1 + seed % 20))
+        return q_figure(svg_ten_frame(fill), f"Ten-frame showing {fill}.")
+
     if has_kw(blob, "place value") or ("tens" in blob and "ones" in blob):
-        return q_figure(svg_base10(3, 4), "Rods are tens. Small cubes are ones.")
+        val = abs(ans) if ans is not None and 0 < abs(ans) < 100 else abs(n_at(0, 11, 99, 10 + seed % 90))
+        tens, ones = divmod(val, 10)
+        if tens == 0:
+            tens, ones = 1 + seed % 6, 1 + (seed // 7) % 9
+        return q_figure(svg_base10(tens, ones), f"{tens} tens and {ones} ones.")
+
     if has_kw(blob, "tape", "tape diagram", "ratio", "for every", "proportion", "unit rate"):
-        return q_figure(svg_tape([2, 3], ["2", "3"]), "A tape diagram keeps the parts lined up.")
+        parts = _parse_ratio(raw)
+        if not parts:
+            a = abs(n_at(0, 1, 8, 2 + seed % 5))
+            b = abs(n_at(1, 1, 8, 3 + (seed // 4) % 5))
+            if a == b:
+                b = a + 1 + seed % 3
+            parts = [a, b]
+        labels = [str(p) for p in parts]
+        return q_figure(svg_tape(parts, labels), f"Tape parts: {':'.join(labels)}.")
+
     if has_kw(blob, "percent", "%", "discount", "tax", "tip"):
-        return q_figure(svg_percent_bar(25, 80), "The shaded bar is the percent of the whole.")
-    if has_kw(blob, "fraction", "numerator", "denominator", "½", "1/2", "1/3", "1/4"):
-        return q_figure(svg_fraction_bar(3, 4), "Shaded parts over equal pieces.")
+        pct_candidates = [n for n in nums if 1 <= n <= 100]
+        pct = pct_candidates[0] if pct_candidates else [10, 20, 25, 40, 50, 75][seed % 6]
+        wholes = [n for n in nums if n > 100 or (n != pct and n >= 20)]
+        whole = wholes[0] if wholes else [40, 50, 60, 80, 100, 120][(seed // 5) % 6]
+        return q_figure(svg_percent_bar(pct, whole), f"{pct}% of {whole}.")
+
+    if has_kw(blob, "fraction", "numerator", "denominator", "½", "1/2", "1/3", "1/4") or _parse_fraction(raw):
+        frac = _parse_fraction(raw)
+        if frac:
+            num, den = frac
+        else:
+            den = abs(n_at(1, 2, 10, 2 + seed % 8))
+            num = abs(n_at(0, 1, den, 1 + seed % den))
+        den = max(2, min(den, 12))
+        num = max(0, min(num, den))
+        return q_figure(svg_fraction_bar(num, den), f"{num}/{den} shaded.")
+
     if has_kw(blob, "number line", "integer", "negative", "absolute value"):
-        return q_figure(svg_number_line(-5, 10, marks=[(0, "0")]), "Move right to add. Move left to subtract.")
+        focus = ans if ans is not None else (nums[0] if nums else seed % 9 - 4)
+        span = 6 + seed % 4
+        lo, hi = focus - span, focus + span
+        if hi - lo > 18:
+            lo, hi = focus - 8, focus + 8
+        marks = [(0, "0")] if lo <= 0 <= hi else []
+        if focus != 0:
+            marks.append((focus, str(focus)))
+        for extra in nums[1:4]:
+            if lo <= extra <= hi and all(extra != m[0] for m in marks):
+                marks.append((extra, str(extra)))
+        return q_figure(svg_number_line(lo, hi, marks=marks, highlight=focus), "Numbers from this problem on the line.")
+
     if has_kw(blob, "slope", "coordinate", "quadrant", "plot", "vertex", "linear graph", "coordinate plane"):
-        return q_figure(svg_plane([(1, 2, "A"), (3, 6, "B")], line=(0, 0, 4, 8)), "Each point is an (x, y) pair.")
+        lim = 6
+        pts = _parse_points(raw, lim=lim)
+        if len(pts) < 2:
+            x1 = n_at(0, -lim + 1, lim - 1, 1 + seed % 4)
+            y1 = n_at(1, -lim + 1, lim - 1, 2 + (seed // 3) % 4)
+            x2 = n_at(2, -lim + 1, lim - 1, x1 + 1 + seed % 3)
+            if x2 == x1:
+                x2 = min(lim - 1, x1 + 2)
+            slope = 1 + (seed % 3)
+            y2 = max(-lim + 1, min(lim - 1, y1 + slope * (x2 - x1)))
+            pts = [(x1, y1, "A"), (x2, y2, "B")]
+        line = (pts[0][0], pts[0][1], pts[1][0], pts[1][1]) if len(pts) >= 2 else None
+        return q_figure(svg_plane(pts[:4], lim=lim, line=line), "Points from this problem.")
+
     if has_kw(blob, "pythag", "hypotenuse") or ("right" in blob and "triangle" in blob):
-        return q_figure(svg_triangle(), "The square on the hypotenuse matches the two legs.")
+        a = abs(n_at(0, 2, 12, 3 + seed % 6))
+        b = abs(n_at(1, 2, 12, 4 + (seed // 2) % 6))
+        c = abs(n_at(2, max(a, b) + 1, 20, int((a * a + b * b) ** 0.5 + 0.5) or a + b))
+        return q_figure(svg_triangle(a, b, c), f"Legs {a} and {b}; hypotenuse {c}.")
+
     if has_kw(blob, "circle", "radius", "circumference", "diameter", "π", "pi"):
-        return q_figure(svg_circle(), "Radius reaches from the center to the rim.")
+        r = abs(n_at(0, 1, 15, 2 + seed % 8))
+        if has_kw(blob, "diameter") and ans is not None and ans > 0:
+            r = max(1, ans // 2)
+        return q_figure(svg_circle(r), f"Circle with radius {r}.")
+
     if has_kw(blob, "area", "perimeter", "rectangle", "surface area", "volume"):
-        return q_figure(svg_rect(8, 5), "Area fills the inside. Perimeter walks the edge.")
+        length = abs(n_at(0, 2, 20, 4 + seed % 10))
+        width = abs(n_at(1, 1, 15, 2 + (seed // 3) % 8))
+        if width == length:
+            width = max(1, length - 1 - seed % 3)
+        return q_figure(svg_rect(length, width), f"Rectangle {length} by {width}.")
+
     if has_kw(blob, "equation", "balance", "solve for"):
-        return q_figure(svg_balance("x + 3", "11"), "Both sides stay equal.")
+        left_n = n_at(0, 1, 20, 3 + seed % 8)
+        right_n = ans if ans is not None else n_at(1, 1, 40, left_n + 2 + seed % 6)
+        left = f"x + {left_n}" if seed % 2 == 0 else f"{2 + seed % 3}x + {left_n}"
+        return q_figure(svg_balance(left, str(right_n)), "Keep both sides equal.")
+
     if has_kw(blob, "venn", "inclusion-exclusion", "inclusion"):
-        return q_figure(svg_venn("A", "B", "only A", "only B", "both"), "The overlap is counted in both sets.")
+        only_a = str(abs(n_at(0, 1, 40, 5 + seed % 12)))
+        only_b = str(abs(n_at(1, 1, 40, 4 + (seed // 2) % 12)))
+        both = str(abs(n_at(2, 1, 20, 2 + seed % 8)))
+        return q_figure(svg_venn("A", "B", only_a, only_b, both), "Venn counts from this problem.")
+
     if has_kw(blob, "password", "pin", "product rule", "permutation", "outfit"):
-        return q_figure(svg_slots(["1st", "2nd", "3rd"]), "Fill each slot, then multiply.")
+        choices = [str(abs(n_at(i, 2, 12, 2 + (seed + i) % 8))) for i in range(3)]
+        labels = [f"{c} choices" for c in choices]
+        return q_figure(svg_slots(labels), "Fill each slot, then multiply.")
+
     if has_kw(blob, "tree", "casework", "branch"):
-        return q_figure(svg_tree([["start"], ["A", "B"], ["1", "2", "1", "2"]]), "Each branch is a case.")
+        a = str(abs(n_at(0, 1, 9, 1 + seed % 5)))
+        b = str(abs(n_at(1, 1, 9, 2 + (seed // 2) % 5)))
+        return q_figure(svg_tree([["start"], [a, b], ["1", "2", "1", "2"]]), "Each branch is a case.")
+
     if has_kw(blob, "exponent", "scientific notation") or (has_kw(blob, "power") and has_kw(blob, "base")):
-        return q_figure(svg_dots(8, "#6366f1", 4, "2³ = 8"), "An exponent counts repeated factors.")
+        base = abs(n_at(0, 2, 5, 2 + seed % 3))
+        exp = abs(n_at(1, 2, 4, 2 + (seed // 4) % 3))
+        val = min(base ** exp, 24)
+        return q_figure(svg_dots(val, "#6366f1", min(base, 6), f"{base}^{exp} = {val}"), "Repeated factors as an array.")
+
     if has_kw(blob, "quadratic", "parabola"):
-        return q_figure(svg_plane([(0, 0, "O"), (1, 1, ""), (-1, 1, "")], line=None), "Parent parabola sketch.")
-    # Solved examples always need some picture when nothing else matched.
+        h = n_at(0, -3, 3, seed % 5 - 2)
+        k = n_at(1, -2, 4, (seed // 3) % 5 - 1)
+        pts = [(h, k, "V"), (h + 1, k + 1, ""), (h - 1, k + 1, "")]
+        return q_figure(svg_plane(pts, lim=6, line=None), f"Vertex near ({h},{k}).")
+
     if not require_tool:
-        if n is not None and 0 < n <= 24:
-            return q_figure(svg_dots(n), "A picture of the amount.")
-        return q_figure(svg_number_line(0, 10, marks=[(5, "?")]), "Sketch the situation, then compute.")
+        if ans is not None and 0 < abs(ans) <= 24:
+            return q_figure(svg_dots(abs(ans)), f"A picture of {abs(ans)}.")
+        show = abs(n_at(0, 1, 20, 1 + seed % 16))
+        return q_figure(svg_number_line(0, max(10, show + 2), marks=[(show, str(show))]), f"Marked value: {show}.")
     return ""
 
 
@@ -554,39 +742,63 @@ def pick_scaffold(unit_title: str, text: str, answer, idx: int) -> dict | None:
     t = stem_key(text)
     if not asks_for_tool(text):
         return None
+    seed = _seed(unit_title + " " + t + str(idx))
+    nums = _nums(text)
+    try:
+        ans = int(float(str(answer).replace(",", "").split()[0]))
+    except (ValueError, TypeError, IndexError, AttributeError):
+        ans = None
 
     if any(c in t for c in ("ratio table", "tape", "for every", "proportion", "unit rate")) or has_kw(t, "ratio"):
+        parts = _parse_ratio(text) or []
+        a = parts[0] if parts else (abs(nums[0]) if nums and 1 <= abs(nums[0]) <= 12 else 2 + seed % 5)
+        b = parts[1] if len(parts) > 1 else (abs(nums[1]) if len(nums) > 1 and 1 <= abs(nums[1]) <= 12 else 3 + (seed // 3) % 5)
+        if a == 0:
+            a = 2
+        if b == 0:
+            b = 3
+        mults = [1, 2, 3, 4]
+        rows = [[a * m, b * m if m < 4 else None] for m in mults]
+        answers = [[a * m, b * m] for m in mults]
+        if ans is not None and ans == b * 4:
+            rows[-1][1] = None
         return {
             "type": "ratio-table",
-            "label": "Fill the ratio table first (like Khan Academy). Then answer.",
+            "label": f"Fill the ratio table for {a}:{b} first. Then answer.",
             "headers": ["First quantity", "Second quantity"],
-            "rows": [[2, 5], [4, 10], [6, 15], [8, None]],
-            "answers": [[2, 5], [4, 10], [6, 15], [8, 20]],
+            "rows": rows,
+            "answers": answers,
         }
 
     if has_kw(t, "percent", "%", "discount", "tax", "tip") or "percent table" in t:
+        whole = next((n for n in nums if n >= 20), [40, 50, 60, 80, 100][seed % 5])
         return {
             "type": "ratio-table",
-            "label": "Complete the percent table (100% is the whole).",
+            "label": f"Complete the percent table for a whole of {whole}.",
             "headers": ["Percent", "Amount"],
-            "rows": [[25, None], [50, None], [100, 80]],
-            "answers": [[25, 20], [50, 40], [100, 80]],
+            "rows": [[25, None], [50, None], [100, whole]],
+            "answers": [[25, whole // 4], [50, whole // 2], [100, whole]],
         }
 
     if any(c in t for c in ("plot", "coordinate", "graph these", "graph the")) or has_kw(t, "slope"):
+        pts = _parse_points(text, lim=8)
+        if len(pts) >= 3:
+            required = [[p[0], p[1]] for p in pts[:3]]
+        else:
+            b = nums[0] if nums else 1 + seed % 4
+            m = nums[1] if len(nums) > 1 and abs(nums[1]) <= 5 else 1 + (seed // 2) % 3
+            required = [[0, b], [1, b + m], [2, b + 2 * m]]
+        prompt = "Plot " + ", ".join(f"({x},{y})" for x, y in required) + "."
         return {
             "type": "plot-points",
             "label": "Plot these 3 points on the grid, then answer.",
             "lim": 8,
-            "required": [[0, 1], [1, 3], [2, 5]],
-            "prompt": "Plot (0,1), (1,3), and (2,5).",
+            "required": required,
+            "prompt": prompt,
         }
 
     if "number line" in t or "ten frame" in t or "ten-frame" in t:
-        try:
-            v = int(float(str(answer).replace(",", "").split()[0]))
-        except (ValueError, TypeError, IndexError):
-            v = 4
+        v = ans if ans is not None else (nums[0] if nums else 1 + seed % 9)
         lo, hi = min(-6, v - 3), max(10, v + 3)
         if hi - lo > 16:
             lo, hi = v - 6, v + 6
@@ -599,12 +811,16 @@ def pick_scaffold(unit_title: str, text: str, answer, idx: int) -> dict | None:
         }
 
     if any(c in t for c in ("make a table", "use a table", "fill the table", "xy table", "input-output")):
+        m = nums[0] if nums and 1 <= abs(nums[0]) <= 9 else 2 + seed % 5
+        b = nums[1] if len(nums) > 1 and abs(nums[1]) <= 20 else seed % 5
+        rows = [[1, m + b], [2, None], [3, 3 * m + b]]
+        answers = [[1, m + b], [2, 2 * m + b], [3, 3 * m + b]]
         return {
             "type": "xy-table",
-            "label": "Fill the table first, then answer.",
-            "headers": ["In", "Out"],
-            "rows": [[1, 4], [2, None], [3, 12]],
-            "answers": [[1, 4], [2, 8], [3, 12]],
+            "label": f"Fill the table for y = {m}x + {b}, then answer.",
+            "headers": ["x", "y"],
+            "rows": rows,
+            "answers": answers,
         }
     return None
 
@@ -695,7 +911,6 @@ def polish_content(title: str, content: str) -> str:
     # Standalone "use a …" paragraphs that are not already next to a figure.
     def inject_use_a(match: re.Match) -> str:
         para = match.group(0)
-        # Skip if the next chunk already has a figure (cheap lookahead via surrounding).
         if "vl-figure" in para or "<svg" in para:
             return para
         plain = re.sub(r"<[^>]+>", " ", para)
