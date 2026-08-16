@@ -161,7 +161,7 @@ def mini_practice(name: str) -> str:
 
 def end_practice() -> str:
     return (
-        "<h2>Big practice (50 problems)</h2>"
+        "<h2>Big practice (25 problems)</h2>"
         "<p>Start easy. Then they get a little trickier. Take your time. Draw place-value blocks if you need to.</p>"
         "<ul>"
         "<li><strong>1–15:</strong> Warm-up</li>"
@@ -172,7 +172,7 @@ def end_practice() -> str:
     )
 
 
-def practice_slots(start: int, count: int = 50) -> str:
+def practice_slots(start: int, count: int = 25) -> str:
     return end_practice() + "\n" + "\n".join(quiz_slot(i) for i in range(start, start + count))
 
 

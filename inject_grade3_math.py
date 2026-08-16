@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Inject Third Grade Math master + 8 units into Aiven.
 
-Each unit: 6 concepts with 5 quizzes after each, plus 50 finale problems.
+Each unit: 6 concepts with 5 quizzes after each, plus 25 finale problems.
 Upserts by (title, grade_level). Hearts on, boss battle off.
 Secrets via env only.
 """
@@ -33,7 +33,7 @@ from grade3_math_curriculum import all_units, build_master
 GRADE = 3
 MASTER_TITLE = "Third Grade Math"
 RNG_SEED = 20260816
-EXPECTED_Q = 80
+EXPECTED_Q = 55
 GAMIFICATION = json.dumps({"bossBattle": False, "hearts": True})
 
 

@@ -6614,19 +6614,20 @@ app.get('/api/courses/:courseId/questions', authenticateToken, (req, res) => {
             return q;
         });
         const n = questions.length;
+        // 55-question units: 30 concept drills + 25 progressive finale
         if (n >= 50) {
             questions.forEach((q, i) => {
-                if (n >= 80 && i < 30) {
+                if (n >= 55 && i < 30) {
                     q.concept_drill = true;
-                    if (!q.difficulty) q.difficulty = 'easy';
+                    if (!q.difficulty) q.difficulty = i < 15 ? 'easy' : 'medium';
                     return;
                 }
                 q.finale = true;
                 if (q.difficulty) return;
-                const fi = n >= 80 ? i - 30 : i;
-                if (fi < 15) q.difficulty = 'easy';
-                else if (fi < 30) q.difficulty = 'medium';
-                else if (fi < 40) q.difficulty = 'hard';
+                const fi = n >= 55 ? i - 30 : i;
+                if (fi < 8) q.difficulty = 'easy';
+                else if (fi < 16) q.difficulty = 'medium';
+                else if (fi < 22) q.difficulty = 'hard';
                 else q.difficulty = 'stretch';
             });
         }

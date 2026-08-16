@@ -164,7 +164,7 @@ def _u5_questions():
         qs.append(mq(text, ans, expl, idx, distractors=dist))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"You have {i % 9 + 2} toys. You get 2 more. How many toys?",
         (i % 9 + 2) + 2,
         f"Put together: {(i % 9 + 2)} + 2 = {(i % 9 + 2) + 2}.",
@@ -337,7 +337,7 @@ def build_unit5():
             "Compare two number sentences",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u5_questions()
 
@@ -505,7 +505,7 @@ def _u6_questions():
         qs.append(mq(row[0], row[1], row[2], idx, distractors=row[3] if len(row) > 3 else None))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"What time is {1 + (i % 12)} o'clock?",
         f"{1 + (i % 12)}:00",
         f"O'clock means :00. So {1 + (i % 12)}:00.",
@@ -683,7 +683,7 @@ def build_unit6():
             "Put events in day order",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u6_questions()
 
@@ -867,7 +867,7 @@ def _u7_questions():
         qs.append(mq(row[0], row[1], row[2], idx, distractors=row[3] if len(row) > 3 else None))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"A stick is {3 + (i % 10)} cubes long. A straw is {2 + (i % 8)} cubes long. How many cubes is the stick?",
         3 + (i % 10),
         f"The stick's measure is {3 + (i % 10)} cubes.",
@@ -1040,7 +1040,7 @@ def build_unit7():
             "Estimate, then measure",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u7_questions()
 
@@ -1217,7 +1217,7 @@ def _u8_questions():
         qs.append(mq(row[0], row[1], row[2], idx, distractors=row[3] if len(row) > 3 else None))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         "How many sides does a triangle have?",
         3,
         "A triangle has 3 sides.",
@@ -1396,7 +1396,7 @@ def build_unit8():
             "Find halves and fourths",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u8_questions()
 

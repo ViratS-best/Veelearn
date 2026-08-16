@@ -55,7 +55,7 @@ def _u1_questions():
         ("Which sum is positive?", "−3 + 8", ["−3 + (−8)", "−8 + 3", "−1 + (−1)"], "8 wins."),
         ("−12 + 5 + (−1) = ?", "−8", ["−18", "8", "6"], "−7 then −8."),
     ]
-    return _fill(_pack(items), 80, lambda i: mq(
+    return _fill(_pack(items), 55, lambda i: mq(
         f"What is {i % 6} + (−{i % 5 + 1})?",
         (i % 6) - (i % 5 + 1),
         "Adding a negative is a hop left.",
@@ -150,7 +150,7 @@ def build_unit1():
         ["Add integers on a number line", "Rewrite subtraction as adding the opposite",
          "Include decimals and fractions", "Find distance with absolute value",
          "Solve signed stories", "Add a chain of signed numbers"],
-        c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 50))
+        c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 25))
     return title, description, content, _u1_questions()
 
 
@@ -189,7 +189,7 @@ def _u2_questions():
         ("Pattern −2, 4, −8, 16. Next?", "−32", ["32", "−16", "8"], "×(−2)."),
         ("Same signs in a product give a…", "positive product", ["negative product", "zero", "undefined"], "Different signs: negative."),
     ]
-    return _fill(_pack(items), 80, lambda i: mq(
+    return _fill(_pack(items), 55, lambda i: mq(
         f"What is (−{i % 5 + 2}) × {i % 4 + 1}?",
         -(i % 5 + 2) * (i % 4 + 1),
         "Negative times positive is negative.",
@@ -277,7 +277,7 @@ def build_unit2():
         title,
         ["Multiply with sign rules", "Divide with sign rules", "Include fractions and decimals",
          "Handle exponents and patterns", "Use signed rates", "Mix operations with negatives"],
-        c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 50))
+        c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 25))
     return title, description, content, _u2_questions()
 
 
@@ -316,7 +316,7 @@ def _u3_questions():
         ("4/x = 10/25. x=?", "10", ["39", "4", "2.5"], "4×25=10x."),
         ("$3 per mile, no extra fee, 6 miles?", "$18", ["$21", "$9", "$3"], "Pure proportion."),
     ]
-    return _fill(_pack(items), 80, lambda i: mq(
+    return _fill(_pack(items), 55, lambda i: mq(
         f"If y = 3x and x = {i % 8 + 1}, what is y?",
         3 * (i % 8 + 1), "Multiply x by 3.", i))
 
@@ -405,7 +405,7 @@ def build_unit3():
         title,
         ["Know what proportional means", "Read graphs through the origin", "Find unit rates",
          "Solve proportions", "Use scales and recipes", "Model constant-rate stories"],
-        c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 50))
+        c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 25))
     return title, description, content, _u3_questions()
 
 
@@ -444,7 +444,7 @@ def _u4_questions():
         ("6% tax on $25. Total?", "$26.50", ["$1.50", "$31", "$24"], "25+1.50."),
         ("9 is what percent of 12?", "75%", ["9%", "12%", "25%"], "9/12."),
     ]
-    return _fill(_pack(items), 80, lambda i: mq(
+    return _fill(_pack(items), 55, lambda i: mq(
         f"What is 10% of {10 * (i % 9 + 2)}?", i % 9 + 2, "10% is one tenth.", i))
 
 
@@ -528,7 +528,7 @@ def build_unit4():
         title,
         ["Find a percent of a number", "Percent increase and decrease", "Tax, tips, discounts",
          "Markup, markdown, commission", "Simple interest", "Percent error and chained percents"],
-        c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 50))
+        c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 25))
     return title, description, content, _u4_questions()
 
 

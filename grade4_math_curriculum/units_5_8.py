@@ -98,7 +98,7 @@ def _u5_questions():
         qs.append(mq(text, ans, expl, idx, distractors=dist))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"{1 + (i % 9)}/10 as a decimal is…",
         f"0.{1 + (i % 9)}",
         f"{1 + (i % 9)} tenths is 0.{1 + (i % 9)}.",
@@ -264,7 +264,7 @@ def build_unit5():
             "Use money as hundredths of a dollar",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u5_questions()
 
@@ -343,7 +343,7 @@ def _u6_questions():
             qs.append(mq(item[0], item[1], item[2], idx))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"Is {20 + (i % 50)}° acute, right, or obtuse?" if (20 + (i % 50)) != 90 else "Is 90° acute, right, or obtuse?",
         "right" if (20 + (i % 50)) == 90 else ("acute" if (20 + (i % 50)) < 90 else "obtuse"),
         "Acute < 90, right = 90, obtuse between 90 and 180.",
@@ -512,7 +512,7 @@ def build_unit6():
             "Draw and name figures",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u6_questions()
 
@@ -573,7 +573,7 @@ def _u7_questions():
         qs.append(mq(text, ans, expl, idx))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"{10 + (i % 8) * 5}° + {20 + (i % 5) * 5}° = ?",
         10 + (i % 8) * 5 + 20 + (i % 5) * 5,
         "Adjacent angles add when they make one larger angle.",
@@ -740,7 +740,7 @@ def build_unit7():
             "Check type against the number",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u6_questions()
 
@@ -838,7 +838,7 @@ def _u8_questions():
             qs.append(mq(item[0], item[1], item[2], idx))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"An angle measures {15 + (i % 15) * 5}°. Is it acute, right, or obtuse?"
         if 15 + (i % 15) * 5 != 90 else "An angle measures 90°. Is it acute, right, or obtuse?",
         "right" if 15 + (i % 15) * 5 == 90 else ("acute" if 15 + (i % 15) * 5 < 90 else "obtuse"),
@@ -989,7 +989,7 @@ def build_unit8():
             "Practice in Protractor Lab",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u8_questions()
 

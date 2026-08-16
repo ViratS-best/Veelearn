@@ -103,7 +103,7 @@ def _u1_questions():
         qs.append(mq(f"Count by hundreds. What comes after {n}?", n + 100, f"{n} + 100 = {n + 100}.", idx))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"What is 10 more than {200 + i}?",
         210 + i,
         f"Add one ten: {200 + i} + 10 = {210 + i}.",
@@ -311,7 +311,7 @@ def build_unit1():
             "Skip-count by 5s, 10s, and 100s",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u1_questions()
 
@@ -375,7 +375,7 @@ def _u2_questions():
         qs.append(mq(text, ans, expl, idx))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"{30 + i} + {15 + (i % 9)} = ?",
         30 + i + 15 + (i % 9),
         f"Add the two numbers. The sum is {30 + i + 15 + (i % 9)}.",
@@ -573,7 +573,7 @@ def build_unit2():
             "Solve one-step addition stories",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u2_questions()
 
@@ -640,7 +640,7 @@ def _u3_questions():
         qs.append(mq(text, ans, expl, idx, distractors=dist))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"{80 + i} − {12 + (i % 8)} = ?",
         80 + i - (12 + (i % 8)),
         f"Subtract. The difference is {80 + i - (12 + (i % 8))}.",
@@ -832,7 +832,7 @@ def build_unit3():
             "Check subtraction with addition",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u3_questions()
 
@@ -948,7 +948,7 @@ def _u4_questions():
             ))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"Start with {20 + i}. Add {5 + (i % 6)}, then subtract 3. How many?",
         20 + i + 5 + (i % 6) - 3,
         f"First add, then subtract 3. Land on {20 + i + 5 + (i % 6) - 3}.",
@@ -1129,6 +1129,6 @@ def build_unit4():
             "Name the operations before you compute",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u4_questions()

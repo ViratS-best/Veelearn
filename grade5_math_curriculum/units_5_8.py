@@ -99,7 +99,7 @@ def _u5_questions():
         qs.append(mq(text, ans, expl, idx, distractors=dist))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"How many 1/2s are in {i % 8 + 2}?",
         str(2 * (i % 8 + 2)),
         f"Multiply by 2. {i % 8 + 2} ÷ 1/2 = {2 * (i % 8 + 2)}.",
@@ -264,7 +264,7 @@ def build_unit5():
             "Check with multiplication",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u5_questions()
 
@@ -353,7 +353,7 @@ def _u6_questions():
         qs.append(mq(text, ans, expl, idx, distractors=dist))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"A prism is 2 by 2 by {i % 6 + 1}. Volume?",
         4 * (i % 6 + 1),
         f"2×2×{i % 6 + 1} = {4 * (i % 6 + 1)}.",
@@ -517,7 +517,7 @@ def build_unit6():
             "Solve volume stories",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u6_questions()
 
@@ -596,7 +596,7 @@ def _u7_questions():
         qs.append(mq(text, ans, expl, idx, distractors=dist))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"If you go right {i % 5 + 1} and up 0, the point is…",
         f"({i % 5 + 1}, 0)",
         "y=0 means on the x-axis.",
@@ -766,7 +766,7 @@ def build_unit7():
             "Use grids as maps",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u7_questions()
 
@@ -845,7 +845,7 @@ def _u8_questions():
         qs.append(mq(text, ans, expl, idx, distractors=dist))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"What is 2 × ({i % 7 + 1} + 0)?",
         2 * (i % 7 + 1),
         "Parentheses first, then multiply by 2.",
@@ -1019,7 +1019,7 @@ def build_unit8():
             "Use commutative, associative, and distributive properties",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u8_questions()
 

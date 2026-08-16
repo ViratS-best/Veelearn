@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Inject deep Algebra 2 (grade 10) master + 8 units into Aiven.
 
-Each unit: 6 deep concepts with 5 practice quizzes after each, plus 50 finale problems
+Each unit: 6 deep concepts with 5 practice quizzes after each, plus 25 finale problems
 (Easy → Stretch / honors / SAT). Upserts by (title, grade_level) — no duplicates.
 Secrets via env only.
 """
@@ -33,7 +33,7 @@ from algebra2_curriculum import all_units, build_master
 GRADE = 10
 MASTER_TITLE = "Algebra 2 Complete"
 RNG_SEED = 20260802
-EXPECTED_Q = 80  # 6*5 concept drills + 50 finale
+EXPECTED_Q = 55  # 6*5 concept drills + 25 finale
 
 
 def getenv_int(name, default):
@@ -184,7 +184,7 @@ def upsert_unit(cursor, title, description, content, questions, creator_id, rng)
 def upsert_master(cursor, creator_id):
     desc = (
         "Deep grade-10 Algebra 2 master course: eight units with long explanations, "
-        "quizzes after every concept, and 50 progressive finale problems per unit "
+        "quizzes after every concept, and 25 progressive finale problems per unit "
         "(Easy through honors/SAT stretch)."
     )
     content = build_master()

@@ -88,7 +88,7 @@ def _u1_questions():
         qs.append(mq(f"What is 1,000 more than {n}?", n + 1000, f"{n} + 1,000 = {n + 1000}.", idx))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"Round {20 + i} to the nearest ten.",
         int(round((20 + i) / 10.0) * 10) if (20 + i) % 10 != 5 else (20 + i) + 5,
         f"Use the ones digit to round {20 + i} to the nearest ten.",
@@ -275,7 +275,7 @@ def build_unit1():
             "Add and subtract multi-digit numbers",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u1_questions()
 
@@ -379,7 +379,7 @@ def _u2_questions():
         qs.append(mq(f"{a} × {b} = ?", a * b, f"{a} groups of {b} is {a * b}.", idx))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"{2 + (i % 8)} × {3 + (i % 5)} = ?",
         (2 + (i % 8)) * (3 + (i % 5)),
         f"Equal groups: {(2 + (i % 8)) * (3 + (i % 5))}.",
@@ -549,7 +549,7 @@ def build_unit2():
             "Use turn-around facts",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u2_questions()
 
@@ -613,7 +613,7 @@ def _u3_questions():
         qs.append(mq(text, ans, expl, idx))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"{3 + (i % 7)} × {4 + (i % 6)} = ?",
         (3 + (i % 7)) * (4 + (i % 6)),
         f"Product is {(3 + (i % 7)) * (4 + (i % 6))}.",
@@ -795,7 +795,7 @@ def build_unit3():
             "Use the distributive property",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u3_questions()
 
@@ -859,7 +859,7 @@ def _u4_questions():
         qs.append(mq(text, ans, expl, idx))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"{(3 + (i % 8)) * (4 + (i % 6))} ÷ {3 + (i % 8)} = ?",
         4 + (i % 6),
         f"{3 + (i % 8)} × {4 + (i % 6)} = {(3 + (i % 8)) * (4 + (i % 6))}, so divide to get {4 + (i % 6)}.",
@@ -1037,6 +1037,6 @@ def build_unit4():
             "Solve division stories",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u4_questions()

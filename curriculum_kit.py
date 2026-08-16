@@ -13,6 +13,12 @@ import urllib.parse
 
 POINTS = {"easy": 1, "medium": 2, "hard": 3, "stretch": 4}
 
+# 6 concepts × 5 drills = 30, plus 25 progressive harder finale (not 50).
+TARGET_QUESTIONS = 55
+CONCEPT_QUESTIONS = 30
+FINALE_QUESTIONS = TARGET_QUESTIONS - CONCEPT_QUESTIONS  # 25
+
+
 _svg_i = 0
 
 
@@ -367,13 +373,68 @@ def lesson_figure(svg, title, caption=""):
 # ---------------------------------------------------------------------------
 
 def near_int(correct, count=3):
+    """Plausible wrong answers — never 'Not sure' / 'Skip' / 'None of these'."""
+    raw = str(correct).strip()
+    # Scientific notation: 3.2 × 10⁻³ or 3.2 x 10^-3 or LaTeX
+    sci = re.search(
+        r"([+-]?\d+(?:\.\d+)?)\s*(?:\\times|×|x|\*)\s*10\s*(?:\^|\{)?\s*([+-]?\d+)",
+        raw.replace("−", "-").replace("{", "").replace("}", ""),
+        re.I,
+    )
+    if sci:
+        coef = float(sci.group(1))
+        exp = int(sci.group(2))
+        alts = [
+            f"{coef} × 10^{exp + 1}",
+            f"{coef} × 10^{exp - 1}",
+            f"{coef * 10 if coef * 10 < 100 else coef / 10} × 10^{exp - 1 if coef * 10 >= 100 else exp}",
+            f"{coef} × 10^{{-exp}}",
+            f"{int(coef) if coef == int(coef) else coef} × 10^{exp + 2}",
+        ]
+        out = []
+        for a in alts:
+            if a != raw and a not in out:
+                out.append(a)
+            if len(out) >= count:
+                return out[:count]
     try:
-        c = int(float(str(correct).replace(",", "")))
+        c = int(float(raw.replace(",", "").replace("$", "")))
     except ValueError:
-        return ["Not sure", "None of these", "Skip"][:count]
+        # Symbolic / expression answers: mutate nearby common wrong forms
+        pool = []
+        plain = raw.replace("$", "").strip()
+        if "/" in plain:
+            pool.extend([plain[::-1] if len(plain) < 8 else plain, "1/" + plain.replace("1/", "")])
+        # Common exponent mistakes
+        m = re.search(r"([a-zA-Z0-9]+)\^\{?(\d+)\}?", plain)
+        if m:
+            base, exp = m.group(1), int(m.group(2))
+            pool.extend([
+                f"${base}^{{{exp + 1}}}$",
+                f"${base}^{{{max(0, exp - 1)}}}$",
+                f"${base}{exp}$",
+                f"${base}^{{{exp * 2}}}$",
+            ])
+        if "\\times" in plain or "×" in plain:
+            pool.extend([plain.replace("^{-", "^{"), plain + "0"])
+        pool.extend(["0", "1", "-1", "undefined", plain + "x"])
+        unique = []
+        for pval in pool:
+            pval = str(pval)
+            if pval and pval != raw and pval != plain and pval not in unique:
+                unique.append(pval)
+            if len(unique) >= count:
+                break
+        while len(unique) < count:
+            filler = f"{plain or 'ans'}-alt{len(unique)+1}"
+            if filler not in unique:
+                unique.append(filler)
+        return unique[:count]
     pool = []
-    for delta in (1, -1, 2, -2, 3, -3, 5, -5, 10, -10, max(0, c // 2), c * 2, c + 7):
-        v = c + delta if abs(delta) <= 20 else delta
+    for delta in (1, -1, 2, -2, 3, -3, 5, -5, 10, -10, max(0, c // 2), c * 2, c + 7, abs(c) - 1):
+        v = c + delta if abs(delta) <= 20 or delta in (c * 2, max(0, c // 2), abs(c) - 1) else delta
+        if isinstance(v, float):
+            v = int(v)
         if v != c:
             pool.append(str(v))
     unique = []
@@ -394,18 +455,17 @@ def make_question(text, correct, distractors, explanation, idx, points=1, diffic
     opts = [str(correct)] + [str(d) for d in (distractors or [])[:3]]
     unique = []
     for opt in opts:
-        if opt not in unique:
+        if opt not in unique and opt.lower() not in ("not sure", "none of these", "skip", "choice 1", "choice 2", "choice 3", "choice 4"):
             unique.append(opt)
     while len(unique) < 4:
-        filler = f"Choice {len(unique) + 1}"
-        core = str(correct).replace(",", "").lstrip("-")
-        if core.replace(".", "", 1).isdigit():
-            try:
-                filler = str(int(float(str(correct).replace(",", ""))) + len(unique) * 3 + 1)
-            except ValueError:
-                pass
-        if filler not in unique and filler != str(correct):
-            unique.append(filler)
+        for cand in near_int(correct, 6):
+            if cand not in unique and cand != str(correct):
+                unique.append(cand)
+            if len(unique) >= 4:
+                break
+        if len(unique) < 4:
+            unique.append(str(correct) + f"′{len(unique)}")
+            break
     sc = scaffold_html(scaffold) if isinstance(scaffold, dict) else (scaffold or "")
     qtext = wrap_prompt(text, diagram or "", sc)
     diff = difficulty if difficulty in POINTS else None
@@ -423,19 +483,30 @@ def make_question(text, correct, distractors, explanation, idx, points=1, diffic
 
 def mq(text, correct, explanation, idx, distractors=None, **kwargs):
     if distractors is None:
-        distractors = near_int(correct) if str(correct).replace(",", "").lstrip("-").replace(".", "", 1).isdigit() else ["Not sure", "None of these", "Skip"]
-    return make_question(text, correct, distractors, explanation, idx, **kwargs)
+        distractors = near_int(correct)
+    # Drop garbage distractors if a bank accidentally included them
+    cleaned = [
+        d for d in (distractors or [])
+        if str(d).strip().lower() not in ("not sure", "none of these", "skip")
+    ]
+    if len(cleaned) < 3:
+        cleaned = (cleaned + near_int(correct, 6))[:3]
+    return make_question(text, correct, cleaned, explanation, idx, **kwargs)
 
 
 def difficulty_for_index(i: int) -> str:
-    if i <= 30:
-        return ["easy", "easy", "medium", "medium", "hard"][(i - 1) % 5]
-    finale = i - 30
-    if finale <= 15:
+    """Progressive difficulty across 55 questions (30 concept + 25 finale)."""
+    if i <= 15:
         return "easy"
-    if finale <= 30:
+    if i <= 30:
         return "medium"
-    if finale <= 40:
+    # Finale 31–55: progressively harder, related to the unit
+    finale = i - 30
+    if finale <= 8:
+        return "easy"
+    if finale <= 16:
+        return "medium"
+    if finale <= 22:
         return "hard"
     return "stretch"
 
@@ -983,6 +1054,38 @@ def polish_content(title: str, content: str) -> str:
         return para + fig if fig else para
 
     content = re.sub(r"<p>[^<]*\b[Uu]se a[n]?\b[^<]*</p>", inject_use_a, content)
+
+    # Drop finale quiz slots beyond TARGET_QUESTIONS (old courses had 80).
+    def _keep_slot(m: re.Match) -> str:
+        n = int(m.group(1))
+        return m.group(0) if n <= TARGET_QUESTIONS else ""
+
+    content = re.sub(r"<!--QUIZ_SLOT_(\d+)-->", _keep_slot, content)
+    content = re.sub(
+        r"<h2>Big practice \(50 problems\)</h2>",
+        f"<h2>Big practice ({FINALE_QUESTIONS} problems)</h2>",
+        content,
+    )
+    content = re.sub(
+        r"<li><strong>41–50:</strong> Super thinker</li>",
+        "<li><strong>19–25:</strong> Super thinker / stretch</li>",
+        content,
+    )
+    content = re.sub(
+        r"<li><strong>31–40:</strong> Think twice</li>",
+        "<li><strong>11–18:</strong> Think twice</li>",
+        content,
+    )
+    content = re.sub(
+        r"<li><strong>16–30:</strong> A little harder</li>",
+        "<li><strong>1–10:</strong> Warm-up → medium</li>",
+        content,
+    )
+    content = re.sub(
+        r"<li><strong>1–15:</strong> Warm-up</li>\s*",
+        "",
+        content,
+    )
     return content
 
 
@@ -1154,12 +1257,42 @@ def _is_too_easy_for_hard(text: str) -> bool:
         "warmup",
         "a machine starts at",
         "(set ",
+        "skill check",
+        "check computation",
+        "warmup product",
     )
     if any(b in t for b in easy_bits):
         return True
+    # Bare power / tiny arithmetic evaluations (e.g. 2^5 = ?)
+    if re.fullmatch(r"\$?\d+\s*(\^|\\?\^)\s*\{?\d+\}?\s*=?\s*\??\$?", t.replace(" ", "")):
+        return True
+    if re.fullmatch(r".{0,8}\d+\s*\^\s*\d+\s*=?\s*\??", t):
+        return True
     # Very short arithmetic with tiny numbers and no contest cue
-    if len(t) < 40 and not any(k in t for k in ("amc", "mathcounts", "sat", "complement", "at least", "how many ways")):
+    if len(t) < 40 and not any(k in t for k in ("amc", "mathcounts", "sat", "complement", "at least", "how many ways", "scientific", "simplify")):
         if re.fullmatch(r"what is \d+\s*[+\-×x*]\s*\d+\??", t):
+            return True
+        if re.search(r"\d+\s*\^\s*\d+\s*=", t) and len(t) < 25:
+            return True
+    return False
+
+
+def _is_off_topic(title: str, text: str) -> bool:
+    """Reject challenges that clearly belong to a different unit."""
+    t = (title or "").lower()
+    p = stem_key(text)
+    # Unit 1 exponents must not pull geometry / systems
+    if "exponent" in t or "scientific" in t:
+        if any(k in p for k in ("hypotenuse", "pythag", "right triangle", "leg ", "legs ", "cylinder volume", "slope of the line", "system:")):
+            return True
+    if "slope" in t or "linear graph" in t:
+        if any(k in p for k in ("hypotenuse", "scientific notation", "password", "permutation")):
+            return True
+    if "pythag" in t or "cylinder" in t:
+        if any(k in p for k in ("scientific notation", "2^{-", "log_", "permutation")):
+            return True
+    if "ratio" in t and "rational" not in t:
+        if any(k in p for k in ("hypotenuse", "quadratic", "log_")):
             return True
     return False
 
@@ -1176,6 +1309,8 @@ def polish_questions(title: str, questions) -> list:
         key = stem_key(text)
         if not key or key in seen or _is_filler(text):
             continue
+        if _is_off_topic(title, text):
+            continue
         tmpl = _template_key(text)
         if tmpl_counts.get(tmpl, 0) >= 3:
             continue
@@ -1190,6 +1325,8 @@ def polish_questions(title: str, questions) -> list:
         blob = f"{item.get('question_text') or ''} {item.get('explanation') or ''}"
         if _BANNED_PHRASE.search(blob):
             continue
+        if _is_off_topic(title, item.get("question_text") or ""):
+            continue
         q = _to_full(item, 0)
         if item.get("difficulty"):
             q["difficulty"] = item["difficulty"]
@@ -1203,26 +1340,32 @@ def polish_questions(title: str, questions) -> list:
     hard_pool = [q for q in extras if q.get("difficulty") in ("hard", "stretch")]
     other_pool = [q for q in extras if q.get("difficulty") not in ("hard", "stretch")]
 
-    core = handwritten[:30]
-    while len(core) < 30 and other_pool:
+    core = handwritten[:CONCEPT_QUESTIONS]
+    while len(core) < CONCEPT_QUESTIONS and other_pool:
         core.append(other_pool.pop(0))
-    while len(core) < 30 and hard_pool:
-        # Only if we lack easy/medium content
+    while len(core) < CONCEPT_QUESTIONS and hard_pool:
         core.append(hard_pool.pop(0))
 
-    unique = core + other_pool + hard_pool
+    # Finale prefers hard / stretch challenges (not leftover easy fillers).
+    unique = core + hard_pool + other_pool
 
     n = 0
-    while len(unique) < 80 and n < 500:
+    while len(unique) < TARGET_QUESTIONS and n < 500:
         n += 1
-        # Upcoming index if appended
         next_i = len(unique) + 1
         target = difficulty_for_index(next_i)
-        if target in ("hard", "stretch"):
+        if next_i > CONCEPT_QUESTIONS:
+            item = challenge_filler(
+                title, n, target if target in ("hard", "stretch", "medium", "easy") else "hard"
+            )
+            # Prefer hard/stretch banks even for early finale warm-ups
+            if target in ("easy", "medium"):
+                item = challenge_filler(title, n, "hard") or item
+        elif target in ("hard", "stretch"):
             item = challenge_filler(title, n, target)
         else:
             item = _topic_filler(title, n, seed=_seed(title) + n)
-        if not item:
+        if not item or _is_off_topic(title, item.get("question_text") or ""):
             continue
         key = stem_key(item["question_text"])
         if not key or key in seen:
@@ -1233,17 +1376,28 @@ def polish_questions(title: str, questions) -> list:
             q["difficulty"] = item["difficulty"]
         unique.append(q)
 
-    unique = unique[:80]
+    unique = unique[:TARGET_QUESTIONS]
 
-    # Second pass: replace too-easy items sitting in hard/stretch slots
     out_qs = list(unique)
     for i, q in enumerate(out_qs):
         idx = i + 1
         target = difficulty_for_index(idx)
         text = q.get("question_text") or ""
-        if target in ("hard", "stretch") and _is_too_easy_for_hard(text):
-            for attempt in range(1, 80):
-                repl = challenge_filler(title, idx * 17 + attempt, target)
+        # Concept drills may stay easy; finale must be real challenge material.
+        needs_upgrade = False
+        if idx > CONCEPT_QUESTIONS and _is_too_easy_for_hard(text):
+            needs_upgrade = True
+        if (target in ("hard", "stretch") and _is_too_easy_for_hard(text)) or _is_off_topic(title, text):
+            needs_upgrade = True
+        if needs_upgrade:
+            for attempt in range(1, 120):
+                repl = challenge_filler(
+                    title, idx * 17 + attempt, "hard" if target in ("easy", "medium") else target
+                )
+                if _is_off_topic(title, repl.get("question_text") or ""):
+                    continue
+                if _is_too_easy_for_hard(repl.get("question_text") or ""):
+                    continue
                 key = stem_key(repl["question_text"])
                 if key and key not in seen:
                     seen.discard(stem_key(text))
@@ -1254,6 +1408,7 @@ def polish_questions(title: str, questions) -> list:
                     break
 
     out = []
+    junk = {"not sure", "none of these", "skip"}
     for i, q in enumerate(out_qs, 1):
         qq = attach_visuals(title, q, i)
         diff = difficulty_for_index(i)
@@ -1261,20 +1416,32 @@ def polish_questions(title: str, questions) -> list:
         qq["points"] = POINTS[diff]
         qq["order_index"] = i
         qq["question_type"] = qq.get("question_type") or "multiple_choice"
-        if qq["correct_answer"] not in qq.get("options", []):
-            opts = list(qq.get("options") or [])
-            if opts:
-                opts[0] = qq["correct_answer"]
-            else:
-                opts = [qq["correct_answer"]] + near_int(qq["correct_answer"])
-            qq["options"] = opts[:4]
+        # Fix awkward stems leftover from earlier generators
+        stem = qq.get("question_text") or ""
+        stem = re.sub(
+            r"(?i)scientific of\s+([0-9.]+)\s*\??",
+            r"Write \1 in scientific notation.",
+            stem,
+        )
+        qq["question_text"] = stem
+        opts = [o for o in (qq.get("options") or []) if str(o).strip().lower() not in junk]
+        if qq["correct_answer"] not in opts:
+            opts = [qq["correct_answer"]] + [o for o in opts if o != qq["correct_answer"]]
+        while len(opts) < 4:
+            for cand in near_int(qq["correct_answer"], 6):
+                if cand not in opts:
+                    opts.append(cand)
+                if len(opts) >= 4:
+                    break
+            break
+        qq["options"] = opts[:4]
         out.append(qq)
 
     keys = [stem_key(q["question_text"]) for q in out]
     if len(keys) != len(set(keys)):
         raise AssertionError(f"{title}: duplicate question stems after polish")
-    if len(out) != 80:
-        raise AssertionError(f"{title}: expected 80 questions, got {len(out)}")
+    if len(out) != TARGET_QUESTIONS:
+        raise AssertionError(f"{title}: expected {TARGET_QUESTIONS} questions, got {len(out)}")
     return out
 
 

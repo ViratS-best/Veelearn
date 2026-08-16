@@ -37,11 +37,11 @@ OLD_FIXED_CAPTIONS = [
 
 
 def audit_unit(title, content, questions, issues):
-    if len(questions) != 80:
-        issues.append(f"{title}: {len(questions)} questions (want 80)")
+    if len(questions) != 55:
+        issues.append(f"{title}: {len(questions)} questions (want 55)")
     slots = len(re.findall(r"<!--QUIZ_SLOT_\d+-->", content))
-    if slots != 80:
-        issues.append(f"{title}: {slots} quiz slots (want 80)")
+    if slots != 55:
+        issues.append(f"{title}: {slots} quiz slots (want 55)")
 
     stems = []
     for q in questions:

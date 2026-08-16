@@ -250,7 +250,7 @@ def _u1_questions():
             0,
         ))
     qs.extend(finale[:50])
-    return _fill(qs, 80, lambda i: mq(f"Warmup product check {i}: 2×3?", 6, "2×3=6.", i))
+    return _fill(qs, 55, lambda i: mq(f"Warmup product check {i}: 2×3?", 6, "2×3=6.", i))
 
 
 def build_unit1():
@@ -489,7 +489,7 @@ def build_unit1():
             "Contest reading habits",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u1_questions()
 

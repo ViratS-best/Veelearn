@@ -162,7 +162,7 @@ def _u1_questions():
         ))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"What number comes after {i + 20}?",
         i + 21,
         f"One more than {i + 20} is {i + 21}.",
@@ -365,7 +365,7 @@ def build_unit1():
             "Read and write number names",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u1_questions()
 
@@ -464,7 +464,7 @@ def _u2_questions():
         qs.append(mq(f"What is 10 more than {n}?", n + 10, f"{n} + 10 = {n + 10}.", idx))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"What number is 1 ten and {i % 9 + 1} ones?",
         10 + (i % 9 + 1),
         f"1 ten and {i % 9 + 1} ones make {10 + (i % 9 + 1)}.",
@@ -646,7 +646,7 @@ def build_unit2():
             "Find 10 more and 10 less",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u2_questions()
 
@@ -709,7 +709,7 @@ def _u3_questions():
         qs.append(_add_fact(a, b, idx))
         idx += 1
 
-    return _fill(qs, 80, lambda i: _add_fact(i % 9 + 1, (i % 7) + 1, i))
+    return _fill(qs, 55, lambda i: _add_fact(i % 9 + 1, (i % 7) + 1, i))
 
 
 def build_unit3():
@@ -881,7 +881,7 @@ def build_unit3():
             "Add three numbers",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u3_questions()
 
@@ -954,7 +954,7 @@ def _u4_questions():
         qs.append(_sub_fact(a, b, idx))
         idx += 1
 
-    return _fill(qs, 80, lambda i: _sub_fact(12 + (i % 8), 1 + (i % 6), i))
+    return _fill(qs, 55, lambda i: _sub_fact(12 + (i % 8), 1 + (i % 6), i))
 
 
 def build_unit4():
@@ -1124,6 +1124,6 @@ def build_unit4():
             "Write fact families",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u4_questions()

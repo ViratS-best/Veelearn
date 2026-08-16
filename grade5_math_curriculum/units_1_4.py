@@ -115,7 +115,7 @@ def _u1_questions():
         qs.append(mq(text, ans, expl, idx, distractors=dist))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"What is 0.{i:03d} as thousandths? (the digits after the point)",
         str(i) if i <= 9 else str(i),
         f"Read the last place as thousandths when there are three digits.",
@@ -284,7 +284,7 @@ def build_unit1():
             "See equivalent decimals",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u1_questions()
 
@@ -375,7 +375,7 @@ def _u2_questions():
         qs.append(mq(text, ans, f"Line up the points. Answer is {ans}.", idx, distractors=dist))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"What is {20 + i} × 10?",
         (20 + i) * 10,
         f"Times 10 moves one place left. {(20 + i) * 10}.",
@@ -547,7 +547,7 @@ def build_unit2():
             "Estimate to check reasonableness",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u2_questions()
 
@@ -626,7 +626,7 @@ def _u3_questions():
         qs.append(mq(text, ans, expl, idx, distractors=dist))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"What is 1/{2 + (i % 5)} + 0? (the fraction itself)",
         f"1/{2 + (i % 5)}",
         "Adding 0 does not change the fraction.",
@@ -790,7 +790,7 @@ def build_unit3():
             "Use 0, 1/2, and 1 as benchmarks",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u3_questions()
 
@@ -869,7 +869,7 @@ def _u4_questions():
         qs.append(mq(text, ans, expl, idx, distractors=dist))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"What is 1/2 of {2 * (i % 10 + 1)}?",
         str(i % 10 + 1),
         "Half of an even number is that number divided by 2.",
@@ -1033,6 +1033,6 @@ def build_unit4():
             "Solve multiply-fraction stories",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u4_questions()

@@ -151,7 +151,7 @@ def _u5_questions():
         ))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"The long hand is on {1 + (i % 11)}. How many minutes is that?",
         (1 + (i % 11)) * 5,
         f"Each number is 5 minutes. {1 + (i % 11)} × 5 = {(1 + (i % 11)) * 5}.",
@@ -340,7 +340,7 @@ def build_unit5():
             "Find simple elapsed time",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u5_questions()
 
@@ -447,7 +447,7 @@ def _u6_questions():
         ))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"How many cents are {(i % 6) + 1} dimes?",
         10 * ((i % 6) + 1),
         f"{(i % 6) + 1} × 10 = {10 * ((i % 6) + 1)} cents.",
@@ -625,7 +625,7 @@ def build_unit6():
             "Solve money stories",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u6_questions()
 
@@ -747,7 +747,7 @@ def _u7_questions():
         qs.append(mq(text, ans, expl, idx, distractors=dist))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"A shape with {3 + (i % 4)} sides is a polygon with how many sides?",
         3 + (i % 4),
         f"Count the sides. There are {3 + (i % 4)}.",
@@ -922,7 +922,7 @@ def build_unit7():
             "Compose and take apart shapes",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u7_questions()
 
@@ -1054,7 +1054,7 @@ def _u8_questions():
         qs.append(mq(text, ans, expl, idx, distractors=dist))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"A whole is split into {2 + (i % 3)} equal parts. How many parts make the whole?",
         2 + (i % 3),
         f"All {2 + (i % 3)} equal parts together make 1 whole.",
@@ -1233,7 +1233,7 @@ def build_unit8():
             "Compare fractions of the same whole",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u8_questions()
 

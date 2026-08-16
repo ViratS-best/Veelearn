@@ -69,7 +69,7 @@ def _u1_questions():
     for text, ans, dist, expl in items:
         qs.append(mq(text, ans, expl, idx, distractors=dist))
         idx += 1
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"If 2:5 = {2 * (i % 6 + 2)}:x, what is x?",
         5 * (i % 6 + 2),
         "Multiply both parts by the same number.",
@@ -255,7 +255,7 @@ def build_unit1():
             "Solve ratio stories",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u1_questions()
 
@@ -302,7 +302,7 @@ def _u2_questions():
     for text, ans, dist, expl in items:
         qs.append(mq(text, ans, expl, idx, distractors=dist))
         idx += 1
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"What is 10% of {10 * (i % 9 + 2)}?",
         i % 9 + 2,
         "10% is one tenth.",
@@ -472,7 +472,7 @@ def build_unit2():
             "Compute rates with fractions",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u2_questions()
 
@@ -519,7 +519,7 @@ def _u3_questions():
     for text, ans, dist, expl in items:
         qs.append(mq(text, ans, expl, idx, distractors=dist))
         idx += 1
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"How many 1/2s in {i % 6 + 2}?",
         2 * (i % 6 + 2),
         "Multiply by 2.",
@@ -680,7 +680,7 @@ def build_unit3():
             "Choose the right operation",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u3_questions()
 
@@ -727,7 +727,7 @@ def _u4_questions():
     for text, ans, dist, expl in items:
         qs.append(mq(text, ans, expl, idx, distractors=dist))
         idx += 1
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"What is the opposite of {i % 8 + 1}?",
         -(i % 8 + 1),
         "Same distance from 0, other side.",
@@ -893,6 +893,6 @@ def build_unit4():
             "Move left and right on the line",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u4_questions()

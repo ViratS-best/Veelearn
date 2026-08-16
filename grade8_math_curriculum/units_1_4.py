@@ -50,7 +50,7 @@ def _u1_questions():
         ("3.0 × 10⁸ is about the speed of light in m/s. That is…", "300,000,000", ["30,000,000", "0.00000003", "3,080"], "Eight places."),
         ("(1/2)⁻¹ = ?", "2", ["−2", "1/2", "−1/2"], "Flip the fraction."),
     ]
-    return _fill(_pack(items), 80, lambda i: mq(
+    return _fill(_pack(items), 55, lambda i: mq(
         f"What is 2^{i % 4 + 2}?",
         2 ** (i % 4 + 2),
         "Repeated multiplication of 2.",
@@ -144,7 +144,7 @@ def build_unit1():
         title,
         ["Powers and roots", "Product, quotient, power rules", "Zero and negative exponents",
          "Scientific notation", "Compute with 10ⁿ", "Place roots on the number line"],
-        c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 50), "unit-1-exponents.mp4")
+        c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 25), "unit-1-exponents.mp4")
     return title, description, content, _u1_questions()
 
 
@@ -182,7 +182,7 @@ def _u2_questions():
         ("2x − (x − 5) = 9. x = ?", "4", ["14", "2", "7"], "2x−x+5=9."),
         ("Half of (x−4) is 6. x = ?", "16", ["8", "2", "10"], "x−4=12."),
     ]
-    return _fill(_pack(items), 80, lambda i: mq(
+    return _fill(_pack(items), 55, lambda i: mq(
         f"Solve 3x − 1 = {3 * (i % 7 + 2) - 1}.",
         i % 7 + 2,
         "Add 1, then divide by 3.",
@@ -274,7 +274,7 @@ def build_unit2():
         title,
         ["Distribute in a multi-step equation", "Variables on both sides", "Fractions and decimals",
          "Infinitely many or none", "Hidden grouping", "Translate stories"],
-        c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 50), "unit-2-equations.mp4")
+        c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 25), "unit-2-equations.mp4")
     return title, description, content, _u2_questions()
 
 
@@ -311,7 +311,7 @@ def _u3_questions():
         ("If two lines have slopes 2 and −1/2 they are…", "perpendicular", ["parallel", "the same line", "horizontal"], "2×(−1/2)=−1."),
         ("To graph y=2x−1, start at…", "(0, −1), then up 2 right 1", ["(2, −1)", "(0, 2)", "the origin only"], "b then m."),
     ]
-    return _fill(_pack(items), 80, lambda i: mq(
+    return _fill(_pack(items), 55, lambda i: mq(
         f"On y = 2x + 1, when x = {i % 5 + 1}, y = ?",
         2 * (i % 5 + 1) + 1,
         "Double x, then add 1.",
@@ -404,7 +404,7 @@ def build_unit3():
         title,
         ["Slope as rise over run", "y = mx + b", "Write an equation from points",
          "Parallel and perpendicular", "Intercepts and special lines", "Linear stories"],
-        c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 50), "unit-3-slope.mp4")
+        c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 25), "unit-3-slope.mp4")
     return title, description, content, _u3_questions()
 
 
@@ -441,7 +441,7 @@ def _u4_questions():
         ("f(x)=2x+1 and g(x)=2x+1 are…", "the same function", ["perpendicular", "parallel lines with different b", "not functions"], "Same rule."),
         ("If f(0)=b, that value is…", "the y-intercept of the graph", ["the slope", "the domain", "undefined"], "x=0."),
     ]
-    return _fill(_pack(items), 80, lambda i: mq(
+    return _fill(_pack(items), 55, lambda i: mq(
         f"If f(x) = 2x + 3, what is f({i % 6 + 1})?",
         2 * (i % 6 + 1) + 3,
         "Replace x, then multiply by 2 and add 3.",
@@ -534,5 +534,5 @@ def build_unit4():
         title,
         ["One input, one output", "Function notation", "Linear functions",
          "Nonlinear functions", "Machines, tables, graphs", "Functions in context"],
-        c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 50), "unit-4-functions.mp4")
+        c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 25), "unit-4-functions.mp4")
     return title, description, content, _u4_questions()

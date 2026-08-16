@@ -23,12 +23,12 @@ from .common import (
 
 def _fill80(qs):
     """Guarantee exactly 80 questions; pad defensively if a count ever drifts."""
-    while len(qs) < 80:
+    while len(qs) < 55:
         n = len(qs) + 1
         qs.append(mq(f"Review check {n}: simplify $\\frac{{2n}}{{4}}$ for $n=2$.", "1",
                       "Substitute and reduce: $\\frac{2(2)}{4}=\\frac{4}{4}=1$.", n,
                       distractors=["2", "4", "1/2"]))
-    return renumber(qs[:80])
+    return renumber(qs[:55])
 
 
 AUDIENCE = "Grade 10 Algebra 2"
@@ -753,7 +753,7 @@ def build_unit5():
             "Apply rational equations to work-rate problems and similar-triangle proportions",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u5_questions()
 
@@ -1355,7 +1355,7 @@ def build_unit6():
             "Graph square-root and cube-root functions and their transformations",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u6_questions()
 
@@ -1967,7 +1967,7 @@ def build_unit7():
             "Use change of base and apply logs/exponentials to interest, half-life, and pH problems",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u7_questions()
 
@@ -2572,7 +2572,7 @@ def build_unit8():
             "Identify amplitude, period, and shifts to graph sine and cosine functions",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u8_questions()
 

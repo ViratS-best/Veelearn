@@ -128,7 +128,7 @@ def _u5_questions():
         qs.append(mq(text, ans, expl, idx, distractors=dist))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"{3 + (i % 5)} packs of {4 + (i % 4)} items, then {2 + (i % 3)} more items. How many items?",
         (3 + (i % 5)) * (4 + (i % 4)) + (2 + (i % 3)),
         f"Multiply packs, then add the extra. {(3 + (i % 5)) * (4 + (i % 4)) + (2 + (i % 3))}.",
@@ -306,7 +306,7 @@ def build_unit5():
             "Check that the answer makes sense",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u5_questions()
 
@@ -436,7 +436,7 @@ def _u6_questions():
         qs.append(mq(text, ans, expl, idx, distractors=dist))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"How many copies of 1/{2 + (i % 5)} make {(1 + (i % 3))}/{2 + (i % 5)}?",
         1 + (i % 3),
         f"The top number counts copies of the unit fraction. {(1 + (i % 3))}/{2 + (i % 5)} is {1 + (i % 3)} copies of 1/{2 + (i % 5)}.",
@@ -612,7 +612,7 @@ def build_unit6():
             "Compare fractions of the same whole",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u6_questions()
 
@@ -707,7 +707,7 @@ def _u7_questions():
         qs.append(mq(text, ans, expl, idx))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"A rectangle is {3 + (i % 6)} by {2 + (i % 5)}. Area?",
         (3 + (i % 6)) * (2 + (i % 5)),
         f"Multiply side lengths. Area is {(3 + (i % 6)) * (2 + (i % 5))} square units.",
@@ -876,7 +876,7 @@ def build_unit7():
             "Solve area stories",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u7_questions()
 
@@ -975,7 +975,7 @@ def _u8_questions():
         qs.append(mq(text, ans, expl, idx))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"A rectangle is {5 + (i % 6)} by {2 + (i % 4)}. Perimeter?",
         2 * ((5 + (i % 6)) + (2 + (i % 4))),
         f"Add all four sides, or 2 × (length + width) = {2 * ((5 + (i % 6)) + (2 + (i % 4)))}.",
@@ -1150,7 +1150,7 @@ def build_unit8():
             "Solve fence and border stories",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u8_questions()
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Units 2–8: deep lessons + 80 quizzes each (6×5 concept drills + 50 finale)."""
+"""Units 2–8: deep lessons + 55 quizzes each (6×5 concept drills + 25 finale)."""
 
 from __future__ import annotations
 
@@ -22,16 +22,16 @@ from .common import (
 )
 
 
-def _need80(qs):
+def _need55(qs):
     i = len(qs) + 1
-    while len(qs) < 80:
+    while len(qs) < 55:
         qs.append(mq(f"Check computation #{i}: what is $3\\times4$?", 12, "Independent choices: $3\\times4=12$.", i))
         i += 1
-    return renumber(qs[:80])
+    return renumber(qs[:55])
 
 
 def _finale_progressive(start_specs):
-    """Build up to 50 finale questions from list of (text, ans, expl)."""
+    """Build up to 25 finale questions from list of (text, ans, expl)."""
     out = []
     for text, ans, expl in start_specs:
         if isinstance(ans, int) or (isinstance(ans, str) and str(ans).lstrip("-").isdigit()):
@@ -45,8 +45,8 @@ def _finale_progressive(start_specs):
 def _assemble(title, description, audience, roadmap, concepts, questions):
     """concepts: list of kwargs for concept_block in order with quiz_start 1,6,11,16,21,26."""
     body = "".join(concepts)
-    content = unit_shell(title, audience, roadmap, body, practice_slots(31, 50))
-    return title, description, content, _need80(questions)
+    content = unit_shell(title, audience, roadmap, body, practice_slots(31, 25))
+    return title, description, content, _need55(questions)
 
 
 # ========================= UNIT 2 =========================
@@ -298,10 +298,10 @@ def build_unit2():
         ("Necklace 6 distinct beads rotations same flips different?", 120, "$5!=120$."),
         ("$7!/(5!)$=?", 42, "$7\\times6=42$."),
     ]
-    while len(finale_specs) < 50:
+    while len(finale_specs) < 25:
         n = 5 + len(finale_specs) % 4
         finale_specs.append((f"$P({n+3},{2})$=?", math.perm(n + 3, 2), "Falling product of 2 terms."))
-    for text, ans, expl in finale_specs[:50]:
+    for text, ans, expl in finale_specs[:25]:
         qs.append(mq(text, ans, expl, idx)); idx += 1
 
     return _assemble(

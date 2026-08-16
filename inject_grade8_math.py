@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Inject Eighth Grade Math master + 8 units into Aiven.
 
-Each unit: 6 concepts with 5 quizzes after each, plus 50 finale problems.
+Each unit: 6 concepts with 5 quizzes after each, plus 25 finale problems.
 Upserts by (title, grade_level). Hearts on, boss battle off.
 Secrets via env only.
 """
@@ -33,7 +33,7 @@ from grade8_math_curriculum import all_units, build_master
 GRADE = 8
 MASTER_TITLE = "Eighth Grade Math"
 RNG_SEED = 20260820
-EXPECTED_Q = 80
+EXPECTED_Q = 55
 GAMIFICATION = json.dumps({"bossBattle": False, "hearts": True})
 UNIT_VIDEO_FILES = [
     "unit-1-exponents.mp4",

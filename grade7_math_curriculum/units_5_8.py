@@ -51,7 +51,7 @@ def _u5_questions():
         ("x=4, y=1. Check  x−y=3?", "yes, 4−1=3", ["no", "4+1=5", "only if y=4"], "It fits."),
         ("Two numbers sum to 12 and differ by 4. Larger?", "8", ["4", "6", "16"], "x+y=12, x−y=4."),
     ]
-    return _fill(_pack(items), 80, lambda i: mq(
+    return _fill(_pack(items), 55, lambda i: mq(
         f"y = 2x and x + y = {3 * (i % 6 + 2)}. What is x?",
         i % 6 + 2,
         "x + 2x is 3x. Divide the total by 3.",
@@ -150,7 +150,7 @@ def build_unit5():
         title,
         ["Multi-step one-variable equations", "What a system is", "Substitution",
          "Elimination", "How many solutions", "Two-variable stories"],
-        c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 50))
+        c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 25))
     return title, description, content, _u5_questions()
 
 
@@ -187,7 +187,7 @@ def _u6_questions():
         ("The adjacent to that 80° is…", "100°", ["80°", "10°", "360°"], "Supplementary."),
         ("r=7, use 22/7. C=?", "44", ["22", "154", "14"], "2×22/7×7=44."),
     ]
-    return _fill(_pack(items), 80, lambda i: mq(
+    return _fill(_pack(items), 55, lambda i: mq(
         f"A radius is {i % 6 + 2}. Diameter?",
         2 * (i % 6 + 2), "Diameter is twice the radius.", i))
 
@@ -274,7 +274,7 @@ def build_unit6():
         title,
         ["Radius, diameter, circumference", "Area of a circle", "Supplementary and complementary",
          "Vertical angles", "Angles in a triangle", "Circle and angle stories"],
-        c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 50))
+        c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 25))
     return title, description, content, _u6_questions()
 
 
@@ -311,7 +311,7 @@ def _u7_questions():
         ("Double every edge of a cube. SA ×?", "4", ["2", "8", "6"], "k²=4."),
         ("1 in : 4 ft. A 6 in plan length is…", "24 ft", ["10 ft", "4 ft", "6 ft"], "6×4."),
     ]
-    return _fill(_pack(items), 80, lambda i: mq(
+    return _fill(_pack(items), 55, lambda i: mq(
         f"A rectangular prism is {i % 4 + 2} by 3 by 2. Volume?",
         (i % 4 + 2) * 3 * 2,
         "Volume is length × width × height.",
@@ -404,7 +404,7 @@ def build_unit7():
         title,
         ["Scale drawings", "How area and volume scale", "Nets and surface area",
          "Volume of a rectangular prism", "Any right prism: V = Bh", "Wrap, fill, or enlarge"],
-        c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 50))
+        c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 25))
     return title, description, content, _u7_questions()
 
 
@@ -441,7 +441,7 @@ def _u8_questions():
         ("A fair coin. P(heads)=?", "1/2", ["1/4", "1", "0"], "Two equally likely sides."),
         ("Tree diagrams help you…", "multiply along a path", ["find surface area", "solve 2x+5=17", "draw a circle"], "Each branch is a factor."),
     ]
-    return _fill(_pack(items), 80, lambda i: mq(
+    return _fill(_pack(items), 55, lambda i: mq(
         f"A fair spinner has {i % 3 + 2} equal sections. P(one marked section)?",
         f"1/{i % 3 + 2}",
         "One favorable out of equally likely sections.",
@@ -537,7 +537,7 @@ def build_unit8():
         title,
         ["Samples and populations", "Center and spread", "Compare two groups",
          "Simple probability", "Compound independent events", "Data and chance stories"],
-        c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 50))
+        c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 25))
     return title, description, content, _u8_questions()
 
 

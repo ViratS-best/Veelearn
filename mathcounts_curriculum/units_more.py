@@ -21,25 +21,25 @@ from .common import (
 )
 
 
-def _need80(qs):
+def _need55(qs):
     i = len(qs) + 1
-    while len(qs) < 80:
+    while len(qs) < 55:
         qs.append(mq(f"Skill check #{i}: $\\binom{{6}}{{2}}$=?", 15, "$\\binom{6}{2}=15$.", i))
         i += 1
-    return renumber(qs[:80])
+    return renumber(qs[:55])
 
 
 def _assemble(title, description, audience, roadmap, concepts, questions):
     body = "".join(concepts)
-    content = unit_shell(title, audience, roadmap, body, practice_slots(31, 50))
-    return title, description, content, _need80(questions)
+    content = unit_shell(title, audience, roadmap, body, practice_slots(31, 25))
+    return title, description, content, _need55(questions)
 
 
 def _add_finale(qs, idx, specs):
-    while len(specs) < 50:
+    while len(specs) < 25:
         n = 6 + len(specs) % 5
         specs.append((f"$\\binom{{{n}}}{{2}}$=?", math.comb(n, 2), f"$\\binom{{{n}}}{{2}}={math.comb(n,2)}$."))
-    for text, ans, expl in specs[:50]:
+    for text, ans, expl in specs[:25]:
         qs.append(mq(text, ans, expl, idx) if not isinstance(ans, str) or str(ans).lstrip("-").isdigit()
                    else make_question(text, ans, ["A", "B", "C"], expl, idx))
         # fix: always use mq for numeric
@@ -277,7 +277,7 @@ def build_unit3():
         ("C(9,6)?", math.comb(9, 6), "Equals C(9,3)=84."),
         ("C(12,5)?", math.comb(12, 5), "792."),
     ]
-    for t, a, e in specs[:50]:
+    for t, a, e in specs[:25]:
         qs.append(mq(t, a, e, idx)); idx += 1
 
     return _assemble(title, description, "Grades 6–8 · MathCounts · AMC 8/10",
@@ -547,7 +547,7 @@ def build_unit4():
         ("Through (1,1) to (3,3) from origin?", lattice_paths(1, 1) * lattice_paths(2, 2), "2×6=12."),
         ("Digits sum 9 below 50?", 5, "5."),
     ]
-    for t, a, e in specs[:50]:
+    for t, a, e in specs[:25]:
         qs.append(mq(t, a, e, idx)); idx += 1
 
     return _assemble(title, description, "Grades 6–8 · MathCounts · AMC 8/10",
@@ -778,7 +778,7 @@ def build_unit5():
                 break
         if len(specs) >= 50:
             break
-    for t, a, e in specs[:50]:
+    for t, a, e in specs[:25]:
         qs.append(mq(t, a, e, idx)); idx += 1
 
     return _assemble(title, description, "Grades 6–8 · MathCounts · AMC 8/10",
@@ -1010,7 +1010,7 @@ def build_unit6():
     # fix weird ones
     specs = [s for s in specs if not (isinstance(s[1], int) and s[0].startswith("|A∪B∪C|"))]
     specs.append(("Onto [4]→[3]?", 36, "81-48+3=36."))
-    for t, a, e in specs[:50]:
+    for t, a, e in specs[:25]:
         qs.append(mq(t, a, e, idx)); idx += 1
 
     return _assemble(title, description, "Grades 6–8 · MathCounts · AMC 8/10",
@@ -1232,7 +1232,7 @@ def build_unit7():
         specs.append((f"No consecutive 1s length {n}?", bit_no_consec(n), "bits"))
     for n, val in [(2, 2), (3, 5), (4, 14), (5, 42), (6, 132)]:
         specs.append((f"Catalan C_{n}?", val, "Catalan"))
-    for t, a, e in specs[:50]:
+    for t, a, e in specs[:25]:
         qs.append(mq(t, a, e, idx)); idx += 1
 
     return _assemble(title, description, "Grades 6–8 · MathCounts · AMC 8/10",
@@ -1518,10 +1518,10 @@ def build_unit8():
     specs = [s for s in specs if "Onto [6]" not in s[0] and "Onto [5]→[4]" not in s[0]]
     specs.append((f"Onto [6]→[3]?", onto(6, 3), f"{onto(6,3)}."))
     specs.append((f"Onto [5]→[4]?", onto(5, 4), f"{onto(5,4)}."))
-    while len(specs) < 50:
+    while len(specs) < 25:
         a, b = 3 + len(specs) % 4, 2 + len(specs) % 3
         specs.append((f"Paths to ({a},{b})?", lattice_paths(a, b), "lattice"))
-    for t, a, e in specs[:50]:
+    for t, a, e in specs[:25]:
         qs.append(mq(t, a, e, idx)); idx += 1
 
     return _assemble(title, description, "Grades 6–8 · MathCounts · AMC 8/10 · National stretch",

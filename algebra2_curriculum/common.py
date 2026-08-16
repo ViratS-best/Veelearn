@@ -89,13 +89,12 @@ def mini_practice_heading(concept_name: str) -> str:
 
 def end_practice_heading() -> str:
     return (
-        "<h2>Full Practice Set (50 Problems)</h2>"
-        "<p>These get harder as you go:</p>"
+        "<h2>Full Practice Set (25 Problems)</h2>"
+        "<p>These get harder as you go — all on this unit's topic:</p>"
         "<ul>"
-        "<li><strong>Problems 1–15:</strong> Easy / skill builders &amp; early chapter checks</li>"
-        "<li><strong>Problems 16–30:</strong> Medium / mixed quiz &amp; homework style</li>"
-        "<li><strong>Problems 31–40:</strong> Hard / chapter test &amp; multi-step</li>"
-        "<li><strong>Problems 41–50:</strong> Stretch / honors Algebra 2 &amp; early Precalculus / SAT Math</li>"
+        "<li><strong>Problems 1–8:</strong> Medium warm-ups</li>"
+        "<li><strong>Problems 9–16:</strong> Hard / chapter test style</li>"
+        "<li><strong>Problems 17–25:</strong> Stretch / honors &amp; SAT Math</li>"
         "</ul>"
     )
 
@@ -233,7 +232,7 @@ def renumber(questions):
     return out
 
 
-def practice_slots(start: int, count: int = 50) -> str:
+def practice_slots(start: int, count: int = 25) -> str:
     return end_practice_heading() + "\n" + "\n".join(quiz_slot(i) for i in range(start, start + count))
 
 

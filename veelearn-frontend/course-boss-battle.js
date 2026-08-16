@@ -3,7 +3,8 @@
  * Concept drills stay open; finale questions are stage-gated.
  */
 (function () {
-  const STAGE_NEED = { easy: 10, medium: 8 };
+  // Finale is ~25 Qs (8 easy / 8 medium / 6 hard / 3 stretch) — gates scaled down
+  const STAGE_NEED = { easy: 6, medium: 5 };
   let state = {
     courseId: null,
     hearts: 3,
@@ -62,7 +63,7 @@
         /* ignore */
       }
     }
-    if ((raw == null || raw === '') && questionCount >= 50) {
+    if ((raw == null || raw === '') && questionCount >= 45) {
       settings.bossBattle = settings.bossBattle !== false;
       settings.hearts = settings.hearts !== false;
       settings.inferred = true;
@@ -137,7 +138,7 @@
     if (state.bossEnabled) {
       if (state.unlocked.hard) stageLabel = 'Final Boss — Hard + Stretch';
       else if (state.unlocked.medium) stageLabel = 'Stage 2 — Medium';
-      else stageLabel = 'Stage 1 — Easy (solve 10 to unlock)';
+      else stageLabel = 'Stage 1 — Easy (solve 6 to unlock)';
       progress = `<span class="vl-boss-progress">Easy ${countCorrect('easy')}/${STAGE_NEED.easy} · Medium ${countCorrect(
         'medium'
       )}/${STAGE_NEED.medium}</span>`;
@@ -183,8 +184,8 @@
           }
           lock.textContent =
             diff === 'medium'
-              ? 'Locked — solve 10 Easy finale problems to unlock Stage 2.'
-              : 'Locked — defeat Stage 2 (8 Medium) to face the Final Boss.';
+              ? 'Locked — solve 6 Easy finale problems to unlock Stage 2.'
+              : 'Locked — defeat Stage 2 (5 Medium) to face the Final Boss.';
           el.querySelectorAll('input, button.quiz-submit-btn').forEach((n) => {
             n.disabled = true;
           });

@@ -76,7 +76,7 @@ def _u1_questions():
         qs.append(mq(f"What is 100 times {n:,}?", n * 100, f"{n:,} × 100 = {n * 100:,}.", idx))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"What is 10 times {1000 + i * 10}?",
         (1000 + i * 10) * 10,
         f"Move one place to the left. {(1000 + i * 10) * 10}.",
@@ -240,7 +240,7 @@ def build_unit1():
             "Subtract multi-digit numbers",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u1_questions()
 
@@ -287,7 +287,7 @@ def _u2_questions():
         qs.append(mq(text, ans, expl, idx))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"{12 + (i % 20)} × {3 + (i % 8)} = ?",
         (12 + (i % 20)) * (3 + (i % 8)),
         f"Product is {(12 + (i % 20)) * (3 + (i % 8))}.",
@@ -449,7 +449,7 @@ def build_unit2():
             "Solve multiplication stories",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u2_questions()
 
@@ -513,7 +513,7 @@ def _u3_questions():
         qs.append(mq(text, ans, expl, idx))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"{(12 + i) * (3 + (i % 6))} ÷ {3 + (i % 6)} = ?",
         12 + i,
         f"Because {3 + (i % 6)} × {12 + i} = {(12 + i) * (3 + (i % 6))}.",
@@ -681,7 +681,7 @@ def build_unit3():
             "Check with multiplication",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u3_questions()
 
@@ -769,7 +769,7 @@ def _u4_questions():
         qs.append(mq(text, ans, expl, idx, distractors=dist))
         idx += 1
 
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"{1 + (i % 4)}/8 + {1 + (i % 3)}/8 = ?",
         f"{(1 + (i % 4)) + (1 + (i % 3))}/8",
         f"Add the numerators. Denominator stays 8.",
@@ -938,6 +938,6 @@ def build_unit4():
             "Solve fraction stories",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u4_questions()

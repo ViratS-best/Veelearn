@@ -1469,7 +1469,7 @@ def g8u1():
         _q("$x^0\\cdot x^5$ for $x\\neq0$?", "$x^5$", "1·x^5.", difficulty="stretch"),
         _q("A cube volume 125. Edge?", 5, "5^3=125.", difficulty="stretch"),
         _q("$(10^2)^3\\times10^{-4}$?", "$10^{2}$", "6−4=2.", difficulty="stretch"),
-        _q("Scientific of 0.00056?", "$5.6\\times10^{-4}$", "Four left.", difficulty="stretch"),
+        _q("Write 0.00056 in scientific notation.", "$5.6\\times10^{-4}$", "Four left.", difficulty="stretch"),
         _q("$\\sqrt{2}\\times\\sqrt{8}$?", 4, "√16=4.", difficulty="stretch"),
         _q("SAT: $(3\\times10^{-4})^2$?", "$9\\times10^{-8}$", "9 and −8.", difficulty="stretch"),
     ]

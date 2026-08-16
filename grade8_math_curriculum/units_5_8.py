@@ -51,7 +51,7 @@ def _u5_questions():
         ("3x − y = 7, y = x − 1. x = ?", "3", ["7", "4", "2"], "3x−(x−1)=7, 2x+1=7, 2x=6."),
         ("The pair that sits on both lines is…", "the solution", ["the slope", "the intercept only", "undefined"], "Intersection."),
     ]
-    return _fill(_pack(items), 80, lambda i: mq(
+    return _fill(_pack(items), 55, lambda i: mq(
         f"y = 2x and x + y = {3 * (i % 5 + 2)}. What is x?",
         i % 5 + 2,
         "x + 2x = 3x. Divide the total by 3.",
@@ -151,7 +151,7 @@ def build_unit5():
         title,
         ["Two equations, one pair", "Substitute a solved y", "Isolate, then substitute",
          "Fractions in a system", "None or infinitely many", "Stories"],
-        c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 50), "unit-5-substitution.mp4")
+        c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 25), "unit-5-substitution.mp4")
     return title, description, content, _u5_questions()
 
 
@@ -188,7 +188,7 @@ def _u6_questions():
         ("The ordered pair is written…", "(x, y)", ["(y, x)", "x+y", "m, b"], "x first."),
         ("4x − 3y = 11 and 2x + 3y = 7. Add. x = ?", "3", ["18", "4", "1"], "6x=18."),
     ]
-    return _fill(_pack(items), 80, lambda i: mq(
+    return _fill(_pack(items), 55, lambda i: mq(
         f"x + y = {2 * (i % 5 + 3)} and x − y = 2. What is x?",
         i % 5 + 3 + 1,
         "Add: 2x is the even sum plus 2. Then divide by 2.",
@@ -284,7 +284,7 @@ def build_unit6():
         title,
         ["Add to cancel", "Multiply first", "Negatives", "Same line or parallel",
          "Mix stories", "Pick a method"],
-        c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 50), "unit-6-elimination.mp4")
+        c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 25), "unit-6-elimination.mp4")
     return title, description, content, _u6_questions()
 
 
@@ -321,7 +321,7 @@ def _u7_questions():
         ("If you only know three side lengths, Pythagoras tells you…", "whether the triangle is right", ["the area only", "the slope", "π"], "Check a²+b² against c²."),
         ("r=4, h=3, π=3.14. Volume?", "150.72", ["37.68", "12", "75.36"], "3.14×16×3."),
     ]
-    return _fill(_pack(items), 80, lambda i: mq(
+    return _fill(_pack(items), 55, lambda i: mq(
         f"A right triangle has legs {3 * (i % 5 + 1)} and {4 * (i % 5 + 1)}. Hypotenuse?",
         5 * (i % 5 + 1),
         "This is a 3-4-5 triangle scaled by a whole number.",
@@ -423,7 +423,7 @@ def build_unit7():
         title,
         ["a² + b² = c²", "The converse", "Distance on the plane",
          "Cylinder volume", "Radius vs diameter", "Ladders, maps, and cans"],
-        c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 50), "unit-7-pythagoras.mp4")
+        c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 25), "unit-7-pythagoras.mp4")
     return title, description, content, _u7_questions()
 
 
@@ -460,7 +460,7 @@ def _u8_questions():
         ("Comparing two classes' scores, a scatter of (name, score) is a poor fit because…", "names are not a numeric x", ["scores cannot be compared", "you need π", "medians are illegal"], "Use box plots or two-way counts."),
         ("A line of best fit with slope 2 means…", "y tends to rise 2 when x rises 1", ["every point rises exactly 2", "IQR is 2", "r=2 for a cylinder"], "The model's rate."),
     ]
-    return _fill(_pack(items), 80, lambda i: mq(
+    return _fill(_pack(items), 55, lambda i: mq(
         f"{10 + i % 5} of {40} students are in band. Relative frequency in band?",
         f"{10 + i % 5}/40",
         "Relative frequency is the count divided by the total.",
@@ -561,7 +561,7 @@ def build_unit8():
         title,
         ["Scatter and association", "Line of best fit", "Outliers",
          "Two-way tables", "Compare two groups", "Pick a display"],
-        c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 50), "unit-8-data.mp4")
+        c1 + c2 + c3 + c4 + c5 + c6, practice_slots(31, 25), "unit-8-data.mp4")
     return title, description, content, _u8_questions()
 
 

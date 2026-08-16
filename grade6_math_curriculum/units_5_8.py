@@ -75,7 +75,7 @@ def _u5_questions():
     for text, ans, dist, expl in items:
         qs.append(mq(text, ans, expl, idx, distractors=dist))
         idx += 1
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"In which quadrant is ({-1 if i % 2 else 1}, {1 if i % 3 else -2})? Use I, II, III, or IV.",
         {(-1, 1): "II", (1, 1): "I", (-1, -2): "III", (1, -2): "IV"}[(-1 if i % 2 else 1, 1 if i % 3 else -2)],
         "Signs of (x, y) name the quadrant.",
@@ -243,7 +243,7 @@ def build_unit5():
             "Use signed map directions",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u5_questions()
 
@@ -301,7 +301,7 @@ def _u6_questions():
     for text, ans, dist, expl in items:
         qs.append(mq(text, ans, expl, idx, distractors=dist))
         idx += 1
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"Solve 2x + 1 = {2 * (i % 8 + 2) + 1}.",
         i % 8 + 2,
         "Subtract 1, then divide by 2.",
@@ -478,7 +478,7 @@ def build_unit6():
             "Translate algebra stories",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u6_questions()
 
@@ -525,7 +525,7 @@ def _u7_questions():
     for text, ans, dist, expl in items:
         qs.append(mq(text, ans, expl, idx, distractors=dist))
         idx += 1
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"A parallelogram has base {i % 6 + 3} and height 4. Area?",
         4 * (i % 6 + 3),
         "Area = base × height.",
@@ -685,7 +685,7 @@ def build_unit7():
             "Solve geometry stories",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u7_questions()
 
@@ -735,7 +735,7 @@ def _u8_questions():
     for text, ans, dist, expl in items:
         qs.append(mq(text, ans, expl, idx, distractors=dist))
         idx += 1
-    return _fill(qs, 80, lambda i: mq(
+    return _fill(qs, 55, lambda i: mq(
         f"What is the mean of {i % 5 + 1}, {i % 5 + 1}, {i % 5 + 7}?",
         (i % 5 + 1) + 2,
         "Add the three numbers and divide by 3.",
@@ -899,7 +899,7 @@ def build_unit8():
             "Describe data in context",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u8_questions()
 

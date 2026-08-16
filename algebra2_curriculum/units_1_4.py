@@ -247,7 +247,7 @@ def _u1_questions():
         ))
 
     qs.extend(finale[:50])
-    return _fill(qs, 80, lambda i: mq(f"If $f(x)=2x$, what is $f({i})$?", 2 * i, f"$f({i})=2({i})={2*i}$.", i))
+    return _fill(qs, 55, lambda i: mq(f"If $f(x)=2x$, what is $f({i})$?", 2 * i, f"$f({i})=2({i})={2*i}$.", i))
 
 
 def build_unit1():
@@ -597,7 +597,7 @@ def build_unit1():
             "Find and verify inverse functions, restricting domain when needed",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u1_questions()
 
@@ -856,7 +856,7 @@ def _u2_questions():
         ))
 
     qs.extend(finale[:50])
-    return _fill(qs, 80, lambda i: mq(f"Find the discriminant of $x^2+{i}x+1=0$.", i * i - 4,
+    return _fill(qs, 55, lambda i: mq(f"Find the discriminant of $x^2+{i}x+1=0$.", i * i - 4,
                                        f"$({i})^2-4(1)(1)={i*i-4}$.", i))
 
 
@@ -1208,7 +1208,7 @@ def build_unit2():
             "Solve and graph quadratic inequalities on a number line",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u2_questions()
 
@@ -1456,7 +1456,7 @@ def _u3_questions():
         finale.append(mq(f"Simplify $i^{{{4*n}}}$.", 1, f"Any multiple of $4$ as an exponent of $i$ gives $1$.", 0))
 
     qs.extend(finale[:50])
-    return _fill(qs, 80, lambda i: mq(f"Simplify $i^{{{4*i+1}}}$.", "i", "The exponent leaves remainder 1, so the result is $i$.", i))
+    return _fill(qs, 55, lambda i: mq(f"Simplify $i^{{{4*i+1}}}$.", "i", "The exponent leaves remainder 1, so the result is $i$.", i))
 
 
 def build_unit3():
@@ -1808,7 +1808,7 @@ def build_unit3():
             "Connect the discriminant to real/complex roots and the graph",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u3_questions()
 
@@ -2091,7 +2091,7 @@ def _u4_questions():
                           f"The highest exponent is ${n % 6 + 2}$.", 0))
 
     qs.extend(finale[:50])
-    return _fill(qs, 80, lambda i: mq(f"What is the leading coefficient of ${i}x^3-1$?", i,
+    return _fill(qs, 55, lambda i: mq(f"What is the leading coefficient of ${i}x^3-1$?", i,
                                        f"The coefficient in front of the highest-degree term is ${i}$.", i))
 
 
@@ -2451,6 +2451,6 @@ def build_unit4():
             "Solve polynomial equations and interpret multiplicity on the graph",
         ],
         body,
-        practice_slots(31, 50),
+        practice_slots(31, 25),
     )
     return title, description, content, _u4_questions()
