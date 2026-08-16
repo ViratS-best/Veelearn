@@ -581,7 +581,7 @@ def build_unit5():
                  [f"$\\binom{{3+3-1}}{{3}}={stars_bars_nonneg(3,3)}$."],
                  str(stars_bars_nonneg(3, 3)), "", "Medium"),
         ("Using stars/bars on distinct books", "Distinct objects ≠ stars/bars."),
-        ("Say identical out loud", "Force the model check."),
+        ("Say identical out loud", "Before picking a formula, say whether the objects are identical or distinct."),
         ["I identify identical vs distinct.", "I write an equation in x_i.", "I know when NOT to use stars/bars."],
         1,
     ))

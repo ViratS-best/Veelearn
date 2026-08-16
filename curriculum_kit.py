@@ -600,9 +600,16 @@ def diagram_for_context(unit_title: str, text: str, answer=None, *, require_tool
             coins.append(("5¢", n, "#fdba74"))
         return q_figure(svg_coins(coins), "Coins from the problem.")
 
-    if has_kw(blob, "ten frame", "ten-frame") or (has_kw(blob, "counting") and ans is not None and 0 < abs(ans) <= 20):
+    if has_kw(blob, "ten frame", "ten-frame"):
         fill = abs(ans) if ans is not None and 0 < abs(ans) <= 20 else abs(n_at(0, 1, 20, 1 + seed % 20))
         return q_figure(svg_ten_frame(fill), f"Ten-frame showing {fill}.")
+
+    # Only use ten-frames for early counting with small totals — not MathCounts "counting".
+    if has_kw(blob, "count on", "count back", "how many dots") or (
+        has_kw(blob, "counting") and has_kw(blob, "grade 1", "grade 2", "first grade", "second grade", "tens-frame")
+    ):
+        if ans is not None and 0 < abs(ans) <= 20:
+            return q_figure(svg_ten_frame(abs(ans)), f"Ten-frame showing {abs(ans)}.")
 
     if has_kw(blob, "place value") or ("tens" in blob and "ones" in blob):
         val = abs(ans) if ans is not None and 0 < abs(ans) < 100 else abs(n_at(0, 11, 99, 10 + seed % 90))
@@ -748,11 +755,18 @@ def diagram_for_context(unit_title: str, text: str, answer=None, *, require_tool
         pts = [(h, k, "V"), (h + 1, k + 1, ""), (h - 1, k + 1, "")]
         return q_figure(svg_plane(pts, lim=6, line=None), f"Vertex near ({h},{k}).")
 
-    if not require_tool:
-        if ans is not None and 0 < abs(ans) <= 24:
-            return q_figure(svg_dots(abs(ans)), f"A picture of {abs(ans)}.")
-        show = abs(n_at(0, 1, 20, 1 + seed % 16))
-        return q_figure(svg_number_line(0, max(10, show + 2), marks=[(show, str(show))]), f"Marked value: {show}.")
+    # Combinatorics / counting problems that need slots or complement — never a random line.
+    if has_kw(blob, "letter", "string", "password", "code", "digit", "outfit", "arrangement",
+              "permutation", "combination", "how many ways", "at least one", "repeats"):
+        choices = [str(abs(n_at(i, 2, 12, 2 + (seed + i) % 8))) for i in range(3)]
+        labels = [f"slot {i + 1}" for i in range(3)]
+        if has_kw(blob, "letter", "string") and len(nums) >= 1:
+            # e.g. 3-letter from 4 symbols → 3 slots
+            nslots = abs(n_at(0, 2, 5, 3))
+            labels = [f"pos {i + 1}" for i in range(nslots)]
+        return q_figure(svg_slots(labels), "Fill each position, then multiply (or use complement).")
+
+    # No generic fallback: wrong diagrams are worse than no diagram.
     return ""
 
 
@@ -865,8 +879,13 @@ def attach_visuals(unit_title: str, q: dict, idx: int) -> dict:
 
 
 def lesson_figure_for(unit_title: str, context: str) -> str:
-    """Lesson figure for solved examples / 'use a …' strategy lines (always try to match)."""
-    fig = diagram_for_context(unit_title, context, require_tool=False)
+    """Lesson figure only when the problem text itself matches a visual topic.
+
+    Unit titles (e.g. MathCounts 'Counting') must not force unrelated diagrams.
+    """
+    plain = context or ""
+    # Prefer problem-only matching; include unit title only as weak hint for grade-level cues.
+    fig = diagram_for_context(unit_title if has_kw(unit_title, "grade 1", "grade 2", "first", "second") else "", plain, require_tool=False)
     if not fig:
         return ""
     # Convert quiz-style figure into a lesson figure block.
@@ -885,6 +904,20 @@ def polish_content(title: str, content: str) -> str:
     """Add diagrams to solved examples and 'use a …' strategy parts — not to every heading."""
     if not content:
         return content
+
+    # Strip previously injected nonsense diagrams (generic number-line leftovers).
+    content = re.sub(
+        r'<div class="vl-figure"[^>]*>[\s\S]*?Marked value:\s*\d+\.?[\s\S]*?</div>\s*</div>',
+        "",
+        content,
+        flags=re.I,
+    )
+    content = re.sub(
+        r'<div class="vl-q-diagram">[\s\S]*?Marked value:\s*\d+\.?[\s\S]*?</div>',
+        "",
+        content,
+        flags=re.I,
+    )
 
     def inject_into_solved(match: re.Match) -> str:
         block = match.group(0)
@@ -918,8 +951,12 @@ def polish_content(title: str, content: str) -> str:
         if re.search(r"<svg|vl-figure|vl-q-diagram", block, re.I):
             return block
         plain = re.sub(r"<[^>]+>", " ", block)
+        # Require a real visual cue — bare words like "model check" must not spawn diagrams.
         if not asks_for_tool(plain) and not has_kw(
-            plain, "tape", "table", "number line", "diagram", "graph", "plot", "ten frame", "model"
+            plain,
+            "tape diagram", "ratio table", "number line", "ten frame", "ten-frame",
+            "coordinate plane", "venn diagram", "tree diagram", "area model", "draw a",
+            "sketch a", "plot the", "graph the",
         ):
             return block
         fig = lesson_figure_for(title, plain)
@@ -1077,15 +1114,13 @@ _BANNED_PHRASE = re.compile(r"\b(wait|recalculate)\b", re.I)
 _FILLER_STEM = re.compile(
     r"warmup product check|review check \d+|what is 2\^|"
     r"unit application \d+|checkpoint \d+ for this unit|"
+    r"\(set \d+\)|how many outfits from|"
     r"if 2:5 =|if \$f\(x\)=2x\$|if f\(x\)=2x|"
     r"find the discriminant of \$x\^2\+|leading coefficient of|"
-    r"simplify \$i\^\{",
+    r"simplify \$i\^\{|"
+    r"a machine starts at",
     re.I,
 )
-
-
-def _template_key(text: str) -> str:
-    return re.sub(r"\d+", "#", stem_key(text))
 
 
 def _is_filler(text: str) -> bool:
@@ -1093,12 +1128,45 @@ def _is_filler(text: str) -> bool:
     return bool(_FILLER_STEM.search(t)) or bool(_BANNED_PHRASE.search(text or ""))
 
 
+def _template_key(text: str) -> str:
+    return re.sub(r"\d+", "#", stem_key(text))
+
+
 def _diff_rank(q: dict) -> int:
     return {"easy": 0, "medium": 1, "hard": 2, "stretch": 3}.get(q.get("difficulty"), 1)
 
 
+def _is_too_easy_for_hard(text: str) -> bool:
+    """True if a stem is too trivial to sit in Hard / SAT Stretch slots."""
+    t = stem_key(text)
+    if _is_filler(text):
+        return True
+    if "(set " in (text or "").lower() or "[c" in t:
+        # [C n] tags are challenge fillers — those are OK
+        if re.search(r"\[c\d+\]", t):
+            return False
+    easy_bits = (
+        "how many outfits from",
+        "outfits:",
+        "outfit",
+        "what is 2+2",
+        "count back: 15, 14",
+        "warmup",
+        "a machine starts at",
+        "(set ",
+    )
+    if any(b in t for b in easy_bits):
+        return True
+    # Very short arithmetic with tiny numbers and no contest cue
+    if len(t) < 40 and not any(k in t for k in ("amc", "mathcounts", "sat", "complement", "at least", "how many ways")):
+        if re.fullmatch(r"what is \d+\s*[+\-×x*]\s*\d+\??", t):
+            return True
+    return False
+
+
 def polish_questions(title: str, questions) -> list:
     from question_banks import extra_questions
+    from challenge_banks import challenge_filler, challenges_for
 
     seen = set()
     tmpl_counts = {}
@@ -1116,13 +1184,15 @@ def polish_questions(title: str, questions) -> list:
         handwritten.append(dict(q))
 
     extras = []
-    for item in extra_questions(title):
+    for item in list(extra_questions(title) or []) + list(challenges_for(title) or []):
         if not item:
             continue
         blob = f"{item.get('question_text') or ''} {item.get('explanation') or ''}"
         if _BANNED_PHRASE.search(blob):
             continue
         q = _to_full(item, 0)
+        if item.get("difficulty"):
+            q["difficulty"] = item["difficulty"]
         key = stem_key(q.get("question_text") or "")
         if not key or key in seen:
             continue
@@ -1130,27 +1200,61 @@ def polish_questions(title: str, questions) -> list:
         extras.append(q)
 
     extras.sort(key=_diff_rank)
-    core = handwritten[:30]
-    extra_pool = list(extras)
-    while len(core) < 30 and extra_pool:
-        core.append(extra_pool.pop(0))
+    hard_pool = [q for q in extras if q.get("difficulty") in ("hard", "stretch")]
+    other_pool = [q for q in extras if q.get("difficulty") not in ("hard", "stretch")]
 
-    unique = core + extra_pool
+    core = handwritten[:30]
+    while len(core) < 30 and other_pool:
+        core.append(other_pool.pop(0))
+    while len(core) < 30 and hard_pool:
+        # Only if we lack easy/medium content
+        core.append(hard_pool.pop(0))
+
+    unique = core + other_pool + hard_pool
+
     n = 0
-    while len(unique) < 80 and n < 400:
+    while len(unique) < 80 and n < 500:
         n += 1
-        item = _topic_filler(title, n, seed=_seed(title) + n)
+        # Upcoming index if appended
+        next_i = len(unique) + 1
+        target = difficulty_for_index(next_i)
+        if target in ("hard", "stretch"):
+            item = challenge_filler(title, n, target)
+        else:
+            item = _topic_filler(title, n, seed=_seed(title) + n)
         if not item:
             continue
         key = stem_key(item["question_text"])
         if not key or key in seen:
             continue
         seen.add(key)
-        unique.append(_to_full(item, 0))
+        q = _to_full(item, 0)
+        if item.get("difficulty"):
+            q["difficulty"] = item["difficulty"]
+        unique.append(q)
 
     unique = unique[:80]
+
+    # Second pass: replace too-easy items sitting in hard/stretch slots
+    out_qs = list(unique)
+    for i, q in enumerate(out_qs):
+        idx = i + 1
+        target = difficulty_for_index(idx)
+        text = q.get("question_text") or ""
+        if target in ("hard", "stretch") and _is_too_easy_for_hard(text):
+            for attempt in range(1, 80):
+                repl = challenge_filler(title, idx * 17 + attempt, target)
+                key = stem_key(repl["question_text"])
+                if key and key not in seen:
+                    seen.discard(stem_key(text))
+                    seen.add(key)
+                    nq = _to_full(repl, 0)
+                    nq["difficulty"] = target
+                    out_qs[i] = nq
+                    break
+
     out = []
-    for i, q in enumerate(unique, 1):
+    for i, q in enumerate(out_qs, 1):
         qq = attach_visuals(title, q, i)
         diff = difficulty_for_index(i)
         qq["difficulty"] = diff

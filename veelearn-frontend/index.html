@@ -1028,7 +1028,7 @@
   <script>
     window.MathJax = {
       tex: {
-        inlineMath: [['\\(', '\\)']],
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
         displayMath: [['$$', '$$'], ['\\[', '\\]']],
         processEscapes: true,
         processEnvironments: true
@@ -1062,6 +1062,8 @@
               const t = node.textContent || "";
               if (t.includes("$")) node.textContent = toTexDelims(t);
             });
+            // Also normalize bare $...$ in lesson HTML so older content still renders
+            // when delimiters are mixed with \\( \\).
           };
           MathJax.typesetPromise = (nodes) => {
             const list = nodes && nodes.length ? nodes : [document.body];
