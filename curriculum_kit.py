@@ -711,10 +711,36 @@ def diagram_for_context(unit_title: str, text: str, answer=None, *, require_tool
         return q_figure(svg_tree([["start"], [a, b], ["1", "2", "1", "2"]]), "Each branch is a case.")
 
     if has_kw(blob, "exponent", "scientific notation") or (has_kw(blob, "power") and has_kw(blob, "base")):
-        base = abs(n_at(0, 2, 5, 2 + seed % 3))
-        exp = abs(n_at(1, 2, 4, 2 + (seed // 4) % 3))
-        val = min(base ** exp, 24)
-        return q_figure(svg_dots(val, "#6366f1", min(base, 6), f"{base}^{exp} = {val}"), "Repeated factors as an array.")
+        # Only draw arrays for small powers that actually fit and match the label.
+        candidates = [
+            (2, 2, 4), (2, 3, 8), (2, 4, 16), (3, 2, 9), (3, 3, 27),
+            (4, 2, 16), (5, 2, 25), (6, 2, 36),
+        ]
+        # Prefer numbers mentioned in the stem when they form a true power.
+        picked = None
+        for b, e, v in candidates:
+            if b in nums and e in nums:
+                picked = (b, e, v)
+                break
+        if picked is None and ans is not None:
+            for b, e, v in candidates:
+                if v == abs(ans):
+                    picked = (b, e, v)
+                    break
+        if picked is None:
+            picked = candidates[seed % len(candidates)]
+        base, exp, val = picked
+        # Cap display size but NEVER lie about the value — skip huge arrays.
+        if val > 36:
+            return q_figure(
+                svg_number_line(0, max(10, exp + 2), marks=[(exp, f"{base}^{exp}")]),
+                f"{base}^{exp} = {val} (too many dots to draw).",
+            )
+        factors = "×".join([str(base)] * exp)
+        return q_figure(
+            svg_dots(val, "#6366f1", base if base <= 8 else 6, f"{base}^{exp} = {val}"),
+            f"Array of {val} dots: {factors} = {val}.",
+        )
 
     if has_kw(blob, "quadratic", "parabola"):
         h = n_at(0, -3, 3, seed % 5 - 2)
@@ -940,12 +966,120 @@ def _to_full(item, idx):
     )
 
 
+def _topic_filler(title: str, n: int, seed: int = 0):
+    """Unique no-diagram practice items keyed to the unit topic (last-resort padding).
+
+    Always embed n in the stem so 80 unique items are guaranteed.
+    """
+    t = (title or "").lower()
+    a = 2 + (seed + n * 3) % 12
+    b = 1 + (seed + n * 5) % 9
+    c = 3 + (seed + n * 7) % 15
+    tag = f"(set {n})"
+
+    if has_kw(t, "place value", "tens", "ones") or (
+        has_kw(t, "count", "counting") and not has_kw(t, "permut", "combin", "casework")
+    ):
+        start = 10 + n
+        hop = 1 + (n % 5)
+        return {
+            "question_text": f"{tag} Start at {start}. Count on by {hop}, three times. Where do you land?",
+            "correct_answer": str(start + 3 * hop),
+            "explanation": f"{start} + {hop}+{hop}+{hop} = {start + 3 * hop}.",
+        }
+    if has_kw(t, "add", "addition", "sum"):
+        x, y = a + 5 + (n % 7), b + 3 + (n % 5)
+        return {
+            "question_text": f"{tag} What is {x} + {y}?",
+            "correct_answer": str(x + y),
+            "explanation": f"{x} + {y} = {x + y}.",
+        }
+    if has_kw(t, "subtract", "subtraction", "difference"):
+        big = a + b + 8 + n
+        sub = b + 2 + (n % 4)
+        return {
+            "question_text": f"{tag} What is {big} − {sub}?",
+            "correct_answer": str(big - sub),
+            "explanation": f"{big} − {sub} = {big - sub}.",
+        }
+    if has_kw(t, "ratio", "rate", "proportion", "percent"):
+        return {
+            "question_text": f"{tag} If {a}:{b} = {a * 2}:x, what is x?",
+            "correct_answer": str(b * 2),
+            "explanation": f"Double both parts: x = {b * 2}.",
+        }
+    if has_kw(t, "fraction"):
+        den = 2 + (n % 8)
+        return {
+            "question_text": f"{tag} How many pieces of size 1/{den} make one whole?",
+            "correct_answer": str(den),
+            "explanation": f"You need {den} pieces of size 1/{den}.",
+        }
+    if has_kw(t, "integer", "negative"):
+        return {
+            "question_text": f"{tag} What is ({a + n % 5}) + (−{b})?",
+            "correct_answer": str(a + n % 5 - b),
+            "explanation": f"{a + n % 5} + (−{b}) = {a + n % 5 - b}.",
+        }
+    if has_kw(t, "slope", "linear", "graph", "function", "coordinate"):
+        return {
+            "question_text": f"{tag} If y = {a}x + {b}, what is y when x = {2 + n % 3}?",
+            "correct_answer": str((2 + n % 3) * a + b),
+            "explanation": f"Substitute x = {2 + n % 3}.",
+        }
+    if has_kw(t, "equation", "solve", "system"):
+        k = 2 + (n % 5)
+        return {
+            "question_text": f"{tag} Solve {a}x + {b} = {a * k + b}. What is x?",
+            "correct_answer": str(k),
+            "explanation": f"{a}x = {a * k}, so x = {k}.",
+        }
+    if has_kw(t, "exponent", "scientific", "power"):
+        base = 2 + (n % 4)
+        exp = 2 + (n % 2)
+        return {
+            "question_text": f"{tag} What is {base}^{exp}?",
+            "correct_answer": str(base ** exp),
+            "explanation": f"{base}^{exp} = {base ** exp}.",
+        }
+    if has_kw(t, "area", "perimeter", "volume", "circle", "triangle", "pythag"):
+        L, W = a + 2 + (n % 4), b + 1 + (n % 3)
+        return {
+            "question_text": f"{tag} A rectangle is {L} by {W}. What is its area?",
+            "correct_answer": str(L * W),
+            "explanation": f"Area = {L} × {W} = {L * W}.",
+        }
+    if has_kw(t, "permut", "combin", "stars", "casework", "inclusion") or "mathcounts" in t:
+        return {
+            "question_text": f"{tag} How many outfits from {a} shirts and {b} pants (one of each)?",
+            "correct_answer": str(a * b),
+            "explanation": f"Product rule: {a}×{b}={a * b}.",
+        }
+    if has_kw(t, "quadratic", "polynomial", "algebra", "log", "radical", "sequence", "trig"):
+        x0 = c % 5 + 1
+        return {
+            "question_text": f"{tag} If f(x) = {a}x − {b}, what is f({x0})?",
+            "correct_answer": str(a * x0 - b),
+            "explanation": f"Substitute x = {x0}.",
+        }
+    # Generic numeric story without a diagram
+    return {
+        "question_text": (
+            f"{tag} A machine starts at {n + 4}, adds {n + 1}, then subtracts {n}. "
+            f"What is the final output?"
+        ),
+        "correct_answer": str((n + 4) + (n + 1) - n),
+        "explanation": f"{n + 4} + {n + 1} − {n} = {(n + 4) + (n + 1) - n}.",
+    }
+
+
 _BANNED_PHRASE = re.compile(r"\b(wait|recalculate)\b", re.I)
 _FILLER_STEM = re.compile(
     r"warmup product check|review check \d+|what is 2\^|"
+    r"unit application \d+|checkpoint \d+ for this unit|"
     r"if 2:5 =|if \$f\(x\)=2x\$|if f\(x\)=2x|"
     r"find the discriminant of \$x\^2\+|leading coefficient of|"
-    r"simplify \$i\^\{|checkpoint \d+ for this unit",
+    r"simplify \$i\^\{",
     re.I,
 )
 
@@ -1003,24 +1137,16 @@ def polish_questions(title: str, questions) -> list:
 
     unique = core + extra_pool
     n = 0
-    while len(unique) < 80 and n < 250:
+    while len(unique) < 80 and n < 400:
         n += 1
-        text = (
-            f"Unit application {n}: a quantity is {n + 4}, then increases by {n + 1}, "
-            f"then you take away {n}. What remains?"
-        )
-        ans = (n + 4) + (n + 1) - n
-        key = stem_key(text)
-        if key in seen:
+        item = _topic_filler(title, n, seed=_seed(title) + n)
+        if not item:
+            continue
+        key = stem_key(item["question_text"])
+        if not key or key in seen:
             continue
         seen.add(key)
-        unique.append(mq(
-            text,
-            ans,
-            f"{n + 4}+{n + 1}−{n}={ans}.",
-            0,
-            diagram=q_figure(svg_number_line(0, max(12, ans + 2), marks=[(ans, "?")])),
-        ))
+        unique.append(_to_full(item, 0))
 
     unique = unique[:80]
     out = []
