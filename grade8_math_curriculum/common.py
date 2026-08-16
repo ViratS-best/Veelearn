@@ -972,9 +972,24 @@ def concept_block(
     return "\n".join(part for part in parts if part)
 
 
-def unit_shell(title: str, roadmap_items, body_html: str, final_slots_html: str) -> str:
+def lesson_video(filename: str, heading: str) -> str:
+    src = f"https://veelearn.org/videos/grade8/{filename}"
+    return (
+        '<div class="vl-lesson-video" style="background:#0b1020;border:1px solid #334155;'
+        'border-radius:16px;padding:14px;margin:18px 0;max-width:920px;">'
+        f'<div style="font-weight:800;color:#fbbf24;margin:0 0 10px;">Lesson video — {heading}</div>'
+        f'<video controls playsinline preload="metadata" style="width:100%;border-radius:12px;background:#000;" src="{src}">'
+        "Your browser cannot play this video.</video>"
+        '<p style="margin:8px 0 0;color:#94a3b8;font-size:0.92rem;">'
+        "No voice-over. Watch the animations at a readable pace, then try the questions below.</p></div>"
+    )
+
+
+def unit_shell(title: str, roadmap_items, body_html: str, final_slots_html: str, video_file: str = "") -> str:
+    video = lesson_video(video_file, title) if video_file else ""
     return f"""
 <h1>{title}</h1>
+{video}
 <p>This is <strong>eighth grade math</strong>. This year is pre-algebra: linear equations, functions, exponents, two-variable systems, the Pythagorean theorem, and data. High school algebra sits on these habits.</p>
 <p>After each idea you get 5 quick questions. At the end you get a big practice set.</p>
 <h2>What we will learn</h2>

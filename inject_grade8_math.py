@@ -35,6 +35,16 @@ MASTER_TITLE = "Eighth Grade Math"
 RNG_SEED = 20260820
 EXPECTED_Q = 80
 GAMIFICATION = json.dumps({"bossBattle": False, "hearts": True})
+UNIT_VIDEO_FILES = [
+    "unit-1-exponents.mp4",
+    "unit-2-equations.mp4",
+    "unit-3-slope.mp4",
+    "unit-4-functions.mp4",
+    "unit-5-substitution.mp4",
+    "unit-6-elimination.mp4",
+    "unit-7-pythagoras.mp4",
+    "unit-8-data.mp4",
+]
 
 
 def getenv_int(name, default):
@@ -126,7 +136,7 @@ def resolve_creator_id(cursor):
     return row["id"] if row else None
 
 
-def upsert_unit(cursor, title, description, content, questions, creator_id, rng):
+def upsert_unit(cursor, title, description, content, questions, creator_id, rng, video_url=None):
     cursor.execute(
         "SELECT id FROM courses WHERE title=%s AND grade_level=%s ORDER BY id ASC LIMIT 1",
         (title, GRADE),
@@ -138,20 +148,20 @@ def upsert_unit(cursor, title, description, content, questions, creator_id, rng)
             """
             UPDATE courses
             SET description=%s, content=%s, status='approved', course_type='single',
-                gamification_json=%s
+                gamification_json=%s, video_url=%s
             WHERE id=%s
             """,
-            (description, content, GAMIFICATION, course_id),
+            (description, content, GAMIFICATION, video_url, course_id),
         )
         action = "updated"
     else:
         cursor.execute(
             """
             INSERT INTO courses
-            (title, description, content, creator_id, status, grade_level, course_type, gamification_json)
-            VALUES (%s, %s, %s, %s, 'approved', %s, 'single', %s)
+            (title, description, content, creator_id, status, grade_level, course_type, gamification_json, video_url)
+            VALUES (%s, %s, %s, %s, 'approved', %s, 'single', %s, %s)
             """,
-            (title, description, content, creator_id, GRADE, GAMIFICATION),
+            (title, description, content, creator_id, GRADE, GAMIFICATION, video_url),
         )
         cursor.execute("SELECT LAST_INSERT_ID() AS id")
         course_id = cursor.fetchone()["id"]
@@ -294,7 +304,8 @@ def main():
         print(f"creator_id={creator_id}")
         unit_results = []
         for i, (title, desc, content, questions) in enumerate(all_units(), 1):
-            result = upsert_unit(cursor, title, desc, content, questions, creator_id, rng)
+            video_url = f"https://veelearn.org/videos/grade8/{UNIT_VIDEO_FILES[i - 1]}"
+            result = upsert_unit(cursor, title, desc, content, questions, creator_id, rng, video_url)
             unit_results.append(result)
             print(f"[Unit {i}/8] {result['action'].upper()} ID {result['id']} Q {result['questions']} | {result['title']}")
         master_id, master_action = upsert_master(cursor, creator_id)

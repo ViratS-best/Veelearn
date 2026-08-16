@@ -1590,6 +1590,10 @@ function getYoutubeEmbedUrl(url) {
     return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
 }
 
+function isDirectVideoUrl(url) {
+    return typeof url === "string" && /\.mp4(\?|#|$)/i.test(url);
+}
+
 function setupMessageListeners() {
     window.addEventListener("message", (e) => {
         if (e.data.type === "closeBlockSimulator") {
@@ -4551,17 +4555,40 @@ async function viewCourse(courseId, assignmentId = null, forceRegular = false) {
     // Handle Video Logic
     const videoContainer = document.getElementById("viewer-video-container");
     const videoIframe = document.getElementById("viewer-video-iframe");
+    const videoFile = document.getElementById("viewer-video-file");
     const videoLink = document.getElementById("viewer-video-link");
     const noVideoPlaceholder = document.getElementById("viewer-no-video");
 
     const embedUrl = getYoutubeEmbedUrl(course.video_url);
-    if (embedUrl) {
+    const fileUrl = isDirectVideoUrl(course.video_url) ? course.video_url : null;
+    if (fileUrl && videoFile) {
+        videoIframe.src = "";
+        videoIframe.style.display = "none";
+        videoFile.style.display = "block";
+        videoFile.src = fileUrl;
+        videoLink.href = fileUrl;
+        videoLink.textContent = "Open lesson video";
+        videoContainer.style.display = "block";
+        noVideoPlaceholder.style.display = "none";
+    } else if (embedUrl) {
+        if (videoFile) {
+            videoFile.pause();
+            videoFile.removeAttribute("src");
+            videoFile.style.display = "none";
+        }
+        videoIframe.style.display = "block";
         videoIframe.src = embedUrl;
         videoLink.href = course.video_url;
+        videoLink.textContent = "📺 View on YouTube";
         videoContainer.style.display = "block";
         noVideoPlaceholder.style.display = "none";
     } else {
         videoIframe.src = "";
+        if (videoFile) {
+            videoFile.pause();
+            videoFile.removeAttribute("src");
+            videoFile.style.display = "none";
+        }
         videoContainer.style.display = "none";
         noVideoPlaceholder.style.display = "block";
     }

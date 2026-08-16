@@ -46,6 +46,11 @@ tmp/
 temp/
 *.tmp
 
+# Manim
+.venv-manim/
+manim_grade8/out/
+
+
 # Sensitive Files
 *.key
 *.pem

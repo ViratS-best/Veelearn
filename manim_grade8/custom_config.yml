@@ -1,0 +1,20 @@
+directories:
+  mirror_module_path: False
+  base: ""
+  subdirs:
+    output: "out"
+    sounds: "sounds"
+window:
+  position_string: UR
+  full_screen: False
+camera:
+  background_color: "#0b1020"
+  fps: 30
+file_writer:
+  ffmpeg_bin: "ffmpeg"
+  video_codec: "libx264"
+  pixel_format: "yuv420p"
+text:
+  font: "Comic Sans MS"
+  alignment: "LEFT"
+log_level: "INFO"
