@@ -438,6 +438,7 @@ const initializeDatabase = async () => {
         await addColumn('courses', 'gamification_json', 'TEXT NULL');
         await addColumn('course_questions', 'difficulty', 'VARCHAR(16) NULL');
         await addColumn('course_views', 'progress_percentage', 'DECIMAL(5,2) DEFAULT 0');
+        await addColumn('course_views', 'last_page_index', 'INT DEFAULT 0');
         info('✓ XP / difficulty / gamification columns ready');
 
         await query(`
@@ -3789,25 +3790,135 @@ app.put('/api/courses/units/:unitId/progress', authenticateToken, (req, res) => 
     });
 });
 
+/** Recompute course progress from correct quiz answers (and optional page index). */
+function syncCourseQuizProgress(userId, courseId, extra = {}, cb) {
+    const pageIdx = Number.isFinite(Number(extra.last_page_index))
+        ? Math.max(0, Math.floor(Number(extra.last_page_index)))
+        : null;
+    db.query(
+        `SELECT
+            COUNT(cq.id) AS total_q,
+            SUM(CASE WHEN uqa.is_correct = 1 THEN 1 ELSE 0 END) AS correct_q
+         FROM course_questions cq
+         LEFT JOIN user_quiz_attempts uqa
+           ON uqa.question_id = cq.id AND uqa.user_id = ?
+         WHERE cq.course_id = ?`,
+        [userId, courseId],
+        (err, rows) => {
+            if (err) {
+                if (typeof cb === 'function') return cb(err);
+                return;
+            }
+            const totalQ = Number(rows?.[0]?.total_q) || 0;
+            const correctQ = Number(rows?.[0]?.correct_q) || 0;
+            let quizPct = totalQ > 0 ? Math.round((100 * correctQ) / totalQ) : null;
+            const pagePct = Number.isFinite(Number(extra.page_percentage))
+                ? Math.max(0, Math.min(100, Math.round(Number(extra.page_percentage))))
+                : null;
+            // Prefer quiz completion when the course has questions; otherwise page progress.
+            let pct;
+            if (quizPct != null) {
+                pct = pagePct != null ? Math.max(quizPct, pagePct) : quizPct;
+            } else {
+                pct = pagePct != null ? pagePct : 0;
+            }
+            if (Number.isFinite(Number(extra.progress_percentage)) && extra.force_percentage) {
+                pct = Math.max(0, Math.min(100, Math.round(Number(extra.progress_percentage))));
+            }
+            const setPage = pageIdx != null;
+            const sql = setPage
+                ? `INSERT INTO course_views (user_id, course_id, progress_percentage, last_page_index, last_viewed)
+                   VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+                   ON DUPLICATE KEY UPDATE
+                     progress_percentage = VALUES(progress_percentage),
+                     last_page_index = VALUES(last_page_index),
+                     last_viewed = CURRENT_TIMESTAMP`
+                : `INSERT INTO course_views (user_id, course_id, progress_percentage, last_viewed)
+                   VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                   ON DUPLICATE KEY UPDATE
+                     progress_percentage = VALUES(progress_percentage),
+                     last_viewed = CURRENT_TIMESTAMP`;
+            const params = setPage
+                ? [userId, courseId, pct, pageIdx]
+                : [userId, courseId, pct];
+            db.query(sql, params, (err2) => {
+                if (typeof cb === 'function') {
+                    cb(err2, {
+                        progress_percentage: pct,
+                        correct_answers: correctQ,
+                        total_questions: totalQ,
+                        last_page_index: pageIdx
+                    });
+                }
+            });
+        }
+    );
+}
+
+// Get saved progress (percentage + last page) for resume
+app.get('/api/courses/:courseId/progress', authenticateToken, (req, res) => {
+    const courseId = req.params.courseId;
+    const userId = req.user.id;
+    db.query(
+        `SELECT progress_percentage, last_page_index, completed, last_viewed
+         FROM course_views WHERE user_id = ? AND course_id = ?`,
+        [userId, courseId],
+        (err, rows) => {
+            if (err) {
+                console.error('Error fetching course progress:', err);
+                return apiResponse(res, 500, 'Server error fetching progress');
+            }
+            const row = rows?.[0] || {};
+            // Live quiz counts so enrolled % stays accurate even if course_views is stale
+            db.query(
+                `SELECT
+                    COUNT(cq.id) AS total_q,
+                    SUM(CASE WHEN uqa.is_correct = 1 THEN 1 ELSE 0 END) AS correct_q
+                 FROM course_questions cq
+                 LEFT JOIN user_quiz_attempts uqa
+                   ON uqa.question_id = cq.id AND uqa.user_id = ?
+                 WHERE cq.course_id = ?`,
+                [userId, courseId],
+                (err2, qrows) => {
+                    const totalQ = Number(qrows?.[0]?.total_q) || 0;
+                    const correctQ = Number(qrows?.[0]?.correct_q) || 0;
+                    const quizPct = totalQ > 0 ? Math.round((100 * correctQ) / totalQ) : null;
+                    const savedPct = Number(row.progress_percentage) || 0;
+                    const progress_percentage = quizPct != null ? Math.max(quizPct, savedPct) : savedPct;
+                    apiResponse(res, 200, 'Progress fetched', {
+                        progress_percentage,
+                        last_page_index: Number(row.last_page_index) || 0,
+                        completed: !!row.completed,
+                        last_viewed: row.last_viewed || null,
+                        correct_answers: correctQ,
+                        total_questions: totalQ
+                    });
+                }
+            );
+        }
+    );
+});
+
 // Save progress for a standalone (non-master-unit) course
 app.put('/api/courses/:courseId/progress', authenticateToken, (req, res) => {
     const courseId = req.params.courseId;
     const userId = req.user.id;
-    const pct = Math.max(0, Math.min(100, Number(req.body?.progress_percentage) || 0));
+    const body = req.body || {};
+    const pagePct = Math.max(0, Math.min(100, Number(body.progress_percentage) || 0));
+    const lastPage = Number.isFinite(Number(body.last_page_index))
+        ? Math.max(0, Math.floor(Number(body.last_page_index)))
+        : null;
 
-    db.query(
-        `INSERT INTO course_views (user_id, course_id, progress_percentage, last_viewed)
-         VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-         ON DUPLICATE KEY UPDATE
-           progress_percentage = GREATEST(COALESCE(progress_percentage, 0), VALUES(progress_percentage)),
-           last_viewed = CURRENT_TIMESTAMP`,
-        [userId, courseId, pct],
-        (err) => {
+    syncCourseQuizProgress(
+        userId,
+        courseId,
+        { page_percentage: pagePct, last_page_index: lastPage },
+        (err, data) => {
             if (err) {
                 console.error('Error updating course progress:', err);
                 return apiResponse(res, 500, 'Server error updating progress');
             }
-            apiResponse(res, 200, 'Progress updated successfully', { progress_percentage: pct });
+            apiResponse(res, 200, 'Progress updated successfully', data || { progress_percentage: pagePct });
         }
     );
 });
@@ -6446,6 +6557,9 @@ app.get('/api/courses/:courseId/questions', authenticateToken, (req, res) => {
     const query = `
         SELECT cq.id, cq.course_id, cq.question_text, cq.question_type, cq.options, cq.correct_answer, 
                cq.explanation, cq.points, cq.order_index, cq.difficulty, cq.created_at,
+               uqa.user_answer AS saved_answer,
+               uqa.is_correct AS attempt_is_correct,
+               CASE WHEN uqa.id IS NOT NULL THEN 1 ELSE 0 END AS has_attempt,
                CASE WHEN uqa.is_correct = 1 THEN 1 ELSE 0 END AS previously_correct
         FROM course_questions cq
         LEFT JOIN user_quiz_attempts uqa ON uqa.question_id = cq.id AND uqa.user_id = ?
@@ -6458,6 +6572,9 @@ app.get('/api/courses/:courseId/questions', authenticateToken, (req, res) => {
             const fallback = `
                 SELECT cq.id, cq.course_id, cq.question_text, cq.question_type, cq.options, cq.correct_answer, 
                        cq.explanation, cq.points, cq.order_index, cq.created_at,
+                       uqa.user_answer AS saved_answer,
+                       uqa.is_correct AS attempt_is_correct,
+                       CASE WHEN uqa.id IS NOT NULL THEN 1 ELSE 0 END AS has_attempt,
                        CASE WHEN uqa.is_correct = 1 THEN 1 ELSE 0 END AS previously_correct
                 FROM course_questions cq
                 LEFT JOIN user_quiz_attempts uqa ON uqa.question_id = cq.id AND uqa.user_id = ?
@@ -6489,7 +6606,11 @@ app.get('/api/courses/:courseId/questions', authenticateToken, (req, res) => {
                 }
             }
             q.previously_correct = Number(q.previously_correct) === 1;
+            q.has_attempt = Number(q.has_attempt) === 1;
+            q.attempt_is_correct = Number(q.attempt_is_correct) === 1;
             if (q.previously_correct) q.already_correct = true;
+            q.user_answer = q.saved_answer != null ? q.saved_answer : null;
+            delete q.saved_answer;
             return q;
         });
         const n = questions.length;
@@ -6657,6 +6778,9 @@ app.post('/api/courses/:courseId/questions/:questionId/answer', authenticateToke
                 console.error('Quiz XP award failed:', e.message);
             }
 
+            const courseId = req.params.courseId;
+            syncCourseQuizProgress(userId, courseId, {}, () => {});
+
             apiResponse(res, 200, 'Answer submitted successfully', {
                 is_correct: isCorrect,
                 correct_answer: question.correct_answer,
@@ -6671,6 +6795,34 @@ app.post('/api/courses/:courseId/questions/:questionId/answer', authenticateToke
             });
         });
     });
+});
+
+// Clear one quiz attempt so the student can redo that question
+app.delete('/api/courses/:courseId/questions/:questionId/attempt', authenticateToken, (req, res) => {
+    const { courseId, questionId } = req.params;
+    const userId = req.user.id;
+
+    db.query(
+        'DELETE FROM user_quiz_attempts WHERE user_id = ? AND question_id = ?',
+        [userId, questionId],
+        (err, result) => {
+            if (err) {
+                console.error('Error clearing quiz attempt:', err);
+                return apiResponse(res, 500, 'Server error clearing attempt');
+            }
+            syncCourseQuizProgress(userId, courseId, {}, (err2, data) => {
+                if (err2) {
+                    console.error('Error syncing progress after redo:', err2);
+                }
+                apiResponse(res, 200, 'Attempt cleared — you can reanswer this question', {
+                    cleared: (result && result.affectedRows) || 0,
+                    progress_percentage: data?.progress_percentage ?? null,
+                    correct_answers: data?.correct_answers ?? null,
+                    total_questions: data?.total_questions ?? null
+                });
+            });
+        }
+    );
 });
 
 // Get user's attempts for a question
@@ -7389,6 +7541,17 @@ app.get('/api/student/enrolled-courses', authenticateToken, (req, res) => {
             c.status,
             u.email as creator_email,
             e.enrolled_at,
+            COALESCE(cv.progress_percentage, 0) as view_progress,
+            COALESCE(cv.last_page_index, 0) as last_page_index,
+            (
+                SELECT COUNT(*) FROM course_questions cq WHERE cq.course_id = c.id
+            ) as total_questions,
+            (
+                SELECT COUNT(*) FROM course_questions cq
+                INNER JOIN user_quiz_attempts uqa
+                  ON uqa.question_id = cq.id AND uqa.user_id = e.user_id AND uqa.is_correct = 1
+                WHERE cq.course_id = c.id
+            ) as correct_answers,
             COUNT(DISTINCT ca.id) as total_assignments,
             COUNT(DISTINCT CASE WHEN asub.is_submitted = 1 THEN ca.id END) as completed_assignments,
             GROUP_CONCAT(DISTINCT JSON_OBJECT(
@@ -7407,9 +7570,11 @@ app.get('/api/student/enrolled-courses', authenticateToken, (req, res) => {
         FROM courses c
         JOIN enrollments e ON e.course_id = c.id AND e.user_id = ?
         LEFT JOIN users u ON u.id = c.creator_id
+        LEFT JOIN course_views cv ON cv.user_id = e.user_id AND cv.course_id = c.id
         LEFT JOIN classroom_assignments ca ON ca.course_id = c.id
         LEFT JOIN assignment_submissions asub ON ca.id = asub.assignment_id AND asub.student_id = e.user_id
-        GROUP BY c.id, c.title, c.description, c.course_type, c.status, u.email, e.enrolled_at
+        GROUP BY c.id, c.title, c.description, c.course_type, c.status, u.email, e.enrolled_at,
+                 cv.progress_percentage, cv.last_page_index
         ORDER BY c.title ASC
     `, [studentId], (err, results) => {
         if (err) {
@@ -7417,24 +7582,35 @@ app.get('/api/student/enrolled-courses', authenticateToken, (req, res) => {
             return apiResponse(res, 500, 'Error fetching enrolled courses');
         }
 
-        // Parse JSON data and format response
-        const formattedResults = results.map(row => ({
-            course_id: row.course_id,
-            title: row.title,
-            description: row.description,
-            course_type: row.course_type || 'single',
-            status: row.status,
-            creator_email: row.creator_email,
-            enrolled_at: row.enrolled_at,
-            total_assignments: row.total_assignments || 0,
-            completed_assignments: row.completed_assignments || 0,
-            assignments: row.assignments_json
-                ? row.assignments_json.split('|||').map(a => JSON.parse(a))
-                : [],
-            submissions: row.submissions_json
-                ? row.submissions_json.split('|||').map(s => JSON.parse(s))
-                : []
-        }));
+        const formattedResults = results.map(row => {
+            const totalQ = Number(row.total_questions) || 0;
+            const correctQ = Number(row.correct_answers) || 0;
+            const viewPct = Math.round(Number(row.view_progress) || 0);
+            const quizPct = totalQ > 0 ? Math.round((100 * correctQ) / totalQ) : null;
+            const progress_percentage = quizPct != null ? Math.max(quizPct, viewPct) : viewPct;
+            return {
+                course_id: row.course_id,
+                title: row.title,
+                description: row.description,
+                course_type: row.course_type || 'single',
+                status: row.status,
+                creator_email: row.creator_email,
+                teacher_email: row.creator_email,
+                enrolled_at: row.enrolled_at,
+                total_assignments: row.total_assignments || 0,
+                completed_assignments: row.completed_assignments || 0,
+                total_questions: totalQ,
+                correct_answers: correctQ,
+                progress_percentage,
+                last_page_index: Number(row.last_page_index) || 0,
+                assignments: row.assignments_json
+                    ? row.assignments_json.split('|||').map(a => JSON.parse(a))
+                    : [],
+                submissions: row.submissions_json
+                    ? row.submissions_json.split('|||').map(s => JSON.parse(s))
+                    : []
+            };
+        });
 
         apiResponse(res, 200, 'Enrolled courses retrieved', formattedResults);
     });
