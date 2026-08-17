@@ -256,8 +256,51 @@ def integer_line(lo=-6, hi=6, marks=None, title="Integer number line", caption="
     return figure(title, svg, caption)
 
 
-def four_quadrant_plane(points=None, lim=5, title="Four-quadrant coordinate plane", caption=""):
+def _clip_mx_b(m, b, lim):
+    """Two endpoints of y = mx + b inside the square [-lim, lim]²."""
+    pts = []
+    seen = set()
+
+    def add(x, y):
+        if -lim - 1e-9 <= x <= lim + 1e-9 and -lim - 1e-9 <= y <= lim + 1e-9:
+            key = (round(x, 4), round(y, 4))
+            if key not in seen:
+                seen.add(key)
+                pts.append((max(-lim, min(lim, x)), max(-lim, min(lim, y))))
+
+    for x in (-lim, lim):
+        add(x, m * x + b)
+    if abs(m) > 1e-12:
+        for y in (-lim, lim):
+            add((y - b) / m, y)
+    else:
+        add(-lim, b)
+        add(lim, b)
+    if len(pts) < 2:
+        return None
+    best_i, best_j, best_d = 0, 1, -1
+    for i, p in enumerate(pts):
+        for j in range(i + 1, len(pts)):
+            d = (p[0] - pts[j][0]) ** 2 + (p[1] - pts[j][1]) ** 2
+            if d > best_d:
+                best_i, best_j, best_d = i, j, d
+    return pts[best_i], pts[best_j]
+
+
+def four_quadrant_plane(
+    points=None,
+    lim=5,
+    title="Four-quadrant coordinate plane",
+    caption="",
+    line=False,
+    right_legs=False,
+    extra_lines=None,
+):
+    """Plot points. line=True draws the line through the first two points.
+    extra_lines: list of (m, b, color, label) for y = mx + b.
+    """
     points = points or []
+    extra_lines = extra_lines or []
     scale = 28
     pad = 36
     ox = pad + lim * scale
@@ -265,26 +308,83 @@ def four_quadrant_plane(points=None, lim=5, title="Four-quadrant coordinate plan
     w = pad * 2 + lim * 2 * scale + 20
     h = w
     marker = _mark()
-    lines = []
+    tick_step = 1 if lim <= 8 else (2 if lim <= 12 else 5)
+    grid = []
     for v in range(-lim, lim + 1):
         x = ox + v * scale
         y = oy - v * scale
-        lines.append(f'<line x1="{x}" y1="{oy - lim * scale}" x2="{x}" y2="{oy + lim * scale}" stroke="#e2e8f0"/>')
-        lines.append(f'<line x1="{ox - lim * scale}" y1="{y}" x2="{ox + lim * scale}" y2="{y}" stroke="#e2e8f0"/>')
-        if v:
-            lines.append(f'<text x="{x}" y="{oy + 14}" text-anchor="middle" font-size="11">{v}</text>')
-            lines.append(f'<text x="{ox - 12}" y="{y + 4}" text-anchor="end" font-size="11">{v}</text>')
+        grid.append(f'<line x1="{x}" y1="{oy - lim * scale}" x2="{x}" y2="{oy + lim * scale}" stroke="#e2e8f0"/>')
+        grid.append(f'<line x1="{ox - lim * scale}" y1="{y}" x2="{ox + lim * scale}" y2="{y}" stroke="#e2e8f0"/>')
+        if v and v % tick_step == 0:
+            grid.append(f'<text x="{x}" y="{oy + 14}" text-anchor="middle" font-size="11">{v}</text>')
+            grid.append(f'<text x="{ox - 12}" y="{y + 4}" text-anchor="end" font-size="11">{v}</text>')
     qlabs = (
         f'<text x="{ox + lim * scale - 8}" y="{oy - lim * scale + 16}" text-anchor="end" font-size="11" fill="#64748b">I</text>'
         f'<text x="{ox - lim * scale + 8}" y="{oy - lim * scale + 16}" font-size="11" fill="#64748b">II</text>'
         f'<text x="{ox - lim * scale + 8}" y="{oy + lim * scale - 6}" font-size="11" fill="#64748b">III</text>'
         f'<text x="{ox + lim * scale - 8}" y="{oy + lim * scale - 6}" text-anchor="end" font-size="11" fill="#64748b">IV</text>'
     )
+
+    def xy(x, y):
+        return ox + x * scale, oy - y * scale
+
+    drawn = []
+    line_specs = list(extra_lines)
+    if line and len(points) >= 2:
+        x1, y1 = points[0][0], points[0][1]
+        x2, y2 = points[1][0], points[1][1]
+        if abs(x2 - x1) < 1e-12:
+            xa, ya = xy(x1, -lim)
+            xb, yb = xy(x1, lim)
+            drawn.append(
+                f'<line x1="{xa}" y1="{ya}" x2="{xb}" y2="{yb}" stroke="#4f46e5" stroke-width="3"/>'
+            )
+        else:
+            m = (y2 - y1) / (x2 - x1)
+            b = y1 - m * x1
+            line_specs = [(m, b, "#4f46e5", "")] + line_specs
+    colors_fallback = ["#4f46e5", "#dc2626", "#059669"]
+    for i, spec in enumerate(line_specs):
+        m, b = spec[0], spec[1]
+        color = spec[2] if len(spec) > 2 and spec[2] else colors_fallback[i % 3]
+        lab = spec[3] if len(spec) > 3 else ""
+        ends = _clip_mx_b(m, b, lim)
+        if not ends:
+            continue
+        (x1, y1), (x2, y2) = ends
+        xa, ya = xy(x1, y1)
+        xb, yb = xy(x2, y2)
+        drawn.append(
+            f'<line x1="{xa}" y1="{ya}" x2="{xb}" y2="{yb}" stroke="{color}" stroke-width="3"/>'
+        )
+        if lab:
+            lx, ly = (xa + xb) / 2, (ya + yb) / 2 - 10
+            drawn.append(
+                f'<text x="{lx}" y="{ly}" text-anchor="middle" font-size="12" font-weight="700" fill="{color}">{html.escape(str(lab))}</text>'
+            )
+    if right_legs and len(points) >= 2:
+        x1, y1 = points[0][0], points[0][1]
+        x2, y2 = points[1][0], points[1][1]
+        ax, ay = xy(x1, y1)
+        cx, cy = xy(x2, y1)
+        bx, by = xy(x2, y2)
+        drawn.append(
+            f'<line x1="{ax}" y1="{ay}" x2="{cx}" y2="{cy}" stroke="#16a34a" stroke-width="2" stroke-dasharray="4 3"/>'
+        )
+        drawn.append(
+            f'<line x1="{cx}" y1="{cy}" x2="{bx}" y2="{by}" stroke="#16a34a" stroke-width="2" stroke-dasharray="4 3"/>'
+        )
+        drawn.append(
+            f'<text x="{(ax + cx) / 2}" y="{ay + 16}" text-anchor="middle" font-size="11" fill="#166534">Δx = {abs(x2 - x1):g}</text>'
+        )
+        drawn.append(
+            f'<text x="{cx + 8}" y="{(cy + by) / 2}" font-size="11" fill="#166534">Δy = {abs(y2 - y1):g}</text>'
+        )
     dots = []
     for pt in points:
         x, y = pt[0], pt[1]
-        lab = pt[2] if len(pt) > 2 else f"({x}, {y})"
-        px, py = ox + x * scale, oy - y * scale
+        lab = pt[2] if len(pt) > 2 else f"({x:g}, {y:g})"
+        px, py = xy(x, y)
         dots.append(f'<circle cx="{px}" cy="{py}" r="6" fill="#dc2626"/>')
         dots.append(f'<text x="{px + 8}" y="{py - 8}" font-size="12" font-weight="700" fill="#7f1d1d">{html.escape(lab)}</text>')
     svg = f"""
@@ -294,12 +394,13 @@ def four_quadrant_plane(points=None, lim=5, title="Four-quadrant coordinate plan
       <path d="M0,0 L6,3 L0,6 Z" fill="#0f172a"/>
     </marker>
   </defs>
-  {''.join(lines)}
+  {''.join(grid)}
   <line x1="{ox - lim * scale}" y1="{oy}" x2="{ox + lim * scale + 14}" y2="{oy}" stroke="#0f172a" stroke-width="2" marker-end="url(#{marker})"/>
   <line x1="{ox}" y1="{oy + lim * scale}" x2="{ox}" y2="{oy - lim * scale - 14}" stroke="#0f172a" stroke-width="2" marker-end="url(#{marker})"/>
   <text x="{ox + lim * scale + 18}" y="{oy + 4}" font-size="14" font-weight="700" fill="#1e3a8a">x</text>
   <text x="{ox + 8}" y="{oy - lim * scale - 18}" font-size="14" font-weight="700" fill="#1e3a8a">y</text>
   {qlabs}
+  {''.join(drawn)}
   {''.join(dots)}
 </svg>
 """
@@ -308,6 +409,34 @@ def four_quadrant_plane(points=None, lim=5, title="Four-quadrant coordinate plan
         svg,
         caption
         or "Quadrant I: (+, +). II: (−, +). III: (−, −). IV: (+, −). Right is +x. Up is +y.",
+    )
+
+
+def two_line_graph(
+    m1,
+    b1,
+    m2,
+    b2,
+    meet=None,
+    lim=6,
+    label1="",
+    label2="",
+    title="A system: two lines",
+    caption="",
+):
+    """Graph y = m1 x + b1 and y = m2 x + b2. Parallel when m1 == m2."""
+    pts = []
+    if meet is not None:
+        pts.append((meet[0], meet[1], f"({meet[0]:g}, {meet[1]:g})"))
+    return four_quadrant_plane(
+        pts,
+        lim=lim,
+        title=title,
+        caption=caption,
+        extra_lines=[
+            (m1, b1, "#4f46e5", label1),
+            (m2, b2, "#dc2626", label2),
+        ],
     )
 
 
@@ -649,7 +778,7 @@ def slope_line(m=0.5, b=2, title="Slope and intercept", caption=""):
   <line x1="{rx0}" y1="{ry0}" x2="{rx1}" y2="{ry0}" stroke="#16a34a" stroke-width="2"/>
   <line x1="{rx1}" y1="{ry0}" x2="{rx1}" y2="{ry1}" stroke="#16a34a" stroke-width="2"/>
   <text x="{(rx0 + rx1) / 2}" y="{ry0 + 16}" text-anchor="middle" font-size="12" fill="#166534">run 2</text>
-  <text x="{rx1 + 8}" y="{(ry0 + ry1) / 2}" font-size="12" fill="#166534">rise 1</text>
+  <text x="{rx1 + 8}" y="{(ry0 + ry1) / 2}" font-size="12" fill="#166534">rise {2 * m:g}</text>
 </svg>
 """
     return figure(
@@ -676,29 +805,19 @@ def pythag_triangle(a=3, b=4, c=5, title="A right triangle", caption=""):
     )
 
 
-def scatter_plot(title="A scatter plot", caption=""):
+def scatter_plot(title="A scatter plot", caption="", *, outlier=None, xlabel="x", ylabel="y"):
+    """Cloud of points with a dashed trend. Pass outlier=(x, y) to mark a far-off point."""
+    from curriculum_kit import svg_scatter
+
     pts = [(1, 2), (2, 2.5), (3, 4), (4, 3.5), (5, 5.2), (6, 5.8)]
-    ox, oy, scale = 40, 200, 28
-    dots = []
-    for x, y in pts:
-        dots.append(f'<circle cx="{ox + x * scale}" cy="{oy - y * scale}" r="5" fill="#4f46e5"/>')
-    x1, y1 = ox + 0.8 * scale, oy - 1.6 * scale
-    x2, y2 = ox + 6.4 * scale, oy - 6.2 * scale
-    svg = f"""
-<svg viewBox="0 0 280 230" width="280" role="img">
-  <line x1="{ox}" y1="{oy}" x2="250" y2="{oy}" stroke="#0f172a" stroke-width="2"/>
-  <line x1="{ox}" y1="{oy}" x2="{ox}" y2="16" stroke="#0f172a" stroke-width="2"/>
-  <line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="#dc2626" stroke-width="2" stroke-dasharray="5 4"/>
-  {''.join(dots)}
-  <text x="252" y="{oy + 4}" font-size="12">x</text>
-  <text x="{ox + 6}" y="16" font-size="12">y</text>
-</svg>
-"""
-    return figure(
-        title,
-        svg,
-        caption or "Points trend up and to the right: a positive association. The dashed line is a line of best fit, not a perfect hit on every point.",
+    trend = (0.8, 1.6, 6.4, 6.2)
+    svg = svg_scatter(pts, trend=trend, outlier=outlier, xlabel=xlabel, ylabel=ylabel)
+    default_cap = (
+        "The orange point sits far from the rest of the cloud — an outlier that can pull a fitted line."
+        if outlier
+        else "Points trend up and to the right: a positive association. The dashed line is a line of best fit, not a perfect hit on every point."
     )
+    return figure(title, svg, caption or default_cap)
 
 
 def sci_shift(title="Scientific notation", caption=""):
@@ -915,6 +1034,7 @@ def solved(num, problem, steps, answer, note=""):
     return (
         '<div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:12px;'
         'padding:18px;margin:18px 0;">'
+        '<svg width="0" height="0" aria-hidden="true"></svg>'
         f"<h4>Let's try one together ({num})</h4>"
         f"<p><strong>Problem:</strong> {problem}</p>"
         f"<p><strong>Think it through:</strong></p><ol>{steps_html}</ol>"

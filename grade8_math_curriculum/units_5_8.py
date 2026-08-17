@@ -1,10 +1,12 @@
 """Eighth Grade Math units 5–8: complex systems, Pythagoras, data — plus master."""
 
+from curriculum_kit import svg_ratio_table
+
 from .common import (
     concept_block, solved, practice_slots, unit_shell, kid_tip, watch_out, try_this,
-    step_reveal, matching, phet_box, balance_scale, system_graph, slope_line,
+    step_reveal, matching, phet_box, system_graph,
     pythag_triangle, scatter_plot, cylinder_figure, two_box_plots, page_break,
-    four_quadrant_plane, mq, renumber,
+    four_quadrant_plane, mq, renumber, figure, two_line_graph,
 )
 
 
@@ -85,7 +87,11 @@ def build_unit5():
          "y = −x + 5 and 2x − y = 4 → 2x − (−x + 5) = 4 → 3x − 5 = 4 → x = 3, y = 2.",
          "Distribute the 3 or the minus before you combine.",
          "Always back-substitute to get the second coordinate."],
-        solved(1, "Solve y = 2x − 1 and 2(x + 3) + 3y = 11.",
+        two_line_graph(2, -1, -2 / 3, 5 / 3, meet=(1, 1), lim=6,
+                       label1="y = 2x − 1", label2="2(x+3)+3y = 11",
+                       title="Substitute: the lines meet at (1, 1)",
+                       caption="y = 2x − 1 into 2(x + 3) + 3y = 11 gives x = 1, y = 1. That pair sits on both lines.")
+        + solved(1, "Solve y = 2x − 1 and 2(x + 3) + 3y = 11.",
                ["Replace y: 2x + 6 + 3(2x − 1) = 11.", "2x + 6 + 6x − 3 = 11, so 8x + 3 = 11.",
                 "8x = 8, x = 1, y = 1. Pair (1, 1)."], "(1, 1)")
         + step_reveal(["Isolate one variable if needed.", "Substitute into the other equation.",
@@ -101,7 +107,11 @@ def build_unit5():
          "2(3x − y) = 10 and y = x + 1: 6x − 2(x + 1) = 10 → 6x − 2x − 2 = 10 → x = 3, y = 4.",
          "Watch the minus: 3x − (x − 1) is 3x − x + 1.",
          "Fractions: (x + y)/2 = 4 and y = x → x = 4, y = 4."],
-        solved(1, "Solve x = 4 − 2y and 3x + y = 7.",
+        two_line_graph(-0.5, 2, -3, 7, meet=(2, 1), lim=8,
+                       label1="x = 4 − 2y", label2="3x + y = 7",
+                       title="Isolate, then substitute: (2, 1)",
+                       caption="x = 4 − 2y is y = 2 − x/2. With 3x + y = 7 they meet at (2, 1).")
+        + solved(1, "Solve x = 4 − 2y and 3x + y = 7.",
                ["3(4 − 2y) + y = 7.", "12 − 6y + y = 7, so −5y = −5, y = 1.",
                 "x = 4 − 2 = 2. Pair (2, 1)."], "(2, 1)")
         + matching([("y=2x−1 into 2(x+3)+3y=11", "(1, 1)"), ("x=4−2y into 3x+y=7", "(2, 1)"),
@@ -116,7 +126,11 @@ def build_unit5():
          "A half in front of x is a 1/2 coefficient, not a comment.",
          "If both equations have denominators, multiply each by its own denominator.",
          "Finish with a pair. A fraction coordinate is allowed: y = 3.5 happened when 4y = 14."],
-        solved(1, "Solve x/2 + y = 5 and x − 4y = −2.",
+        two_line_graph(-0.5, 5, 0.25, 0.5, meet=(6, 2), lim=8,
+                       label1="x/2 + y = 5", label2="x − 4y = −2",
+                       title="A fractional system still meets at one pair",
+                       caption="x/2 + y = 5 and x − 4y = −2 meet at (6, 2). Clear the denominator, then the graph is ordinary.")
+        + solved(1, "Solve x/2 + y = 5 and x − 4y = −2.",
                ["×2 on the first: x + 2y = 10.", "Subtract x − 4y = −2: 6y = 12, y = 2.",
                 "x + 4 = 10, x = 6. Pair (6, 2)."], "(6, 2)")
         + watch_out("Leaving a denominator in place", "Clear it. Then substitution or elimination is ordinary algebra."),
@@ -129,8 +143,10 @@ def build_unit5():
          "Same slope, different intercepts → none. Same slope and intercept → infinitely many.",
          "Do not invent a pair when the algebra has already spoken.",
          "Write the three-way label: one, none, or infinitely many."],
-        slope_line(2, 1, title="Same slope, different intercepts never meet",
-                   caption="y = 2x + 1 and y = 2x + 4 are parallel. Substitution would end as a false number sentence.")
+        two_line_graph(2, 1, 2, 4, meet=None, lim=6,
+                       label1="y = 2x + 1", label2="y = 2x + 4",
+                       title="Same slope, different intercepts never meet",
+                       caption="y = 2x + 1 and y = 2x + 4 are parallel. Substitution ends as a false number sentence: no solution.")
         + solved(1, "x = 2y + 1 and 3x − 6y = 8. How many solutions?",
                  ["Substitute: 3(2y+1)−6y=8.", "6y+3−6y=8, so 3=8.", "Never true: no solution."], "no solution"),
         21)
@@ -142,7 +158,10 @@ def build_unit5():
          "Two plans: y = 2x + 3 and y = x + 6 meet when 2x + 3 = x + 6, x = 3, y = 9. After 3 miles both taxis cost 9 dollars.",
          "Define both letters. Write both facts. Substitute. Read the pair in words.",
          "Unit 6 will cancel variables by adding. Same pairs, different engine."],
-        balance_scale("2x + y", "10", title="One equation is not enough; the second fact is y = x + 1")
+        two_line_graph(1, 1, -2, 10, meet=(3, 4), lim=8,
+                       label1="y = x + 1", label2="2x + y = 10",
+                       title="Two facts, one pair (3, 4)",
+                       caption="y is 1 more than x, and 2x + y = 10. The lines meet at (3, 4).")
         + solved(1, "A number y is 1 more than x, and 2x + y = 10. Find the pair.",
                  ["y = x + 1.", "2x + (x + 1) = 10, so 3x = 9, x = 3.", "y = 4. Pair (3, 4)."], "(3, 4)")
         + try_this("Two sentences, two equations", "If you only wrote one equation, you are not done."),
@@ -208,7 +227,10 @@ def build_unit6():
          "3x + 2y = 16 and x − 2y = 0. Add: 4x = 16, x = 4, y = 2.",
          "Opposites (2y and −2y) cancel when you add. Matches cancel when you subtract.",
          "Write the ordered pair and check both originals."],
-        system_graph("Two lines, one pair", "Elimination finds the same meeting point a graph would show. Here (2, 3) sits on both lines.")
+        two_line_graph(-1, 10, 1, -2, meet=(6, 4), lim=8,
+                       label1="x + y = 10", label2="x − y = 2",
+                       title="Add to cancel: the meeting point is (6, 4)",
+                       caption="x + y = 10 and x − y = 2. Adding cancels y and gives x = 6, y = 4 — the same pair the graph shows.")
         + solved(1, "Solve x + y = 10 and x − y = 2.",
                ["Add: 2x = 12, so x = 6.", "10 − 6 = 4, so y = 4.", "Check: 6+4=10 and 6−4=2."], "(6, 4)")
         + matching([("add x+y=10 and x−y=2", "2x=12"), ("5x−2y=4 plus 3x+2y=12", "8x=16"),
@@ -223,7 +245,11 @@ def build_unit6():
          "Multiply every term, including the constant.",
          "x + 3y = 7 multiplied by 2 is 2x + 6y = 14. Same line, just scaled.",
          "Pick the variable whose coefficients have a small common multiple."],
-        solved(1, "Solve 3x + 2y = 12 and 2x + 5y = 19.",
+        two_line_graph(-1.5, 6, -0.4, 3.8, meet=(2, 3), lim=8,
+                       label1="3x + 2y = 12", label2="2x + 5y = 19",
+                       title="Scale first, then cancel: (2, 3)",
+                       caption="3x + 2y = 12 and 2x + 5y = 19 meet at (2, 3). Multiply so the y-coefficients match, then subtract.")
+        + solved(1, "Solve 3x + 2y = 12 and 2x + 5y = 19.",
                ["×5 and ×2 so both have 10y.", "15x+10y=60 and 4x+10y=38. Subtract: 11x=22, x=2.",
                 "3(2)+2y=12, y=3. Pair (2, 3)."], "(2, 3)")
         + step_reveal(["Choose a variable to cancel.", "Multiply so coefficients match or oppose.",
@@ -238,7 +264,11 @@ def build_unit6():
          "Best first move for 2x+3y=7 and 4x−y=5: multiply the second by 3, then add (3y and −3y).",
          "A sign error here is the usual way to lose the solution.",
          "Check with the originals, not with a scaled copy only."],
-        solved(1, "Solve 2x + 3y = −1 and 4x − y = 5.",
+        two_line_graph(-2 / 3, -1 / 3, 4, -5, meet=(1, -1), lim=6,
+                       label1="2x + 3y = −1", label2="4x − y = 5",
+                       title="Negatives still meet at one pair",
+                       caption="2x + 3y = −1 and 4x − y = 5 meet at (1, −1). A sign error is the usual way to miss this point.")
+        + solved(1, "Solve 2x + 3y = −1 and 4x − y = 5.",
                ["×3 on the second: 12x − 3y = 15.", "Add to 2x+3y=−1: 14x=14, x=1.",
                 "4(1)−y=5, y=−1. Pair (1, −1)."], "(1, −1)")
         + watch_out("Subtracting in the wrong order", "Write both scaled equations, then subtract the one that actually cancels."),
@@ -251,7 +281,11 @@ def build_unit6():
          "After adding, 0=0 means infinitely many. 0=4 means none.",
          "Graph: stacked lines vs two rails that never meet.",
          "Do not list one sample point as 'the' answer when there are infinitely many — say infinitely many."],
-        solved(1, "How many solutions: 2x + 4y = 10 and x + 2y = 6?",
+        two_line_graph(-0.5, 2.5, -0.5, 3, meet=None, lim=8,
+                       label1="2x + 4y = 10", label2="x + 2y = 6",
+                       title="Same slope, different constants: parallel",
+                       caption="2x + 4y = 10 is y = 2.5 − 0.5x. x + 2y = 6 is y = 3 − 0.5x. Same slope, never meet: no solution.")
+        + solved(1, "How many solutions: 2x + 4y = 10 and x + 2y = 6?",
                ["×2 on the second: 2x+4y=12.", "That cannot equal 2x+4y=10.", "No solution. Parallel."],
                "no solution"),
         16)
@@ -263,7 +297,11 @@ def build_unit6():
          "Two tickets types, two snack mixes, two phone plans: same pattern.",
          "Let the letters be the counts, not the prices, or the other way around — but be consistent.",
          "Read the pair in words: 8-dollar adults and 5-dollar children, 3 and 2 of them."],
-        solved(1, "3a + 2c = 34 and a + 4c = 28. Find a and c.",
+        two_line_graph(-1.5, 17, -0.25, 7, meet=(8, 5), lim=12,
+                       label1="3a + 2c = 34", label2="a + 4c = 28",
+                       title="Adult price a and child price c",
+                       caption="3a + 2c = 34 and a + 4c = 28 meet at (8, 5): adults $8, children $5.")
+        + solved(1, "3a + 2c = 34 and a + 4c = 28. Find a and c.",
                ["×3: 3a+12c=84.", "Subtract 3a+2c=34: 10c=50, c=5.", "a+20=28, a=8."], "a=8, c=5")
         + try_this("Label before you write", "'a is the adult price in dollars' saves a flipped pair."),
         21)
@@ -275,7 +313,11 @@ def build_unit6():
          "Still only two variables. Harder arithmetic, not a third letter.",
          "When a story gives y = mx + b for two plans, set the y's equal — that is substitution in disguise.",
          "High school will add more variables. The two-variable engine stays the same."],
-        solved(1, "x + y = 14 and 2x + 3y = 31. Prefer elimination or substitution, and find y.",
+        two_line_graph(-1, 14, -2 / 3, 31 / 3, meet=(11, 3), lim=12,
+                       label1="x + y = 14", label2="2x + 3y = 31",
+                       title="Either method: the pair is (11, 3)",
+                       caption="x + y = 14 and 2x + 3y = 31 meet at (11, 3). Substitution or elimination should land on the same point.")
+        + solved(1, "x + y = 14 and 2x + 3y = 31. Prefer elimination or substitution, and find y.",
                ["From the first, x=14−y (easy isolate).", "2(14−y)+3y=31 → 28−2y+3y=31.",
                 "y=3, x=11. Pair (11, 3)."], "y=3")
         + phet_box("eq"),
@@ -361,7 +403,9 @@ def build_unit7():
          "If a²+b² is less than c², the angle opposite c is obtuse. If a²+b² is more than c², that angle is acute. Eighth grade mainly cares about the equal case: right or not.",
          "Always test the two shorter sides against the longest. Mixing which side is c breaks the test.",
          "A ladder 13 ft leaning so it reaches 12 ft up a wall needs 5 ft of ground — that is 5-12-13 standing up."],
-        solved(1, "Do sides 6, 8, and 10 make a right triangle?",
+        pythag_triangle(6, 8, 10, "A 6-8-10 right triangle",
+                        "6² + 8² = 36 + 64 = 100 = 10². Same family as 3-4-5, scaled by 2, so it is right.")
+        + solved(1, "Do sides 6, 8, and 10 make a right triangle?",
                ["Longest is 10, so c=10.", "6²+8²=36+64=100=10².", "Yes: a scaled 3-4-5."], "yes")
         + watch_out("Adding the sides", "Pythagoras uses squares, not 6+8=14."),
         6)
@@ -373,7 +417,8 @@ def build_unit7():
          "Formula: distance = √[(x₂−x₁)² + (y₂−y₁)²]. Same theorem, coordinate clothes.",
          "Signs square away: (−3)² is 9. Distance is never negative.",
          "Sketch the two points, drop a right angle, label Δx and Δy, then square-add-root."],
-        four_quadrant_plane([(1, 2), (4, 6)], lim=7, title="Distance as a right triangle",
+        four_quadrant_plane([(1, 2), (4, 6)], lim=7, line=True, right_legs=True,
+                            title="Distance as a right triangle",
                             caption="From (1, 2) to (4, 6) the run is 3 and the rise is 4. The slant is the hypotenuse 5.")
         + solved(1, "Find the distance from (1, 2) to (4, 6).",
                  ["Δx=3, Δy=4.", "3²+4²=9+16=25.", "Distance 5."], "5")
@@ -389,7 +434,8 @@ def build_unit7():
          "r=3, h=4 → 3.14×9×4 = 113.04. r=5, h=2 → 3.14×25×2 = 157. r=1, h=10 → 31.4.",
          "If you are given the diameter, cut it in half first. Diameter 6 means r=3. Then with h=5: 3.14×9×5 = 141.3.",
          "r=4, h=3 → 3.14×16×3 = 150.72. Keep cubic units. Surface wrapping would be a different formula — this unit is fill, not wrap."],
-        cylinder_figure("A cylinder", "Circle base × height. Radius r goes from the center to the rim. Height h stands between the bases.")
+        cylinder_figure("A cylinder, r = 2, h = 5",
+                        "V = πr²h. Using 3.14: 3.14 × 2² × 5 = 3.14 × 4 × 5 = 62.8 cubic units.")
         + solved(1, "Use 3.14. A cylinder has radius 2 and height 5. Volume?",
                  ["V=πr²h.", "r²=4, so 3.14×4=12.56.", "12.56×5=62.8."], "62.8")
         + matching([("r=2, h=5", "62.8"), ("r=3, h=4", "113.04"), ("r=5, h=2", "157"),
@@ -403,7 +449,9 @@ def build_unit7():
          "If height doubles and r stays put, volume doubles. If r doubles, r² quadruples, so volume ×4.",
          "A can, a pipe, a tank: same formula. Name what r and h are in the picture before you multiply.",
          "Compare two cans by computing both volumes, not by glancing at height alone — a short fat can can hold more."],
-        solved(1, "A tank has diameter 6 and height 5. Use 3.14. Volume?",
+        cylinder_figure("Diameter 6 means r = 3",
+                        "Never plug the diameter into r². r = 3, h = 5: 3.14 × 9 × 5 = 141.3 cubic units.")
+        + solved(1, "A tank has diameter 6 and height 5. Use 3.14. Volume?",
                ["r=3, not 6.", "r²=9.", "3.14×9×5=141.3."], "141.3")
         + watch_out("Using the diameter as r", "r² with 6 would give four times too much volume."),
         21)
@@ -415,7 +463,9 @@ def build_unit7():
          "If a story gives two legs of a right triangle and asks how far a bird flies, that is hypotenuse. If it asks how far along the ground, that is a leg.",
          "Check with a known triple when numbers look like 6-8-10 or 9-12-15.",
          "High school will add cones and spheres. The cylinder is the first curved solid with a simple πr²h."],
-        solved(1, "A ladder is 13 ft. It reaches 12 ft up the wall. How far is the base from the wall?",
+        pythag_triangle(5, 12, 13, "Ladder 13, wall 12, ground 5",
+                        "Hypotenuse 13, one leg 12: 13² − 12² = 169 − 144 = 25, so the ground leg is 5 ft.")
+        + solved(1, "A ladder is 13 ft. It reaches 12 ft up the wall. How far is the base from the wall?",
                ["Hypotenuse 13, one leg 12.", "169−144=25.", "Ground leg 5 ft."], "5 ft")
         + try_this("Name the shape first", "Right triangle or cylinder? That picks a²+b²=c² or πr²h."),
         26)
@@ -496,7 +546,9 @@ def build_unit8():
          "Interpolation: use the line for an x between the smallest and largest data x. Extrapolation: go outside that range. Extrapolation is shakier.",
          "An outlier far from the cluster can pull the line toward itself. Ask whether that point is a real measurement or a glitch before you trust the slope.",
          "You cannot read one person's exact y from the line. The line is a typical path, not a promise."],
-        solved(1, "A fitted line has slope 2. What does that say?",
+        scatter_plot("A line of best fit",
+                     "The dashed line follows the trend. Slope is the typical change — it does not hit every point.")
+        + solved(1, "A fitted line has slope 2. What does that say?",
                ["Slope is rise over run for the model.", "When x increases by 1, y tends to increase by 2.",
                 "Individual points still scatter."], "y tends to rise 2 when x rises 1")
         + phet_box("curve")
@@ -510,7 +562,14 @@ def build_unit8():
          "If a proposed line floats far above most points, question the line, not the students.",
          "Always name the variables in words: 'for these cars, age vs value,' not just x and y.",
          "A scatter needs two numeric measurements. Names vs scores is the wrong picture — use a box plot or a table instead."],
-        solved(1, "Why can't you read one exact score from a scatter's fitted line?",
+        scatter_plot(
+            "Outlier far from the cloud",
+            "Most points climb together. The orange point is far off — that is the outlier, not a typical score.",
+            outlier=(7.6, 1.3),
+            xlabel="hours",
+            ylabel="score",
+        )
+        + solved(1, "Why can't you read one exact score from a scatter's fitted line?",
                ["Points vary around the trend.", "The line is a model of typical change.",
                 "A new student can sit above or below it."], "points vary around the trend")
         + try_this("Cover one point", "Ask: if this dot vanished, would the slope still look like that?"),
@@ -523,7 +582,15 @@ def build_unit8():
          "15 of 50 is 0.3. Same idea, different total.",
          "18 play soccer, 10 of those also play basketball, 40 students in all. Soccer only: 18−10=8. Relative frequency who play soccer: 18/40.",
          "You can compare 'among soccer players, what fraction also play basketball?' (10/18) with 'among all students' (maybe 10/40). Those are different questions."],
-        solved(1, "12 of 40 students play band. Relative frequency?",
+        figure("A two-way table: band and sport",
+               svg_ratio_table(
+                   ["", "Band", "No band", "Total"],
+                   [["Sport", "8", "10", "18"],
+                    ["No sport", "4", "18", "22"],
+                    ["Total", "12", "28", "40"]],
+               ),
+               "12 of 40 students are in band: 12/40 = 30%. Each cell is a joint count.")
+        + solved(1, "12 of 40 students play band. Relative frequency?",
                ["Part over total.", "12/40.", "That is 30%."], "12/40")
         + matching([("12 of 40", "12/40"), ("15 of 50", "0.3"), ("cell", "joint count"),
                     ("two categories", "two-way table")], vid="g8u8-c4-match"),
@@ -552,7 +619,10 @@ def build_unit8():
          "Extrapolation past the last data x is a guess with extra risk. Interpolation stays inside the x-range you actually measured.",
          "Finish with a sentence a person could use: 'Older cars in this set tend to cost less' or 'Band students in this sample are 30% of the grade.'",
          "High school stats will add correlation numbers. The pictures you can already read are the foundation."],
-        solved(1, "You have hours studied and quiz scores for 30 students. Best display?",
+        scatter_plot("Hours studied vs quiz score",
+                     "Two numeric measures: a scatter plot, then a line of best fit if the cloud has a trend.",
+                     xlabel="hours", ylabel="score")
+        + solved(1, "You have hours studied and quiz scores for 30 students. Best display?",
                ["Two numeric variables.", "A scatter plot, then a line of best fit if the cloud has a trend.",
                 "A two-way table would need categories, not hours."], "a scatter plot")
         + kid_tip("Match the data type", "Numbers vs numbers: scatter. Categories vs categories: table. One number, two groups: box plots."),

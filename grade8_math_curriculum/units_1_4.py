@@ -1,9 +1,11 @@
 """Eighth Grade Math units 1–4: exponents, linear equations, slope, functions."""
 
+from curriculum_kit import svg_dots
+
 from .common import (
     concept_block, solved, practice_slots, unit_shell, kid_tip, watch_out, try_this,
     step_reveal, matching, phet_box, balance_scale, sci_shift, slope_line,
-    four_quadrant_plane, mq, renumber,
+    four_quadrant_plane, mq, renumber, figure, integer_line, two_line_graph,
 )
 
 
@@ -15,6 +17,43 @@ def _fill(qs, need, factory):
 
 def _pack(items):
     return [mq(t, a, e, i, distractors=d) for i, (t, a, d, e) in enumerate(items, 1)]
+
+
+def _dot_power(n, title, caption, label=""):
+    return figure(title, svg_dots(n, per_row=min(n, 8), label=label), caption)
+
+
+def _io_table(pairs, title, caption, xin="input x", yout="output"):
+    head = (
+        f'<tr><th style="padding:6px 12px;border:1px solid #1e293b;background:#e0e7ff;">{xin}</th>'
+        f'<th style="padding:6px 12px;border:1px solid #1e293b;background:#e0e7ff;">{yout}</th></tr>'
+    )
+    rows = "".join(
+        f'<tr><td style="padding:6px 12px;border:1px solid #1e293b;text-align:center;">{a}</td>'
+        f'<td style="padding:6px 12px;border:1px solid #1e293b;text-align:center;">{b}</td></tr>'
+        for a, b in pairs
+    )
+    return figure(title, f'<table style="border-collapse:collapse;">{head}{rows}</table>', caption)
+
+
+def _machine(inp, op1, mid, op2, out, title, caption):
+    svg = f'''<svg viewBox="0 0 420 70" width="420" role="img" aria-label="{title}">
+  <rect x="8" y="18" width="52" height="36" rx="8" fill="#dbeafe" stroke="#1e3a8a"/>
+  <text x="34" y="42" text-anchor="middle" font-size="16" font-weight="700">{inp}</text>
+  <text x="78" y="40" font-size="18">→</text>
+  <rect x="96" y="18" width="70" height="36" rx="8" fill="#fde68a" stroke="#92400e"/>
+  <text x="131" y="42" text-anchor="middle" font-size="16" font-weight="700">{op1}</text>
+  <text x="176" y="40" font-size="18">→</text>
+  <rect x="194" y="18" width="52" height="36" rx="8" fill="#dbeafe" stroke="#1e3a8a"/>
+  <text x="220" y="42" text-anchor="middle" font-size="16" font-weight="700">{mid}</text>
+  <text x="256" y="40" font-size="18">→</text>
+  <rect x="274" y="18" width="70" height="36" rx="8" fill="#fde68a" stroke="#92400e"/>
+  <text x="309" y="42" text-anchor="middle" font-size="16" font-weight="700">{op2}</text>
+  <text x="354" y="40" font-size="18">→</text>
+  <rect x="372" y="18" width="44" height="36" rx="8" fill="#dcfce7" stroke="#166534"/>
+  <text x="394" y="42" text-anchor="middle" font-size="16" font-weight="700">{out}</text>
+</svg>'''
+    return figure(title, svg, caption)
 
 
 def _u1_questions():
@@ -70,7 +109,9 @@ def build_unit1():
          "√50 sits between 7 and 8 because 7² = 49 and 8² = 64.",
          "√2 is irrational: it does not terminate or repeat. √16 is 4, which is rational.",
          "A cube with volume 8 has edge 2, because 2³ = 8."],
-        solved(1, "Compare (−3)² and −3².",
+        _dot_power(16, "2⁴ = 16",
+                   "Exactly 16 dots: 2×2×2×2. An exponent counts equal factors.")
+        + solved(1, "Compare (−3)² and −3².",
                ["(−3)² = (−3)×(−3) = 9.", "−3² = −(3×3) = −9.", "Parentheses change the sign story."],
                "9 versus −9")
         + matching([("4³", "64"), ("2⁴", "16"), ("√81", "9"), ("7⁰", "1")], vid="g8u1-c1-match"),
@@ -84,7 +125,9 @@ def build_unit1():
          "x⁵ · x = x⁶ because a bare x is x¹.",
          "(2x³)(5x²) = 10x⁵. Multiply the coefficients, add the exponents.",
          "x⁸ ÷ x² = x⁶. These rules are how algebra compresses repeated multiplication."],
-        solved(1, "Simplify (2³)⁴.",
+        _dot_power(8, "2³ = 8",
+                   "Exactly 8 dots. (2³)⁴ keeps the base 2 and multiplies exponents: 3×4=12, so 2¹² — do not write 8⁴.")
+        + solved(1, "Simplify (2³)⁴.",
                ["Power of a power: multiply 3×4.", "That is 12.", "2¹², not 2⁷."], "2¹²")
         + step_reveal(["Check the bases match.", "Decide: × add, ÷ subtract, power multiply.",
                        "Handle coefficients separately.", "Write one base with one exponent."],
@@ -99,7 +142,9 @@ def build_unit1():
          "Do not treat 2⁻³ as −8. The minus is in the exponent, not in front of the 8.",
          "x⁻n = 1/xⁿ only when x is not 0.",
          "These two rules let scientific notation slide left and right."],
-        solved(1, "Write 2⁻³ as a fraction.",
+        _dot_power(8, "2³ = 8, so 2⁻³ = 1/8",
+                   "A negative exponent is a reciprocal: 1 over these 8 dots is 1/8, not −8.")
+        + solved(1, "Write 2⁻³ as a fraction.",
                ["Negative exponent means reciprocal.", "2³ = 8.", "1/8."], "1/8")
         + watch_out("A negative exponent is not a negative answer", "2⁻³ is 1/8, not −8."),
         11)
@@ -123,7 +168,13 @@ def build_unit1():
          "This is how you handle planets, cells, and computer bits without a wall of zeros.",
          "Keep one digit (plus decimals) in front of the ×10.",
          "Estimate first: 10⁴ times 10³ is about 10⁷."],
-        solved(1, "Compute (3 × 10⁴)(2 × 10³).",
+        figure("Multiply powers of 10",
+               """<svg viewBox="0 0 380 90" width="380" role="img">
+  <text x="20" y="38" font-size="18" font-weight="700">(3 × 10⁴)(2 × 10³)</text>
+  <text x="20" y="72" font-size="16" fill="#1d4ed8">3×2 = 6, and 4+3 = 7 → 6 × 10⁷</text>
+</svg>""",
+               "Multiply the leading numbers. Add the exponents. 6 × 10⁷.")
+        + solved(1, "Compute (3 × 10⁴)(2 × 10³).",
                ["3×2=6.", "4+3=7.", "6 × 10⁷."], "6 × 10⁷")
         + matching([("(3×10⁴)(2×10³)", "6×10⁷"), ("(4×10⁵)÷(2×10²)", "2×10³"),
                     ("4.5×10³", "4500"), ("3.2×10⁻³", "0.0032")], vid="g8u1-c5-match"),
@@ -136,7 +187,9 @@ def build_unit1():
          "√50 is just past 7, because 49 is 7².",
          "In later units, c = √(a²+b²) for a right triangle. The root has to make sense as a length.",
          "A calculator decimal is an approximation. Leave √2 as √2 when the problem wants exact."],
-        solved(1, "Between which two whole numbers is √50?",
+        integer_line(5, 10, marks=[(7.07, "√50")], title="√50 sits between 7 and 8",
+                     caption="7² = 49 and 8² = 64. √50 ≈ 7.07, so it is just past 7, between 7 and 8.")
+        + solved(1, "Between which two whole numbers is √50?",
                ["7²=49 and 8²=64.", "50 is just after 49.", "Between 7 and 8."], "7 and 8")
         + try_this("Bracket the square", "Find two perfect squares that trap the number, then name those roots."),
         26)
@@ -216,7 +269,8 @@ def build_unit2():
          "3 − x = 2x + 9 → 3 − 9 = 3x → x = −2.",
          "Move the smaller x-coefficient when you want a positive coefficient.",
          "A check that fails means a combine or a sign slipped."],
-        solved(1, "Solve 4(x + 1) = 2(x + 7).",
+        balance_scale("4(x + 1)", "2(x + 7)", title="Variables on both sides still balance")
+        + solved(1, "Solve 4(x + 1) = 2(x + 7).",
                ["4x + 4 = 2x + 14.", "2x = 10.", "x = 5."], "5")
         + matching([("−3x+8=2x−7", "x=3"), ("2(x−3)=x+5", "x=11"),
                     ("3−x=2x+9", "x=−2"), ("x/4+3=7", "x=16")], vid="g8u2-c2-match"),
@@ -229,7 +283,8 @@ def build_unit2():
          "0.5x = 9 → x = 18. Decimals are fractions in a different outfit.",
          "If two denominators appear, multiply by a common multiple so they both vanish.",
          "Do not divide only one term of a sum."],
-        solved(1, "Solve (x + 2)/3 = 4.",
+        balance_scale("(x + 2)/3", "4", title="Clear the denominator; both sides stay equal")
+        + solved(1, "Solve (x + 2)/3 = 4.",
                ["Multiply both sides by 3.", "x + 2 = 12.", "x = 10."], "10")
         + step_reveal(["Clear parentheses.", "Clear denominators.", "Collect x.", "Check."],
                       vid="g8u2-c3-steps"),
@@ -242,7 +297,8 @@ def build_unit2():
          "(2x − 4)/2 = x − 3 simplifies to x − 2 = x − 3, so −2 = −3. No solution.",
          "3x + 2 = 3x − 5 is also no solution.",
          "One solution is still the usual case. Name which of the three you have."],
-        solved(1, "(2x − 4)/2 = x − 3. How many solutions?",
+        balance_scale("(2x − 4)/2", "x − 3", title="If x cancels, the remaining sentence is the answer")
+        + solved(1, "(2x − 4)/2 = x − 3. How many solutions?",
                ["Left side is x − 2.", "x − 2 = x − 3 becomes −2 = −3.", "That is never true: no solution."],
                "no solution")
         + watch_out("Canceling x and stopping", "After x vanishes you still have a true or false number sentence. That sentence is the answer."),
@@ -255,7 +311,8 @@ def build_unit2():
          "Write a new line after you distribute. Do not skip that line in your head.",
          "Half of (x − 4) is 6 means (x − 4)/2 = 6, so x − 4 = 12, x = 16.",
          "Grouping is the difference between −x − 5 and −x + 5."],
-        solved(1, "Solve 5 − 2(x + 1) = 9.",
+        balance_scale("5 − 2(x + 1)", "9", title="Distribute the hidden grouping first")
+        + solved(1, "Solve 5 − 2(x + 1) = 9.",
                ["5 − 2x − 2 = 9.", "−2x + 3 = 9, so −2x = 6.", "x = −3."], "−3"),
         21)
     c6 = concept_block(
@@ -266,7 +323,8 @@ def build_unit2():
          "If a story cannot be true (a contradiction), say so. If it is true for every input, say infinitely many.",
          "Define x in a sentence. Then write the equation. Then solve. Then read the number back in words.",
          "This one-variable skill is the engine inside a two-variable system next."],
-        solved(1, "Half of a number minus 4 is 6. What is the number?",
+        balance_scale("(x − 4)/2", "6", title="Half of (x − 4) is 6")
+        + solved(1, "Half of a number minus 4 is 6. What is the number?",
                ["(x − 4)/2 = 6, or half of (x−4) is 6.", "x − 4 = 12.", "x = 16."], "16")
         + try_this("Name x first", "A sentence 'let x be…' stops you from solving for the wrong quantity."),
         26)
@@ -330,8 +388,9 @@ def build_unit3():
          "A rate like 60 km per hour is a slope: kilometers on y, hours on x.",
          "The slope between (4, 1) and (4, 7) is undefined: x did not change.",
          "Count a grid triangle: up 1, right 2 is m = 1/2."],
-        slope_line(0.5, 2, title="y = (1/2)x + 2",
-                   caption="From (2, 3) to (4, 4): run 2, rise 1, so m = 1/2. The line hits the y-axis at 2.")
+        four_quadrant_plane([(1, 2), (3, 6)], lim=7, line=True,
+                            title="Slope through (1, 2) and (3, 6)",
+                            caption="Rise 6−2=4, run 3−1=2, so m = 2. The line through these two points has that slope.")
         + solved(1, "Find the slope through (1, 2) and (3, 6).",
                  ["Subtract y's: 6 − 2 = 4.", "Subtract x's: 3 − 1 = 2.", "4/2 = 2."], "2")
         + phet_box("slope"),
@@ -344,7 +403,9 @@ def build_unit3():
          "To graph: plot (0, b), then use rise/run to a second point, then draw the line.",
          "When x = 4 on y = (1/2)x + 2, y = 2 + 2 = 4. The point (4, 4) must sit on the graph.",
          "x-intercept: set y = 0. For y = 2x − 6, 0 = 2x − 6, x = 3."],
-        solved(1, "Graph-read y = (1/2)x + 2. What is b, and what is y when x = 4?",
+        slope_line(0.5, 2, title="y = (1/2)x + 2",
+                   caption="b = 2 is the y-intercept (0, 2). Slope 1/2 is rise 1, run 2. When x = 4, y = 4.")
+        + solved(1, "Graph-read y = (1/2)x + 2. What is b, and what is y when x = 4?",
                ["b is 2, so (0, 2).", "(1/2)×4 + 2 = 4.", "Point (4, 4)."], "b=2; y=4")
         + matching([("m in y=mx+b", "slope"), ("b", "y-intercept"),
                     ("horizontal", "m=0"), ("vertical", "undefined slope")], vid="g8u3-c2-match"),
@@ -358,9 +419,9 @@ def build_unit3():
          "y − 2 = 3(x − 1) becomes y = 3x − 3 + 2, so y = 3x − 1.",
          "y = 5 is horizontal. x = −2 is vertical and is not a function of x in the usual y= form.",
          "A table with constant change in y for constant change in x is linear."],
-        four_quadrant_plane([(0, 2, "b"), (2, 3, ""), (4, 4, "")], lim=5,
-                            title="Points on y = (1/2)x + 2",
-                            caption="(0, 2) is the intercept. (2, 3) and (4, 4) sit on the same slope 1/2.")
+        four_quadrant_plane([(0, 3, "(0, 3)"), (1, 5, "(1, 5)")], lim=6, line=True,
+                            title="Through (0, 3) with slope 2",
+                            caption="Start at b = 3. Slope 2 means up 2, right 1, to (1, 5). The equation is y = 2x + 3.")
         + solved(1, "A line through (0, 3) has slope 2. Equation?",
                  ["b = 3.", "m = 2.", "y = 2x + 3."], "y = 2x + 3")
         + phet_box("lines"),
@@ -373,7 +434,11 @@ def build_unit3():
          "Same slope and same intercept means the same line, not two parallel lines.",
          "Vertical is perpendicular to horizontal.",
          "These facts are how you write a line through a point, parallel to a given line: copy m, change b."],
-        solved(1, "A line has slope 2. What slope is perpendicular?",
+        two_line_graph(2, 0, -0.5, 0, meet=(0, 0), lim=5,
+                       label1="m = 2", label2="m = −1/2",
+                       title="Perpendicular slopes multiply to −1",
+                       caption="2 × (−1/2) = −1, so these lines are perpendicular. They meet at the origin.")
+        + solved(1, "A line has slope 2. What slope is perpendicular?",
                ["Negative reciprocal.", "Flip 2 to 1/2, then minus.", "−1/2. Check: 2×(−1/2)=−1."], "−1/2"),
         16)
     c5 = concept_block(
@@ -384,7 +449,10 @@ def build_unit3():
          "x = −2 is a vertical line. It is not y = mx + b.",
          "The origin (0, 0) is on the line only when b = 0, like y = 3x. That is also a proportional relationship.",
          "Sketch both intercepts, then connect. That is often faster than a slope walk."],
-        solved(1, "Find the x-intercept of y = 2x − 6.",
+        four_quadrant_plane([(0, -6, "(0, −6)"), (3, 0, "(3, 0)")], lim=7, line=True,
+                            title="Intercepts of y = 2x − 6",
+                            caption="Y-intercept: x = 0 gives (0, −6). X-intercept: y = 0 gives (3, 0). Connect them.")
+        + solved(1, "Find the x-intercept of y = 2x − 6.",
                ["Set y = 0.", "2x = 6.", "x = 3. Point (3, 0)."], "3")
         + watch_out("Mixing intercepts", "b is where x is 0, not where y is 0."),
         21)
@@ -396,7 +464,10 @@ def build_unit3():
          "If two plans are two lines, the meeting point is a system — Unit 5.",
          "Units on slope must match: dollars per mile, not miles per dollar, unless you mean the reciprocal.",
          "Write y = mx + b, then name m and b in words."],
-        solved(1, "A ride costs 3 dollars plus 2 dollars per mile. Write y in terms of miles x.",
+        four_quadrant_plane([(0, 3, "start $3"), (2, 7, "2 mi → $7")], lim=8, line=True,
+                            title="Taxi: y = 2x + 3",
+                            caption="Start fee b = 3. Rate m = 2 dollars per mile. After 2 miles the fare is 7 dollars.")
+        + solved(1, "A ride costs 3 dollars plus 2 dollars per mile. Write y in terms of miles x.",
                ["Start fee is b = 3.", "Rate is m = 2.", "y = 2x + 3."], "y = 2x + 3")
         + try_this("Name rate and start", "m is the per-one change. b is the amount when x is 0."),
         26)
@@ -460,7 +531,18 @@ def build_unit4():
          "A mapping 2 → 5 and 2 → 7 is not a function.",
          "y = 1/x (x ≠ 0) is a function even though it is not a line.",
          "Domain: allowed inputs. Range: outputs that actually happen."],
-        solved(1, "Is a circle a function of x?",
+        figure("A circle fails the vertical line test",
+               """<svg viewBox="0 0 220 200" width="220" role="img">
+  <line x1="24" y1="180" x2="200" y2="180" stroke="#0f172a" stroke-width="2"/>
+  <line x1="30" y1="186" x2="30" y2="18" stroke="#0f172a" stroke-width="2"/>
+  <circle cx="110" cy="100" r="55" fill="#e0e7ff" stroke="#312e81" stroke-width="3"/>
+  <line x1="110" y1="18" x2="110" y2="186" stroke="#dc2626" stroke-width="2" stroke-dasharray="5 4"/>
+  <circle cx="110" cy="45" r="6" fill="#dc2626"/>
+  <circle cx="110" cy="155" r="6" fill="#dc2626"/>
+  <text x="118" y="42" font-size="12" fill="#7f1d1d">two y's</text>
+</svg>""",
+               "The dashed vertical line hits the circle twice. One x, two y-values — not a function.")
+        + solved(1, "Is a circle a function of x?",
                ["A vertical line through the center hits twice.", "Two y-values for one x.",
                 "It fails the vertical line test."], "no")
         + matching([("function", "one output per input"), ("vertical line test fail", "not a function"),
@@ -475,7 +557,11 @@ def build_unit4():
          "Solving f(x) = 9 for f(x) = 2x − 1 means 2x − 1 = 9, so x = 5. That is an input that produces 9.",
          "f(a+1) when f(x)=3x is 3(a+1)=3a+3. Substitute the whole blob.",
          "Independent variable is the input (usually x). Dependent is the output (usually y or f(x))."],
-        solved(1, "If f(x) = 2x − 1, find f(3) and the x that makes f(x) = 9.",
+        four_quadrant_plane([(3, 5, "f(3)=5")], lim=6,
+                            extra_lines=[(2, -1, "#4f46e5", "f(x)=2x−1")],
+                            title="f(x) = 2x − 1",
+                            caption="Plug in 3: 2×3 − 1 = 5. The point (3, 5) sits on this line. Solving f(x)=9 gives x=5.")
+        + solved(1, "If f(x) = 2x − 1, find f(3) and the x that makes f(x) = 9.",
                ["f(3)=6−1=5.", "2x−1=9 → 2x=10.", "x=5."], "f(3)=5; x=5 when f(x)=9"),
         kid_tip("Parentheses mean 'plug in'", "f(3) is not f times 3 unless the rule says so."),
         6)
@@ -487,7 +573,9 @@ def build_unit4():
          "A constant function f(x)=5 is linear with slope 0.",
          "First differences in y (for even x-steps) stay the same if and only if the function is linear.",
          "y = 2x + 1 and f(x) = 2x + 1 are the same rule."],
-        slope_line(2, 1, title="f(x) = 2x + 1", caption="Each step of 1 in x adds 2 to the output. That constant add is the slope.")
+        four_quadrant_plane([(1, 3), (2, 5), (3, 7)], lim=8, line=True,
+                            title="f(x) = 2x + 1 from the table",
+                            caption="1→3, 2→5, 3→7. Each step of 1 in x adds 2. The line through these points is f(x)=2x+1.")
         + solved(1, "A table goes 1→3, 2→5, 3→7. Write f(x).",
                  ["y increases by 2 when x increases by 1.", "m=2.", "When x=1, y=3 so 2(1)+b=3, b=1. f(x)=2x+1."],
                  "f(x)=2x+1"),
@@ -500,7 +588,11 @@ def build_unit4():
          "A V (absolute value) is nonlinear but still a function.",
          "Do not call every curve 'not a function.' Functions can bend. They just cannot fork vertically.",
          "In a table, if +2 then +4 then +8, slope is not constant."],
-        solved(1, "The sequence 2, 4, 8, 16: linear or not?",
+        _io_table([(1, 2), (2, 4), (3, 8), (4, 16)],
+                  "2, 4, 8, 16 — not a constant add",
+                  "Each output doubles. First differences 2, 4, 8 change, so the rule is not a line.",
+                  xin="step", yout="value")
+        + solved(1, "The sequence 2, 4, 8, 16: linear or not?",
                ["Ratios, not equal adds.", "Each term ×2.", "Nonlinear (exponential pattern)."], "not linear")
         + watch_out("Curve vs not-a-function", "A U can be a function. Two y's for one x cannot."),
         16)
@@ -512,7 +604,10 @@ def build_unit4():
          "Sketch: linear is a line, quadratic a U, exponential a rapid climb.",
          "To show a table is a function, check that no x repeats with a new y.",
          "To show it is linear, check equal steps."],
-        solved(1, "A machine multiplies by 2 then adds 1. What is the output for 5?",
+        _machine(5, "×2", 10, "+1", 11,
+                 "A function machine: ×2 then +1",
+                 "Input 5. Double is 10. Add 1 is 11. That rule is f(x)=2x+1.")
+        + solved(1, "A machine multiplies by 2 then adds 1. What is the output for 5?",
                ["5×2=10.", "10+1=11.", "f(5)=11."], "11")
         + step_reveal(["Ask: is it a function?", "Ask: are first differences constant?",
                        "If yes, write y=mx+b.", "If no, name the shape (U, exponential, V)."],
@@ -526,7 +621,11 @@ def build_unit4():
          "f(0) often means the start: empty cart, zero seconds, intercept.",
          "Two functions can be compared: which plan is cheaper after 10 items? That comparison is a system in the next units.",
          "Write the rule, name domain sense (you cannot buy −3 shirts), then evaluate."],
-        solved(1, "Shirts cost 12 dollars each plus 5 dollars shipping. Write f(x) for x shirts.",
+        _io_table([(0, 5), (1, 17), (2, 29)],
+                  "f(x) = 12x + 5 shirts",
+                  "0 shirts: just the $5 shipping. 1 shirt: 17. 2 shirts: 29. Slope 12, intercept 5.",
+                  xin="shirts x", yout="cost f(x)")
+        + solved(1, "Shirts cost 12 dollars each plus 5 dollars shipping. Write f(x) for x shirts.",
                ["12 per shirt is the slope.", "5 is the start fee.", "f(x)=12x+5."], "f(x)=12x+5")
         + try_this("Input in words", "Say 'x is the number of shirts' before you write f(x)."),
         26)
