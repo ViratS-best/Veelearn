@@ -3,7 +3,7 @@
 U3 = {
     "num": 3,
     "title": "Slope and Linear Graphs",
-    "subtitle": "Rise over run, y = mx + b, parallel lines",
+    "subtitle": "Rise over run, y = mx + b, and parallel lines",
     "file": "unit-3-slope",
     "parts": [
         {
@@ -87,7 +87,7 @@ U3 = {
             ],
         },
         {
-            "title": "Write the equation from points",
+            "title": "Equation from two points",
             "visual": "slope",
             "beats": [
                 "Find m from two points, then plug one point into y = mx + b to get b.",
@@ -110,7 +110,7 @@ U3 = {
                     "problem": "A line goes through (2, 3) and (4, 7). Find the equation.",
                     "steps": [
                         "m = (7 − 3)/(4 − 2) = 4/2 = 2",
-                        "3 = 2(2) + b → b = −1",
+                        "3 = 2(2) + b, so b = −1",
                         "y = 2x − 1",
                     ],
                     "answer": "y = 2x − 1",
@@ -142,7 +142,7 @@ U3 = {
                     "steps": [
                         "Both slopes are 2",
                         "Intercepts differ, so they are not the same line",
-                        "Equal slopes, different b → parallel",
+                        "Equal slopes, different b, so parallel",
                     ],
                     "answer": "yes, parallel",
                 },
@@ -180,8 +180,8 @@ U3 = {
                 {
                     "problem": "Find both intercepts of 2x + 4y = 8.",
                     "steps": [
-                        "x = 0 → 4y = 8 → y = 2, so (0, 2)",
-                        "y = 0 → 2x = 8 → x = 4, so (4, 0)",
+                        "x = 0, so 4y = 8, y = 2, and the point is (0, 2)",
+                        "y = 0, so 2x = 8, x = 4, and the point is (4, 0)",
                         "Those two points draw the line",
                     ],
                     "answer": "(0, 2) and (4, 0)",
@@ -262,7 +262,7 @@ U4 = {
                 "A function assigns each input exactly one output.",
                 "A vertical line that hits a graph twice means it is not a function.",
                 "Tables: if an x shows two different y values, it is not a function.",
-                "Machines, graphs, and equations can all be functions — or fail the test.",
+                "Machines, graphs, and equations can all be functions, or fail the test.",
                 "The set of allowed inputs is the domain. Outputs are the range.",
             ],
             "examples": [
@@ -300,35 +300,35 @@ U4 = {
             "visual": "function",
             "beats": [
                 "f(x) means the output when the input is x. It is not f times x.",
-                "If f(x) = 2x − 1, then f(3) = 5 and f(0) = −1.",
-                "To solve f(x) = 7, set 2x − 1 = 7.",
+                "If f(x) = 2x - 1, then f(3) = 5 and f(0) = -1.",
+                "To solve f(x) = 7, set 2x - 1 = 7.",
                 "g(t) is the same idea with a different letter.",
                 "Read f(3) as 'f of 3'.",
             ],
             "examples": [
                 {
-                    "problem": "f(x) = 2x − 1. Find f(3).",
+                    "problem": "f(x) = 2x - 1. Find f(3).",
                     "steps": [
                         "Replace every x with 3",
-                        "2(3) − 1 = 6 − 1",
+                        "2(3) - 1 = 6 - 1",
                         "f(3) = 5",
                     ],
                     "answer": "5",
                 },
                 {
-                    "problem": "f(x) = 2x − 1. Solve f(x) = 7.",
+                    "problem": "f(x) = 2x - 1. Solve f(x) = 7.",
                     "steps": [
-                        "2x − 1 = 7",
+                        "2x - 1 = 7",
                         "2x = 8",
                         "x = 4",
                     ],
                     "answer": "x = 4",
                 },
                 {
-                    "problem": "f(x) = x² − 1. Find f(−3).",
+                    "problem": "f(x) = x² - 1. Find f(-3).",
                     "steps": [
-                        "(−3)² − 1",
-                        "9 − 1 = 8",
+                        "(-3)² - 1",
+                        "9 - 1 = 8",
                         "The input can be negative",
                     ],
                     "answer": "8",
@@ -337,19 +337,19 @@ U4 = {
         },
         {
             "title": "Linear functions",
-            "visual": "slope",
+            "visual": "function",
             "beats": [
                 "A linear function has a constant rate. Its graph is a straight line.",
                 "f(x) = mx + b. Equal x-steps produce equal y-steps.",
                 "In a table, first differences of y are constant when x-steps are 1.",
-                "f(x) = 3 is linear with slope 0 — a horizontal line.",
+                "f(x) = 3 is linear with slope 0, a horizontal line.",
                 "Not every formula is linear. x² bends.",
             ],
             "examples": [
                 {
-                    "problem": "Is f(x) = 3x − 2 linear?",
+                    "problem": "Is f(x) = 3x - 2 linear?",
                     "steps": [
-                        "It matches mx + b with m = 3, b = −2",
+                        "It matches mx + b with m = 3, b = -2",
                         "The graph is a straight line",
                         "Yes",
                     ],
@@ -369,7 +369,7 @@ U4 = {
                     "steps": [
                         "y = 0·x + 3",
                         "Slope 0, still a line",
-                        "Yes — a constant function is linear",
+                        "Yes, a constant function is linear",
                     ],
                     "answer": "yes, horizontal",
                 },
@@ -390,7 +390,7 @@ U4 = {
                     "problem": "Is f(x) = x² linear?",
                     "steps": [
                         "Inputs 1, 2, 3 give 1, 4, 9",
-                        "Jumps of +3 then +5 — not constant",
+                        "Jumps of +3 then +5, not constant",
                         "The graph is a parabola",
                     ],
                     "answer": "no",
@@ -398,7 +398,7 @@ U4 = {
                 {
                     "problem": "Is f(x) = 2ˣ linear?",
                     "steps": [
-                        "x = 1, 2, 3 → 2, 4, 8",
+                        "x = 1, 2, 3 give 2, 4, 8",
                         "Jumps double each time",
                         "Exponential, not a line",
                     ],
@@ -431,9 +431,9 @@ U4 = {
                     "steps": [
                         "Double: 2x",
                         "Then subtract 1",
-                        "f(x) = 2x − 1",
+                        "f(x) = 2x - 1",
                     ],
-                    "answer": "f(x) = 2x − 1",
+                    "answer": "f(x) = 2x - 1",
                 },
                 {
                     "problem": "From the table (0, 1), (1, 3), (2, 5), guess a linear rule.",
@@ -445,13 +445,13 @@ U4 = {
                     "answer": "f(x) = 2x + 1",
                 },
                 {
-                    "problem": "f(x) = 2x − 1. Fill f(0), f(1), f(2).",
+                    "problem": "f(x) = 2x - 1. Fill f(0), f(1), f(2).",
                     "steps": [
-                        "f(0) = −1",
+                        "f(0) = -1",
                         "f(1) = 1",
                         "f(2) = 3",
                     ],
-                    "answer": "−1, 1, 3",
+                    "answer": "-1, 1, 3",
                 },
             ],
         },
@@ -460,7 +460,7 @@ U4 = {
             "visual": "function",
             "beats": [
                 "C(n) = 8n + 12 might be a club fee: 12 dollars start, 8 per person.",
-                "The input must make sense: n is a count of people, not −3.5.",
+                "The input must make sense: n is a count of people, not -3.5.",
                 "f(0) is the start. The slope is the extra cost per extra person.",
                 "A nonlinear context: area of a square is s².",
                 "Always name the units of the output.",

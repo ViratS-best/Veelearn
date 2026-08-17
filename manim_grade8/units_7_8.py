@@ -79,7 +79,7 @@ U7 = {
                     "problem": "A 13 ft ladder reaches 12 ft up a wall. Ground distance?",
                     "steps": [
                         "Hypotenuse 13, one leg 12",
-                        "169 − 144 = 25",
+                        "169 - 144 = 25",
                         "Ground leg 5 ft",
                     ],
                     "answer": "5 ft",
@@ -88,19 +88,19 @@ U7 = {
         },
         {
             "title": "Distance is Pythagoras on a graph",
-            "visual": "slope",
+            "visual": "pythag",
             "beats": [
                 "From (1, 2) to (4, 6) the run is 3 and the rise is 4. Distance = 5.",
-                "Formula: √[(x₂ − x₁)² + (y₂ − y₁)²]. Same theorem, coordinate clothes.",
+                "Formula: sqrt((x2 - x1)^2 + (y2 - y1)^2). Same theorem, coordinate clothes.",
                 "From (0, 0) to (6, 8) is 10. From (0, 0) to (5, 12) is 13.",
-                "If points share an x, the segment is vertical: just |y₂ − y₁|.",
-                "Signs square away: (−3)² is 9. Distance is never negative.",
+                "If points share an x, the segment is vertical: just |y2 - y1|.",
+                "Signs square away: (-3)^2 is 9. Distance is never negative.",
             ],
             "examples": [
                 {
                     "problem": "Distance from (1, 2) to (4, 6).",
                     "steps": [
-                        "Δx = 3, Δy = 4",
+                        "dx = 3, dy = 4",
                         "3² + 4² = 25",
                         "Distance 5",
                     ],
@@ -116,9 +116,9 @@ U7 = {
                     "answer": "10",
                 },
                 {
-                    "problem": "Distance from (−1, 4) to (2, 8).",
+                    "problem": "Distance from (-1, 4) to (2, 8).",
                     "steps": [
-                        "Δx = 3, Δy = 4",
+                        "dx = 3, dy = 4",
                         "9 + 16 = 25",
                         "Distance 5",
                     ],
@@ -221,7 +221,7 @@ U7 = {
                     "problem": "A 13 ft ladder reaches 12 ft up a wall. How far is the base?",
                     "steps": [
                         "Right triangle, not a cylinder",
-                        "169 − 144 = 25",
+                        "169 - 144 = 25",
                         "5 ft from the wall",
                     ],
                     "answer": "5 ft",
@@ -259,10 +259,11 @@ U8 = {
             "title": "Scatter plots and association",
             "visual": "scatter",
             "beats": [
-                "A scatter plot is a cloud of (x, y) points — one pair per person or object.",
+                "A scatter plot is a cloud of (x, y) points, one pair per person or object.",
                 "Positive association: the cloud climbs as you move right.",
                 "Negative association: the cloud falls as you move right.",
                 "No association: a shapeless blob. x does not help you guess y.",
+                "Clusters: two separate clumps, not one sloping cloud.",
                 "A tight cigar is strong. A wide spray that still slopes is weak.",
             ],
             "examples": [
@@ -384,8 +385,18 @@ U8 = {
                 "Each cell is a joint count: that row and that column together.",
                 "Relative frequency is a count divided by the grand total. 12 of 40 is 12/40 = 30%.",
                 "Among soccer players vs among all students are different questions.",
+                "15 of 50 is the same idea: 15/50 = 0.3.",
             ],
             "examples": [
+                {
+                    "problem": "18 play soccer, 10 of those also play basketball. Soccer only?",
+                    "steps": [
+                        "18 - 10 = 8",
+                        "Those 8 play soccer but not basketball",
+                        "8 students",
+                    ],
+                    "answer": "8",
+                },
                 {
                     "problem": "12 of 40 students play band. Relative frequency?",
                     "steps": [
@@ -398,20 +409,11 @@ U8 = {
                 {
                     "problem": "15 of 50 is what decimal relative frequency?",
                     "steps": [
-                        "15 ÷ 50",
+                        "15 / 50",
                         "0.3",
                         "Same idea as 30%",
                     ],
                     "answer": "0.3",
-                },
-                {
-                    "problem": "18 play soccer, 10 of those also play basketball. Soccer only?",
-                    "steps": [
-                        "18 − 10 = 8",
-                        "Those 8 play soccer but not basketball",
-                        "8 students",
-                    ],
-                    "answer": "8",
                 },
             ],
         },
@@ -422,7 +424,7 @@ U8 = {
                 "Two box plots on one scale compare a typical value and spread.",
                 "Group A median 8 vs Group B median 7: A is typically a bit higher.",
                 "That is not 'every A score beats every B score.' Overlap is normal.",
-                "A longer box means more spread in the middle 50%. IQR = Q3 − Q1.",
+                "A longer box means more spread in the middle 50%. IQR = Q3 - Q1.",
                 "Write two sentences: one about center, one about spread.",
             ],
             "examples": [
@@ -438,8 +440,8 @@ U8 = {
                 {
                     "problem": "Q1 = 6 and Q3 = 11. IQR?",
                     "steps": [
-                        "IQR = Q3 − Q1",
-                        "11 − 6 = 5",
+                        "IQR = Q3 - Q1",
+                        "11 - 6 = 5",
                         "That is the middle-50% width",
                     ],
                     "answer": "5",

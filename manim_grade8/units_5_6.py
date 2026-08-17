@@ -3,7 +3,7 @@
 U5 = {
     "num": 5,
     "title": "Systems by Substitution",
-    "subtitle": "Two equations, two unknowns — isolate, then plug in",
+    "subtitle": "Two equations, two unknowns: isolate, then plug in",
     "file": "unit-5-substitution",
     "parts": [
         {
@@ -11,10 +11,10 @@ U5 = {
             "visual": "system",
             "beats": [
                 "A 2-variable system is two equations sharing x and y.",
-                "The solution is an ordered pair (x, y) that sits on both lines.",
+                "The solution is an ordered pair like (2, 3) that sits on both lines.",
                 "Graphically: the meeting point. Algebraically: substitution or elimination.",
                 "Still only two letters. Eighth grade makes the algebra heavier, not a third variable.",
-                "Always check the pair in both original equations.",
+                "Always check the pair in both original equations. (2, 3) fits 3x + 2y = 12.",
             ],
             "examples": [
                 {
@@ -50,11 +50,11 @@ U5 = {
             "title": "Substitute when y is solved",
             "visual": "system",
             "beats": [
-                "If one equation is y = ..., plug that expression into the other.",
+                "If one equation is already y equals an expression, plug that expression into the other.",
                 "y = 2x − 1 into 2(x + 3) + 3y = 11 → 2x + 6 + 6x − 3 = 11 → x = 1, y = 1.",
                 "y = 3x + 1 into x + 2y = 16 → x + 6x + 2 = 16 → x = 2, y = 7.",
-                "After you find x, go back to the isolated equation for y.",
-                "Write the pair (x, y), not just one number.",
+                "After you find x = 3, go back to y = 4x − 3 to get y = 9, so (3, 9).",
+                "Write the ordered pair (6, 2), not just the x value.",
             ],
             "examples": [
                 {
@@ -90,10 +90,10 @@ U5 = {
             "title": "Isolate first, then substitute",
             "visual": "system",
             "beats": [
-                "If nothing is isolated, solve the easier equation for one letter.",
+                "If nothing is isolated, solve the easier equation for one letter first.",
                 "x = 4 − 2y into 3x + y = 7 → 12 − 6y + y = 7 → y = 1, x = 2.",
-                "From 2x + 4y = 12, y = 3 − x/2, then plug into the second equation.",
-                "Distribute after you substitute. Parentheses keep the signs honest.",
+                "y = x/2 into x + 2y = 12 → x + x = 12 → x = 6, y = 3.",
+                "Distribute after you substitute. y = x + 1 into 2(3x − y) = 10 gives (3, 4).",
                 "Fractions are legal. A pair like (3.5, 1) can be a solution.",
             ],
             "examples": [
@@ -131,7 +131,7 @@ U5 = {
             "visual": "system",
             "beats": [
                 "Clear small denominators before or after substituting.",
-                "x/2 + y = 5 and x − 4y = −2. From the first, y = 5 − x/2.",
+                "y = 5 − x/2 into x − 4y = −2 → x − 20 + 2x = −2 → (6, 2).",
                 "Then x − 4(5 − x/2) = −2 → x − 20 + 2x = −2 → 3x = 18 → (6, 2).",
                 "(x + y)/2 = 4 and y = x → x = 4, y = 4.",
                 "A fractional pair is fine if both originals check.",
@@ -212,9 +212,9 @@ U5 = {
             "beats": [
                 "Two unknowns need two independent facts.",
                 "Adults a dollars 8, children c dollars 5, with two purchase totals, is a system.",
-                "If a story already gives y = mx + b for two plans, set the y's equal.",
-                "Let the letters be counts or prices — but stay consistent.",
-                "Finish with a sentence: 8-dollar adults and 5-dollar children.",
+                "If a story gives y = 2x + 1 and y = −x + 7, set the y's equal: (2, 5).",
+                "Let the letters be counts or prices, but stay consistent.",
+                "Finish with a sentence: 7 adults at 8 dollars and 3 children at 5 dollars.",
             ],
             "examples": [
                 {
@@ -419,11 +419,11 @@ U6 = {
             "title": "Two-unknown mix stories",
             "visual": "system",
             "beats": [
-                "3 adults at 8 dollars and 2 children at 5 dollars cost 34: 3a + 2c = 34.",
-                "One adult and four children cost 28: a + 4c = 28.",
-                "×3 the second, subtract: 10c = 50, c = 5, a = 8.",
+                "Two equations: 3a + 2c = 34 and a + 4c = 28.",
+                "×3 the second, subtract: 3a + 2c = 34 and 3a + 12c = 84 give 10c = 50, c = 5, a = 8.",
+                "Read the pair in words: a = 8, c = 5.",
                 "Two ticket types, two snack mixes, two phone plans: same pattern.",
-                "Read the pair in words after you solve.",
+                "The graph of 3a + 2c = 34 and a + 4c = 28 meets at (8, 5).",
             ],
             "examples": [
                 {
@@ -467,7 +467,7 @@ U6 = {
             ],
             "examples": [
                 {
-                    "problem": "y = x − 1 and 3x − y = 7. Which method is faster, and the pair?",
+                    "problem": "y = x − 1 and 3x − y = 7. Find the pair.",
                     "steps": [
                         "y is already isolated → substitute",
                         "3x − (x − 1) = 7 → 2x = 6 → x = 3",

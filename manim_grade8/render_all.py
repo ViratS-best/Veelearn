@@ -56,7 +56,37 @@ def publish(src: Path, dest: Path) -> None:
     raise last_err
 
 
+LOCK = ROOT / ".render.lock"
+
+
+def acquire_lock(timeout=7200):
+    start = time.time()
+    while True:
+        try:
+            LOCK.mkdir()
+            return
+        except FileExistsError:
+            if time.time() - start > timeout:
+                raise RuntimeError("timed out waiting for render lock")
+            time.sleep(4)
+
+
+def release_lock():
+    try:
+        LOCK.rmdir()
+    except OSError:
+        pass
+
+
 def render_one(cls: str, name: str) -> int:
+    acquire_lock()
+    try:
+        return _render_one(cls, name)
+    finally:
+        release_lock()
+
+
+def _render_one(cls: str, name: str) -> int:
     clear_dir(STAGE, name)
     cmd = [
         str(MANIM),
