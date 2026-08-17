@@ -1,5 +1,10 @@
 """Third Grade Math units 1–4: multi-digit numbers, multiplication, division within 100."""
 
+from curriculum_kit import (
+    lesson_figure, svg_dots, svg_number_line, svg_rect, svg_fraction_bar,
+    svg_tape, svg_circle, svg_triangle, svg_clock, svg_base10,
+)
+
 from .common import (
     concept_block,
     solved,
@@ -14,6 +19,57 @@ from .common import (
     mq,
     renumber,
 )
+
+
+def _place_chart(thousands, hundreds, tens, ones):
+    cell = "border:1px solid #94a3b8;padding:8px 12px;text-align:center;min-width:64px;"
+    head = cell + "background:#eef2ff;font-weight:700;font-size:0.85rem;"
+    body = cell + "background:#fff;font-weight:800;font-size:1.15rem;"
+    return (
+        '<table style="border-collapse:collapse;margin:0 auto;">'
+        "<tr>"
+        f'<th style="{head}">thousands</th>'
+        f'<th style="{head}">hundreds</th>'
+        f'<th style="{head}">tens</th>'
+        f'<th style="{head}">ones</th>'
+        "</tr><tr>"
+        f'<td style="{body}">{thousands}</td>'
+        f'<td style="{body}">{hundreds}</td>'
+        f'<td style="{body}">{tens}</td>'
+        f'<td style="{body}">{ones}</td>'
+        "</tr></table>"
+    )
+
+
+def _sparse_line(lo, hi, marks, highlight=None, w=460):
+    """Number line with only the given marks (for large values). marks: (value, label)."""
+    h, left, right, y = 78, 28, w - 28, 36
+    span = max(hi - lo, 1)
+
+    def x_of(v):
+        return left + (v - lo) * (right - left) / span
+
+    bits = [
+        f'<line x1="{left}" y1="{y}" x2="{right}" y2="{y}" stroke="#0f172a" stroke-width="2"/>'
+    ]
+    for v, lab in marks:
+        x = x_of(v)
+        bits.append(
+            f'<line x1="{x:.1f}" y1="{y - 7}" x2="{x:.1f}" y2="{y + 7}" stroke="#0f172a" stroke-width="2"/>'
+        )
+        bits.append(
+            f'<text x="{x:.1f}" y="{y + 22}" text-anchor="middle" font-size="11">{lab}</text>'
+        )
+        bits.append(f'<circle cx="{x:.1f}" cy="{y}" r="6" fill="#2563eb"/>')
+    if highlight is not None:
+        x = x_of(highlight)
+        bits.append(
+            f'<circle cx="{x:.1f}" cy="{y}" r="8" fill="none" stroke="#7c3aed" stroke-width="3"/>'
+        )
+    return (
+        f'<svg viewBox="0 0 {w} {h}" width="100%" style="max-width:{w}px" role="img">'
+        f'{"".join(bits)}</svg>'
+    )
 
 
 def _fill(qs, need, factory):
@@ -113,7 +169,12 @@ def build_unit1():
             "Each place is 10 times the place to its right. 10 hundreds make 1 thousand.",
             "Think of a thousands cube as 10 hundreds flats stacked together.",
         ],
-        solved(1, "What is the value of the 3 in 3,241?",
+        lesson_figure(
+            _place_chart(3, 2, 4, 1),
+            "3,241 in a place-value chart",
+            "The 3 sits in thousands, so its value is 3,000. Each place is 10 times the place to its right.",
+        )
+        + solved(1, "What is the value of the 3 in 3,241?",
                ["The 3 is in the thousands place.",
                 "3 thousands = 3,000."],
                "3,000")
@@ -141,7 +202,12 @@ def build_unit1():
             "3,060 is three thousand sixty, not three thousand six. The 6 is tens, not ones.",
             "Practice all three forms. They are the same number wearing different outfits.",
         ],
-        solved(1, "Write 5,000 + 300 + 20 + 4 in standard form.",
+        lesson_figure(
+            _place_chart(5, 3, 2, 4),
+            "Expanded form builds 5,324",
+            "5 thousands + 3 hundreds + 2 tens + 4 ones. Empty places stay 0 in standard form, but this number has a digit in every place.",
+        )
+        + solved(1, "Write 5,000 + 300 + 20 + 4 in standard form.",
                ["5 thousands, 3 hundreds, 2 tens, 4 ones.",
                 "5,324."],
                "5,324")
@@ -169,7 +235,12 @@ def build_unit1():
             "A number line also orders numbers. Farther right is greater.",
             "Use > < = and the words greater than, less than, equal to.",
         ],
-        solved(1, "Which is greater: 4,080 or 4,800?",
+        lesson_figure(
+            _sparse_line(4000, 5000, [(4080, "4,080"), (4800, "4,800")], highlight=4800),
+            "Compare on a number line",
+            "Thousands match (both 4). Hundreds: 0 vs 8. 4,800 sits farther right, so it is greater.",
+        )
+        + solved(1, "Which is greater: 4,080 or 4,800?",
                ["Thousands are both 4.",
                 "Hundreds: 0 vs 8. 8 hundreds is more.",
                 "4,800 is greater."],
@@ -195,7 +266,12 @@ def build_unit1():
             "A 5 rounds up. That is the rule we use.",
             "148 to the nearest ten is 150. The ones 8 says round the 4 tens up to 5 tens.",
         ],
-        solved(1, "Round 34 to the nearest ten.",
+        lesson_figure(
+            svg_number_line(30, 40, marks=[(34, "34")], highlight=30),
+            "34 on the number line",
+            "Ones is 4 (less than 5), so 34 is closer to 30 than to 40. Round down to 30.",
+        )
+        + solved(1, "Round 34 to the nearest ten.",
                ["Ones digit is 4. That is less than 5.",
                 "Tens stay 3. Ones become 0.",
                 "30."],
@@ -223,7 +299,12 @@ def build_unit1():
             "1,050 to the nearest hundred: tens digit is 5, so hundreds go up. 1,050 rounds to 1,100.",
             "Rounding is not the exact amount. It is a nearby landmark.",
         ],
-        solved(1, "Round 249 to the nearest hundred.",
+        lesson_figure(
+            _sparse_line(200, 300, [(200, "200"), (249, "249"), (300, "300")], highlight=200),
+            "249 between 200 and 300",
+            "Look at tens: 4, so stay. 249 is closer to 200 than to 300. Round to 200.",
+        )
+        + solved(1, "Round 249 to the nearest hundred.",
                ["Tens digit is 4. Stay.",
                 "249 is closer to 200 than to 300.",
                 "200."],
@@ -248,7 +329,12 @@ def build_unit1():
             "Check subtraction with addition.",
             "Keep columns straight. A drifted digit becomes a wrong place.",
         ],
-        solved(1, "458 + 367 = ?",
+        lesson_figure(
+            svg_tape([458, 367], labels=["458", "367"]),
+            "Join 458 and 367",
+            "The two parts make one whole. Add by places: 458 + 367 = 825.",
+        )
+        + solved(1, "458 + 367 = ?",
                ["Ones: 8+7=15. Write 5, carry 1 ten.",
                 "Tens: 5+6+1=12. Write 2, carry 1 hundred.",
                 "Hundreds: 4+3+1=8. Sum 825."],
@@ -403,7 +489,12 @@ def build_unit2():
             "Zero groups of anything is 0. One group of 7 is 7.",
             "Draw circles of dots. Count by the group size.",
         ],
-        solved(1, "4 bags with 6 apples each. How many apples?",
+        lesson_figure(
+            svg_dots(24, per_row=6, label="4 groups of 6"),
+            "4 bags of 6 apples",
+            "Four equal rows of 6. Count 6, 12, 18, 24 — or write 4 × 6 = 24.",
+        )
+        + solved(1, "4 bags with 6 apples each. How many apples?",
                ["4 equal groups of 6.",
                 "6 + 6 + 6 + 6 = 24, or 4 × 6 = 24."],
                "24")
@@ -426,7 +517,12 @@ def build_unit2():
             "A square array has the same number of rows and columns: 4 × 4.",
             "Build arrays with tiles. Seeing the rectangle makes the product feel solid.",
         ],
-        solved(1, "An array has 4 rows of 6 stamps. How many stamps?",
+        lesson_figure(
+            svg_dots(24, per_row=6, label="4 rows of 6"),
+            "A 4-by-6 array",
+            "4 rows of 6 stamps. Rows × columns = 4 × 6 = 24. Turned, 6 rows of 4 is the same 24.",
+        )
+        + solved(1, "An array has 4 rows of 6 stamps. How many stamps?",
                ["4 × 6.",
                 "6 + 6 + 6 + 6 = 24."],
                "24")
@@ -449,7 +545,12 @@ def build_unit2():
             "Repeated addition is slow for 9 × 8, so we also learn facts. But it proves what × means.",
             "Do not mix different addends and call it multiply: 3 + 4 + 5 is just add.",
         ],
-        solved(1, "Write 3 × 6 as repeated addition and find the sum.",
+        lesson_figure(
+            svg_dots(18, per_row=6, label="6 + 6 + 6"),
+            "Three 6s",
+            "3 × 6 means 6 + 6 + 6. Three equal rows of 6 make 18.",
+        )
+        + solved(1, "Write 3 × 6 as repeated addition and find the sum.",
                ["Three 6s: 6 + 6 + 6.",
                 "12 + 6 = 18.",
                 "3 × 6 = 18."],
@@ -474,7 +575,12 @@ def build_unit2():
             "Twos are even numbers: 2, 4, 6, 8, 10…",
             "Use skip-counting on fingers: one finger per hop. Stop at the first factor.",
         ],
-        solved(1, "Skip-count by 4s to find 5 × 4.",
+        lesson_figure(
+            svg_number_line(0, 20, marks=[(4, "4"), (8, "8"), (12, "12"), (16, "16"), (20, "20")], highlight=20),
+            "Skip-count by 4s",
+            "Five hops of 4: 4, 8, 12, 16, 20. The last landing is 5 × 4 = 20.",
+        )
+        + solved(1, "Skip-count by 4s to find 5 × 4.",
                ["Four hops? No: 5 hops of 4.",
                 "4, 8, 12, 16, 20.",
                 "5 × 4 = 20."],
@@ -500,7 +606,12 @@ def build_unit2():
             "The units go on the product: 15 apples, not 15 bags-apples.",
             "You can write factors in either order. The story order often matches groups × size.",
         ],
-        solved(1, "There are 6 packs of 4 crayons. Write a sentence and the product.",
+        lesson_figure(
+            svg_dots(24, per_row=4, label="6 × 4 = 24 crayons"),
+            "6 packs of 4 crayons",
+            "6 groups of 4. Factors 6 and 4; product 24 crayons.",
+        )
+        + solved(1, "There are 6 packs of 4 crayons. Write a sentence and the product.",
                ["6 groups of 4.",
                 "6 × 4 = 24 crayons."],
                "24")
@@ -523,7 +634,12 @@ def build_unit2():
             "This cuts the number of facts you must memorize almost in half.",
             "0 × n = n × 0 = 0. 1 × n = n × 1 = n.",
         ],
-        solved(1, "You know 4 × 9 = 36. What is 9 × 4?",
+        lesson_figure(
+            svg_dots(36, per_row=9, label="4 rows of 9"),
+            "4 × 9 and 9 × 4",
+            "4 rows of 9 is 36. Rotate the array: 9 rows of 4 is still 36. Turn-around facts share a product.",
+        )
+        + solved(1, "You know 4 × 9 = 36. What is 9 × 4?",
                ["Turn the factors.",
                 "Same product: 36."],
                "36")
@@ -637,7 +753,12 @@ def build_unit3():
             "Skip-count these until they are automatic.",
             "If you know 5 × 8 = 40, you also know 8 × 5 = 40.",
         ],
-        solved(1, "5 × 8 = ?",
+        lesson_figure(
+            svg_dots(40, per_row=8, label="5 × 8 = 40"),
+            "5 rows of 8",
+            "Skip-count by 5 eight times, or by 8 five times. Five equal rows of 8 make 40.",
+        )
+        + solved(1, "5 × 8 = ?",
                ["Skip-count by 5 eight times, or by 8 five times.",
                 "5, 10, 15, 20, 25, 30, 35, 40.",
                 "40."],
@@ -665,7 +786,12 @@ def build_unit3():
             "These facts are quick wins. Lock them in so they never steal hearts.",
             "In a story, 'none in each box' means × 0.",
         ],
-        solved(1, "1 × 12 = ?",
+        lesson_figure(
+            svg_dots(12, per_row=12, label="1 × 12 = 12"),
+            "One group of 12",
+            "Times 1 leaves the number: one row of 12 is still 12. Times 0 would be an empty picture.",
+        )
+        + solved(1, "1 × 12 = ?",
                ["One group of 12, or twelve 1s.",
                 "12."],
                "12")
@@ -688,7 +814,12 @@ def build_unit3():
             "3 × 4 = 12. That fact is a helper for many others (dozen, clock).",
             "Practice until 3 × 8 and 4 × 9 pop out without skip-counting every time.",
         ],
-        solved(1, "3 × 8 = ?",
+        lesson_figure(
+            svg_dots(24, per_row=8, label="3 × 8 = 24"),
+            "Three 8s",
+            "3 × 8 is three rows of 8, or 8 + 8 + 8 = 24. A triangle has 3 sides; 8 triangles would have 24 sides.",
+        )
+        + solved(1, "3 × 8 = ?",
                ["8 + 8 + 8 = 24.",
                 "Or skip-count: 3, 6, 9, 12, 15, 18, 21, 24."],
                "24")
@@ -715,7 +846,12 @@ def build_unit3():
             "6 × 6 = 36. 9 × 9 = 81. Square facts are landmarks.",
             "Use a fact you know nearby, then add or subtract one group.",
         ],
-        solved(1, "6 × 8. Use 5 × 8 plus one more 8.",
+        lesson_figure(
+            svg_tape([40, 8], labels=["5 × 8 = 40", "one more 8"]),
+            "6 × 8 as 5 × 8 plus one 8",
+            "×6 is ×5 plus one more group. 40 + 8 = 48, so 6 × 8 = 48.",
+        )
+        + solved(1, "6 × 8. Use 5 × 8 plus one more 8.",
                ["5 × 8 = 40.",
                 "40 + 8 = 48.",
                 "6 × 8 = 48."],
@@ -745,7 +881,12 @@ def build_unit3():
             "Once you know 7 × 8, you also know 8 × 7.",
             "A calendar helps 7s: 4 weeks is 28 days. 8 weeks is 56 days.",
         ],
-        solved(1, "7 × 8 = ?",
+        lesson_figure(
+            svg_tape([35, 21], labels=["7 × 5 = 35", "7 × 3 = 21"]),
+            "7 × 8 split into 5 + 3",
+            "Break 8 into 5 and 3. Multiply both parts by 7, then add: 35 + 21 = 56.",
+        )
+        + solved(1, "7 × 8 = ?",
                ["7 × 5 = 35. 7 × 3 = 21.",
                 "35 + 21 = 56."],
                "56")
@@ -772,7 +913,13 @@ def build_unit3():
             "Split the factor you know less well. Keep the other factor whole.",
             "Check by skip-counting or turning the fact around.",
         ],
-        solved(1, "8 × 6 using 5 + 1.",
+        lesson_figure(
+            svg_rect(8, 6)
+            + svg_tape([40, 8], labels=["8 × 5 = 40", "8 × 1 = 8"]),
+            "An 8-by-6 rectangle split 5 + 1",
+            "Area 8 × 6 matches 8 × (5 + 1). Multiply each part, then add: 40 + 8 = 48.",
+        )
+        + solved(1, "8 × 6 using 5 + 1.",
                ["8 × 5 = 40.",
                 "8 × 1 = 8.",
                 "40 + 8 = 48."],
@@ -883,7 +1030,12 @@ def build_unit4():
             "If it shares evenly, nothing is left over. In this unit we stay with even shares.",
             "Check: groups × share = total. 3 × 4 = 12.",
         ],
-        solved(1, "20 stickers shared by 5 kids. How many each?",
+        lesson_figure(
+            svg_tape([4, 4, 4, 4, 4], labels=["4", "4", "4", "4", "4"]),
+            "20 stickers shared by 5 kids",
+            "One whole of 20 split into 5 equal shares. Each share is 4. Check: 5 × 4 = 20.",
+        )
+        + solved(1, "20 stickers shared by 5 kids. How many each?",
                ["20 ÷ 5.",
                 "5 × 4 = 20, so each kid gets 4."],
                "4")
@@ -907,7 +1059,12 @@ def build_unit4():
             "Same equation 12 ÷ 4 = 3, different picture: 3 groups of 4, not 4 shares of 3 — actually 12÷4=3 could be either, depending on the story.",
             "Read the story. 'How many each' vs 'how many groups'.",
         ],
-        solved(1, "A box holds 6 cans. You have 24 cans. How many boxes?",
+        lesson_figure(
+            svg_dots(24, per_row=6, label="4 groups of 6"),
+            "How many 6s in 24?",
+            "Each row is one box of 6 cans. Four rows fit in 24, so 24 ÷ 6 = 4 boxes.",
+        )
+        + solved(1, "A box holds 6 cans. You have 24 cans. How many boxes?",
                ["How many 6s in 24?",
                 "24 ÷ 6 = 4 boxes.",
                 "Check: 4 × 6 = 24."],
@@ -933,7 +1090,12 @@ def build_unit4():
             "A triangle of three numbers is a family. The biggest number is the product (and the dividend).",
             "0 and 1 have special families: 7×1=7, 7÷1=7, 7÷7=1. And 0÷5=0 because 5×0=0.",
         ],
-        solved(1, "4 × 6 = 24. What is 24 ÷ 6?",
+        lesson_figure(
+            svg_dots(24, per_row=6, label="4 × 6 = 24"),
+            "The 4, 6, 24 family",
+            "The array is 4 rows of 6. So 4 × 6 = 24 and 24 ÷ 6 = 4. Division undoes multiplication.",
+        )
+        + solved(1, "4 × 6 = 24. What is 24 ÷ 6?",
                ["24 is the product.",
                 "Divide by one factor to get the other.",
                 "24 ÷ 6 = 4."],
@@ -958,7 +1120,12 @@ def build_unit4():
             "56 ÷ 7: maybe 7×5=35, leftover 21, 7×3=21, so 5+3=8. Quotient 8.",
             "Check by multiplying quotient × divisor. You must get the dividend.",
         ],
-        solved(1, "56 ÷ 7 = ?",
+        lesson_figure(
+            svg_dots(56, per_row=8, label="7 × 8 = 56"),
+            "7 times what is 56?",
+            "Seven rows of 8 make 56. The missing factor is 8, so 56 ÷ 7 = 8.",
+        )
+        + solved(1, "56 ÷ 7 = ?",
                ["7 × ? = 56.",
                 "7 × 8 = 56.",
                 "Quotient 8."],
@@ -981,7 +1148,12 @@ def build_unit4():
             "Write the related divide sentence under the multiply sentence.",
             "Then check by putting the number back: 6 × 7 = 42. Yes.",
         ],
-        solved(1, "6 × ___ = 42. What number is missing?",
+        lesson_figure(
+            svg_tape([7, 7, 7, 7, 7, 7], labels=["7", "7", "7", "7", "7", "7"]),
+            "6 × ___ = 42",
+            "Six equal parts make 42. Each part is 7 because 42 ÷ 6 = 7. Check: 6 × 7 = 42.",
+        )
+        + solved(1, "6 × ___ = 42. What number is missing?",
                ["42 ÷ 6 = 7.",
                 "Check: 6 × 7 = 42."],
                "7")
@@ -1006,7 +1178,12 @@ def build_unit4():
             "Two kinds: 24 ÷ 6 might be 6 kids get 4, or 4 boxes of 6. Read what is asked.",
             "Draw equal groups or an array. Arrays work both ways: 4 rows of 6 is 24, so 24 ÷ 6 = 4 rows.",
         ],
-        solved(1, "32 seats. 8 seats per row. How many rows?",
+        lesson_figure(
+            svg_dots(32, per_row=8, label="4 rows of 8"),
+            "32 seats, 8 per row",
+            "How many 8s in 32? Four rows. 32 ÷ 8 = 4 rows. The same array also shows 32 ÷ 4 = 8 seats per row.",
+        )
+        + solved(1, "32 seats. 8 seats per row. How many rows?",
                ["How many 8s in 32?",
                 "32 ÷ 8 = 4 rows.",
                 "Check: 4 × 8 = 32."],

@@ -1,5 +1,10 @@
 """Third Grade Math units 5–8: multi-step stories, fractions, area, perimeter, plus master page."""
 
+from curriculum_kit import (
+    lesson_figure, svg_dots, svg_number_line, svg_rect, svg_fraction_bar,
+    svg_tape, svg_circle, svg_triangle, svg_clock, svg_base10,
+)
+
 from .common import (
     concept_block,
     solved,
@@ -15,6 +20,29 @@ from .common import (
     mq,
     renumber,
 )
+
+
+def _frac_line(den, num):
+    w, h, y = 460, 78, 36
+    left, right = 28, w - 28
+    bits = [
+        f'<line x1="{left}" y1="{y}" x2="{right}" y2="{y}" stroke="#0f172a" stroke-width="2"/>'
+    ]
+    for i in range(den + 1):
+        x = left + i * (right - left) / den
+        lab = "0" if i == 0 else ("1" if i == den else f"{i}/{den}")
+        bits.append(
+            f'<line x1="{x:.1f}" y1="{y - 7}" x2="{x:.1f}" y2="{y + 7}" stroke="#0f172a" stroke-width="2"/>'
+        )
+        bits.append(
+            f'<text x="{x:.1f}" y="{y + 22}" text-anchor="middle" font-size="11">{lab}</text>'
+        )
+    x = left + num * (right - left) / den
+    bits.append(f'<circle cx="{x:.1f}" cy="{y}" r="7" fill="#dc2626"/>')
+    return (
+        f'<svg viewBox="0 0 {w} {h}" width="100%" style="max-width:{w}px" role="img">'
+        f'{"".join(bits)}</svg>'
+    )
 
 
 def _fill(qs, need, factory):
@@ -152,7 +180,12 @@ def build_unit5():
             "Words like then, after that, and next often start the second step.",
             "Check: reread the last question. Does your number answer that sentence?",
         ],
-        solved(1, "Mia has 36 stickers. She gets 18, then gives 12 away. How many now?",
+        lesson_figure(
+            svg_tape([36, 18], labels=["had 36", "gets 18"]),
+            "Mia's stickers, two steps",
+            "First join 36 and 18 to get 54. Then take 12 away: 54 − 12 = 42 stickers now.",
+        )
+        + solved(1, "Mia has 36 stickers. She gets 18, then gives 12 away. How many now?",
                ["36 + 18 = 54 after getting more.",
                 "54 − 12 = 42 after giving some away.",
                 "42 stickers."],
@@ -178,7 +211,12 @@ def build_unit5():
             "If the extra is also equal groups, you may multiply twice (next lessons).",
             "Estimate: 4 × 6 is about 4 × 5 = 20, plus a few. 27 is reasonable.",
         ],
-        solved(1, "5 bags of 8 apples. You eat 6. How many apples left?",
+        lesson_figure(
+            svg_tape([34, 6], labels=["left 34", "eaten 6"]),
+            "5 bags of 8, then eat 6",
+            "Equal groups first: 5 × 8 = 40. The tape splits 40 into 34 left and 6 eaten.",
+        )
+        + solved(1, "5 bags of 8 apples. You eat 6. How many apples left?",
                ["5 × 8 = 40 apples.",
                 "40 − 6 = 34 left."],
                "34")
@@ -206,7 +244,12 @@ def build_unit5():
             "Decide whether the second step changes one group or the whole leftover.",
             "Draw the equal groups. Cross out or add on the picture.",
         ],
-        solved(1, "40 cards to 5 players, equal. One player gives away 3. How many does that player have?",
+        lesson_figure(
+            svg_tape([8, 8, 8, 8, 8], labels=["8", "8", "8", "8", "8"]),
+            "40 cards to 5 players",
+            "Share first: 40 ÷ 5 = 8 each. Then one player gives away 3, so that player has 8 − 3 = 5.",
+        )
+        + solved(1, "40 cards to 5 players, equal. One player gives away 3. How many does that player have?",
                ["40 ÷ 5 = 8 each.",
                 "8 − 3 = 5 for that player."],
                "5")
@@ -228,7 +271,12 @@ def build_unit5():
             "Name the operations before you compute: ×, ×, +.",
             "If a number in the story is not used, you used the wrong plan — or the story had a distractor. Third-grade stories here use every needed number, not extra traps.",
         ],
-        solved(1, "3 packs of 5 stickers and 2 packs of 4. How many stickers?",
+        lesson_figure(
+            svg_tape([15, 8], labels=["3 × 5 = 15", "2 × 4 = 8"]),
+            "Two kinds of packs",
+            "Multiply each kind of pack, then add the products: 15 + 8 = 23 stickers.",
+        )
+        + solved(1, "3 packs of 5 stickers and 2 packs of 4. How many stickers?",
                ["3 × 5 = 15.",
                 "2 × 4 = 8.",
                 "15 + 8 = 23."],
@@ -258,7 +306,12 @@ def build_unit5():
             "The ? sits on what the question asks, not on a leftover fact.",
             "If you cannot draw it, the operations are not clear yet. Reread.",
         ],
-        solved(1, "4 packs of 6 crayons plus 3 extra. Draw, then solve.",
+        lesson_figure(
+            svg_tape([6, 6, 6, 6, 3], labels=["6", "6", "6", "6", "3"]),
+            "4 packs of 6 plus 3 extra",
+            "Four equal bars of 6 make 24. A small bar of 3 joins them: 24 + 3 = 27 crayons.",
+        )
+        + solved(1, "4 packs of 6 crayons plus 3 extra. Draw, then solve.",
                ["Four bars of 6, or one bar of 24.",
                 "A small bar of 3 joins them.",
                 "24 + 3 = 27."],
@@ -284,7 +337,12 @@ def build_unit5():
             "Reread the question sentence only. Answer that, not a middle step.",
             "Hearts are for misses. Reasonableness saves hearts.",
         ],
-        solved(1, "6 kids bring 5 snacks each. They eat 8. Could 22 leftover be right?",
+        lesson_figure(
+            svg_tape([22, 8], labels=["left 22", "ate 8"]),
+            "30 snacks, then eat 8",
+            "6 × 5 = 30 snacks in all. 30 − 8 = 22 leftover. 22 is less than 30 and more than 0, so it fits.",
+        )
+        + solved(1, "6 kids bring 5 snacks each. They eat 8. Could 22 leftover be right?",
                ["6 × 5 = 30 snacks.",
                 "30 − 8 = 22.",
                 "22 is less than 30 and more than 0. It fits."],
@@ -461,7 +519,12 @@ def build_unit6():
             "Fold a paper into equal parts. One part is the unit fraction.",
             "Every other fraction is built from unit fractions.",
         ],
-        solved(1, "A sandwich is cut into 8 equal pieces. What is one piece called?",
+        lesson_figure(
+            svg_fraction_bar(1, 8),
+            "One of 8 equal pieces",
+            "A sandwich cut into 8 equal parts. One piece is the unit fraction 1/8.",
+        )
+        + solved(1, "A sandwich is cut into 8 equal pieces. What is one piece called?",
                ["8 equal parts → eighths.",
                 "One piece is 1/8."],
                "1/8")
@@ -485,7 +548,12 @@ def build_unit6():
             "If the numerator is 0, you have none of the parts: 0/4 = 0.",
             "Shade unit pieces one by one to build the fraction.",
         ],
-        solved(1, "What is 3/4 in unit pieces?",
+        lesson_figure(
+            svg_fraction_bar(3, 4),
+            "Three copies of 1/4",
+            "3/4 means three of four equal pieces: 1/4 + 1/4 + 1/4. The numerator counts unit pieces.",
+        )
+        + solved(1, "What is 3/4 in unit pieces?",
                ["Unit piece is 1/4.",
                 "Take 3 copies: 1/4 + 1/4 + 1/4.",
                 "That is 3/4."],
@@ -509,7 +577,12 @@ def build_unit6():
             "The fraction is the point you land on, not the tick count alone — count the jumps from 0.",
             "You can also go past 1: 5/4 is one whole and one fourth more. We focus near 0 to 1, plus wholes as fractions.",
         ],
-        solved(1, "A 0-to-1 line is split into 3 equal jumps. Where is 2/3?",
+        lesson_figure(
+            _frac_line(3, 2),
+            "2/3 on a 0-to-1 line",
+            "Three equal jumps from 0 to 1. Each jump is 1/3. Two jumps land on 2/3.",
+        )
+        + solved(1, "A 0-to-1 line is split into 3 equal jumps. Where is 2/3?",
                ["Each jump is 1/3.",
                 "Two jumps from 0 land on 2/3."],
                "2/3")
@@ -535,7 +608,12 @@ def build_unit6():
             "The number looks different. The amount is the same.",
             "Use Fraction Matcher to pair pictures that match.",
         ],
-        solved(1, "Does 2/4 equal 1/2 of the same sandwich?",
+        lesson_figure(
+            svg_fraction_bar(2, 4) + svg_fraction_bar(1, 2),
+            "2/4 and 1/2 of the same whole",
+            "Two of four equal parts cover half the bar. Same amount, different slice size: 2/4 = 1/2.",
+        )
+        + solved(1, "Does 2/4 equal 1/2 of the same sandwich?",
                ["Two of four equal parts cover half.",
                 "Yes. 2/4 = 1/2."],
                "yes")
@@ -557,7 +635,12 @@ def build_unit6():
             "The fraction bar means 'divided by', so 6/2 is 6 ÷ 2 = 3. That matches.",
             "Seeing 4/4 as 1 helps you know when a shape is fully shaded.",
         ],
-        solved(1, "Write 1 as fourths.",
+        lesson_figure(
+            svg_fraction_bar(4, 4),
+            "Four fourths make 1",
+            "When the numerator equals the denominator, every piece is shaded. 4/4 = 1 whole.",
+        )
+        + solved(1, "Write 1 as fourths.",
                ["Four fourths fill one whole.",
                 "1 = 4/4."],
                "4/4")
@@ -579,7 +662,12 @@ def build_unit6():
             "Equivalent fractions compare as equal: 2/6 = 1/3.",
             "Do not compare 1/2 of a cracker with 1/2 of a cake as the same size. Different wholes.",
         ],
-        solved(1, "Same pizza. 3/8 or 5/8 — which is more?",
+        lesson_figure(
+            svg_fraction_bar(5, 8) + svg_fraction_bar(3, 8),
+            "Same pizza, more eighths",
+            "Pieces are the same size (eighths). 5 shaded > 3 shaded, so 5/8 > 3/8.",
+        )
+        + solved(1, "Same pizza. 3/8 or 5/8 — which is more?",
                ["Pieces are the same size (eighths).",
                 "5 pieces > 3 pieces.",
                 "5/8."],
@@ -731,7 +819,12 @@ def build_unit7():
             "A square centimeter is a tiny square 1 cm on each side. A square foot is 1 foot on each side.",
             "Gaps and overlaps ruin the count. Tiles should fit edge to edge.",
         ],
-        solved(1, "A shape is covered by 8 unit squares with no gaps. Area?",
+        lesson_figure(
+            svg_rect(4, 2),
+            "8 unit squares",
+            "A 4-by-2 rectangle holds 8 same-size squares with no gaps. Area = 8 square units.",
+        )
+        + solved(1, "A shape is covered by 8 unit squares with no gaps. Area?",
                ["Count the squares.",
                 "Area = 8 square units."],
                "8 square units")
@@ -755,7 +848,12 @@ def build_unit7():
             "Odd shapes: count every square. Some shapes are not full rectangles.",
             "Color a row, then skip-count to avoid double-counting.",
         ],
-        solved(1, "5 rows of 5 unit squares. Area?",
+        lesson_figure(
+            svg_rect(5, 5),
+            "5 rows of 5 unit squares",
+            "An array of squares: 5 × 5 = 25. Turning it does not change the area.",
+        )
+        + solved(1, "5 rows of 5 unit squares. Area?",
                ["5 × 5 = 25.",
                 "A 5-by-5 square."],
                "25")
@@ -777,7 +875,12 @@ def build_unit7():
             "A square is a rectangle with equal sides. Area = side × side.",
             "This formula only works for rectangles (and squares). Odd shapes need counting or splitting.",
         ],
-        solved(1, "A rectangle is 8 units long and 3 units wide. Area?",
+        lesson_figure(
+            svg_rect(8, 3),
+            "Length 8, width 3",
+            "For a rectangle, area = length × width. 8 × 3 = 24 square units.",
+        )
+        + solved(1, "A rectangle is 8 units long and 3 units wide. Area?",
                ["8 × 3 = 24 square units."],
                "24")
         + solved(2, "A square has side 6. Area?",
@@ -802,7 +905,12 @@ def build_unit7():
             "No overlap, no gap, when you add pieces.",
             "This is how we find area of rectilinear figures (shapes made of rectangles).",
         ],
-        solved(1, "A 4×6 rectangle with a 2×3 rectangle attached, no overlap. Total area?",
+        lesson_figure(
+            svg_rect(6, 4) + svg_rect(3, 2),
+            "Two rectangles, no overlap",
+            "A 4×6 piece is 24 square units. A 2×3 piece is 6. Add: 24 + 6 = 30.",
+        )
+        + solved(1, "A 4×6 rectangle with a 2×3 rectangle attached, no overlap. Total area?",
                ["4 × 6 = 24.",
                 "2 × 3 = 6.",
                 "24 + 6 = 30."],
@@ -828,7 +936,12 @@ def build_unit7():
             "Check: multiply the sides you now have. You must get the area back.",
             "Stories: a garden of 35 square meters, one side 7 m → other side 5 m.",
         ],
-        solved(1, "Area 40 square units. Width 5. Length?",
+        lesson_figure(
+            svg_rect(8, 5),
+            "Area 40, width 5",
+            "One side is 5. The other side is the missing factor: 40 ÷ 5 = 8. Check: 8 × 5 = 40.",
+        )
+        + solved(1, "Area 40 square units. Width 5. Length?",
                ["40 ÷ 5 = 8.",
                 "Check: 8 × 5 = 40."],
                "8")
@@ -850,7 +963,12 @@ def build_unit7():
             "If the story gives area and one side, divide.",
             "Sketch a labeled rectangle. It keeps length and width from swapping with perimeter.",
         ],
-        solved(1, "A rug is 8 feet by 3 feet. Area?",
+        lesson_figure(
+            svg_rect(8, 3),
+            "Rug 8 ft by 3 ft",
+            "Multiply the side lengths. Area = 8 × 3 = 24 square feet — not 24 feet.",
+        )
+        + solved(1, "A rug is 8 feet by 3 feet. Area?",
                ["8 × 3 = 24.",
                 "24 square feet."],
                "24")
@@ -999,7 +1117,12 @@ def build_unit8():
             "If a side is missing on the drawing, you may still know it from parallel sides of a rectangle.",
             "Trace with a finger. Count each side once.",
         ],
-        solved(1, "A triangle has sides 3, 4, and 5. Perimeter?",
+        lesson_figure(
+            svg_triangle(3, 4, 5),
+            "Sides 3, 4, and 5",
+            "Perimeter is the distance around. Add every side once: 3 + 4 + 5 = 12.",
+        )
+        + solved(1, "A triangle has sides 3, 4, and 5. Perimeter?",
                ["Add the sides: 3 + 4 + 5.",
                 "12."],
                "12")
@@ -1022,7 +1145,12 @@ def build_unit8():
             "Equilateral triangle side 7: 3 × 7 = 21.",
             "List the sides and add. Check that you used every side once.",
         ],
-        solved(1, "A square has side 6. Perimeter?",
+        lesson_figure(
+            svg_rect(6, 6),
+            "Square with side 6",
+            "Four equal sides. Walk the outline: 6 + 6 + 6 + 6 = 24, or 4 × 6 = 24.",
+        )
+        + solved(1, "A square has side 6. Perimeter?",
                ["Four equal sides.",
                 "6 + 6 + 6 + 6 = 24, or 4 × 6 = 24."],
                "24")
@@ -1048,7 +1176,12 @@ def build_unit8():
             "You only need two measurements: one length and one width. Opposite sides match.",
             "If a drawing shows only two sides, you can still find perimeter of a rectangle.",
         ],
-        solved(1, "A rectangle is 8 by 5. Perimeter?",
+        lesson_figure(
+            svg_rect(8, 5),
+            "Rectangle 8 by 5",
+            "Two lengths and two widths. Perimeter = 2 × (8 + 5) = 2 × 13 = 26. (8 × 5 = 40 would be area.)",
+        )
+        + solved(1, "A rectangle is 8 by 5. Perimeter?",
                ["2 × (8 + 5) = 2 × 13 = 26."],
                "26")
         + solved(2, "A rectangle is 10 by 3. Perimeter?",
@@ -1076,7 +1209,12 @@ def build_unit8():
             "A garden's grass is area. The fence is perimeter.",
             "Always ask: around or inside?",
         ],
-        solved(1, "A 6-by-2 rectangle. Give area and perimeter.",
+        lesson_figure(
+            svg_rect(6, 2),
+            "6-by-2: fill vs wrap",
+            "Area fills: 6 × 2 = 12 square units. Perimeter wraps: 6+2+6+2 = 16 units. Same shape, different jobs.",
+        )
+        + solved(1, "A 6-by-2 rectangle. Give area and perimeter.",
                ["Area: 6 × 2 = 12 square units.",
                 "Perimeter: 6+2+6+2 = 16 units."],
                "area 12, perimeter 16")
@@ -1100,7 +1238,12 @@ def build_unit8():
             "Subtract the sides you know from the perimeter. Watch the 2× for rectangles.",
             "Check by adding all sides again, including the new one.",
         ],
-        solved(1, "Perimeter 24. Rectangle length 8. Width?",
+        lesson_figure(
+            svg_rect(8, 4),
+            "Perimeter 24, length 8",
+            "2 × (8 + W) = 24, so 8 + W = 12 and W = 4. Opposite sides of a rectangle match.",
+        )
+        + solved(1, "Perimeter 24. Rectangle length 8. Width?",
                ["2 × (8 + W) = 24.",
                 "8 + W = 12.",
                 "W = 4."],
@@ -1122,7 +1265,12 @@ def build_unit8():
             "Sketch and label L and W before you add.",
             "If the story asks how much grass, that is area, not fence.",
         ],
-        solved(1, "A picture is 8 in by 5 in. How much trim around the outside?",
+        lesson_figure(
+            svg_rect(8, 5),
+            "Picture 8 in by 5 in",
+            "Trim goes around the outside. Add the sides: 8+5+8+5 = 26 inches of trim.",
+        )
+        + solved(1, "A picture is 8 in by 5 in. How much trim around the outside?",
                ["Perimeter: 8+5+8+5=26 inches of trim."],
                "26")
         + solved(2, "A garden is 12 by 4. Fence around once. How long?",
