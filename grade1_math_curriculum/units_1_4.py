@@ -2,6 +2,19 @@
 
 from __future__ import annotations
 
+from curriculum_kit import (
+    lesson_figure,
+    svg_dots,
+    svg_ten_frame,
+    svg_number_line,
+    svg_clock,
+    svg_tape,
+    svg_coins,
+    svg_base10,
+    svg_rect,
+    svg_fraction_bar,
+)
+
 from .common import (
     concept_block,
     solved,
@@ -187,7 +200,12 @@ def build_unit1():
             "After 10, the teen numbers start: eleven, twelve, thirteen… up to twenty.",
             "Practice every day. Count toys. Count steps. Count snacks.",
         ],
-        solved(1, "How many dots? • • • •",
+        lesson_figure(
+            svg_dots(4, label="4 dots"),
+            "Count four dots",
+            "Touch each filled circle once. Say 1, 2, 3, 4. The last number is how many: 4.",
+        )
+        + solved(1, "How many dots? • • • •",
                ["Point to the first dot. Say 1.",
                 "Point to the next. Say 2. Then 3. Then 4.",
                 "The last number is 4. There are 4 dots."],
@@ -216,7 +234,12 @@ def build_unit1():
             "If you get stuck, go back ten and count up again.",
             "You can count by ones: 56, 57, 58, 59, 60.",
         ],
-        solved(1, "What comes after 49?",
+        lesson_figure(
+            svg_number_line(45, 55, marks=[(49, "49"), (50, "next")], highlight=50),
+            "After 49 comes 50",
+            "Find 49. Count one more to the right. You land on 50, the start of a new ten.",
+        )
+        + solved(1, "What comes after 49?",
                ["49 is 4 tens and 9 ones.",
                 "One more one makes 5 tens and 0 ones.",
                 "That number is 50."],
@@ -249,7 +272,12 @@ def build_unit1():
             "120 is 12 tens. It is also 100 and 2 tens.",
             "This helps you later with bigger numbers.",
         ],
-        solved(1, "What comes after 109?",
+        lesson_figure(
+            svg_number_line(105, 115, marks=[(109, "109"), (110, "110")], highlight=110),
+            "Past 100: after 109",
+            "After one hundred nine, count one more. That is one hundred ten: 110.",
+        )
+        + solved(1, "What comes after 109?",
                ["Say: one hundred nine.",
                 "One more: one hundred ten.",
                 "We write 110."],
@@ -279,7 +307,12 @@ def build_unit1():
             "Count on when you add. Count back when you take away (we learn that later).",
             "Try starting at 14 and counting on 3: 15, 16, 17.",
         ],
-        solved(1, "You have 6 stickers. You get 3 more. How many now?",
+        lesson_figure(
+            svg_number_line(6, 10, marks=[(6, "start"), (9, "land")], highlight=9),
+            "Start at 6. Count on 3",
+            "Keep 6. Hop 7, 8, 9. Three hops land on 9 stickers.",
+        )
+        + solved(1, "You have 6 stickers. You get 3 more. How many now?",
                ["Keep 6 in your head. Do not start at 1.",
                 "Count on: 7, 8, 9.",
                 "You land on 9."],
@@ -306,7 +339,12 @@ def build_unit1():
             "Skip counting helps you add 10 fast.",
             "Clap on each ten. It makes a beat.",
         ],
-        solved(1, "Count by tens: 10, 20, 30, ___. What is next?",
+        lesson_figure(
+            svg_base10(4, 0),
+            "Four tens make 40",
+            "Each tall stick is one ten. Count the sticks: 10, 20, 30, 40.",
+        )
+        + solved(1, "Count by tens: 10, 20, 30, ___. What is next?",
                ["Each jump adds 10.",
                 "30 + 10 = 40.",
                 "Next is 40."],
@@ -334,7 +372,12 @@ def build_unit1():
             "Two-digit numbers: tens name + ones name. 42 is forty-two.",
             "Past 100 we say one hundred, then the rest: 107 is one hundred seven.",
         ],
-        solved(1, "How do we write forty-five?",
+        lesson_figure(
+            svg_base10(4, 5),
+            "Forty-five is 45",
+            "Four ten-sticks and five little ones. We write 4 in the tens place and 5 in the ones place: 45.",
+        )
+        + solved(1, "How do we write forty-five?",
                ["Forty means 4 tens.",
                 "Five means 5 ones.",
                 "Write 45."],
@@ -489,7 +532,12 @@ def build_unit2():
             "We write tens on the left and ones on the right. In 10, the 1 is the ten.",
             "This idea is the start of place value. Place means where the digit sits.",
         ],
-        solved(1, "You have 10 ones. How many tens?",
+        lesson_figure(
+            svg_ten_frame(10),
+            "Ten ones fill one ten-frame",
+            "Every circle is filled. 10 ones snap into 1 ten. We write 10.",
+        )
+        + solved(1, "You have 10 ones. How many tens?",
                ["Count the ones: 10.",
                 "10 ones snap into 1 bundle.",
                 "That is 1 ten."],
@@ -517,7 +565,12 @@ def build_unit2():
             "You can draw sticks for tens and dots for ones.",
             "Always check both places. Do not only look at one digit.",
         ],
-        solved(1, "Break apart 26.",
+        lesson_figure(
+            svg_base10(2, 6),
+            "26 is 2 tens and 6 ones",
+            "Two tall sticks are 20. Six small cubes are 6. 20 + 6 = 26.",
+        )
+        + solved(1, "Break apart 26.",
                ["The left digit is 2. That is 2 tens.",
                 "2 tens = 20.",
                 "The right digit is 6 ones.",
@@ -542,7 +595,12 @@ def build_unit2():
             "Eleven and twelve have special names. They are still 1 ten and extra ones.",
             "Teens are the first two-digit numbers you meet.",
         ],
-        solved(1, "What is 1 ten and 4 ones?",
+        lesson_figure(
+            svg_base10(1, 4),
+            "Fourteen is 1 ten and 4 ones",
+            "One ten-stick plus four ones. That is 10 + 4 = 14, not 4 tens.",
+        )
+        + solved(1, "What is 1 ten and 4 ones?",
                ["1 ten = 10.",
                 "4 ones = 4.",
                 "10 + 4 = 14. Fourteen."],
@@ -568,7 +626,12 @@ def build_unit2():
             "When we add later, we add ones with ones and tens with tens.",
             "Practice until you can see 63 and think “six tens and three.”",
         ],
-        solved(1, "What number is 7 tens and 2 ones?",
+        lesson_figure(
+            svg_base10(7, 2),
+            "72 is 7 tens and 2 ones",
+            "Seven ten-sticks make 70. Two little cubes make 2. Together: 72.",
+        )
+        + solved(1, "What number is 7 tens and 2 ones?",
                ["7 tens = 70.",
                 "Plus 2 ones.",
                 "70 + 2 = 72."],
@@ -591,7 +654,12 @@ def build_unit2():
             "Equal means the same amount. 25 = 25.",
             "Play with two groups of toys. Which group has more?",
         ],
-        solved(1, "Which is greater: 36 or 63?",
+        lesson_figure(
+            svg_base10(3, 6) + svg_base10(6, 3),
+            "36 vs 63 — look at tens first",
+            "Left: 3 tens and 6 ones (36). Right: 6 tens and 3 ones (63). More tens wins, so 63 is greater.",
+        )
+        + solved(1, "Which is greater: 36 or 63?",
                ["36 has 3 tens.",
                 "63 has 6 tens.",
                 "6 tens is more. 63 is greater."],
@@ -618,7 +686,12 @@ def build_unit2():
             "This is a fast trick. You do not count 10 ones.",
             "Near 100: 95 + 10 = 105. Now you need three digits.",
         ],
-        solved(1, "What is 10 more than 48?",
+        lesson_figure(
+            svg_base10(4, 8) + svg_base10(5, 8),
+            "10 more than 48 is 58",
+            "Left is 48 (4 tens, 8 ones). Add one ten-stick. Ones stay 8. Now 5 tens: 58.",
+        )
+        + solved(1, "What is 10 more than 48?",
                ["Keep the 8 ones.",
                 "Change 4 tens to 5 tens.",
                 "48 + 10 = 58."],
@@ -729,7 +802,13 @@ def build_unit3():
             "Zero plus a number stays the same. 5 + 0 = 5.",
             "Use toys, fingers, or drawings. Then try it in your head.",
         ],
-        solved(1, "4 birds sit. 2 more land. How many birds?",
+        lesson_figure(
+            svg_dots(4, color="#6366f1", label="4 birds")
+            + svg_dots(2, color="#f59e0b", label="2 more"),
+            "4 birds and 2 more",
+            "Put the two groups together. 4 + 2 = 6 birds in all.",
+        )
+        + solved(1, "4 birds sit. 2 more land. How many birds?",
                ["First group: 4.",
                 "Second group: 2.",
                 "Put together: 4 + 2 = 6."],
@@ -753,7 +832,12 @@ def build_unit3():
             "Counting on works great when one number is 1, 2, or 3.",
             "Check by drawing if you want. Then try without the drawing.",
         ],
-        solved(1, "8 + 3 = ?",
+        lesson_figure(
+            svg_number_line(8, 12, marks=[(8, "8"), (11, "11")], highlight=11),
+            "Count on from 8",
+            "Hold 8. Hop three times: 9, 10, 11. So 8 + 3 = 11.",
+        )
+        + solved(1, "8 + 3 = ?",
                ["Bigger number is 8. Hold 8.",
                 "Put up 3 fingers.",
                 "Count on: 9, 10, 11.",
@@ -782,7 +866,12 @@ def build_unit3():
             "Number pairs that make 10 help: 1+9, 2+8, 3+7, 4+6, 5+5.",
             "Play until those pairs are fast.",
         ],
-        solved(1, "8 + 6 = ?",
+        lesson_figure(
+            svg_tape([8, 2, 4], labels=["8", "+2 → 10", "+4"]),
+            "Make a ten: 8 + 6",
+            "8 needs 2 to make 10. Split 6 into 2 and 4. Then 10 + 4 = 14.",
+        )
+        + solved(1, "8 + 6 = ?",
                ["8 needs 2 more to make 10.",
                 "Split 6 into 2 and 4.",
                 "8 + 2 = 10. Then 10 + 4 = 14."],
@@ -805,7 +894,13 @@ def build_unit3():
             "If you know doubles, near doubles get easy next.",
             "Say them like a song.",
         ],
-        solved(1, "7 + 7 = ?",
+        lesson_figure(
+            svg_dots(7, color="#6366f1", per_row=7, label="7")
+            + svg_dots(7, color="#6366f1", per_row=7, label="7 more"),
+            "Double 7",
+            "Two matching rows of 7. Twins. 7 + 7 = 14.",
+        )
+        + solved(1, "7 + 7 = ?",
                ["This is a double.",
                 "7 and 7.",
                 "7 + 7 = 14."],
@@ -828,7 +923,13 @@ def build_unit3():
             "Look for numbers that sit next to each other, like 4 and 5.",
             "If it helps, draw the double first, then add the extra dot.",
         ],
-        solved(1, "5 + 6 = ?",
+        lesson_figure(
+            svg_dots(5, color="#6366f1", label="5")
+            + svg_dots(6, color="#f59e0b", label="6 (one extra)"),
+            "Near double: 5 + 6",
+            "5 + 5 is 10. The extra orange dot makes 11. So 5 + 6 = 11.",
+        )
+        + solved(1, "5 + 6 = ?",
                ["5 + 5 is 10. That is the double.",
                 "6 is one more than 5.",
                 "So 5 + 6 = 10 + 1 = 11."],
@@ -855,7 +956,12 @@ def build_unit3():
             "Keep the running total in your head or on paper.",
             "Check by adding a different pair first. Same answer? Good.",
         ],
-        solved(1, "3 + 7 + 2 = ?",
+        lesson_figure(
+            svg_tape([3, 7, 2], labels=["3", "7", "2"]),
+            "Add 3 + 7 + 2",
+            "3 and 7 make a ten first. Then 10 + 2 = 12. All three numbers are in the bar.",
+        )
+        + solved(1, "3 + 7 + 2 = ?",
                ["3 + 7 = 10. Nice ten!",
                 "10 + 2 = 12."],
                "12")
@@ -974,7 +1080,13 @@ def build_unit4():
             "A number minus itself is 0. 7 − 7 = 0. All gone.",
             "A number minus 0 stays the same. 6 − 0 = 6.",
         ],
-        solved(1, "There are 9 balloons. 4 pop. How many are left?",
+        lesson_figure(
+            svg_dots(5, color="#6366f1", label="5 left")
+            + svg_dots(4, color="#cbd5e1", label="4 popped"),
+            "9 balloons, 4 pop",
+            "Gray dots are gone. Count the purple dots that are left: 5. So 9 − 4 = 5.",
+        )
+        + solved(1, "There are 9 balloons. 4 pop. How many are left?",
                ["Start with 9.",
                 "Take away 4.",
                 "9 − 4 = 5."],
@@ -998,7 +1110,12 @@ def build_unit4():
             "If you subtract a big number, another way may be faster (next ideas).",
             "Say the start number, then whisper the counts back.",
         ],
-        solved(1, "12 − 2 = ?",
+        lesson_figure(
+            svg_number_line(8, 12, marks=[(12, "start"), (10, "land")], highlight=10),
+            "Count back 2 from 12",
+            "Start at 12. Hop back: 11, then 10. Two hops. 12 − 2 = 10.",
+        )
+        + solved(1, "12 − 2 = ?",
                ["Start at 12.",
                 "Count back 2: 11, 10.",
                 "Land on 10."],
@@ -1024,7 +1141,12 @@ def build_unit4():
             "This is often easier than counting all the way back.",
             "Plus facts you know make minus facts you know.",
         ],
-        solved(1, "13 − 6 = ?",
+        lesson_figure(
+            svg_number_line(6, 13, marks=[(6, "6"), (13, "13")], highlight=13),
+            "Think 6 + ? = 13",
+            "Count up from 6 to 13. That is 7 jumps. So 13 − 6 = 7.",
+        )
+        + solved(1, "13 − 6 = ?",
                ["Think: 6 + ? = 13.",
                 "6 + 7 = 13. You know that plus fact.",
                 "So 13 − 6 = 7."],
@@ -1048,7 +1170,12 @@ def build_unit4():
             "That is an advanced trick. Use it when you are ready.",
             "Master the ten facts first. They show up everywhere.",
         ],
-        solved(1, "10 − 7 = ?",
+        lesson_figure(
+            svg_ten_frame(3),
+            "10 − 7 on a ten-frame",
+            "3 filled, 7 empty. Fold down 7 fingers from 10. 3 are still up. 10 − 7 = 3.",
+        )
+        + solved(1, "10 − 7 = ?",
                ["Ten fingers up.",
                 "Fold down 7.",
                 "3 fingers still up. 10 − 7 = 3."],
@@ -1071,7 +1198,12 @@ def build_unit4():
             "Draw a bar: whole on top, two parts under it. One part is known.",
             "Number stories often hide a missing part. Find the whole first.",
         ],
-        solved(1, "9 kids. 4 have hats. How many have no hat?",
+        lesson_figure(
+            svg_tape([4, 5], labels=["hats 4", "no hat 5"]),
+            "Whole 9, one part known",
+            "The whole bar is 9 kids. 4 have hats. The other part is 5 with no hat. 9 − 4 = 5.",
+        )
+        + solved(1, "9 kids. 4 have hats. How many have no hat?",
                ["Whole is 9.",
                 "One part is 4 (hats).",
                 "Missing part: 9 − 4 = 5."],
@@ -1098,7 +1230,12 @@ def build_unit4():
             "Fact families prove that plus and minus belong together.",
             "Pick any plus fact you love and write its family.",
         ],
-        solved(1, "Numbers 4, 6, 10. What is 10 − 4?",
+        lesson_figure(
+            svg_tape([4, 6], labels=["4", "6"]),
+            "Fact family 4, 6, 10",
+            "Parts 4 and 6 make whole 10. So 4 + 6 = 10 and 10 − 4 = 6.",
+        )
+        + solved(1, "Numbers 4, 6, 10. What is 10 − 4?",
                ["These three numbers make a family.",
                 "4 + 6 = 10.",
                 "So 10 − 4 = 6."],

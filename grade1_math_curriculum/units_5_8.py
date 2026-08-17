@@ -2,6 +2,19 @@
 
 from __future__ import annotations
 
+from curriculum_kit import (
+    lesson_figure,
+    svg_dots,
+    svg_ten_frame,
+    svg_number_line,
+    svg_clock,
+    svg_tape,
+    svg_coins,
+    svg_base10,
+    svg_rect,
+    svg_fraction_bar,
+)
+
 from .common import (
     concept_block,
     solved,
@@ -189,7 +202,13 @@ def build_unit5():
             "The numbers can hide in names: Sam has 4. Mia has 3. Still 4 + 3.",
             "Check: does your answer make a bigger group? Plus stories grow the first amount.",
         ],
-        solved(1, "Lila has 5 shells. She finds 4 more. How many shells?",
+        lesson_figure(
+            svg_dots(5, color="#6366f1", label="5 shells")
+            + svg_dots(4, color="#f59e0b", label="4 more"),
+            "Lila finds 4 more shells",
+            "Start with 5. Add 4. Together: 5 + 4 = 9 shells.",
+        )
+        + solved(1, "Lila has 5 shells. She finds 4 more. How many shells?",
                ["Start amount: 5.",
                 "More: 4.",
                 "More means add. 5 + 4 = 9."],
@@ -212,7 +231,13 @@ def build_unit5():
             "Write 10 − 3 = 7.",
             "Check: does your answer make sense? You should have less than you started, if things went away.",
         ],
-        solved(1, "There are 11 cupcakes. The class eats 4. How many cupcakes are left?",
+        lesson_figure(
+            svg_dots(7, color="#6366f1", label="7 left")
+            + svg_dots(4, color="#cbd5e1", label="4 eaten"),
+            "11 cupcakes, 4 eaten",
+            "Gray dots are gone. Purple dots remain: 7. So 11 − 4 = 7.",
+        )
+        + solved(1, "There are 11 cupcakes. The class eats 4. How many cupcakes are left?",
                ["Whole: 11.",
                 "Ate: 4. That part is gone.",
                 "11 − 4 = 7 left."],
@@ -240,7 +265,12 @@ def build_unit5():
             "You can draw a bar. Whole on top. Parts under it. One part missing.",
             "The equal sign still means both sides match.",
         ],
-        solved(1, "8 + ___ = 13.",
+        lesson_figure(
+            svg_number_line(8, 13, marks=[(8, "8"), (13, "13")], highlight=13),
+            "Missing addend: 8 + ? = 13",
+            "Start at 8. Count up to 13: five hops. The box is 5. Check: 8 + 5 = 13.",
+        )
+        + solved(1, "8 + ___ = 13.",
                ["Start at 8. Count up to 13.",
                 "9, 10, 11, 12, 13. Five jumps.",
                 "The missing number is 5. Check: 8 + 5 = 13."],
@@ -264,7 +294,13 @@ def build_unit5():
             "True means yes, it matches. False means no, it does not.",
             "Later we write 4 + 2 = 3 + 3. Both sides are 6. Still true!",
         ],
-        solved(1, "Is 9 − 4 = 6 true?",
+        lesson_figure(
+            svg_dots(5, color="#6366f1", label="9 − 4 = 5")
+            + svg_dots(6, color="#f59e0b", label="claimed 6"),
+            "Is 9 − 4 = 6 true?",
+            "Left group is 5 (the real take-away). Right group is 6. They do not match, so the sentence is false.",
+        )
+        + solved(1, "Is 9 − 4 = 6 true?",
                ["Work the left side: 9 − 4 = 5.",
                 "5 is not 6.",
                 "The sentence is false."],
@@ -288,7 +324,13 @@ def build_unit5():
             "If one side is more, they are not equal.",
             "This idea helps all of math, even when you are older.",
         ],
-        solved(1, "Does 8 + 2 equal 5 + 5?",
+        lesson_figure(
+            svg_tape([8, 2], labels=["8", "2"])
+            + svg_tape([5, 5], labels=["5", "5"]),
+            "8 + 2 and 5 + 5",
+            "Both bars make 10. Same amount on each side, so they are equal.",
+        )
+        + solved(1, "Does 8 + 2 equal 5 + 5?",
                ["Left: 8 + 2 = 10.",
                 "Right: 5 + 5 = 10.",
                 "Same amount. Yes, they are equal."],
@@ -314,7 +356,13 @@ def build_unit5():
             "If you subtract more, the leftover gets smaller.",
             "Use this to check stories: does “more kids came” make a bigger number? It should.",
         ],
-        solved(1, "Which is greater: 9 + 3 or 9 + 8?",
+        lesson_figure(
+            svg_tape([9, 3], labels=["9", "+3"])
+            + svg_tape([9, 8], labels=["9", "+8"]),
+            "Compare 9 + 3 and 9 + 8",
+            "Both start with 9. Adding 8 makes a longer bar than adding 3. 17 is greater than 12.",
+        )
+        + solved(1, "Which is greater: 9 + 3 or 9 + 8?",
                ["9 + 3 = 12.",
                 "9 + 8 = 17.",
                 "17 is greater. So 9 + 8 is greater."],
@@ -530,7 +578,12 @@ def build_unit6():
             "The hands move to the right (clockwise).",
             "There are 60 minutes in one hour. The long hand goes all the way around in 60 minutes.",
         ],
-        solved(1, "Which hand tells the hour?",
+        lesson_figure(
+            svg_clock(3, 0),
+            "A clock at 3:00",
+            "The short blue hand is the hour hand (on 3). The long red hand is the minute hand (on 12). Long hand on 12 means o'clock.",
+        )
+        + solved(1, "Which hand tells the hour?",
                ["Hour is a short word. The hour hand is the short hand.",
                 "Minutes need a longer trip around the clock. That hand is long."],
                "the short hand")
@@ -553,7 +606,12 @@ def build_unit6():
             "The short hand points right at the number at o'clock times.",
             "Practice every hour you see: 1:00, 2:00, 3:00… 12:00.",
         ],
-        solved(1, "Short hand on 8. Long hand on 12. What time?",
+        lesson_figure(
+            svg_clock(8, 0),
+            "Eight o'clock",
+            "Short hand on 8. Long hand on 12. Write 8:00.",
+        )
+        + solved(1, "Short hand on 8. Long hand on 12. What time?",
                ["Long hand on 12 means o'clock.",
                 "Short hand on 8 means 8.",
                 "The time is 8:00. Eight o'clock."],
@@ -580,7 +638,12 @@ def build_unit6():
             "Half past 4 is 4:30. The hour is still 4 until we reach 5:00.",
             "We say half past four, or four thirty.",
         ],
-        solved(1, "Long hand on 6. Short hand between 2 and 3. What time?",
+        lesson_figure(
+            svg_clock(2, 30),
+            "Half past 2",
+            "Long hand points down at 6 (30 minutes). Short hand sits between 2 and 3. The hour is still 2: 2:30.",
+        )
+        + solved(1, "Long hand on 6. Short hand between 2 and 3. What time?",
                ["Long hand on 6 means 30 minutes. Half past.",
                 "The hour we just passed is 2.",
                 "Time is 2:30. Half past 2."],
@@ -605,7 +668,12 @@ def build_unit6():
             "A full hour later than 2:00 is 3:00. A half hour later than 2:00 is 2:30.",
             "Use this to talk about “in 30 minutes” and “in one hour.”",
         ],
-        solved(1, "It is 5:00. What time is it in 30 minutes?",
+        lesson_figure(
+            svg_clock(5, 0) + svg_clock(5, 30),
+            "5:00 then 5:30",
+            "Left: minute hand up is 5:00. Right: minute hand down is 5:30. Half an hour later.",
+        )
+        + solved(1, "It is 5:00. What time is it in 30 minutes?",
                ["Start at 5:00.",
                 "Add a half hour.",
                 "Land on 5:30."],
@@ -629,7 +697,12 @@ def build_unit6():
             "Match analog and digital. Same time, two looks.",
             "If you see 12:30, that is half past 12.",
         ],
-        solved(1, "A digital clock shows 10:30. Say it in words.",
+        lesson_figure(
+            svg_clock(10, 30),
+            "Digital 10:30 on an analog clock",
+            "Hour 10, minutes 30. Same time as the digits 10:30. We say half past ten.",
+        )
+        + solved(1, "A digital clock shows 10:30. Say it in words.",
                ["Hour is 10.",
                 "Minutes are 30.",
                 "Half past ten, or ten thirty."],
@@ -653,7 +726,22 @@ def build_unit6():
             "A clock number can happen two times in a full day (morning 8:00 and evening 8:00). First grade names the part of the day with words.",
             "Put events in order: wake up → school → lunch → home → bed.",
         ],
-        solved(1, "Which comes first: lunch or breakfast?",
+        lesson_figure(
+            '''<svg viewBox="0 0 460 80" width="100%" style="max-width:460px" role="img">
+  <rect x="8" y="24" width="140" height="36" fill="#fde68a" stroke="#0f172a"/>
+  <text x="78" y="47" text-anchor="middle" font-size="13" font-weight="700">morning</text>
+  <rect x="148" y="24" width="160" height="36" fill="#93c5fd" stroke="#0f172a"/>
+  <text x="228" y="47" text-anchor="middle" font-size="13" font-weight="700">afternoon</text>
+  <rect x="308" y="24" width="140" height="36" fill="#c4b5fd" stroke="#0f172a"/>
+  <text x="378" y="47" text-anchor="middle" font-size="13" font-weight="700">night</text>
+  <text x="78" y="18" text-anchor="middle" font-size="11">breakfast</text>
+  <text x="228" y="18" text-anchor="middle" font-size="11">lunch later</text>
+  <text x="378" y="18" text-anchor="middle" font-size="11">bed</text>
+</svg>''',
+            "A day in order",
+            "Breakfast is in the morning bar. Lunch comes later. Morning happens first.",
+        )
+        + solved(1, "Which comes first: lunch or breakfast?",
                ["Breakfast is a morning meal.",
                 "Lunch is later, near the middle of the day.",
                 "Breakfast comes first."],
@@ -892,7 +980,17 @@ def build_unit7():
             "If both ends match, they are the same length. Equal.",
             "Words: long, longer, longest. Short, shorter, shortest.",
         ],
-        solved(1, "A spoon and a toothpick. Which is usually longer?",
+        lesson_figure(
+            '''<svg viewBox="0 0 400 90" width="100%" style="max-width:400px" role="img">
+  <rect x="20" y="20" width="280" height="22" fill="#93c5fd" stroke="#1e3a8a"/>
+  <text x="24" y="16" font-size="12">spoon — longer</text>
+  <rect x="20" y="58" width="90" height="22" fill="#fde68a" stroke="#92400e"/>
+  <text x="24" y="54" font-size="12">toothpick — shorter</text>
+</svg>''',
+            "Line up one end",
+            "Both start at the same left edge. The spoon sticks out farther, so the spoon is longer.",
+        )
+        + solved(1, "A spoon and a toothpick. Which is usually longer?",
                ["Line them up in your mind at one end.",
                 "The spoon sticks out farther.",
                 "The spoon is longer. The toothpick is shorter."],
@@ -916,7 +1014,12 @@ def build_unit7():
             "A pencil might be 7 cubes long. A crayon might be 5 cubes long.",
             "Then you can say the pencil is 2 cubes longer. 7 − 5 = 2.",
         ],
-        solved(1, "A marker fits 6 cubes along it. How long is the marker?",
+        lesson_figure(
+            svg_dots(6, color="#38bdf8", per_row=6, label="6 cubes along the marker"),
+            "A marker is 6 cubes long",
+            "Same-size cubes, end to end, no gaps. Count 1 through 6. The marker measures 6 cubes.",
+        )
+        + solved(1, "A marker fits 6 cubes along it. How long is the marker?",
                ["Cubes are the unit.",
                 "Count: 1, 2, 3, 4, 5, 6.",
                 "The marker is 6 cubes long."],
@@ -943,7 +1046,13 @@ def build_unit7():
             "If you use tiny clips, you will need more of them.",
             "The object did not change. The unit size changed. The count changed.",
         ],
-        solved(1, "A card is 7 paper clips long. A photo is 4 paper clips long. Which is longer?",
+        lesson_figure(
+            svg_dots(7, color="#a78bfa", per_row=7, label="card: 7 clips")
+            + svg_dots(4, color="#f59e0b", per_row=4, label="photo: 4 clips"),
+            "Same unit: paper clips",
+            "7 is more than 4, so the card is longer than the photo. Both used the same clip size.",
+        )
+        + solved(1, "A card is 7 paper clips long. A photo is 4 paper clips long. Which is longer?",
                ["Same unit: paper clips.",
                 "7 is more than 4.",
                 "The card is longer."],
@@ -968,7 +1077,13 @@ def build_unit7():
             "This is why rulers have equal spaces. First grade uses cubes and clips to feel that idea.",
             "Friends can get different numbers if they pick different units. That is okay if they name the unit.",
         ],
-        solved(1, "Kai uses big cubes and gets 4. Ana uses tiny cubes and gets 12. Same pencil. Why?",
+        lesson_figure(
+            svg_dots(4, color="#38bdf8", per_row=4, label="4 big cubes")
+            + svg_dots(12, color="#fbbf24", per_row=12, label="12 tiny cubes"),
+            "Same pencil, different units",
+            "Four big cubes cover the pencil. Twelve tiny cubes cover the same pencil. The object did not change. The unit size did.",
+        )
+        + solved(1, "Kai uses big cubes and gets 4. Ana uses tiny cubes and gets 12. Same pencil. Why?",
                ["The pencil is one length.",
                 "Big cubes cover more length each, so fewer cubes.",
                 "Tiny cubes cover less each, so more cubes.",
@@ -989,7 +1104,19 @@ def build_unit7():
             "Example: 3 cubes, 9 cubes, 6 cubes → 3, 6, 9 from shortest to longest.",
             "The middle one is in between.",
         ],
-        solved(1, "Ribbon A is 4 cubes, B is 10 cubes, C is 7 cubes. Order shortest to longest.",
+        lesson_figure(
+            '''<svg viewBox="0 0 420 130" width="100%" style="max-width:420px" role="img">
+  <rect x="20" y="18" width="80" height="20" fill="#86efac" stroke="#0f172a"/>
+  <text x="24" y="14" font-size="12">A — 4 cubes (shortest)</text>
+  <rect x="20" y="58" width="140" height="20" fill="#93c5fd" stroke="#0f172a"/>
+  <text x="24" y="54" font-size="12">C — 7 cubes</text>
+  <rect x="20" y="98" width="200" height="20" fill="#c4b5fd" stroke="#0f172a"/>
+  <text x="24" y="94" font-size="12">B — 10 cubes (longest)</text>
+</svg>''',
+            "Three ribbons, shortest to longest",
+            "Line up the left ends. Order by how far they stick out: A (4), then C (7), then B (10).",
+        )
+        + solved(1, "Ribbon A is 4 cubes, B is 10 cubes, C is 7 cubes. Order shortest to longest.",
                ["Smallest number: 4. That is A.",
                 "Next: 7. That is C.",
                 "Biggest: 10. That is B.",
@@ -1017,7 +1144,13 @@ def build_unit7():
             "Close guesses get better with practice. You are training your eyes.",
             "If you are way off, ask: did I pick a bad unit picture in my head?",
         ],
-        solved(1, "A new pencil looks a bit less than 10 cubes. You guess 8. You measure 7. How was the guess?",
+        lesson_figure(
+            svg_dots(10, color="#cbd5e1", per_row=10, label="10-cube train in your head")
+            + svg_dots(7, color="#38bdf8", per_row=7, label="measured: 7 cubes"),
+            "Guess, then check",
+            "The pencil looked a bit less than 10. A guess of 8 is close to the true 7 cubes.",
+        )
+        + solved(1, "A new pencil looks a bit less than 10 cubes. You guess 8. You measure 7. How was the guess?",
                ["7 is the true length in cubes.",
                 "8 is only 1 away.",
                 "That is a close estimate. Nice work."],
@@ -1243,7 +1376,21 @@ def build_unit8():
             "A rectangle has 4 sides and 4 square corners. Opposite sides match. A square is a special rectangle.",
             "Look around the room. Windows, clocks, and signs hide these shapes.",
         ],
-        solved(1, "A yield sign (the down triangle) has how many sides?",
+        lesson_figure(
+            '''<svg viewBox="0 0 420 130" width="100%" style="max-width:420px" role="img">
+  <circle cx="50" cy="56" r="36" fill="#e0e7ff" stroke="#312e81" stroke-width="2"/>
+  <text x="50" y="112" text-anchor="middle" font-size="12">circle</text>
+  <rect x="108" y="20" width="72" height="72" fill="#bbf7d0" stroke="#166534" stroke-width="2"/>
+  <text x="144" y="112" text-anchor="middle" font-size="12">square</text>
+  <polygon points="248,20 286,92 210,92" fill="#fde68a" stroke="#92400e" stroke-width="2"/>
+  <text x="248" y="112" text-anchor="middle" font-size="12">triangle</text>
+  <rect x="318" y="36" width="90" height="48" fill="#fecaca" stroke="#991b1b" stroke-width="2"/>
+  <text x="363" y="112" text-anchor="middle" font-size="12">rectangle</text>
+</svg>''',
+            "Four flat shapes",
+            "A yield sign is the triangle: 3 straight sides. Circle has none. Square and rectangle have 4.",
+        )
+        + solved(1, "A yield sign (the down triangle) has how many sides?",
                ["Look at the outline.",
                 "Three straight sides.",
                 "It is a triangle. 3 sides."],
@@ -1267,7 +1414,20 @@ def build_unit8():
             "Do not count a curved circle as having sides. Sides here mean straight sides.",
             "Trace with a finger. Pause at each corner.",
         ],
-        solved(1, "How many corners on a rectangle?",
+        lesson_figure(
+            '''<svg viewBox="0 0 280 140" width="100%" style="max-width:280px" role="img">
+  <rect x="40" y="28" width="200" height="80" fill="#bfdbfe" stroke="#1e3a8a" stroke-width="3"/>
+  <circle cx="40" cy="28" r="6" fill="#dc2626"/>
+  <circle cx="240" cy="28" r="6" fill="#dc2626"/>
+  <circle cx="40" cy="108" r="6" fill="#dc2626"/>
+  <circle cx="240" cy="108" r="6" fill="#dc2626"/>
+  <text x="140" y="20" text-anchor="middle" font-size="12">4 sides</text>
+  <text x="140" y="132" text-anchor="middle" font-size="12">4 red corners</text>
+</svg>''',
+            "A rectangle's corners",
+            "Each red dot is where two sides meet. Count the dots: 4 corners.",
+        )
+        + solved(1, "How many corners on a rectangle?",
                ["A rectangle has 4 sides.",
                 "Each pair of sides meets at a corner.",
                 "4 corners."],
@@ -1294,7 +1454,17 @@ def build_unit8():
             "If there is a hole in the outline, it is not closed.",
             "Building shapes with sticks: every stick end must meet another stick end.",
         ],
-        solved(1, "Is a square closed?",
+        lesson_figure(
+            '''<svg viewBox="0 0 320 130" width="100%" style="max-width:320px" role="img">
+  <rect x="24" y="24" width="80" height="80" fill="#bbf7d0" stroke="#166534" stroke-width="3"/>
+  <text x="64" y="120" text-anchor="middle" font-size="12">closed square</text>
+  <path d="M200,40 A40,40 0 1,1 200,104" fill="none" stroke="#b91c1c" stroke-width="6" stroke-linecap="round"/>
+  <text x="232" y="120" text-anchor="middle" font-size="12">open like C</text>
+</svg>''',
+            "Closed vs open",
+            "The square comes back to the start — no gap. The C has a gap, so it is open. A square is closed.",
+        )
+        + solved(1, "Is a square closed?",
                ["Follow the four sides.",
                 "You return to the start.",
                 "No gap. Closed."],
@@ -1318,7 +1488,26 @@ def build_unit8():
             "A cylinder is like a can. Two circle faces. Rolls sideways.",
             "Sort toys: balls, blocks, cans, hats.",
         ],
-        solved(1, "What solid is a tennis ball?",
+        lesson_figure(
+            '''<svg viewBox="0 0 440 140" width="100%" style="max-width:440px" role="img">
+  <rect x="24" y="36" width="56" height="56" fill="#93c5fd" stroke="#1e3a8a" stroke-width="2"/>
+  <polygon points="80,36 96,24 96,80 80,92" fill="#bfdbfe" stroke="#1e3a8a"/>
+  <polygon points="24,36 40,24 96,24 80,36" fill="#dbeafe" stroke="#1e3a8a"/>
+  <text x="52" y="124" text-anchor="middle" font-size="12">cube</text>
+  <circle cx="160" cy="64" r="32" fill="#fecaca" stroke="#991b1b" stroke-width="2"/>
+  <text x="160" y="124" text-anchor="middle" font-size="12">sphere</text>
+  <polygon points="250,24 286,96 214,96" fill="#fde68a" stroke="#92400e" stroke-width="2"/>
+  <ellipse cx="250" cy="96" rx="36" ry="8" fill="#fef3c7" stroke="#92400e"/>
+  <text x="250" y="124" text-anchor="middle" font-size="12">cone</text>
+  <ellipse cx="370" cy="36" rx="28" ry="10" fill="#bbf7d0" stroke="#166534"/>
+  <rect x="342" y="36" width="56" height="56" fill="#86efac" stroke="#166534"/>
+  <ellipse cx="370" cy="92" rx="28" ry="10" fill="#bbf7d0" stroke="#166534"/>
+  <text x="370" y="124" text-anchor="middle" font-size="12">cylinder</text>
+</svg>''',
+            "Four solids you can hold",
+            "A tennis ball matches the sphere: round all around, no flat faces, rolls every way.",
+        )
+        + solved(1, "What solid is a tennis ball?",
                ["It is round all around.",
                 "It rolls in any direction.",
                 "It is a sphere."],
@@ -1341,7 +1530,20 @@ def build_unit8():
             "A sphere has 0 flat faces.",
             "You can feel faces with your hand. Flat vs curved.",
         ],
-        solved(1, "How many flat faces on a cube?",
+        lesson_figure(
+            '''<svg viewBox="0 0 280 200" width="100%" style="max-width:240px" role="img">
+  <rect x="100" y="16" width="52" height="52" fill="#c7d2fe" stroke="#312e81" stroke-width="2"/>
+  <rect x="48" y="68" width="52" height="52" fill="#c7d2fe" stroke="#312e81" stroke-width="2"/>
+  <rect x="100" y="68" width="52" height="52" fill="#a5b4fc" stroke="#312e81" stroke-width="2"/>
+  <rect x="152" y="68" width="52" height="52" fill="#c7d2fe" stroke="#312e81" stroke-width="2"/>
+  <rect x="204" y="68" width="52" height="52" fill="#c7d2fe" stroke="#312e81" stroke-width="2"/>
+  <rect x="100" y="120" width="52" height="52" fill="#c7d2fe" stroke="#312e81" stroke-width="2"/>
+  <text x="140" y="190" text-anchor="middle" font-size="12">cube net — 6 square faces</text>
+</svg>''',
+            "Six faces of a cube",
+            "Unfold a dice. Top, bottom, and four around: 6 square faces.",
+        )
+        + solved(1, "How many flat faces on a cube?",
                ["Think of a die.",
                 "Top, bottom, and four around.",
                 "6 faces."],
@@ -1368,7 +1570,13 @@ def build_unit8():
             "A sandwich cut down the middle can be two halves.",
             "A square window with a plus-sign cut can show four fourths.",
         ],
-        solved(1, "A square is cut into 2 equal triangles. What is each piece?",
+        lesson_figure(
+            svg_fraction_bar(1, 2, color="#86efac")
+            + svg_fraction_bar(1, 4, color="#a78bfa"),
+            "Halves and fourths",
+            "Top bar: 2 equal parts — each is one half. Bottom bar: 4 equal parts — each is one fourth. Equal size matters.",
+        )
+        + solved(1, "A square is cut into 2 equal triangles. What is each piece?",
                ["Two pieces.",
                 "They match in size.",
                 "Each is one half of the square."],

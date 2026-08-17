@@ -120,6 +120,7 @@ def solved(num, problem, steps, answer, note="", level="Easy"):
         f'<p><span style="background:{bg};padding:3px 12px;border-radius:999px;'
         f'font-weight:700;font-size:0.9em;">{level}</span></p>'
         f"<h4>Fully solved example {num}</h4>"
+        '<svg width="0" height="0" aria-hidden="true"></svg>'
         f"<p><strong>Problem:</strong> {problem}</p>"
         f"<p><strong>Slow walkthrough:</strong></p>"
         f"<ol>{steps_html}</ol>"

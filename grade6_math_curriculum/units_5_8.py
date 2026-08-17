@@ -21,6 +21,8 @@ from .common import (
     dot_plot,
     histogram,
     box_plot,
+    figure,
+    tape_diagram,
     page_break,
     mq,
     renumber,
@@ -99,7 +101,11 @@ def build_unit5():
             "Points on an axis are not inside a quadrant. (5, 0) is on the x-axis. (0, −3) is on the y-axis.",
             "Say 'over, then up' still — but over can be left, and up can be down when the number is negative.",
         ],
-        four_quadrant_plane(title="The four quadrants")
+        four_quadrant_plane(
+            points=[(-3, 2, "(−3, 2)")],
+            title="The four quadrants",
+            caption="(−3, 2) is left and up: quadrant II. I is (+, +), III is (−, −), IV is (+, −).",
+        )
         + solved(1, "Which quadrant is (−3, 2) in?",
                  ["x is negative → left.",
                   "y is positive → up.",
@@ -172,7 +178,12 @@ def build_unit5():
             "City-block paths still go along the grid: right/left, then up/down.",
             "Absolute value is the tool that makes 'difference' positive when negatives are involved.",
         ],
-        solved(1, "How far is (2, −1) from (2, 4)?",
+        four_quadrant_plane(
+            points=[(2, -1, "(2, −1)"), (2, 4, "(2, 4)")],
+            title="Vertical distance on the grid",
+            caption="Both points have x = 2. Distance is |4 − (−1)| = 5 units straight up.",
+        )
+        + solved(1, "How far is (2, −1) from (2, 4)?",
                ["Same x, so vertical segment.",
                 "|4 − (−1)| = |5| = 5.",
                 "5 units."],
@@ -219,7 +230,12 @@ def build_unit5():
             "Keep the scale: one grid unit might be 1 km or 1 block.",
             "The origin is a landmark you choose: a town square, a lab, sea level crossed with a pier.",
         ],
-        solved(1, "West is −x and north is +y. A cabin is west and north of camp (the origin). Which quadrant?",
+        four_quadrant_plane(
+            points=[(-3, 2, "cabin")],
+            title="Camp at the origin",
+            caption="West is −x, north is +y. The cabin is west and north of camp, so it sits in quadrant II.",
+        )
+        + solved(1, "West is −x and north is +y. A cabin is west and north of camp (the origin). Which quadrant?",
                ["West → x negative.",
                 "North → y positive.",
                 "Quadrant II."],
@@ -325,7 +341,16 @@ def build_unit6():
             "The distributive property: 2(x + 4) = 2x + 8.",
             "Combining like terms is cleaning an expression so it is easier to evaluate or solve.",
         ],
-        solved(1, "Simplify 3x + 2x + 5.",
+        tape_diagram(
+            [
+                ("3x", [("#c7d2fe", 3, "x")]),
+                ("2x", [("#a5b4fc", 2, "x")]),
+                ("5x", [("#6366f1", 5, "x")]),
+            ],
+            title="Like terms: 3x + 2x = 5x",
+            caption="Tiles with the same variable add. In 3x + 2x + 5 the 5 is a constant, so the simplified expression is 5x + 5.",
+        )
+        + solved(1, "Simplify 3x + 2x + 5.",
                ["3x and 2x are like terms.",
                 "3x + 2x = 5x.",
                 "The 5 stays: 5x + 5."],
@@ -349,7 +374,14 @@ def build_unit6():
             "If n = 4, then 2n + 1 = 9. Substitute, then use order of operations.",
             "Expressions name a quantity. Equations (next) say two quantities are equal.",
         ],
-        solved(1, "Write 'twice n minus 3,' then evaluate at n = 5.",
+        tape_diagram(
+            [
+                ("2n", [("#c7d2fe", 2, "n")]),
+            ],
+            title="Twice n minus 3",
+            caption="Two n-tiles make 2n. Then subtract 3. If n = 5, that is 2×5 − 3 = 7.",
+        )
+        + solved(1, "Write 'twice n minus 3,' then evaluate at n = 5.",
                ["Twice n is 2n. Minus 3 is 2n − 3.",
                 "2×5 − 3 = 10 − 3 = 7.",
                 "The value is 7."],
@@ -402,7 +434,8 @@ def build_unit6():
             "Fractions and decimals are allowed: the same inverse still works.",
             "If both sides are swapped, 6 = 2x is still x = 3.",
         ],
-        solved(1, "Solve 3x = 18.",
+        balance_scale("3x", "18", title="3x = 18 stays balanced")
+        + solved(1, "Solve 3x = 18.",
                ["x is multiplied by 3.",
                 "Divide both sides by 3.",
                 "x = 6. Check: 3×6=18."],
@@ -591,7 +624,19 @@ def build_unit7():
             "Sketch the split. Label bases and heights on the sketch.",
             "This is the same composition idea as volume of two prisms, but in 2-D.",
         ],
-        solved(1, "A shape is a 3-by-4 rectangle attached to a triangle with base 4 and height 3. Total area?",
+        figure(
+            "Rectangle plus a triangle",
+            """<svg viewBox="0 0 280 160" width="280" role="img" aria-label="3 by 4 rectangle plus triangle base 4 height 3">
+  <rect x="20" y="40" width="120" height="90" fill="#c7d2fe" stroke="#312e81" stroke-width="2"/>
+  <text x="80" y="88" text-anchor="middle" font-size="13">3 × 4 = 12</text>
+  <polygon points="140,130 260,130 200,40" fill="#fde68a" stroke="#92400e" stroke-width="2"/>
+  <line x1="200" y1="40" x2="200" y2="130" stroke="#dc2626" stroke-width="2" stroke-dasharray="4 3"/>
+  <text x="200" y="148" text-anchor="middle" font-size="12">base = 4</text>
+  <text x="206" y="95" font-size="12" fill="#b91c1c">h = 3</text>
+</svg>""",
+            "Rectangle area 12 plus triangle area ½ × 4 × 3 = 6. Total 18 square units.",
+        )
+        + solved(1, "A shape is a 3-by-4 rectangle attached to a triangle with base 4 and height 3. Total area?",
                ["Rectangle: 12.",
                 "Triangle: ½×4×3=6.",
                 "12+6=18 square units."],
@@ -658,7 +703,8 @@ def build_unit7():
             "A sketch with labels is part of the work, not extra.",
             "If two shapes share a side, do not count that side twice in a perimeter — but this unit's focus is area and 3-D measures.",
         ],
-        solved(1, "A triangular sail has area 20 square meters and base 8 m. What is the height?",
+        triangle_area(8, 5, title="A triangular sail")
+        + solved(1, "A triangular sail has area 20 square meters and base 8 m. What is the height?",
                ["½ × 8 × h = 20.",
                 "4h = 20.",
                 "h = 5 m."],
@@ -759,7 +805,12 @@ def build_unit8():
             "A good question names the group and the measure: students in this class, number of pets.",
             "If every person must give the same answer, you are not doing statistics yet.",
         ],
-        solved(1, "Which is statistical: 'How many wheels on a bicycle?' or 'How many books did students read this month?'",
+        dot_plot(
+            [1, 2, 2, 3, 4, 5, 5, 5, 6, 8],
+            title="Books students read this month",
+            caption="Different students gave different numbers. That variety is why the question is statistical.",
+        )
+        + solved(1, "Which is statistical: 'How many wheels on a bicycle?' or 'How many books did students read this month?'",
                ["Wheels on a bicycle: one typical answer, 2.",
                 "Books read: students differ.",
                 "The books question is statistical."],
@@ -782,7 +833,12 @@ def build_unit8():
             "An outlier (a far-away value) pulls the mean more than the median.",
             "If every value increases by 2, the mean and median increase by 2. The range stays the same.",
         ],
-        solved(1, "For 1, 3, 7, 8 find the median.",
+        dot_plot(
+            [1, 3, 7, 8],
+            title="Data 1, 3, 7, 8",
+            caption="Four values, already ordered. The two middles are 3 and 7, so the median is 5. Range is 8 − 1 = 7.",
+        )
+        + solved(1, "For 1, 3, 7, 8 find the median.",
                ["Already ordered.",
                 "Two middles: 3 and 7.",
                 "Average: 5."],
@@ -872,7 +928,12 @@ def build_unit8():
             "The mean can lie. One huge outlier drags it. Report the median too when the shape is lopsided.",
             "A sentence beats a lone number: 'Typical student read about 5 books; one student read 12, far above the cluster.'",
         ],
-        solved(1, "Why might you prefer the median over the mean for house prices on a street with one mansion?",
+        dot_plot(
+            [4, 5, 5, 5, 5, 6, 6, 12],
+            title="Books read — cluster and an outlier",
+            caption="Typical students cluster near 5. One student read 12, far above the pile. That outlier pulls the mean up; the median stays with the cluster.",
+        )
+        + solved(1, "Why might you prefer the median over the mean for house prices on a street with one mansion?",
                ["The mansion is an outlier.",
                 "The mean gets pulled toward that huge price.",
                 "The median stays with the typical houses."],

@@ -358,6 +358,59 @@ def svg_slots(labels):
     return f'<svg viewBox="0 0 {w} 72" width="100%" style="max-width:{w}px" role="img">{"".join(bits)}</svg>'
 
 
+def svg_scatter(points=None, trend=None, outlier=None, xlabel="x", ylabel="y"):
+    """Cloud of (x, y) points. Optional dashed trend and a far-off outlier."""
+    points = list(points or [(1, 2), (2, 2.5), (3, 4), (4, 3.5), (5, 5.2), (6, 5.8)])
+    ox, oy, scale = 40, 200, 26
+    dots = []
+    for x, y in points:
+        dots.append(f'<circle cx="{ox + x * scale}" cy="{oy - y * scale}" r="5" fill="#4f46e5"/>')
+    extra = ""
+    if trend:
+        x1, y1, x2, y2 = trend
+        extra += (
+            f'<line x1="{ox + x1 * scale}" y1="{oy - y1 * scale}" '
+            f'x2="{ox + x2 * scale}" y2="{oy - y2 * scale}" '
+            f'stroke="#dc2626" stroke-width="2" stroke-dasharray="5 4"/>'
+        )
+    if outlier:
+        x, y = outlier
+        extra += (
+            f'<circle cx="{ox + x * scale}" cy="{oy - y * scale}" r="6" fill="#f59e0b" stroke="#92400e" stroke-width="2"/>'
+            f'<text x="{ox + x * scale + 10}" y="{oy - y * scale - 8}" font-size="12" fill="#92400e" font-weight="700">outlier</text>'
+        )
+    return f'''<svg viewBox="0 0 280 230" width="100%" style="max-width:280px" role="img">
+  <line x1="{ox}" y1="{oy}" x2="250" y2="{oy}" stroke="#0f172a" stroke-width="2"/>
+  <line x1="{ox}" y1="{oy}" x2="{ox}" y2="16" stroke="#0f172a" stroke-width="2"/>
+  {extra}{''.join(dots)}
+  <text x="252" y="{oy + 4}" font-size="12">{esc(xlabel)}</text>
+  <text x="{ox + 6}" y="16" font-size="12">{esc(ylabel)}</text>
+</svg>'''
+
+
+def svg_boxplot(minimum, q1, med, q3, maximum):
+    lo, hi = minimum - 1, maximum + 1
+    w, h = 460, 90
+    left, right, y = 30, 430, 40
+
+    def x_of(v):
+        return left + (v - lo) * (right - left) / max(hi - lo, 1)
+
+    xs = [x_of(v) for v in (minimum, q1, med, q3, maximum)]
+    return f'''<svg viewBox="0 0 {w} {h}" width="100%" style="max-width:{w}px" role="img">
+  <line x1="{xs[0]}" y1="{y}" x2="{xs[4]}" y2="{y}" stroke="#0f172a" stroke-width="2"/>
+  <rect x="{xs[1]}" y="{y - 16}" width="{max(xs[3] - xs[1], 4)}" height="32" fill="#c7d2fe" stroke="#312e81" stroke-width="2"/>
+  <line x1="{xs[2]}" y1="{y - 16}" x2="{xs[2]}" y2="{y + 16}" stroke="#b91c1c" stroke-width="3"/>
+  <line x1="{xs[0]}" y1="{y - 10}" x2="{xs[0]}" y2="{y + 10}" stroke="#0f172a" stroke-width="2"/>
+  <line x1="{xs[4]}" y1="{y - 10}" x2="{xs[4]}" y2="{y + 10}" stroke="#0f172a" stroke-width="2"/>
+  <text x="{xs[0]}" y="{y + 34}" text-anchor="middle" font-size="11">min {minimum}</text>
+  <text x="{xs[1]}" y="{y + 34}" text-anchor="middle" font-size="11">Q1 {q1}</text>
+  <text x="{xs[2]}" y="14" text-anchor="middle" font-size="11" fill="#b91c1c">median {med}</text>
+  <text x="{xs[3]}" y="{y + 34}" text-anchor="middle" font-size="11">Q3 {q3}</text>
+  <text x="{xs[4]}" y="{y + 34}" text-anchor="middle" font-size="11">max {maximum}</text>
+</svg>'''
+
+
 def lesson_figure(svg, title, caption=""):
     cap = f'<p style="margin:10px 0 0;font-size:0.95rem;color:#334155;">{caption}</p>' if caption else ""
     return (
@@ -732,7 +785,28 @@ def diagram_for_context(unit_title: str, text: str, answer=None, *, require_tool
                 marks.append((extra, str(extra)))
         return q_figure(svg_number_line(lo, hi, marks=marks, highlight=focus), "Numbers from this problem on the line.")
 
-    if has_kw(blob, "slope", "coordinate", "quadrant", "plot", "vertex", "linear graph", "coordinate plane"):
+    # Scatter / stats BEFORE any "plot" / coordinate-plane match.
+    if has_kw(blob, "outlier", "scatter", "association", "line of best fit", "best fit", "fitted line"):
+        cloud = [(1, 2), (2, 2.5), (3, 3.8), (4, 3.6), (5, 5.1), (6, 5.7)]
+        trend = (0.8, 1.7, 6.5, 6.0)
+        outlier = (7.4, 1.4) if has_kw(blob, "outlier") else None
+        cap = "Orange point is an outlier, far from the cloud." if outlier else "Points form a cloud. The dashed line is a model, not every exact y."
+        return q_figure(svg_scatter(cloud, trend=trend, outlier=outlier), cap)
+
+    if has_kw(blob, "box plot", "boxplot") or (
+        has_kw(blob, "median") and has_kw(blob, "quartile", "iqr", "whisker", "two groups")
+    ):
+        return q_figure(svg_boxplot(2, 4, 6, 8, 11), "Box is the middle 50%. Red line is the median.")
+
+    if has_kw(blob, "two-way table", "two way table", "two-way"):
+        return q_figure(
+            svg_ratio_table(["", "Band", "No band"], [["Sport", "10", "8"], ["No sport", "6", "16"]]),
+            "Each cell is a joint count of two categories.",
+        )
+
+    # Coordinate plane only for actual graphing — never a bare word "plot" (box plot, scatter plot).
+    if has_kw(blob, "slope", "quadrant", "vertex", "linear graph", "coordinate plane",
+              "ordered pair", "plot the point", "plot these", "graph the line", "graph these"):
         lim = 6
         pts = _parse_points(raw, lim=lim)
         if len(pts) < 2:
@@ -1042,18 +1116,9 @@ def polish_content(title: str, content: str) -> str:
         flags=re.I | re.S,
     )
 
-    # Standalone "use a …" paragraphs that are not already next to a figure.
-    def inject_use_a(match: re.Match) -> str:
-        para = match.group(0)
-        if "vl-figure" in para or "<svg" in para:
-            return para
-        plain = re.sub(r"<[^>]+>", " ", para)
-        if not asks_for_tool(plain):
-            return para
-        fig = lesson_figure_for(title, plain)
-        return para + fig if fig else para
-
-    content = re.sub(r"<p>[^<]*\b[Uu]se a[n]?\b[^<]*</p>", inject_use_a, content)
+    # Do not auto-inject figures into ordinary teaching paragraphs.
+    # "use a box plot instead" used to spawn a random coordinate line.
+    # Explicit figures in the unit files cover the lesson; quizzes use pick_diagram.
 
     # Drop finale quiz slots beyond TARGET_QUESTIONS (old courses had 80).
     def _keep_slot(m: re.Match) -> str:

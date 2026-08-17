@@ -1,5 +1,12 @@
 """Fifth Grade Math units 1–4: thousandths, multi-digit ops, unlike-denominator fractions, multiply fractions."""
 
+from curriculum_kit import (
+    lesson_figure,
+    svg_rect,
+    svg_tape,
+    svg_dots,
+)
+
 from .common import (
     concept_block,
     solved,
@@ -13,6 +20,11 @@ from .common import (
     phet_box,
     place_value_thousandths,
     fraction_bars,
+    decimal_number_line,
+    double_number_line,
+    hundredths_grid,
+    area_model,
+    fraction_area_model,
     mq,
     renumber,
 )
@@ -164,7 +176,8 @@ def build_unit1():
             "Twelve thousandths is 0.012, not 0.12. You need a zero in the tenths or hundredths if that place is empty.",
             "Practice switching among the three forms until they feel like the same number.",
         ],
-        solved(1, "Write two and three hundred five thousandths.",
+        place_value_thousandths("2", "3", "0", "5")
+        + solved(1, "Write two and three hundred five thousandths.",
                ["Two ones, then 305 thousandths.",
                 "305 thousandths is 0.305.",
                 "Put them together: 2.305."],
@@ -188,7 +201,14 @@ def build_unit1():
             "3.206 is less than 3.26 because 3.206 vs 3.260 — hundredths 0 vs 6.",
             "Do not compare by 'which looks longer.' 0.099 looks long, but 0.1 is greater.",
         ],
-        solved(1, "Which is greater: 0.8 or 0.79?",
+        decimal_number_line(
+            0.7, 0.9,
+            marks=[(0.79, "0.79"), (0.8, "0.80")],
+            tick_step=0.05,
+            title="Compare 0.79 and 0.80",
+            caption="0.8 = 0.80. On the line, 0.80 sits to the right of 0.79, so 0.8 is greater.",
+        )
+        + solved(1, "Which is greater: 0.8 or 0.79?",
                ["Write 0.8 as 0.800.",
                 "Compare thousandths: 800 vs 790.",
                 "800 thousandths is more."],
@@ -215,7 +235,14 @@ def build_unit1():
             "Sometimes rounding up rolls into the next whole: 0.995 to the nearest hundredth is 1.00.",
             "Rounding is a close neighbor, not the exact number. Use it to estimate.",
         ],
-        solved(1, "Round 1.456 to the nearest hundredth.",
+        decimal_number_line(
+            1.40, 1.50,
+            marks=[(1.456, "1.456"), (1.46, "1.46")],
+            tick_step=0.02,
+            title="Round 1.456 to the nearest hundredth",
+            caption="Thousandths is 6, so 1.45 rounds up. The nearest hundredth tick is 1.46.",
+        )
+        + solved(1, "Round 1.456 to the nearest hundredth.",
                ["Hundredths is the 5.",
                 "Look at thousandths: 6.",
                 "6 ≥ 5, so 1.45 rounds up to 1.46."],
@@ -239,7 +266,13 @@ def build_unit1():
             "You may need to write extra zeros: 4.5 ÷ 100 = 0.045.",
             "This is the same place-value idea as whole numbers, now with digits after the point.",
         ],
-        solved(1, "What is 0.07 × 1,000?",
+        double_number_line(
+            "value", ["0.07", "0.7", "7", "70"],
+            "×", ["×1", "×10", "×100", "×1,000"],
+            title="0.07 × 10, 100, and 1,000",
+            caption="Each ×10 moves the decimal point one place right: 0.07 → 0.7 → 7 → 70.",
+        )
+        + solved(1, "What is 0.07 × 1,000?",
                ["Move the point three places right.",
                 "0.07 → 0.7 → 7 → 70.",
                 "Fill the empty ones place with a zero if you need it."],
@@ -259,7 +292,8 @@ def build_unit1():
             "Use this when you compare, add, or subtract: make the number of places match first.",
             "Do not add zeros in the middle. 0.05 is not 0.5.",
         ],
-        solved(1, "Is 3.07 equal to 3.070?",
+        place_value_thousandths("3", "0", "7", "0")
+        + solved(1, "Is 3.07 equal to 3.070?",
                ["3.07 is 3 ones and 7 hundredths.",
                 "3.070 is 3 ones, 7 hundredths, and 0 thousandths.",
                 "Zero thousandths does not change the amount. They are equal."],
@@ -399,7 +433,12 @@ def build_unit2():
             "Zeros at the end are friends: 40×25 = 1,000 because 4×25=100 and one extra zero.",
             "Keep places lined up when you add the partial products.",
         ],
-        solved(1, "Find 24 × 36.",
+        area_model(
+            [20, 4], [30, 6],
+            title="Area model for 24 × 36",
+            caption="Split 24 into 20+4 and 36 into 30+6. Add the four products: 600+120+120+24 = 864.",
+        )
+        + solved(1, "Find 24 × 36.",
                ["20×30 = 600.",
                 "20×6 = 120.",
                 "4×30 = 120.",
@@ -421,7 +460,12 @@ def build_unit2():
             "You can also think of 816 ÷ 8 as sharing 8 hundreds, 1 ten, and 6 ones.",
             "If a step feels stuck, try a smaller related fact: 16×20=320, then see how much is left.",
         ],
-        solved(1, "Find 384 ÷ 16.",
+        lesson_figure(
+            svg_rect(16, 24),
+            "384 ÷ 16 as an area",
+            "A 16-by-24 rectangle has area 384, so 384 ÷ 16 = 24 groups.",
+        )
+        + solved(1, "Find 384 ÷ 16.",
                ["16×20 = 320.",
                 "384 − 320 = 64.",
                 "16×4 = 64.",
@@ -449,7 +493,14 @@ def build_unit2():
             "Adding tenths, hundredths, and thousandths only works when you respect their places.",
             "A sum like 0.7 + 0.25 + 0.05 should make 1.00 — a whole.",
         ],
-        solved(1, "Compute 6.8 − 2.35.",
+        decimal_number_line(
+            0, 8,
+            marks=[(2.35, "2.35"), (6.8, "6.80")],
+            tick_step=1,
+            title="Subtract on a decimal number line",
+            caption="Line up places: 6.80 − 2.35. The jump from 2.35 to 6.80 is 4.45.",
+        )
+        + solved(1, "Compute 6.8 − 2.35.",
                ["Write 6.80.",
                 "Subtract hundredths: 80 − 35 = 45 hundredths, after regrouping tenths if needed.",
                 "Ones: 6 − 2 = 4.",
@@ -474,7 +525,12 @@ def build_unit2():
             "A whole number times a decimal is repeated addition: 4 × 1.5 = 6.",
             "Estimate: 2.5 × 0.4 should be near 2 × 0.5 = 1.",
         ],
-        solved(1, "Find 0.4 × 0.3.",
+        hundredths_grid(
+            cols=4, rows=3,
+            title="0.4 × 0.3 on a hundredths grid",
+            caption="4 tenths by 3 tenths shades 12 hundredths. 0.4 × 0.3 = 0.12.",
+        )
+        + solved(1, "Find 0.4 × 0.3.",
                ["Ignore points for a moment: 4 × 3 = 12.",
                 "0.4 has one place. 0.3 has one place. Total: two places.",
                 "12 with two places is 0.12."],
@@ -494,7 +550,13 @@ def build_unit2():
             "4.8 ÷ 6 is sharing 4.8 into 6 equal parts: 0.8 each.",
             "Check with multiplication: 9 × 0.4 = 3.6.",
         ],
-        solved(1, "Find 1.2 ÷ 0.06.",
+        double_number_line(
+            "dividend", ["1.2", "12", "120"],
+            "divisor", ["0.06", "0.6", "6"],
+            title="1.2 ÷ 0.06 — move both points",
+            caption="×10, then ×10 again, so both numbers ×100. Now 120 ÷ 6 = 20.",
+        )
+        + solved(1, "Find 1.2 ÷ 0.06.",
                ["Multiply both numbers by 100 to move the points.",
                 "Now it is 120 ÷ 6.",
                 "120 ÷ 6 = 20.",
@@ -521,7 +583,12 @@ def build_unit2():
             "Compatible numbers help division: 1,198 ÷ 25 is near 1,200 ÷ 25 = 48.",
             "Use rounding to a place that makes mental math easy, then go back for the exact value.",
         ],
-        solved(1, "Estimate 49 × 21, then decide if 1,029 is reasonable.",
+        area_model(
+            [50], [20],
+            title="Estimate 49 × 21 as 50 × 20",
+            caption="50 × 20 = 1,000. The exact product 1,029 sits close to that estimate.",
+        )
+        + solved(1, "Estimate 49 × 21, then decide if 1,029 is reasonable.",
                ["Round to 50 × 20 = 1,000.",
                 "1,029 is close to 1,000.",
                 "Yes — the exact product is reasonable."],
@@ -651,7 +718,12 @@ def build_unit3():
             "1/2 becomes 3/6 when you ×3. 1/3 becomes 2/6 when you ×2.",
             "Once bottoms match, you are ready to add or subtract the tops.",
         ],
-        solved(1, "Write 1/2 and 1/3 with denominator 6.",
+        fraction_bars(
+            [("1/2", 1, 2, "#6366f1"), ("3/6", 3, 6, "#6366f1"),
+             ("1/3", 1, 3, "#f59e0b"), ("2/6", 2, 6, "#f59e0b")],
+            "1/2 = 3/6 and 1/3 = 2/6. Same-size wholes, now both in sixths.",
+        )
+        + solved(1, "Write 1/2 and 1/3 with denominator 6.",
                ["1/2 × 3/3 = 3/6.",
                 "1/3 × 2/2 = 2/6.",
                 "Now both are sixths."],
@@ -694,7 +766,12 @@ def build_unit3():
             "Check by adding the difference back to the number you subtracted. You should get the start.",
             "Keep the pieces the same size. 7/10 − 2/5 is 7/10 − 4/10, not 5/5.",
         ],
-        solved(1, "Find 5/6 − 1/3.",
+        fraction_bars(
+            [("5/6", 5, 6, "#6366f1"), ("1/3", 1, 3, "#f59e0b"),
+             ("2/6", 2, 6, "#f59e0b"), ("3/6 left", 3, 6, "#10b981")],
+            "5/6 − 2/6 = 3/6, which is 1/2. Same-size sixths before you subtract.",
+        )
+        + solved(1, "Find 5/6 − 1/3.",
                ["1/3 = 2/6.",
                 "5/6 − 2/6 = 3/6.",
                 "3/6 = 1/2."],
@@ -718,7 +795,11 @@ def build_unit3():
             "You can also write mixed numbers as improper fractions, compute, then convert back.",
             "Keep units in word problems: 2 1/3 cups plus 1 1/6 cups is 3 1/2 cups.",
         ],
-        solved(1, "Add 1 1/2 + 1 1/4.",
+        fraction_bars(
+            [("1/2", 1, 2, "#6366f1"), ("1/4", 1, 4, "#f59e0b"), ("3/4", 3, 4, "#10b981")],
+            "The leftover parts: 1/2 + 1/4 = 3/4. Add the two wholes to get 2 3/4.",
+        )
+        + solved(1, "Add 1 1/2 + 1 1/4.",
                ["Wholes: 1 + 1 = 2.",
                 "Fractions: 1/2 + 1/4 = 2/4 + 1/4 = 3/4.",
                 "Together: 2 3/4."],
@@ -738,7 +819,11 @@ def build_unit3():
             "Label the answer with the unit: miles, cups, hours.",
             "If both numbers are mixed, keep them mixed or convert — pick one path and stay on it.",
         ],
-        solved(1, "You need 3/4 cup of milk. You poured 1/3 cup. How much more?",
+        fraction_bars(
+            [("3/4", 9, 12, "#6366f1"), ("1/3", 4, 12, "#f59e0b"), ("need", 5, 12, "#10b981")],
+            "3/4 = 9/12 and 1/3 = 4/12. You still need 5/12 cup.",
+        )
+        + solved(1, "You need 3/4 cup of milk. You poured 1/3 cup. How much more?",
                ["This is subtract: 3/4 − 1/3.",
                 "Common denominator 12.",
                 "9/12 − 4/12 = 5/12."],
@@ -765,7 +850,14 @@ def build_unit3():
             "5/6 is closer to 1 than 2/3 is, because 5/6 is only 1/6 away and 2/3 is 1/3 away.",
             "Use benchmarks to check whether a sum like 1/2 + 1/3 ≈ 0.8 makes sense (yes, 5/6).",
         ],
-        solved(1, "Which is closer to 1: 5/6 or 2/3?",
+        decimal_number_line(
+            0, 1,
+            marks=[(0, "0"), (0.5, "1/2"), (2 / 3, "2/3"), (5 / 6, "5/6"), (1, "1")],
+            tick_step=0.5,
+            title="Benchmarks 0, 1/2, and 1",
+            caption="5/6 is only 1/6 from 1. 2/3 is 1/3 from 1. So 5/6 is closer to 1.",
+        )
+        + solved(1, "Which is closer to 1: 5/6 or 2/3?",
                ["Distance from 1: 1 − 5/6 = 1/6.",
                 "1 − 2/3 = 1/3.",
                 "1/6 is smaller, so 5/6 is closer to 1."],
@@ -894,7 +986,12 @@ def build_unit4():
             "A whole number greater than 1 makes a proper fraction grow (unless the fraction is 0).",
             "Write mixed when it helps: 6/5 = 1 1/5, but 6/5 is a fine exact answer.",
         ],
-        solved(1, "Find 3 × 2/5.",
+        fraction_bars(
+            [("group 1", 2, 5, "#6366f1"), ("group 2", 2, 5, "#6366f1"),
+             ("group 3", 2, 5, "#6366f1")],
+            "Three groups of 2/5 is 6/5.",
+        )
+        + solved(1, "Find 3 × 2/5.",
                ["Three groups of 2 fifths is 6 fifths.",
                 "6/5.",
                 "That is also 1 1/5."],
@@ -917,7 +1014,12 @@ def build_unit4():
             "Crossing out common factors is just simplifying early: the 5s in 2/5 × 5/6.",
             "The product of two proper fractions is smaller than either factor.",
         ],
-        solved(1, "Find 2/3 × 4/5.",
+        fraction_area_model(
+            2, 3, 4, 5,
+            title="Area model for 2/3 × 4/5",
+            caption="A 3-by-5 grid. Shade 2 of 3 rows and 4 of 5 columns. The overlap is 8/15.",
+        )
+        + solved(1, "Find 2/3 × 4/5.",
                ["Tops: 2 × 4 = 8.",
                 "Bottoms: 3 × 5 = 15.",
                 "Product: 8/15."],
@@ -943,7 +1045,12 @@ def build_unit4():
             "This is why fraction multiplication shows up in measurement, not only in 'naked' number problems.",
             "Units: if sides are in inches, area is in square inches.",
         ],
-        solved(1, "A rectangle is 1/2 unit by 1/3 unit. What is its area?",
+        fraction_area_model(
+            1, 2, 1, 3,
+            title="A 1/2-by-1/3 rectangle",
+            caption="Split a unit square into a 2-by-3 grid. One cell is 1/6 square unit.",
+        )
+        + solved(1, "A rectangle is 1/2 unit by 1/3 unit. What is its area?",
                ["Area = length × width.",
                 "1/2 × 1/3 = 1/6.",
                 "One-sixth square unit."],
@@ -962,7 +1069,13 @@ def build_unit4():
             "This is the idea of scaling, which you will use again in middle-school ratios.",
             "Ask: is my factor more than 1, equal to 1, or less than 1? Then predict bigger, same, or smaller.",
         ],
-        solved(1, "Is 1/2 × 8 smaller or larger than 8?",
+        lesson_figure(
+            svg_dots(8, color="#6366f1", label="8")
+            + svg_dots(4, color="#10b981", label="1/2 × 8 = 4"),
+            "Scaling: 1/2 × 8 shrinks 8 to 4",
+            "A factor less than 1 makes a positive amount smaller.",
+        )
+        + solved(1, "Is 1/2 × 8 smaller or larger than 8?",
                ["1/2 is less than 1.",
                 "A factor less than 1 shrinks a positive number.",
                 "4 is smaller than 8."],
@@ -985,7 +1098,12 @@ def build_unit4():
             "Distribution is handy when one factor is a whole number.",
             "Simplify at the end. Check with an estimate: 1 1/2 × 4 is a little more than 4, actually 6.",
         ],
-        solved(1, "Find 1 1/2 × 4.",
+        lesson_figure(
+            svg_tape([1, 1, 1, 1], ["1½", "1½", "1½", "1½"]),
+            "Four copies of 1 1/2",
+            "1 1/2 four times is 6. Or: 4 wholes + 4 halves = 4 + 2 = 6.",
+        )
+        + solved(1, "Find 1 1/2 × 4.",
                ["1 1/2 = 3/2.",
                 "3/2 × 4/1 = 12/2 = 6.",
                 "Or: 4 wholes plus 4 halves = 4+2=6."],
@@ -1005,7 +1123,12 @@ def build_unit4():
             "Keep the unit in the answer so the story still makes sense.",
             "If you keep 1/3 of 12, that is the leftover after giving 2/3 — a useful check: 4 + 8 = 12.",
         ],
-        solved(1, "A recipe uses 3/4 cup. You make half the recipe. How much do you use?",
+        fraction_area_model(
+            1, 2, 3, 4,
+            title="Half of 3/4 cup",
+            caption="1/2 × 3/4: a 2-by-4 grid, overlap 3/8. That is the half-recipe amount.",
+        )
+        + solved(1, "A recipe uses 3/4 cup. You make half the recipe. How much do you use?",
                ["Half the recipe means × 1/2.",
                 "1/2 × 3/4 = 3/8.",
                 "3/8 cup."],

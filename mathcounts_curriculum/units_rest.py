@@ -4,6 +4,10 @@
 from __future__ import annotations
 
 import math
+from curriculum_kit import (
+    lesson_figure, svg_slots, svg_tree, svg_venn, svg_dots, svg_tape,
+    svg_rect, svg_plane,
+)
 from .common import (
     concept_block,
     solved,
@@ -20,6 +24,7 @@ from .common import (
     lattice_paths,
     fib,
 )
+from .units_deep import _tiles, _circle_seats
 
 
 def _need55(qs):
@@ -72,7 +77,12 @@ def build_unit2():
         ],
         "<p>Factorials are the backbone of ordered counting.</p>",
         "<p>Say: “first chair n ways, next n-1…” then multiply. That story is $n!$.</p>",
-        solved(1, "How many ways to line up 4 different students?",
+        lesson_figure(
+            svg_slots(["4", "3", "2", "1"]),
+            "Line up 4 students",
+            "Chairs shrink: $4\\times3\\times2\\times1=4!=24$.",
+        )
+        + solved(1, "How many ways to line up 4 different students?",
                ["Chair 1: 4 choices.", "Chair 2: 3.", "Chair 3: 2.", "Chair 4: 1.",
                 "Product $4!=24$.", "List for 3 students to feel it: ABC,ACB,BAC,BCA,CAB,CBA → $3!=6$."],
                "$24$", "", "Easy")
@@ -110,7 +120,12 @@ def build_unit2():
         ],
         "<p>P(n,k) is the product rule with shrinking options for k slots.</p>",
         "<p>Ask: are there labeled roles or an ordered list? If yes, P(n,k).</p>",
-        solved(4, "From 10 students, choose president, VP, secretary (all different)?",
+        lesson_figure(
+            svg_slots(["Pres: 10", "VP: 9", "Sec: 8"]),
+            "Three titled roles from 10",
+            "Order matters: $P(10,3)=10\\times9\\times8=720$.",
+        )
+        + solved(4, "From 10 students, choose president, VP, secretary (all different)?",
                ["President: 10.", "VP: 9.", "Secretary: 8.", "$P(10,3)=720$."],
                "$720$", "", "Easy")
         + solved(5, "How many injective (one-to-one) functions from a 3-set to a 7-set?",
@@ -147,7 +162,12 @@ def build_unit2():
         ],
         "<p>Identical objects force you to remove fake distinctions.</p>",
         "<p>Count total letters, list repeat frequencies, write n! over those factorials.</p>",
-        solved(7, "Distinct arrangements of BALL?",
+        lesson_figure(
+            _tiles("BALL"),
+            "Arrangements of BALL",
+            "4 tiles, but the two L’s look the same: $\\frac{4!}{2!}=12$.",
+        )
+        + solved(7, "Distinct arrangements of BALL?",
                ["Letters B,A,L,L → 4 letters, L×2.", "$\\frac{4!}{2!}=12$."],
                "$12$", "", "Easy")
         + solved(8, "Distinct arrangements of BALLOON?",
@@ -183,7 +203,12 @@ def build_unit2():
         ],
         "<p>Repetition rules change the slot numbers.</p>",
         "<p>Underline “repeated” or “distinct.” Then write slots.</p>",
-        solved(10, "Length-3 codes from 0–9 with repeats OK?",
+        lesson_figure(
+            svg_slots(["10", "10", "10"]),
+            "Length-3 codes, repeats OK",
+            "Each slot keeps all 10 digits: $10^3=1000$. Distinct digits would shrink to $10\\times9\\times8$.",
+        )
+        + solved(10, "Length-3 codes from 0–9 with repeats OK?",
                ["$10^3=1000$."], "$1000$", "", "Easy")
         + solved(11, "Length-3 codes from 0–9 no repeats?",
                  ["$P(10,3)=720$."], "$720$", "", "Easy")
@@ -217,7 +242,12 @@ def build_unit2():
         ],
         "<p>Circles remove a rotational symmetry.</p>",
         "<p>Ask: are seats labeled? Can we rotate? Can we flip?</p>",
-        solved(13, "5 distinct people around an unlabeled round table (rotations same)?",
+        lesson_figure(
+            _circle_seats(5),
+            "5 people around an unlabeled table",
+            "Fix one person (gold) to kill rotations, then $4!=24$ ways to seat the rest.",
+        )
+        + solved(13, "5 distinct people around an unlabeled round table (rotations same)?",
                ["$(5-1)!=24$."], "$24$", "", "Medium")
         + solved(14, "6 people around labeled seats numbered 1–6?",
                  ["Seats labeled → $6!=720$."], "$720$", "", "Easy")
@@ -249,7 +279,12 @@ def build_unit2():
         ],
         "<p>Recognizing the pattern saves minutes on Sprint/AMC.</p>",
         "<p>Match the problem to A/B/C/D above before computing.</p>",
-        solved(16, "Glue trick preview: 5 people in a line, A and B must be together?",
+        lesson_figure(
+            svg_slots(["(AB)", "C", "D", "E"]),
+            "Glue A and B together",
+            "4 entities in a line ($4!$) and the block can be AB or BA ($\\times2$): $48$.",
+        )
+        + solved(16, "Glue trick preview: 5 people in a line, A and B must be together?",
                ["Treat (AB) as one block → 4 entities: block,C,D,E → $4!$ ways.",
                 "Block internal: AB or BA → $\\times2$.",
                 "Total $4!\\times2=48$."],

@@ -7,6 +7,13 @@ plus a 50-question finale (Easy 31-45, Medium 46-60, Hard 61-70, Stretch 71-80) 
 
 from __future__ import annotations
 
+import math
+
+from curriculum_kit import (
+    lesson_figure, svg_plane, svg_parabola, svg_number_line, svg_circle,
+    svg_rect, svg_balance, svg_tree, svg_dots,
+)
+
 from .common import (
     concept_block,
     solved,
@@ -19,6 +26,47 @@ from .common import (
     near_str,
     p,
 )
+from .units_1_4 import _nline, _pts, _xy
+
+
+def _cube(edge="3"):
+    return (
+        '<svg viewBox="0 0 170 150" width="100%" style="max-width:200px" role="img">'
+        '<polygon points="40,52 108,52 138,28 70,28" fill="#c7d2fe" stroke="#312e81"/>'
+        '<polygon points="40,52 40,118 108,118 108,52" fill="#a5b4fc" stroke="#312e81"/>'
+        '<polygon points="108,52 138,28 138,94 108,118" fill="#818cf8" stroke="#312e81"/>'
+        f'<text x="85" y="142" text-anchor="middle" font-size="12">edge {edge}</text></svg>'
+    )
+
+
+def _rt(opp=3, adj=4, hyp=5):
+    return (
+        '<svg viewBox="0 0 230 170" width="100%" style="max-width:240px" role="img">'
+        '<polygon points="30,140 170,140 30,55" fill="#fde68a" stroke="#0f172a" stroke-width="2"/>'
+        '<rect x="30" y="124" width="16" height="16" fill="none" stroke="#0f172a"/>'
+        f'<text x="100" y="158" text-anchor="middle" font-size="13">{adj} (adj)</text>'
+        f'<text x="4" y="100" font-size="13">{opp} (opp)</text>'
+        f'<text x="118" y="88" font-size="13">{hyp}</text>'
+        '<text x="158" y="136" font-size="12">θ</text></svg>'
+    )
+
+
+def _unit_circle(deg=180, lab="π"):
+    ang = math.radians(deg)
+    cx, cy, r = 130, 130, 88
+    px = cx + r * math.cos(ang)
+    py = cy - r * math.sin(ang)
+    return (
+        f'<svg viewBox="0 0 260 260" width="100%" style="max-width:260px" role="img">'
+        f'<line x1="20" y1="{cy}" x2="240" y2="{cy}" stroke="#0f172a" stroke-width="1.5"/>'
+        f'<line x1="{cx}" y1="20" x2="{cx}" y2="240" stroke="#0f172a" stroke-width="1.5"/>'
+        f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="#eef2ff" stroke="#312e81" stroke-width="2"/>'
+        f'<line x1="{cx}" y1="{cy}" x2="{px:.1f}" y2="{py:.1f}" stroke="#dc2626" stroke-width="2"/>'
+        f'<circle cx="{px:.1f}" cy="{py:.1f}" r="5" fill="#dc2626"/>'
+        f'<text x="{px + 8:.1f}" y="{py - 8:.1f}" font-size="12" fill="#b91c1c">{lab}</text>'
+        f'<text x="236" y="{cy - 6}" font-size="11">real</text>'
+        f'<text x="{cx + 6}" y="18" font-size="11">imag</text></svg>'
+    )
 
 
 def _fill80(qs):
@@ -402,7 +450,14 @@ def build_unit5():
         "Factor the numerator completely. Factor the denominator completely. Write down every value that makes "
         "the original denominator zero. Cancel only matching factors that appear in both the top and the "
         "bottom. Rewrite the simplified expression together with its domain restriction.",
-        solved(1, "Simplify $\\dfrac{x^2-9}{x^2+5x+6}$.",
+        lesson_figure(
+            _xy(curves=[("#4f46e5", _pts(lambda x: (x - 3) / (x + 2), -6, 6, skip=(-2,)))],
+                dashes=[("v", -2, "x=-2"), ("h", 1, "y=1")],
+                xlim=(-6, 6), ylim=(-6, 6)),
+            "Simplified $y=(x-3)/(x+2)$",
+            "Dashed vertical asymptote $x=-2$ and horizontal $y=1$; hole at canceled $x=-3$.",
+        )
+        + solved(1, "Simplify $\\dfrac{x^2-9}{x^2+5x+6}$.",
                ["Factor the numerator as a difference of squares: $(x-3)(x+3)$.",
                 "Factor the denominator as a trinomial: $(x+2)(x+3)$.",
                 "The original denominator is zero when $x=-2$ or $x=-3$, so those values are excluded.",
@@ -463,7 +518,14 @@ def build_unit5():
         "Rewrite any division as multiplication by the reciprocal first. Factor every numerator and denominator "
         "completely. Cancel matching factors across the whole product, not just within one original fraction. "
         "Multiply what remains and record every excluded value.",
-        solved(1, "Multiply $\\dfrac{x^2-1}{x^2-4}\\cdot\\dfrac{x+2}{x+1}$.",
+        lesson_figure(
+            _xy(curves=[("#4f46e5", _pts(lambda x: (x - 1) / (x - 2), -4, 6, skip=(2,)))],
+                dashes=[("v", 2, "x=2"), ("h", 1, "y=1")],
+                xlim=(-4, 6), ylim=(-6, 6)),
+            "Product simplifies to $y=(x-1)/(x-2)$",
+            "After canceling, vertical asymptote $x=2$ and horizontal $y=1$.",
+        )
+        + solved(1, "Multiply $\\dfrac{x^2-1}{x^2-4}\\cdot\\dfrac{x+2}{x+1}$.",
                ["Factor everything first: $\\dfrac{(x-1)(x+1)}{(x-2)(x+2)}\\cdot\\dfrac{x+2}{x+1}$.",
                 "Cancel $(x+1)$ from the first numerator with $(x+1)$ in the second denominator.",
                 "Cancel $(x+2)$ from the first denominator with $(x+2)$ in the second numerator.",
@@ -526,7 +588,14 @@ def build_unit5():
         "Factor every denominator. Build the LCD from those factored pieces. Rewrite each fraction over the LCD. "
         "Combine numerators carefully, distributing any subtraction sign across every term. Simplify the result "
         "if possible.",
-        solved(1, "Add $\\dfrac{1}{x}+\\dfrac{1}{x+1}$.",
+        lesson_figure(
+            _xy(curves=[("#4f46e5", _pts(lambda x: (2 * x + 1) / (x * (x + 1)), -5, 4, skip=(-1, 0)))],
+                dashes=[("v", -1, "x=-1"), ("v", 0, "x=0"), ("h", 0, "y=0")],
+                xlim=(-5, 4), ylim=(-6, 6)),
+            "Sum $\\frac{1}{x}+\\frac{1}{x+1}=\\frac{2x+1}{x(x+1)}$",
+            "Vertical asymptotes $x=0$ and $x=-1$; horizontal asymptote $y=0$.",
+        )
+        + solved(1, "Add $\\dfrac{1}{x}+\\dfrac{1}{x+1}$.",
                ["The denominators share no common factor, so the LCD is $x(x+1)$.",
                 "Rewrite each fraction: $\\dfrac{x+1}{x(x+1)}+\\dfrac{x}{x(x+1)}$.",
                 "Combine numerators: $\\dfrac{(x+1)+x}{x(x+1)}=\\dfrac{2x+1}{x(x+1)}$."],
@@ -584,7 +653,14 @@ def build_unit5():
         "Identify every small fraction inside the complex fraction and find their overall LCD. Multiply the "
         "entire top and the entire bottom of the big fraction by that LCD, distributing across every term. "
         "Simplify what remains and record domain restrictions from every denominator you saw along the way.",
-        solved(1, "Simplify $\\dfrac{2/x}{4/x^2}$.",
+        lesson_figure(
+            _xy(curves=[("#4f46e5", _pts(lambda x: x / 2, -5, 5, skip=(0,)))],
+                points=[(2, 1, "(2,1)")],
+                xlim=(-5, 5), ylim=(-4, 4)),
+            "Complex fraction $\\frac{2/x}{4/x^2}$ simplifies to $y=x/2$",
+            "The original expression is undefined at $x=0$ (a hole on this line).",
+        )
+        + solved(1, "Simplify $\\dfrac{2/x}{4/x^2}$.",
                ["Multiply by the reciprocal of the bottom fraction: $\\dfrac{2}{x}\\cdot\\dfrac{x^2}{4}$.",
                 "Multiply straight across: $\\dfrac{2x^2}{4x}$.",
                 "Cancel common factors of $2$ and $x$: $\\dfrac{2x^2}{4x}=\\dfrac{x}{2}$."],
@@ -642,7 +718,12 @@ def build_unit5():
         "List every value forbidden by the original denominators. Multiply both sides by the LCD to clear "
         "fractions. Solve the resulting equation. Compare every candidate to the forbidden list and discard any "
         "match as extraneous.",
-        solved(1, "Solve $\\dfrac{1}{x}+\\dfrac{1}{2}=\\dfrac{3}{x}$.",
+        lesson_figure(
+            _nline(-2, 8, closed=[(4, "x=4")], opened=[(0, "x=0 excluded")]),
+            "Solution of $\\frac{1}{x}+\\frac{1}{2}=\\frac{3}{x}$",
+            "The solution $x=4$ is allowed; $x=0$ is excluded from the original equation.",
+        )
+        + solved(1, "Solve $\\dfrac{1}{x}+\\dfrac{1}{2}=\\dfrac{3}{x}$.",
                ["Domain: $x\\neq0$.",
                 "Multiply every term by the LCD, $2x$: $2+x=6$.",
                 "Solve: $x=4$.",
@@ -703,7 +784,12 @@ def build_unit5():
         "and add the rates) or a proportion (match corresponding sides and cross multiply). Set up the equation "
         "carefully in words first, then solve using the LCD or cross multiplication, and check that the answer "
         "makes sense in context.",
-        solved(1, "Pipe A fills a tank in 4 hours; pipe B fills the same tank in 6 hours. How long does it "
+        lesson_figure(
+            svg_balance("1/4 + 1/6", "5/12"),
+            "Together rate: $\\frac{1}{4}+\\frac{1}{6}=\\frac{5}{12}$ tank/hour",
+            "Time together is $12/5$ hours — the reciprocal of the combined rate.",
+        )
+        + solved(1, "Pipe A fills a tank in 4 hours; pipe B fills the same tank in 6 hours. How long does it "
                   "take working together?",
                ["Write each rate as a fraction of the tank per hour: A's rate is $\\dfrac14$, B's rate is "
                 "$\\dfrac16$.",
@@ -1025,7 +1111,12 @@ def build_unit6():
         "Identify the index first. If it is even, check that the radicand is nonnegative before evaluating, and "
         "always take the nonnegative principal root. If it is odd, evaluate directly and let the sign of the "
         "answer match the sign of the radicand.",
-        solved(1, "Evaluate $\\sqrt[3]{-27}$.",
+        lesson_figure(
+            _cube("3"),
+            "Cube of edge $3$",
+            "$(-3)^3=-27$, so $\\sqrt[3]{-27}=-3$ (odd roots allow negatives).",
+        )
+        + solved(1, "Evaluate $\\sqrt[3]{-27}$.",
                ["The index is odd, so a negative radicand is completely acceptable.",
                 "Ask: what number cubed gives $-27$?",
                 "$(-3)^3=-27$, so the cube root is $-3$."],
@@ -1082,7 +1173,12 @@ def build_unit6():
         "Identify $m$ (the power) and $n$ (the root) in $a^{m/n}$. Take the $n$th root of $a$ first, using small "
         "friendly numbers whenever possible, and then raise that result to the $m$ power. Flip to a reciprocal "
         "first if the exponent is negative.",
-        solved(1, "Evaluate $8^{2/3}$.",
+        lesson_figure(
+            _cube("2") + svg_rect(2, 2, label=True),
+            "$8^{2/3}=(\\sqrt[3]{8})^2=2^2=4$",
+            "Cube of edge $2$ (because $2^3=8$), then square that edge length.",
+        )
+        + solved(1, "Evaluate $8^{2/3}$.",
                ["The denominator, $3$, tells you to take a cube root; the numerator, $2$, tells you to square "
                 "the result.",
                 "Take the cube root first: $\\sqrt[3]8=2$.",
@@ -1137,7 +1233,12 @@ def build_unit6():
         "Split the radicand into perfect-power factors matching the index and leftover factors. Pull out the "
         "perfect-power part. If the index is even and the pulled-out variable expression could be negative on "
         "its own, wrap it in absolute value bars; otherwise leave it as is.",
-        solved(1, "Simplify $\\sqrt{50}$.",
+        lesson_figure(
+            _nline(5, 10, closed=[(7.07, "√50")]),
+            "$\\sqrt{50}$ between consecutive integers",
+            "$7^2=49$ and $8^2=64$, so $\\sqrt{50}$ sits just past $7$.",
+        )
+        + solved(1, "Simplify $\\sqrt{50}$.",
                ["Find the largest perfect-square factor of $50$: $50=25\\cdot2$.",
                 "Split the radical: $\\sqrt{25}\\cdot\\sqrt2$.",
                 "Simplify the perfect square: $5\\sqrt2$."],
@@ -1195,7 +1296,12 @@ def build_unit6():
         "adding coefficients. For multiplication, combine radicands under one radical and simplify. For "
         "rationalizing, multiply by the radical itself (one term) or by the conjugate (two terms) to clear the "
         "denominator.",
-        solved(1, "Simplify $3\\sqrt2+5\\sqrt2$.",
+        lesson_figure(
+            _nline(8, 14, closed=[(11.31, "8√2")]),
+            "$3\\sqrt{2}+5\\sqrt{2}=8\\sqrt{2}$",
+            "$8\\sqrt{2}\\approx11.3$, between $11$ and $12$ on the number line.",
+        )
+        + solved(1, "Simplify $3\\sqrt2+5\\sqrt2$.",
                ["Both terms already have the same radical, $\\sqrt2$, so they are like radicals.",
                 "Add the coefficients: $3+5=8$.",
                 "The result is $8\\sqrt2$."],
@@ -1247,7 +1353,12 @@ def build_unit6():
         "original equation is what makes the final answer trustworthy.",
         "Isolate the radical completely. Raise both sides to the matching power. Solve the resulting equation. "
         "Substitute every candidate back into the original radical equation and discard anything that fails.",
-        solved(1, "Solve $\\sqrt{x+3}=4$.",
+        lesson_figure(
+            _nline(-4, 16, closed=[(-3, "x=-3"), (13, "x=13")], shade=("right", -3)),
+            "Solve $\\sqrt{x+3}=4$",
+            "Domain $x\\ge-3$ (closed at $-3$); the checked solution is $x=13$.",
+        )
+        + solved(1, "Solve $\\sqrt{x+3}=4$.",
                ["The radical is already isolated.",
                 "Square both sides: $x+3=16$.",
                 "Solve: $x=13$.",
@@ -1310,7 +1421,14 @@ def build_unit6():
         "Identify the parent function (square root or cube root). Find the shifted starting or inflection point "
         "from the horizontal and vertical shift values. Determine whether there is a reflection from a negative "
         "sign, then plot two or three additional points to complete the sketch.",
-        solved(1, "Describe the graph of $y=\\sqrt{x-2}+3$.",
+        lesson_figure(
+            _xy(curves=[("#4f46e5", _pts(lambda x: math.sqrt(x - 2) + 3 if x >= 2 else 1e9, 2, 8))],
+                points=[(2, 3, "start (2,3)"), (6, 5, "(6,5)")],
+                xlim=(0, 9), ylim=(0, 8), ylab="y"),
+            "$y=\\sqrt{x-2}+3$",
+            "Square-root graph starts at $(2,3)$ and exists only for $x\\ge 2$.",
+        )
+        + solved(1, "Describe the graph of $y=\\sqrt{x-2}+3$.",
                ["Compare to the parent form $y=\\sqrt{x-h}+k$: here $h=2$ and $k=3$.",
                 "The starting point shifts from $(0,0)$ to $(2,3)$.",
                 "The domain becomes $x\\ge2$ and the range becomes $y\\ge3$."],
@@ -1631,7 +1749,14 @@ def build_unit7():
         "Identify $a$ (starting value) and $b$ (growth or decay factor) from the given rate. If the rate is a "
         "growth percent $r$, use $b=1+r$; if it is a decay percent $r$, use $b=1-r$. Substitute the given "
         "$x$-value and compute.",
-        solved(1, "For $P(t)=500(1.08)^t$, find $P(3)$ (round to the nearest whole number).",
+        lesson_figure(
+            _xy(curves=[("#4f46e5", _pts(lambda t: 500 * (1.08 ** t), 0, 5))],
+                points=[(0, 500, "(0,500)"), (3, 630, "P(3)≈630")],
+                xlim=(-0.3, 5.2), ylim=(0, 800), xlab="t", ylab="P(t)"),
+            "Growth $P(t)=500(1.08)^t$",
+            "Exponential through the start $(0,500)$ and the example point $(3,630)$.",
+        )
+        + solved(1, "For $P(t)=500(1.08)^t$, find $P(3)$ (round to the nearest whole number).",
                ["Substitute $t=3$: $P(3)=500(1.08)^3$.",
                 "Compute the power: $1.08^3\\approx1.259712$.",
                 "Multiply: $500\\times1.259712\\approx629.86$.",
@@ -1692,7 +1817,14 @@ def build_unit7():
         "Rewrite every term so both sides use the same base, distributing carefully across any existing "
         "exponent expression. Set the exponents equal to each other. Solve the resulting equation using "
         "ordinary algebra.",
-        solved(1, "Solve $2^x=32$.",
+        lesson_figure(
+            _xy(curves=[("#4f46e5", _pts(lambda x: 2 ** x, -1, 5.2))],
+                points=[(0, 1, "(0,1)"), (5, 32, "(5,32)")],
+                xlim=(-1.5, 6), ylim=(-2, 36), ylab="y"),
+            "$y=2^x$ through $(0,1)$ and $(5,32)$",
+            "Same-base equation $2^x=32=2^5$ is the point $(5,32)$ on the exponential.",
+        )
+        + solved(1, "Solve $2^x=32$.",
                ["Rewrite $32$ as a power of $2$: $32=2^5$.",
                 "Since both sides share base $2$, set the exponents equal: $x=5$."],
                "$x=5$", "", "Easy")
@@ -1747,7 +1879,18 @@ def build_unit7():
         "Identify the three roles — base, exponent, argument — in whichever form (exponential or log) you are "
         "given. Rewrite those same three values into the matching positions of the other form. For evaluating, "
         "ask 'base to what power gives the argument?'",
-        solved(1, "Convert $2^5=32$ to logarithmic form.",
+        lesson_figure(
+            _xy(curves=[
+                    ("#4f46e5", _pts(lambda x: 2 ** x, -1.2, 3.3)),
+                    ("#059669", _pts(lambda x: math.log(x, 2) if x > 0.15 else 1e9, 0.2, 9)),
+                    ("#94a3b8", _pts(lambda x: x, -1, 8)),
+                ],
+                points=[(0, 1, "(0,1)"), (3, 8, "2^3=8"), (8, 3, "log2 8=3")],
+                xlim=(-2, 10), ylim=(-2, 10)),
+            "$y=2^x$ and $y=\\log_2 x$ are inverses",
+            "Reflection across $y=x$. The example $2^5=32$ is the same fact as $\\log_2 32=5$.",
+        )
+        + solved(1, "Convert $2^5=32$ to logarithmic form.",
                ["Identify the base ($2$), the exponent ($5$), and the result ($32$).",
                 "In log form, the base stays the base, and the equation reads: $\\log_2 32=5$."],
                "$\\log_2 32=5$", "", "Easy")
@@ -1804,7 +1947,14 @@ def build_unit7():
         "Look at the operation inside the logarithm. Multiplication becomes addition outside (product rule). "
         "Division becomes subtraction outside (quotient rule). An exponent on the argument becomes a multiplier "
         "out front (power rule). Apply only the property matching what you actually see.",
-        solved(1, "Evaluate $\\log_2 8+\\log_2 4$ using the product rule.",
+        lesson_figure(
+            _xy(curves=[("#059669", _pts(lambda x: math.log(x, 2) if x > 0.2 else 1e9, 0.3, 36))],
+                points=[(8, 3, "log2 8=3"), (4, 2, "log2 4=2"), (32, 5, "log2 32=5")],
+                xlim=(-1, 36), ylim=(-1, 7), xlab="x", ylab="log₂ x"),
+            "Product rule: $\\log_2 8+\\log_2 4=\\log_2 32=5$",
+            "The two log heights $3$ and $2$ add to the log of the product at $x=32$.",
+        )
+        + solved(1, "Evaluate $\\log_2 8+\\log_2 4$ using the product rule.",
                ["Recognize the sum-of-logs pattern, which corresponds to the product rule in reverse.",
                 "Combine into one log: $\\log_2(8\\cdot4)=\\log_2 32$.",
                 "Evaluate: since $2^5=32$, the result is $5$."],
@@ -1861,7 +2011,14 @@ def build_unit7():
         "Isolate the exponential or logarithmic expression. Apply the inverse operation (take a log, or "
         "exponentiate) to undo it. Solve the resulting equation. Confirm every log argument in your candidate "
         "solutions stays positive.",
-        solved(1, "Solve $\\log_2 x=5$.",
+        lesson_figure(
+            _xy(curves=[("#4f46e5", _pts(lambda x: 2 ** x, -0.5, 5.3))],
+                points=[(0, 1, "(0,1)"), (5, 32, "x=32")],
+                xlim=(-1, 6), ylim=(-2, 36), xlab="exponent", ylab="2^x"),
+            "Solving $\\log_2 x=5$",
+            "Convert to $x=2^5=32$: the exponential through $(0,1)$ and $(5,32)$.",
+        )
+        + solved(1, "Solve $\\log_2 x=5$.",
                ["The log is already isolated.",
                 "Convert to exponential form: $x=2^5$.",
                 "Evaluate: $x=32$."],
@@ -1919,7 +2076,14 @@ def build_unit7():
         "For change of base, rewrite $\\log_b v$ as $\\dfrac{\\log v}{\\log b}$ and evaluate with a calculator. "
         "For applications, identify which formula fits the situation, label every variable with its given "
         "value and units, and substitute carefully, keeping percentages as decimals.",
-        solved(1, "Use change of base to evaluate $\\log_5 40$ (round to 2 decimal places).",
+        lesson_figure(
+            _xy(curves=[("#059669", _pts(lambda x: math.log(x, 5) if x > 0.4 else 1e9, 0.5, 45))],
+                points=[(5, 1, "log5 5=1"), (25, 2, "log5 25=2"), (40, 2.29, "log5 40≈2.29")],
+                xlim=(-1, 48), ylim=(-0.4, 3.4), xlab="x", ylab="log₅ x"),
+            "Change of base: $\\log_5 40\\approx 2.29$",
+            "The log curve through $(5,1)$ and $(25,2)$ places $x=40$ near height $2.29$.",
+        )
+        + solved(1, "Use change of base to evaluate $\\log_5 40$ (round to 2 decimal places).",
                ["Apply the change-of-base formula: $\\log_5 40=\\dfrac{\\log 40}{\\log 5}$.",
                 "Compute each common log: $\\log40\\approx1.602$ and $\\log5\\approx0.699$.",
                 "Divide: $\\dfrac{1.602}{0.699}\\approx2.29$."],
@@ -2238,7 +2402,12 @@ def build_unit8():
         "Identify whether you need a single term (use $a_n=a_1+(n-1)d$) or a running total (use "
         "$S_n=\\dfrac{n}{2}(a_1+a_n)$). If the last term is unknown, find it first using the term formula before "
         "computing the sum.",
-        solved(1, "Find the 10th term of $3,7,11,15,\\ldots$",
+        lesson_figure(
+            svg_number_line(0, 16, marks=[(3, "a1"), (7, "a2"), (11, "a3"), (15, "a4")]),
+            "Arithmetic sequence $3,7,11,15,\\ldots$",
+            "Equal spacing $d=4$ on the number line; $a_{10}=3+9\\cdot4=39$.",
+        )
+        + solved(1, "Find the 10th term of $3,7,11,15,\\ldots$",
                ["Identify $a_1=3$ and $d=4$.",
                 "Apply the term formula: $a_{10}=a_1+9d=3+9(4)=3+36$.",
                 "Simplify: $a_{10}=39$."],
@@ -2295,7 +2464,12 @@ def build_unit8():
         "Check whether consecutive terms share a constant ratio (geometric) rather than a constant difference "
         "(arithmetic). Use $a_n=a_1r^{n-1}$ for a single term, the finite sum formula for a fixed number of "
         "terms, and the infinite sum formula only when $|r|<1$.",
-        solved(1, "Find the 6th term of $2,6,18,54,\\ldots$",
+        lesson_figure(
+            svg_number_line(0, 20, marks=[(2, "2"), (6, "6"), (18, "18")]),
+            "Geometric sequence $2,6,18,\\ldots$",
+            "Each term is $3$ times the previous ($r=3$). Next shown term would be $54$.",
+        )
+        + solved(1, "Find the 6th term of $2,6,18,54,\\ldots$",
                ["Identify $a_1=2$ and $r=3$ (each term is $3$ times the previous term).",
                 "Apply the term formula: $a_6=a_1r^5=2(3^5)=2(243)$.",
                 "Simplify: $a_6=486$."],
@@ -2351,7 +2525,12 @@ def build_unit8():
         "Identify the lower and upper limits of $k$. Substitute each whole-number value of $k$ into the "
         "expression, from the lower limit through the upper limit. Add all the resulting values together, "
         "checking your work by writing out at least the first two or three terms explicitly.",
-        solved(1, "Evaluate $\\sum_{k=1}^{5}k$.",
+        lesson_figure(
+            svg_number_line(0, 6, marks=[(1, "1"), (2, "2"), (3, "3"), (4, "4"), (5, "5")]),
+            "$\\sum_{k=1}^{5} k = 1+2+3+4+5$",
+            "Five consecutive integers on the number line; their sum is $15$.",
+        )
+        + solved(1, "Evaluate $\\sum_{k=1}^{5}k$.",
                ["Substitute $k=1,2,3,4,5$ into the expression $k$ itself: $1,2,3,4,5$.",
                 "Add the terms: $1+2+3+4+5=15$."],
                "$15$", "", "Easy")
@@ -2405,7 +2584,12 @@ def build_unit8():
         "Label the hypotenuse first (always opposite the right angle). Relative to the marked angle, label the "
         "touching leg as adjacent and the far leg as opposite. Use the Pythagorean theorem for any missing side, "
         "then apply SOHCAHTOA for the requested ratio.",
-        solved(1, "A right triangle has legs 3 and 4 and hypotenuse 5. Find $\\sin\\theta$, $\\cos\\theta$, "
+        lesson_figure(
+            _rt(3, 4, 5),
+            "Right triangle $3$-$4$-$5$",
+            "Angle $\\theta$ opposite $3$: $\\sin\\theta=3/5$, $\\cos\\theta=4/5$, $\\tan\\theta=3/4$.",
+        )
+        + solved(1, "A right triangle has legs 3 and 4 and hypotenuse 5. Find $\\sin\\theta$, $\\cos\\theta$, "
                   "and $\\tan\\theta$ for the angle opposite the leg of length 3.",
                ["Label the sides relative to $\\theta$: opposite $=3$, adjacent $=4$, hypotenuse $=5$.",
                 "$\\sin\\theta=\\dfrac{\\text{opposite}}{\\text{hypotenuse}}=\\dfrac35$.",
@@ -2468,7 +2652,12 @@ def build_unit8():
         "To convert degrees to radians, multiply by $\\dfrac{\\pi}{180}$; to convert radians to degrees, "
         "multiply by $\\dfrac{180}{\\pi}$. For key angles, recall the exact sine and cosine values from the "
         "$30$-$60$-$90$ and $45$-$45$-$90$ triangles rather than estimating with a calculator.",
-        solved(1, "Convert $180°$ to radians.",
+        lesson_figure(
+            _unit_circle(180, "π (−1,0)"),
+            "Unit circle: $180°=\\pi$ radians",
+            "Halfway around the circle from $(1,0)$ lands at $(-1,0)$.",
+        )
+        + solved(1, "Convert $180°$ to radians.",
                ["Multiply by the conversion factor: $180\\times\\dfrac{\\pi}{180}$.",
                 "The $180$'s cancel, leaving $\\pi$ radians."],
                "$\\pi$ radians", "", "Easy")
@@ -2525,7 +2714,14 @@ def build_unit8():
         "Identify $A$, $B$, $C$, and $D$ from the equation. Compute amplitude $|A|$, period $\\dfrac{2\\pi}{B}$, "
         "phase shift $\\dfrac{C}{B}$, and vertical shift $D$ separately, then use the midline, maximum, minimum, "
         "and period length together to sketch the wave.",
-        solved(1, "Describe the graph of $y=3\\sin(x)$.",
+        lesson_figure(
+            _xy(curves=[("#4f46e5", _pts(lambda x: 3 * math.sin(x), 0, 2 * math.pi))],
+                points=[(math.pi / 2, 3, "amp 3"), (3 * math.pi / 2, -3, "")],
+                xlim=(-0.4, 7), ylim=(-4, 4), xlab="x", ylab="y"),
+            "$y=3\\sin x$",
+            "Same period $2\\pi$ as the parent sine; amplitude $3$ (peaks at $3$ and $-3$).",
+        )
+        + solved(1, "Describe the graph of $y=3\\sin(x)$.",
                ["Compare to the parent form: $A=3$, $B=1$, no horizontal or vertical shift.",
                 "Amplitude is $|A|=3$, so the wave reaches up to $3$ and down to $-3$.",
                 "Period is $\\dfrac{2\\pi}{1}=2\\pi$, the same as the parent graph."],

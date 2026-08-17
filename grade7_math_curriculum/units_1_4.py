@@ -1,9 +1,11 @@
 """Seventh Grade Math units 1–4: negatives, rational operations, proportions, percents."""
 
+from curriculum_kit import lesson_figure, svg_fraction_bar
+
 from .common import (
     concept_block, solved, practice_slots, unit_shell, kid_tip, watch_out, try_this,
     step_reveal, matching, phet_box, hops_line, integer_line, tape_diagram,
-    double_number_line, percent_bar, proportional_graph, mq, renumber,
+    double_number_line, percent_bar, proportional_graph, scale_drawing, mq, renumber,
 )
 
 
@@ -103,7 +105,11 @@ def build_unit1():
          "3/4 − 5/4 = −2/4 = −1/2.",
          "Absolute value still means distance: |−4 + 1| = |−3| = 3.",
          "Estimate the sign first. If the negative piece is larger, the sum is negative."],
-        solved(1, "Find 1/2 + (−1/4).", ["Common denominator 4: 2/4 + (−1/4).", "2/4 − 1/4 = 1/4.", "Positive one-fourth."], "1/4")
+        lesson_figure(
+            svg_fraction_bar(1, 2, "#86efac") + svg_fraction_bar(1, 4, "#fca5a5"),
+            "1/2 + (−1/4)",
+            "1/2 is two fourths. Adding −1/4 leaves 1/4.")
+        + solved(1, "Find 1/2 + (−1/4).", ["Common denominator 4: 2/4 + (−1/4).", "2/4 − 1/4 = 1/4.", "Positive one-fourth."], "1/4")
         + step_reveal(["Rewrite subtraction as adding the opposite if needed.",
                        "Match places or denominators.", "Add using sign rules.", "Simplify."], vid="g7u1-c3-steps"),
         try_this("Guess the sign", "Before you compute −6.1 − 2.4, you already know it is more negative than −6."),
@@ -128,7 +134,9 @@ def build_unit1():
          "Write each event as a signed number, then add.",
          "A gain of 12 then a loss of 15 is 12 + (−15) = −3.",
          "The story should still make sense: a net loss of 3, not a mystery 27."],
-        solved(1, "An account changes by −$20 then +$8. Net change?",
+        hops_line(-7, [3], title="−7 yards then +3 yards",
+                  caption="Start at −7. Hop right 3. Net is −4 yards.")
+        + solved(1, "An account changes by −$20 then +$8. Net change?",
                ["−20 + 8 = −12.", "Net change is −$12.", "The account is $12 lower."], "−$12")
         + matching([("−4° then +10°", "6°"), ("−7 yd then +3 yd", "−4 yd"),
                     ("−$20 then +$8", "−$12"), ("+12 then −15", "−3")], vid="g7u1-c5-match"),
@@ -223,7 +231,9 @@ def build_unit2():
          "The reciprocal of −2/5 is −5/2. Keep the sign when you flip.",
          "(−9)÷9 = −1. Check by multiplying back.",
          "4 × (−3) = −12, so (−12) ÷ (−3) = 4."],
-        solved(1, "Find (−12) ÷ (−3).", ["Same signs → positive.", "12 ÷ 3 = 4.", "Check: 4 × (−3) = −12."], "4")
+        hops_line(0, [-3, -3, -3, -3], title="(−12) ÷ (−3) = 4",
+                  caption="Four hops of −3 make −12. So (−12) ÷ (−3) = 4.")
+        + solved(1, "Find (−12) ÷ (−3).", ["Same signs → positive.", "12 ÷ 3 = 4.", "Check: 4 × (−3) = −12."], "4")
         + watch_out("Parentheses and exponents", "(−5)² is 25. −5² is −(5²) = −25."),
         6)
     c3 = concept_block(
@@ -234,7 +244,11 @@ def build_unit2():
          "Convert mixed numbers to improper fractions first.",
          "Cancel: (−2/7)×(7/2) = −1.",
          "Size is fraction arithmetic. Sign is the count of negatives."],
-        solved(1, "Compute (1/2) ÷ (−1/4).",
+        lesson_figure(
+            svg_fraction_bar(1, 2, "#86efac") + svg_fraction_bar(1, 4, "#fca5a5"),
+            "1/2 ÷ (−1/4)",
+            "1/2 is two copies of 1/4. Dividing by −1/4 gives −2.")
+        + solved(1, "Compute (1/2) ÷ (−1/4).",
                ["Keep, change, flip: (1/2)×(−4/1).", "2, then the negative.", "−2."], "−2")
         + step_reveal(["Decide the sign.", "Multiply or divide the sizes.", "Attach the sign.", "Check."],
                       vid="g7u2-c3-steps"),
@@ -247,7 +261,10 @@ def build_unit2():
          "This matters when you substitute a negative into x² versus −x².",
          "Write parentheses around a negative base for a power.",
          "Two negatives in a square make a positive."],
-        solved(1, "Compare (−5)² and −5².", ["(−5)² = 25.", "−5² = −25.", "They are opposites."], "25 versus −25")
+        integer_line(-8, 8, marks=[(-2, "−2"), (4, "4"), (-8, "−8")],
+                     title="Pattern −2, 4, −8, …",
+                     caption="Each term multiplies by −2. Next is 16, then −32.")
+        + solved(1, "Compare (−5)² and −5².", ["(−5)² = 25.", "−5² = −25.", "They are opposites."], "25 versus −25")
         + matching([("(−5)²", "25"), ("−5²", "−25"), ("(−2)³", "−8"), ("four factors of −2", "16")], vid="g7u2-c4-match"),
         16)
     c5 = concept_block(
@@ -258,7 +275,9 @@ def build_unit2():
          "If 3x = −12, then x = −4.",
          "Write the rate with a sign, then multiply by time.",
          "Four days of −3 should feel like a $12 loss, not a gain."],
-        solved(1, "A submarine dives 40 m/min for 5 min. Change in elevation?",
+        hops_line(0, [-3, -3, -3, -3], title="A stock drops $3 per day for 4 days",
+                  caption="Four hops of −3. The change is −$12.")
+        + solved(1, "A submarine dives 40 m/min for 5 min. Change in elevation?",
                ["Rate −40 m/min.", "5×(−40)=−200.", "−200 m."], "−200 m")
         + kid_tip("Rate × time", "Keep the sign on the rate. Time is usually positive."),
         21)
@@ -270,7 +289,10 @@ def build_unit2():
          "A long expression is a chain of small signed steps.",
          "If a result surprises you, count the negative signs.",
          "Even count in a pure product → positive. Odd → negative."],
-        solved(1, "Evaluate (−8) ÷ 2 ÷ (−2).", ["−8÷2=−4.", "−4÷−2=2.", "2."], "2")
+        integer_line(-8, 8, marks=[(-8, "−8"), (-4, "÷2"), (2, "÷(−2)")],
+                     title="(−8) ÷ 2 ÷ (−2)",
+                     caption="Left to right: −8÷2=−4, then −4÷(−2)=2.")
+        + solved(1, "Evaluate (−8) ÷ 2 ÷ (−2).", ["−8÷2=−4.", "−4÷−2=2.", "2."], "2")
         + try_this("Count the minuses", "Even count in a pure product → positive. Odd → negative."),
         26)
     content = unit_shell(
@@ -385,7 +407,9 @@ def build_unit3():
          "Factor 2.5 turns 8 oz into 20 oz.",
          "Every length multiplies by the same k.",
          "1:n means the real object is n times larger."],
-        solved(1, "Map 1 cm : 8 km. How far is 5 cm?", ["×8.", "5×8=40.", "40 km."], "40 km")
+        scale_drawing("Scale factor 4",
+                      "Every length multiplies by the same k. A map 1 cm : 8 km uses k=8, so 5 cm is 40 km.")
+        + solved(1, "Map 1 cm : 8 km. How far is 5 cm?", ["×8.", "5×8=40.", "40 km."], "40 km")
         + matching([("1 cm:8 km, 5 cm", "40 km"), ("1:20, 4 cm", "80 cm real"),
                     ("2:3 and 10 flour", "15 sugar"), ("k=2.5 on 8 oz", "20 oz")], vid="g7u3-c5-match"),
         21)
@@ -397,7 +421,10 @@ def build_unit3():
          "Write y=kx, find k, then evaluate.",
          "A taxi with a $2 flag drop plus $3/mile is not proportional.",
          "Ask: constant per one, and nothing extra at zero?"],
-        solved(1, "y proportional to x. y=10 when x=2. Find y when x=7.",
+        double_number_line("mi", [0, 50, 100, 150], "h", [0, 1, 2, 3],
+                           title="Constant speed 50 miles per hour",
+                           caption="50 mph for 3 hours is 150 miles. Distance = rate × time.")
+        + solved(1, "y proportional to x. y=10 when x=2. Find y when x=7.",
                ["k=10/2=5.", "y=5x.", "y=35."], "35")
         + try_this("Zero test", "If x is 0, is y 0? If not, it is not a proportion."),
         26)
@@ -484,7 +511,9 @@ def build_unit4():
          "15% tip on $80 is $12.",
          "Paid $60 after 25% off → original $80, because 60 is 75%.",
          "Ask: extra amount, or new total?"],
-        solved(1, "$40 shirt, 20% off. Sale price?", ["0.20×40=8.", "40−8=32.", "Or 40×0.8=32."], "$32")
+        percent_bar(20, 40, title="20% off $40",
+                    caption="20% of $40 is $8. Sale price 40 − 8 = $32.")
+        + solved(1, "$40 shirt, 20% off. Sale price?", ["0.20×40=8.", "40−8=32.", "Or 40×0.8=32."], "$32")
         + matching([("20% off $40", "$32"), ("8% tax on $50", "$54 total"),
                     ("15% of $80", "$12"), ("paid $60 after 25% off", "original $80")], vid="g7u4-c3-match"),
         11)
@@ -496,7 +525,9 @@ def build_unit4():
          "Same percent-of skill, business words.",
          "Name the original (cost or list) before you compute.",
          "Selling price = cost × (1 + markup rate)."],
-        solved(1, "30% markup on a $20 cost. Selling price?",
+        percent_bar(30, 20, title="30% markup on $20",
+                    caption="30% of $20 is $6. Selling price 20 + 6 = $26.")
+        + solved(1, "30% markup on a $20 cost. Selling price?",
                ["30% of 20 is 6.", "20+6=26.", "$26."], "$26")
         + step_reveal(["Name the original.", "Find that percent.", "Add or subtract.", "Label money."], vid="g7u4-c4-steps"),
         16)
@@ -521,7 +552,9 @@ def build_unit4():
          "200 grows 15% → 230.",
          "Write each chained step as ×(1±p).",
          "Two 10% bumps land a little above 120."],
-        solved(1, "2 cm off a 50 cm true length. Percent error?", ["2/50=0.04.", "4%.", "Size over actual."], "4%")
+        percent_bar(4, 50, title="2 cm off 50 cm is 4% error",
+                    caption="Percent error = 2 ÷ 50 = 4%.")
+        + solved(1, "2 cm off a 50 cm true length. Percent error?", ["2/50=0.04.", "4%.", "Size over actual."], "4%")
         + watch_out("Adding chained percents", "10% then 10% is ×1.1 twice = 21% more, not 20%."),
         26)
     content = unit_shell(

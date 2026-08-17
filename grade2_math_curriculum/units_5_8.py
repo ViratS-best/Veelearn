@@ -1,5 +1,19 @@
 """Second Grade Math units 5–8: time, money, geometry, fractions, plus master page."""
 
+from curriculum_kit import (
+    lesson_figure,
+    svg_dots,
+    svg_ten_frame,
+    svg_number_line,
+    svg_clock,
+    svg_tape,
+    svg_coins,
+    svg_base10,
+    svg_rect,
+    svg_fraction_bar,
+    svg_balance,
+)
+
 from .common import (
     concept_block,
     solved,
@@ -175,7 +189,12 @@ def build_unit5():
             "The short hand also creeps forward as minutes pass. At 4:30 it sits between 4 and 5.",
             "Read the hour first from the short hand, then the minutes from the long hand.",
         ],
-        solved(1, "Short hand on 2, long hand on 12. What time?",
+        lesson_figure(
+            svg_clock(2, 0),
+            "Short hand on 2, long hand on 12",
+            "The short hand names the hour 2. The long hand on 12 means 0 minutes. The time is 2:00.",
+        )
+        + solved(1, "Short hand on 2, long hand on 12. What time?",
                ["Short hand on 2 → hour is 2.",
                 "Long hand on 12 → 0 minutes.",
                 "2:00."],
@@ -199,7 +218,12 @@ def build_unit5():
             "Marks between numbers are 1 minute each, but we read to the nearest five minutes here.",
             "If the long hand is on 8, do not say 8 minutes. Say 40 minutes.",
         ],
-        solved(1, "The long hand points to 4. How many minutes?",
+        lesson_figure(
+            svg_clock(3, 20),
+            "Long hand on 4",
+            "Each number is 5 minutes. Count 5, 10, 15, 20. The 4 means 20 minutes.",
+        )
+        + solved(1, "The long hand points to 4. How many minutes?",
                ["Count by fives: 5, 10, 15, 20.",
                 "Number 4 means 20 minutes."],
                "20")
@@ -229,7 +253,12 @@ def build_unit5():
             "6:45 is not 7:45. The hour becomes 7 only at 7:00.",
             "Practice saying times two ways: 4:20 and twenty minutes past 4.",
         ],
-        solved(1, "Short hand past 10, long hand on 4. What time?",
+        lesson_figure(
+            svg_clock(10, 20),
+            "10:20",
+            "The hour is still 10. The long hand on 4 is 20 minutes, so the time is 10:20.",
+        )
+        + solved(1, "Short hand past 10, long hand on 4. What time?",
                ["Hour is 10 (it has not reached 11).",
                 "Minute number 4 → 20 minutes.",
                 "10:20."],
@@ -258,7 +287,12 @@ def build_unit5():
             "These names are shortcuts. You can always say the digital time instead.",
             "Quarter to is the one kids mix up. Think: almost the next hour, minus 15 minutes.",
         ],
-        solved(1, "What time is half past 4?",
+        lesson_figure(
+            svg_clock(4, 30),
+            "Half past 4",
+            "Half past means 30 minutes, so the long hand sits on 6. Half past 4 is 4:30.",
+        )
+        + solved(1, "What time is half past 4?",
                ["Half past → 30 minutes.",
                 "Hour 4. Write 4:30."],
                "4:30")
@@ -285,7 +319,12 @@ def build_unit5():
             "7:00 could be waking up (AM) or dinner time (PM). The story tells you which.",
             "Write the letters after the time: 8:15 AM.",
         ],
-        solved(1, "Soccer practice at 4:00 after school. AM or PM?",
+        lesson_figure(
+            svg_clock(4, 0),
+            "4:00 after school",
+            "The clock shows 4:00. After school is afternoon, so soccer practice is 4:00 PM.",
+        )
+        + solved(1, "Soccer practice at 4:00 after school. AM or PM?",
                ["After school is afternoon.",
                 "Afternoon is PM."],
                "PM")
@@ -308,7 +347,12 @@ def build_unit5():
             "Draw a tiny clock or a number line of minutes if counting in your head is messy.",
             "Start time + duration = end time. End time − start time = duration.",
         ],
-        solved(1, "Recess starts at 10:05 and lasts 20 minutes. When does it end?",
+        lesson_figure(
+            svg_clock(10, 25),
+            "Recess ends at 10:25",
+            "Start at 10:05 and count 20 minutes by fives: 10:10, 10:15, 10:20, 10:25.",
+        )
+        + solved(1, "Recess starts at 10:05 and lasts 20 minutes. When does it end?",
                ["Count 20 minutes from 10:05.",
                 "10:05, 10:10, 10:15, 10:20, 10:25.",
                 "It ends at 10:25."],
@@ -471,7 +515,12 @@ def build_unit6():
             "Count nickels by 5s: 5, 10, 15, 20… Same skip-count as the clock.",
             "Start with the bigger coins when you count a mixed pile.",
         ],
-        solved(1, "You have 3 dimes and 2 nickels. How many cents?",
+        lesson_figure(
+            svg_coins([("10¢", 3, "#e2e8f0"), ("5¢", 2, "#94a3b8")]),
+            "3 dimes and 2 nickels",
+            "3 dimes are 30 cents. 2 nickels are 10 cents. 30 + 10 = 40 cents.",
+        )
+        + solved(1, "You have 3 dimes and 2 nickels. How many cents?",
                ["3 dimes = 30 cents.",
                 "2 nickels = 10 cents.",
                 "30 + 10 = 40 cents."],
@@ -494,7 +543,12 @@ def build_unit6():
             "In this unit we often keep answers in cents so adding stays whole numbers.",
             "Remember: the dollar is 100, not 10. A dime is 10.",
         ],
-        solved(1, "3 quarters. How many cents?",
+        lesson_figure(
+            svg_coins([("25¢", 3, "#a8a29e")]),
+            "3 quarters",
+            "Count 25, 50, 75. Three quarters are 75 cents.",
+        )
+        + solved(1, "3 quarters. How many cents?",
                ["25 + 25 = 50.",
                 "50 + 25 = 75 cents."],
                "75")
@@ -521,7 +575,12 @@ def build_unit6():
             "If you reach 100 cents, that is a dollar. You can trade for a dollar bill in real life.",
             "Touch each coin as you add it. Same rule as counting objects.",
         ],
-        solved(1, "2 dimes, 3 nickels, 1 penny. How many cents?",
+        lesson_figure(
+            svg_coins([("10¢", 2, "#e2e8f0"), ("5¢", 3, "#94a3b8"), ("1¢", 1, "#c2410c")]),
+            "2 dimes, 3 nickels, 1 penny",
+            "2 dimes = 20, 3 nickels = 15, 1 penny = 1. 20 + 15 + 1 = 36 cents.",
+        )
+        + solved(1, "2 dimes, 3 nickels, 1 penny. How many cents?",
                ["2 dimes = 20.",
                 "3 nickels = 15.",
                 "20 + 15 + 1 = 36 cents."],
@@ -547,7 +606,12 @@ def build_unit6():
             "10 cents: 1 dime, or 2 nickels, or 1 nickel and 5 pennies.",
             "Trade: 2 nickels for 1 dime. 4 quarters for 1 dollar.",
         ],
-        solved(1, "Show 40 cents two ways: 4 dimes, or 1 quarter and 3 nickels. Do they match?",
+        lesson_figure(
+            svg_coins([("10¢", 4, "#e2e8f0")]),
+            "4 dimes make 40 cents",
+            "4 dimes = 40 cents. 1 quarter and 3 nickels is 25 + 5 + 5 + 5 = 40 cents too. Same amount.",
+        )
+        + solved(1, "Show 40 cents two ways: 4 dimes, or 1 quarter and 3 nickels. Do they match?",
                ["4 dimes = 40.",
                 "25 + 5 + 5 + 5 = 40.",
                 "Yes. Same amount."],
@@ -571,7 +635,12 @@ def build_unit6():
             "Example: pencil 18¢, you pay 2 dimes (20¢). Change 2¢.",
             "Add two prices first if you buy two things. Then subtract from what you paid.",
         ],
-        solved(1, "A sticker is 30¢. You pay 1 quarter and 1 dime. How much change?",
+        lesson_figure(
+            svg_coins([("25¢", 1, "#a8a29e"), ("10¢", 1, "#e2e8f0")]),
+            "Pay 1 quarter and 1 dime",
+            "You paid 25 + 10 = 35 cents for a 30¢ sticker. Change is 35 − 30 = 5 cents.",
+        )
+        + solved(1, "A sticker is 30¢. You pay 1 quarter and 1 dime. How much change?",
                ["You paid 25 + 10 = 35 cents.",
                 "35 − 30 = 5 cents change."],
                "5")
@@ -601,7 +670,12 @@ def build_unit6():
             "Keep units the same. If the question asks for cents, answer in cents.",
             "Two-step money stories: add two prices, then make change from a dollar.",
         ],
-        solved(1, "Two items cost 12¢ and 15¢. You pay 50¢. How much change?",
+        lesson_figure(
+            svg_tape([12, 15], ["12¢", "15¢"]),
+            "Two prices, then change from 50¢",
+            "12 + 15 = 27 cents cost. Pay 50 cents, so change is 50 − 27 = 23 cents.",
+        )
+        + solved(1, "Two items cost 12¢ and 15¢. You pay 50¢. How much change?",
                ["Step 1: 12 + 15 = 27 cents cost.",
                 "Step 2: 50 − 27 = 23 cents change."],
                "23")
@@ -772,7 +846,14 @@ def build_unit7():
             "A circle is round. It has no straight sides.",
             "Name a shape by its sides and corners, not only by how it is turned. A square on a point is still a square.",
         ],
-        solved(1, "A shape has 6 straight sides. What is it?",
+        lesson_figure(
+            '<svg viewBox="0 0 160 150" width="140" role="img">'
+            '<polygon points="80,12 138,45 138,105 80,138 22,105 22,45" fill="#bfdbfe" stroke="#1e3a8a" stroke-width="2"/>'
+            '<text x="80" y="82" text-anchor="middle" font-size="13" font-weight="700">6 sides</text></svg>',
+            "A hexagon",
+            "Hex means six. A shape with 6 straight sides is a hexagon.",
+        )
+        + solved(1, "A shape has 6 straight sides. What is it?",
                ["6 sides → hexagon.",
                 "Hex means six."],
                "hexagon")
@@ -796,7 +877,16 @@ def build_unit7():
             "Cylinder: like a can. 2 flat circle faces and a curved side.",
             "Cone: like a party hat. 1 circle face and a point.",
         ],
-        solved(1, "How many faces does a cube have?",
+        lesson_figure(
+            '<svg viewBox="0 0 160 150" width="140" role="img">'
+            '<polygon points="40,52 100,52 100,112 40,112" fill="#93c5fd" stroke="#0f172a"/>'
+            '<polygon points="100,52 130,34 130,94 100,112" fill="#60a5fa" stroke="#0f172a"/>'
+            '<polygon points="40,52 70,34 130,34 100,52" fill="#bfdbfe" stroke="#0f172a"/>'
+            '<text x="80" y="140" text-anchor="middle" font-size="12">6 square faces</text></svg>',
+            "A cube like a dice",
+            "A cube has 6 square faces, one on each side of a dice.",
+        )
+        + solved(1, "How many faces does a cube have?",
                ["A dice has a number on each flat side.",
                 "There are 6 faces."],
                "6")
@@ -823,7 +913,12 @@ def build_unit7():
             "On solids, faces meet at edges, and edges meet at vertices (corners).",
             "Count carefully. Trace the shape with a finger so you do not double-count.",
         ],
-        solved(1, "How many right angles does a rectangle have?",
+        lesson_figure(
+            svg_rect(5, 3),
+            "A rectangle",
+            "Every corner of a rectangle is a square corner, so a rectangle has 4 right angles.",
+        )
+        + solved(1, "How many right angles does a rectangle have?",
                ["Each corner is a square corner.",
                 "There are 4 corners. 4 right angles."],
                "4")
@@ -848,7 +943,12 @@ def build_unit7():
             "A rectangle split into same-size squares is an array.",
             "Count one row, then skip-count that number for each row.",
         ],
-        solved(1, "An array has 3 rows of 4 squares. How many squares?",
+        lesson_figure(
+            svg_dots(12, per_row=4, label="3 rows of 4"),
+            "3 rows of 4 squares",
+            "One row is 4. Skip-count 4, 8, 12. The array has 12 squares.",
+        )
+        + solved(1, "An array has 3 rows of 4 squares. How many squares?",
                ["One row is 4.",
                 "Three rows: 4, 8, 12.",
                 "12 squares."],
@@ -875,7 +975,12 @@ def build_unit7():
             "This idea connects to fractions in the next unit.",
             "Fold paper to test. If the fold pieces match, the shares are equal.",
         ],
-        solved(1, "A square cut into 4 equal little squares. What is each share called?",
+        lesson_figure(
+            svg_fraction_bar(1, 4),
+            "4 equal shares",
+            "A square cut into 4 equal parts makes fourths. Each share is one fourth.",
+        )
+        + solved(1, "A square cut into 4 equal little squares. What is each share called?",
                ["4 equal parts.",
                 "Each is a fourth."],
                "fourth")
@@ -895,7 +1000,15 @@ def build_unit7():
             "When you join, sides that touch should match so there is no gap.",
             "Taking shapes apart is the reverse. A rectangle split on the diagonal becomes two triangles.",
         ],
-        solved(1, "Two squares side by side make what 2D shape?",
+        lesson_figure(
+            '<svg viewBox="0 0 240 120" width="100%" style="max-width:240px" role="img">'
+            '<rect x="20" y="18" width="70" height="70" fill="#93c5fd" stroke="#0f172a" stroke-width="2"/>'
+            '<rect x="90" y="18" width="70" height="70" fill="#86efac" stroke="#0f172a" stroke-width="2"/>'
+            '<text x="90" y="108" text-anchor="middle" font-size="12">two squares make a rectangle</text></svg>',
+            "Two squares side by side",
+            "The new outline has 4 sides, opposite sides equal, and square corners. That is a rectangle.",
+        )
+        + solved(1, "Two squares side by side make what 2D shape?",
                ["The new outline has 4 sides. Opposite sides equal. Square corners.",
                 "It is a rectangle (longer than a square unless you stacked differently)."],
                "rectangle")
@@ -1078,7 +1191,15 @@ def build_unit8():
             "The more equal parts you make, the smaller each part is.",
             "Say: this is the whole. Then: these are the equal parts.",
         ],
-        solved(1, "A square is cut into 2 pieces, but one piece is much bigger. Are they halves?",
+        lesson_figure(
+            '<svg viewBox="0 0 240 80" width="100%" style="max-width:240px" role="img">'
+            '<rect x="8" y="12" width="150" height="40" fill="#a78bfa" stroke="#0f172a"/>'
+            '<rect x="158" y="12" width="50" height="40" fill="#f8fafc" stroke="#0f172a"/>'
+            '<text x="120" y="70" text-anchor="middle" font-size="12">unequal pieces are not halves</text></svg>',
+            "Two pieces, not the same size",
+            "Halves must be equal. If one piece is much bigger, the cut is not halves.",
+        )
+        + solved(1, "A square is cut into 2 pieces, but one piece is much bigger. Are they halves?",
                ["Halves must be equal.",
                 "These pieces are not the same size.",
                 "They are not halves."],
@@ -1103,7 +1224,12 @@ def build_unit8():
             "Half past on a clock is related: the hour is split into two 30-minute halves.",
             "Shade 1 of 2 equal parts to show 1/2.",
         ],
-        solved(1, "How do we write one half?",
+        lesson_figure(
+            svg_fraction_bar(1, 2),
+            "One half",
+            "Two equal parts make the whole. One part shaded is 1/2.",
+        )
+        + solved(1, "How do we write one half?",
                ["1 part counted.",
                 "2 equal parts in the whole.",
                 "1/2."],
@@ -1128,7 +1254,12 @@ def build_unit8():
             "Do not call three random pieces thirds. Size must match.",
             "Shade 1 of 3 to show 1/3. Shade 2 of 3 to show 2/3.",
         ],
-        solved(1, "You shade 2 of 3 equal pieces. What fraction is shaded?",
+        lesson_figure(
+            svg_fraction_bar(2, 3),
+            "2 of 3 equal pieces",
+            "The whole has 3 equal parts. 2 parts shaded is 2/3.",
+        )
+        + solved(1, "You shade 2 of 3 equal pieces. What fraction is shaded?",
                ["Parts counted: 2.",
                 "Equal parts in the whole: 3.",
                 "2/3."],
@@ -1152,7 +1283,12 @@ def build_unit8():
             "Money: a quarter coin is 1/4 of a dollar, because 4 quarters make $1. That is the same idea.",
             "Clock: quarter past is 1/4 of an hour (15 minutes).",
         ],
-        solved(1, "A pizza has 4 equal slices. You eat 1 slice. What fraction did you eat?",
+        lesson_figure(
+            svg_fraction_bar(1, 4),
+            "1 of 4 pizza slices",
+            "4 equal slices make the whole pizza. Eating 1 slice is 1/4.",
+        )
+        + solved(1, "A pizza has 4 equal slices. You eat 1 slice. What fraction did you eat?",
                ["1 slice out of 4 equal slices.",
                 "1/4."],
                "1/4")
@@ -1175,7 +1311,12 @@ def build_unit8():
             "The whole must be clear. 1/2 of a cracker is not the same size as 1/2 of a cake.",
             "Point to the picture. Count equal parts. Count shaded parts. Write shaded over total.",
         ],
-        solved(1, "A bar has 4 equal parts. 3 are shaded. Write the fraction.",
+        lesson_figure(
+            svg_fraction_bar(3, 4),
+            "3 of 4 parts shaded",
+            "Count 4 equal parts on the bottom. Count 3 shaded parts on the top. Write 3/4.",
+        )
+        + solved(1, "A bar has 4 equal parts. 3 are shaded. Write the fraction.",
                ["Shaded = 3. Total equal parts = 4.",
                 "Write 3/4."],
                "3/4")
@@ -1201,7 +1342,12 @@ def build_unit8():
             "1/2 and 2/4 of the same whole are equal.",
             "Do not compare 1/2 of a tiny cookie with 1/2 of a giant cake and call them the same size. The wholes differ.",
         ],
-        solved(1, "Same pizza. Which is more, 1/2 or 1/4?",
+        lesson_figure(
+            svg_fraction_bar(1, 2) + svg_fraction_bar(1, 4),
+            "Same whole: 1/2 and 1/4",
+            "Fewer cuts make bigger pieces. One half of the same pizza is more than one fourth.",
+        )
+        + solved(1, "Same pizza. Which is more, 1/2 or 1/4?",
                ["Halves are bigger pieces than fourths.",
                 "1/2 is more."],
                "1/2")

@@ -1,5 +1,11 @@
 """Fourth Grade Math units 5–8: decimals, geometry, angles, protractor lab, plus master page."""
 
+import math
+
+from curriculum_kit import (
+    lesson_figure, svg_dots, svg_number_line, svg_rect, svg_fraction_bar,
+    svg_tape, svg_circle, svg_triangle, svg_plane, svg_percent_bar,
+)
 from .common import (
     concept_block,
     solved,
@@ -16,6 +22,95 @@ from .common import (
     mq,
     renumber,
 )
+
+
+def _hundredths_grid(n, color="#a78bfa"):
+    n = max(0, min(int(n), 100))
+    cells = []
+    for i in range(100):
+        r, c = divmod(i, 10)
+        fill = color if i < n else "#f8fafc"
+        cells.append(
+            f'<rect x="{8 + c * 16}" y="{8 + r * 16}" width="16" height="16" fill="{fill}" stroke="#0f172a"/>'
+        )
+    return f'<svg viewBox="0 0 176 176" width="100%" style="max-width:200px" role="img">{"".join(cells)}</svg>'
+
+
+def _angle_svg(deg, label=None, color="#6366f1"):
+    cx, cy, r = 100, 118, 86
+    rad = math.radians(deg)
+    x2 = cx + r * math.cos(rad)
+    y2 = cy - r * math.sin(rad)
+    sweep = 0
+    large = 1 if deg > 180 else 0
+    xe = cx + 32 * math.cos(rad)
+    ye = cy - 32 * math.sin(rad)
+    lab = label or f"{deg}°"
+    lx = cx + 48 * math.cos(math.radians(deg / 2))
+    ly = cy - 48 * math.sin(math.radians(deg / 2))
+    return f'''<svg viewBox="0 0 220 150" width="100%" style="max-width:240px" role="img">
+  <line x1="{cx - 80}" y1="{cy}" x2="{cx + r}" y2="{cy}" stroke="#94a3b8" stroke-width="2"/>
+  <line x1="{cx}" y1="{cy}" x2="{cx + r}" y2="{cy}" stroke="#0f172a" stroke-width="3"/>
+  <line x1="{cx}" y1="{cy}" x2="{x2:.1f}" y2="{y2:.1f}" stroke="#0f172a" stroke-width="3"/>
+  <path d="M {cx + 32} {cy} A 32 32 0 {large} {sweep} {xe:.1f} {ye:.1f}" fill="{color}" fill-opacity="0.25" stroke="{color}" stroke-width="2"/>
+  <circle cx="{cx}" cy="{cy}" r="4" fill="#0f172a"/>
+  <text x="{lx:.1f}" y="{ly:.1f}" text-anchor="middle" font-size="14" font-weight="700" fill="#312e81">{lab}</text>
+</svg>'''
+
+
+def _adjacent_angles(d1, d2, lab1=None, lab2=None):
+    cx, cy, r = 110, 122, 90
+    t1 = math.radians(d1)
+    t2 = math.radians(d1 + d2)
+    x1, y1 = cx + r * math.cos(t1), cy - r * math.sin(t1)
+    x2, y2 = cx + r * math.cos(t2), cy - r * math.sin(t2)
+    p1 = (cx + 28 * math.cos(t1), cy - 28 * math.sin(t1))
+    p2 = (cx + 28 * math.cos(t2), cy - 28 * math.sin(t2))
+    m1 = math.radians(d1 / 2)
+    m2 = math.radians(d1 + d2 / 2)
+    return f'''<svg viewBox="0 0 240 160" width="100%" style="max-width:260px" role="img">
+  <line x1="{cx}" y1="{cy}" x2="{cx + r}" y2="{cy}" stroke="#0f172a" stroke-width="3"/>
+  <line x1="{cx}" y1="{cy}" x2="{x1:.1f}" y2="{y1:.1f}" stroke="#0f172a" stroke-width="3"/>
+  <line x1="{cx}" y1="{cy}" x2="{x2:.1f}" y2="{y2:.1f}" stroke="#0f172a" stroke-width="3"/>
+  <path d="M {cx} {cy} L {cx + 28} {cy} A 28 28 0 0 0 {p1[0]:.1f} {p1[1]:.1f} Z" fill="#93c5fd" fill-opacity="0.8" stroke="#1d4ed8"/>
+  <path d="M {cx} {cy} L {p1[0]:.1f} {p1[1]:.1f} A 28 28 0 0 0 {p2[0]:.1f} {p2[1]:.1f} Z" fill="#fde68a" fill-opacity="0.8" stroke="#b45309"/>
+  <circle cx="{cx}" cy="{cy}" r="4" fill="#0f172a"/>
+  <text x="{cx + 50 * math.cos(m1):.1f}" y="{cy - 50 * math.sin(m1):.1f}" text-anchor="middle" font-size="13" font-weight="700">{lab1 or str(d1) + "°"}</text>
+  <text x="{cx + 50 * math.cos(m2):.1f}" y="{cy - 50 * math.sin(m2):.1f}" text-anchor="middle" font-size="13" font-weight="700">{lab2 or str(d2) + "°"}</text>
+</svg>'''
+
+
+def _line_figures():
+    return '''<svg viewBox="0 0 460 150" width="100%" style="max-width:460px" role="img">
+  <circle cx="36" cy="28" r="5" fill="#dc2626"/>
+  <text x="50" y="32" font-size="12">point A</text>
+  <line x1="180" y1="28" x2="430" y2="28" stroke="#0f172a" stroke-width="2"/>
+  <polygon points="180,28 190,24 190,32" fill="#0f172a"/>
+  <polygon points="430,28 420,24 420,32" fill="#0f172a"/>
+  <text x="280" y="18" font-size="12">line AB</text>
+  <circle cx="36" cy="78" r="4" fill="#0f172a"/>
+  <circle cx="150" cy="78" r="4" fill="#0f172a"/>
+  <line x1="36" y1="78" x2="150" y2="78" stroke="#0f172a" stroke-width="3"/>
+  <text x="160" y="82" font-size="12">segment CD (2 endpoints)</text>
+  <circle cx="36" cy="124" r="4" fill="#0f172a"/>
+  <line x1="36" y1="124" x2="200" y2="124" stroke="#0f172a" stroke-width="3"/>
+  <polygon points="200,124 190,120 190,128" fill="#0f172a"/>
+  <text x="210" y="128" font-size="12">ray EF (1 endpoint)</text>
+</svg>'''
+
+
+def _para_perp():
+    return '''<svg viewBox="0 0 440 150" width="100%" style="max-width:440px" role="img">
+  <line x1="20" y1="40" x2="200" y2="40" stroke="#1d4ed8" stroke-width="3"/>
+  <line x1="20" y1="80" x2="200" y2="80" stroke="#1d4ed8" stroke-width="3"/>
+  <polygon points="90,40 96,36 96,44" fill="#1d4ed8"/>
+  <polygon points="90,80 96,76 96,84" fill="#1d4ed8"/>
+  <text x="70" y="128" font-size="12">parallel — never meet</text>
+  <line x1="260" y1="120" x2="400" y2="120" stroke="#0f172a" stroke-width="3"/>
+  <line x1="330" y1="30" x2="330" y2="120" stroke="#0f172a" stroke-width="3"/>
+  <rect x="330" y="104" width="16" height="16" fill="none" stroke="#b91c1c" stroke-width="2"/>
+  <text x="268" y="24" font-size="12">perpendicular — 90°</text>
+</svg>'''
 
 
 def _fill(qs, need, factory):
@@ -123,7 +218,13 @@ def build_unit5():
             "0.5 is 5/10, which equals 1/2.",
             "Say 'three tenths,' not 'point three' only — the word tenths keeps the place honest.",
         ],
-        solved(1, "Write 3/10 as a decimal.",
+        lesson_figure(
+            svg_fraction_bar(3, 10, "#38bdf8")
+            + svg_number_line(0, 10, marks=[(3, "0.3")]),
+            "3/10 is 0.3",
+            "The bar is one whole split into 10 tenths, with 3 shaded. On the number line each tick is one tenth, so 3 marks 0.3.",
+        )
+        + solved(1, "Write 3/10 as a decimal.",
                ["3 tenths.",
                 "The tenths place is the first digit after the point.",
                 "0.3."],
@@ -146,7 +247,12 @@ def build_unit5():
             "0.25 equals 1/4. 0.50 equals 1/2.",
             "Money uses hundredths: 1 cent is $0.01.",
         ],
-        solved(1, "Write 7/100 as a decimal.",
+        lesson_figure(
+            _hundredths_grid(7),
+            "7/100 is 0.07",
+            "A 10-by-10 grid is 100 hundredths. Seven squares shaded is 0.07 — the 0 holds the tenths place.",
+        )
+        + solved(1, "Write 7/100 as a decimal.",
                ["7 hundredths.",
                 "Tenths place is 0. Hundredths place is 7.",
                 "0.07."],
@@ -171,7 +277,12 @@ def build_unit5():
             "Expanded: 0.25 = 2 tenths + 5 hundredths = 0.2 + 0.05.",
             "This is place value again, just on the other side of the point.",
         ],
-        solved(1, "Are 0.4 and 0.40 equal?",
+        lesson_figure(
+            svg_fraction_bar(4, 10, "#38bdf8") + _hundredths_grid(40, "#a78bfa"),
+            "0.4 = 0.40",
+            "4 tenths on the bar is the same amount as 40 hundredths on the grid. Extra zeros on the right do not change the value.",
+        )
+        + solved(1, "Are 0.4 and 0.40 equal?",
                ["0.4 = 4/10 = 40/100 = 0.40.",
                 "Yes. Equal."],
                "yes")
@@ -196,7 +307,12 @@ def build_unit5():
             "A number line from 0 to 1 makes comparison visual: farther right is greater.",
             "Do not think 'longer decimal means bigger.' 0.09 has more digits than 0.1 but is smaller.",
         ],
-        solved(1, "Which is greater, 0.2 or 0.05?",
+        lesson_figure(
+            svg_number_line(0, 10, marks=[(2, "0.2"), (0.5, "0.05")]),
+            "0.2 versus 0.05",
+            "Each tick is one tenth. 0.2 sits at 2 tenths. 0.05 sits at half a tenth. Farther right is greater, so 0.2 > 0.05.",
+        )
+        + solved(1, "Which is greater, 0.2 or 0.05?",
                ["Write 0.20 and 0.05.",
                 "20 hundredths > 5 hundredths.",
                 "0.2."],
@@ -220,7 +336,12 @@ def build_unit5():
             "0.50 − 0.05 = 0.45.",
             "This matches adding 2/10 + 3/10 or 25/100 + 10/100.",
         ],
-        solved(1, "0.25 + 0.10 = ?",
+        lesson_figure(
+            _hundredths_grid(25, "#93c5fd") + _hundredths_grid(35, "#86efac"),
+            "0.25 + 0.10 = 0.35",
+            "25 hundredths plus 10 hundredths is 35 hundredths. Line up the decimal points so hundredths sit under hundredths.",
+        )
+        + solved(1, "0.25 + 0.10 = ?",
                ["25 hundredths + 10 hundredths = 35 hundredths.",
                 "0.35."],
                "0.35")
@@ -243,7 +364,13 @@ def build_unit5():
             "Comparing prices is comparing decimals.",
             "Write the dollar sign and the point: $0.40, not 40 alone, when the unit is dollars.",
         ],
-        solved(1, "3 dimes as a decimal dollar amount?",
+        lesson_figure(
+            svg_tape([1, 1, 1], labels=["dime", "dime", "dime"])
+            + svg_number_line(0, 10, marks=[(3, "$0.30")]),
+            "3 dimes = $0.30",
+            "Each dime is one tenth of a dollar. Three dimes are 30 cents, written $0.30 — 3 tenths of a dollar.",
+        )
+        + solved(1, "3 dimes as a decimal dollar amount?",
                ["3 dimes = 30 cents.",
                 "$0.30."],
                "0.30")
@@ -372,7 +499,12 @@ def build_unit6():
             "Two rays with the same endpoint make an angle. That shared point is the vertex.",
             "Draw neatly. The picture is the definition you will measure later.",
         ],
-        solved(1, "How many endpoints does a ray have?",
+        lesson_figure(
+            _line_figures(),
+            "Point, line, segment, ray",
+            "A point is a location. A line has two arrows. A segment has two endpoints. A ray has one endpoint and one arrow.",
+        )
+        + solved(1, "How many endpoints does a ray have?",
                ["It starts at one point.",
                 "The other side never stops.",
                 "1 endpoint."],
@@ -396,7 +528,12 @@ def build_unit6():
             "A rectangle has opposite sides parallel and adjacent sides perpendicular.",
             "A plus sign is a picture of perpendicular lines.",
         ],
-        solved(1, "Two lines meet at a square corner. What are they?",
+        lesson_figure(
+            _para_perp(),
+            "Parallel versus perpendicular",
+            "Parallel lines never meet. Perpendicular lines meet at a square corner (90°). A tiny square marks that right angle.",
+        )
+        + solved(1, "Two lines meet at a square corner. What are they?",
                ["A square corner is 90°.",
                 "The lines are perpendicular."],
                "perpendicular")
@@ -419,7 +556,12 @@ def build_unit6():
             "Name an angle with three letters, vertex in the middle: ∠ABC.",
             "Longer rays do not make a bigger angle. Only the opening matters.",
         ],
-        solved(1, "How many degrees is a right angle?",
+        lesson_figure(
+            _angle_svg(90, "90°"),
+            "A right angle is a square corner",
+            "Two rays share a vertex. The opening is the turn, not how long you draw the rays. A square corner measures 90°.",
+        )
+        + solved(1, "How many degrees is a right angle?",
                ["A square corner.",
                 "90°."],
                "90")
@@ -438,7 +580,14 @@ def build_unit6():
             "Compare to a book corner. Smaller → acute. Fits → right. Bigger but not a line → obtuse.",
             "45° acute. 90° right. 120° obtuse. 180° straight.",
         ],
-        solved(1, "Is 120° acute, right, or obtuse?",
+        lesson_figure(
+            _angle_svg(45, "45° acute", "#22c55e")
+            + _angle_svg(90, "90° right")
+            + _angle_svg(120, "120° obtuse", "#f59e0b"),
+            "Compare each opening to a square corner",
+            "45° is smaller than 90° (acute). 90° fits a book corner (right). 120° is wider than 90° but not a line (obtuse).",
+        )
+        + solved(1, "Is 120° acute, right, or obtuse?",
                ["120 is more than 90 and less than 180.",
                 "Obtuse."],
                "obtuse")
@@ -460,7 +609,12 @@ def build_unit6():
             "If an angle looks a little less than a square corner, it might be 80°, not 20°.",
             "Estimate first. Then measure in the next units.",
         ],
-        solved(1, "Half of a straight angle is how many degrees?",
+        lesson_figure(
+            _adjacent_angles(90, 90, "90°", "90°") + svg_circle(r=1, show_r=False),
+            "Landmarks: 90°, 180°, 360°",
+            "Two right angles make a straight 180° line. A full spin around a point is 360°. Half of 180° is 90°.",
+        )
+        + solved(1, "Half of a straight angle is how many degrees?",
                ["Straight is 180°.",
                 "Half is 90°."],
                "90")
@@ -485,7 +639,12 @@ def build_unit6():
             "A triangle is three segments. It has three angles. We classify those angles too.",
             "Neat drawings make measuring with a protractor much easier.",
         ],
-        solved(1, "Angle ABC has vertex…",
+        lesson_figure(
+            _angle_svg(60, "∠ABC") + svg_triangle(3, 4, 5, right=True),
+            "Name the vertex in the middle",
+            "Angle ABC has vertex B — the middle letter. A triangle is three segments and three angles. The square marks a right angle.",
+        )
+        + solved(1, "Angle ABC has vertex…",
                ["The middle letter is the vertex.",
                 "Vertex B."],
                "B")
@@ -597,7 +756,12 @@ def build_unit7():
             "We write a little circle after the number: 45°.",
             "Fourth grade measures whole-number degrees.",
         ],
-        solved(1, "How many degrees in a quarter turn?",
+        lesson_figure(
+            _angle_svg(90, "quarter turn") + svg_circle(r=1, show_r=False),
+            "A degree is 1/360 of a full spin",
+            "The circle is one full turn, 360°. A quarter of that spin is 90°. We write the little circle: 90°.",
+        )
+        + solved(1, "How many degrees in a quarter turn?",
                ["A full turn is 360°.",
                 "360 ÷ 4 = 90.",
                 "90°."],
@@ -621,7 +785,12 @@ def build_unit7():
             "This is like adding like fractions: same kind of unit (degrees), add the counts.",
             "Draw the shared ray. Label each piece. Add to check the whole.",
         ],
-        solved(1, "A 35° angle is cut from a 90° angle. What is left?",
+        lesson_figure(
+            _adjacent_angles(35, 55, "35°", "55°"),
+            "A 35° piece cut from 90°",
+            "The two openings sit side by side and share a ray. 35° + 55° = 90°. Subtract a piece from the whole, or add the pieces to check.",
+        )
+        + solved(1, "A 35° angle is cut from a 90° angle. What is left?",
                ["90 − 35 = 55.",
                 "The leftover angle is 55°."],
                "55")
@@ -646,7 +815,12 @@ def build_unit7():
             "Make sure the picture really is a straight line, not a bent one.",
             "Then measure with the protractor to confirm.",
         ],
-        solved(1, "On a straight line, one angle is 125°. The adjacent angle is…",
+        lesson_figure(
+            _adjacent_angles(125, 55, "125°", "55°"),
+            "Angles on a straight line add to 180°",
+            "The two rays make a line. If one angle is 125°, the neighbor is 180 − 125 = 55°. Check: 125 + 55 = 180.",
+        )
+        + solved(1, "On a straight line, one angle is 125°. The adjacent angle is…",
                ["Straight is 180°.",
                 "180 − 125 = 55."],
                "55")
@@ -669,7 +843,12 @@ def build_unit7():
             "Line up the little hole or cross at the vertex first. Then the baseline. Then read.",
             "Practice this in Protractor Lab. The tool glows when you are lined up.",
         ],
-        solved(1, "The scales show 40 and 140. The angle looks acute. What is the measure?",
+        lesson_figure(
+            _angle_svg(40, "acute 40°", "#22c55e"),
+            "Pick the scale that matches the type",
+            "This opening is skinny — acute — so it cannot be 140°. When the protractor shows 40 and 140, choose 40°.",
+        )
+        + solved(1, "The scales show 40 and 140. The angle looks acute. What is the measure?",
                ["Acute means less than 90.",
                 "Choose 40°, not 140°."],
                "40")
@@ -692,7 +871,12 @@ def build_unit7():
             "Measure to the nearest degree. If the ray sits between ticks, pick the closer one.",
             "Write the unit: 64°, not 64.",
         ],
-        solved(1, "You estimated 80°. The scales show 80 and 100. Which reading fits?",
+        lesson_figure(
+            _angle_svg(80, "about 80°"),
+            "Estimate first, then measure",
+            "This opening is a little less than a square corner, so guess near 80°, not 100°. Then pick the protractor reading that matches the estimate.",
+        )
+        + solved(1, "You estimated 80°. The scales show 80 and 100. Which reading fits?",
                ["80 is near your estimate and is acute-ish, almost right.",
                 "100 would be obtuse. The estimate picks 80°."],
                "80")
@@ -714,7 +898,12 @@ def build_unit7():
             "The next unit is all measuring practice in the lab.",
             "Hearts still help. A wrong scale is the most common miss — slow down for that step.",
         ],
-        solved(1, "Two adjacent angles are 30° and 60°. What do they make?",
+        lesson_figure(
+            _adjacent_angles(30, 60, "30°", "60°"),
+            "30° and 60° make a right angle",
+            "Adjacent pieces add: 30 + 60 = 90. Name the type (right), then the number must match — not 270° from a wrong scale.",
+        )
+        + solved(1, "Two adjacent angles are 30° and 60°. What do they make?",
                ["30+60=90.",
                 "A right angle."],
                "90")
@@ -864,7 +1053,12 @@ def build_unit8():
             "You will drag this tool in Protractor Lab. Grab the middle to slide. Grab the rim to rotate.",
             "Real plastic protractors work the same way on paper.",
         ],
-        solved(1, "Where does the hole of the protractor go?",
+        lesson_figure(
+            _angle_svg(60, "60°"),
+            "Hole on the vertex, then read",
+            "The two rays meet at the vertex. That is where the protractor hole goes. This starter angle is 60° — use the lab below to practice placing the tool.",
+        )
+        + solved(1, "Where does the hole of the protractor go?",
                ["On the vertex, where the two rays meet."],
                "vertex")
         + protractor_box(
@@ -886,7 +1080,12 @@ def build_unit8():
             "Then try it by hand: New angle, Snap, rotate yourself.",
             "When it is lined up, the lab can flash Lined up — read ___.",
         ],
-        solved(1, "Which scale do you read?",
+        lesson_figure(
+            _angle_svg(45, "0° on one ray → 45°"),
+            "Line 0 up with one ray, then read the other",
+            "After the hole is on the vertex, rotate until one ray sits on 0. The other ray of this angle crosses 45° on that same scale.",
+        )
+        + solved(1, "Which scale do you read?",
                ["The scale whose 0 sits on the ray you lined up."],
                "the 0-on-the-ray scale")
         + protractor_box(
@@ -907,7 +1106,12 @@ def build_unit8():
             "Type your reading in the lab. Check. Within 2° is very close.",
             "Draw an acute angle on paper too, then measure it with a real protractor if you have one.",
         ],
-        solved(1, "You see 30 and 150. The angle is skinny. Measure?",
+        lesson_figure(
+            _angle_svg(30, "acute 30°", "#22c55e"),
+            "A skinny angle is less than 90°",
+            "If you see 30 and 150, the skinny opening takes 30°, not 150°. The two protractor numbers add to 180 — acute takes the small one.",
+        )
+        + solved(1, "You see 30 and 150. The angle is skinny. Measure?",
                ["Skinny means acute.",
                 "30°."],
                "30")
@@ -927,7 +1131,12 @@ def build_unit8():
             "Practice 90° until lining up feels automatic.",
             "Then you can split a right angle into 30°+60° and check they add.",
         ],
-        solved(1, "A square corner should measure…",
+        lesson_figure(
+            _angle_svg(90, "90°"),
+            "A square corner hits 90 on both scales",
+            "When you are lined up, a right angle's second ray passes through 90 — the middle of the arc. If you read 88° or 92°, snap and line up again.",
+        )
+        + solved(1, "A square corner should measure…",
                ["90°."],
                "90")
         + protractor_box("This one is a right angle. Line it up. The other ray should pass through 90.", angle=90, show=True),
@@ -945,7 +1154,12 @@ def build_unit8():
             "Straight 180° is the end of the protractor. The two rays make a line.",
             "New angle in the lab until you get several obtuse ones.",
         ],
-        solved(1, "Scales show 50 and 130. The angle is wider than a square corner. Measure?",
+        lesson_figure(
+            _angle_svg(130, "obtuse 130°", "#f59e0b"),
+            "Wider than a square corner — read past 90°",
+            "Scales show 50 and 130. Eyes first: this opening is obtuse, so the measure is 130°, not 50°.",
+        )
+        + solved(1, "Scales show 50 and 130. The angle is wider than a square corner. Measure?",
                ["Obtuse → 130°."],
                "130")
         + protractor_box("Measure this obtuse angle. It should read more than 90°.", angle=130),
@@ -963,7 +1177,12 @@ def build_unit8():
             "When paper and lab agree, you can trust your hands.",
             "You are a fourth-grade angle measurer. That is a real math tool skill.",
         ],
-        solved(1, "Estimate 80°, scales 80 and 100. Record…",
+        lesson_figure(
+            _angle_svg(80, "estimate ~80°"),
+            "Estimate, measure, match the type",
+            "Guess a little less than 90°. If the scales show 80 and 100, 80° matches the estimate. Then hit New angle in the lab and repeat.",
+        )
+        + solved(1, "Estimate 80°, scales 80 and 100. Record…",
                ["The estimate matches 80°.",
                 "80°."],
                "80")

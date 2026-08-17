@@ -2,9 +2,9 @@
 
 from .common import (
     concept_block, solved, practice_slots, unit_shell, kid_tip, watch_out, try_this,
-    step_reveal, matching, phet_box, balance_scale, inequality_line, circle_figure,
-    angle_pair, scale_drawing, prism_net, volume_prism, spinner, probability_tree,
-    two_box_plots, system_graph, page_break, mq, renumber,
+    step_reveal, matching, phet_box, balance_scale, circle_figure, angle_pair,
+    scale_drawing, prism_net, volume_prism, triangle_area, spinner, probability_tree,
+    two_box_plots, box_plot, dot_plot, system_graph, figure, page_break, mq, renumber,
 )
 
 
@@ -102,7 +102,8 @@ def build_unit5():
          "You are turning two variables into one, then finishing with a one-variable equation.",
          "Always find both x and y. An answer that is only x is half-done.",
          "Check the pair in BOTH original equations."],
-        solved(1, "Solve y = 2x and x + y = 9.",
+        balance_scale("x + 2x", "9", title="Substitute y = 2x into x + y = 9")
+        + solved(1, "Solve y = 2x and x + y = 9.",
                ["Replace y: x + 2x = 9.", "3x = 9, so x = 3.", "y = 2×3 = 6. Pair (3, 6)."], "(3, 6)")
         + step_reveal(["Solve one equation for a variable (or use it if it already is).",
                        "Substitute into the other equation.", "Solve the one-variable equation.",
@@ -116,7 +117,8 @@ def build_unit5():
          "If the coefficients do not match, multiply one equation first so they do.",
          "Adding cancels opposites (y and −y). Subtracting cancels matching terms (2x and 2x).",
          "Write the ordered pair and check."],
-        solved(1, "Solve x + y = 10 and x − y = 2.",
+        balance_scale("2x", "12", title="Add x + y = 10 and x − y = 2")
+        + solved(1, "Solve x + y = 10 and x − y = 2.",
                ["Add to cancel y: 2x = 12.", "x = 6.", "6 + y = 10, so y = 4. Pair (6, 4)."], "(6, 4)")
         + watch_out("Stopping after one variable", "Elimination gives x or y first. You still owe the other coordinate."),
         16)
@@ -128,8 +130,8 @@ def build_unit5():
          "A leftover x = 4 means exactly one solution. Find y too.",
          "Two numbers that sum to 12 and differ by 4: x+y=12, x−y=4 → (8, 4).",
          "Always name the pair, or say none, or say infinitely many."],
-        inequality_line(">", 5, title="One-variable reminder: x > 5 is a set, not a pair",
-                        caption="Inequalities in one variable are rays. A 2-variable system solution is a point.")
+        system_graph(title="Two crossing lines: one solution",
+                     caption="One meeting point means exactly one solution pair. Parallel lines never meet. The same line twice has infinitely many.")
         + solved(1, "Two lines have the same slope but different intercepts. How many solutions?",
                  ["Same steepness, shifted.", "They never meet.", "No solution."], "no solution"),
         21)
@@ -141,7 +143,7 @@ def build_unit5():
          "A graph check: does the story pair sit on both lines?",
          "Define both variables in sentences before you write equations.",
          "Finish with a pair that you can read back in words: 6 adults and 4 children, not just x=6."],
-        balance_scale("x + y", "10", title="x + y = 10 is one equation; you still need a second")
+        balance_scale("x + y", "12", title="x + y = 12 is one equation; you still need a second")
         + solved(1, "Two numbers sum to 12 and differ by 4. What is the larger number?",
                  ["x+y=12 and x−y=4.", "Add: 2x=16, x=8.", "y=4. Larger is 8."], "8")
         + try_this("Two letters, two facts", "Each sentence in the story becomes one equation."),
@@ -203,7 +205,8 @@ def build_unit6():
          "r=5 → C ≈ 2×3.14×5 = 31.4. r=10 → C ≈ 62.8.",
          "r=7 with 22/7: C = 2×22/7×7 = 44.",
          "Circumference is a length, so the units are linear: cm, m, in."],
-        circle_figure(5, show="both", title="Radius, diameter, and the rim")
+        circle_figure(5, show="circumference", title="Circumference is the distance around",
+                      caption="r=5. C = 2πr ≈ 2×3.14×5 = 31.4. Diameter d = 10.")
         + solved(1, "Radius 5. Using 3.14, find C.", ["C=2πr.", "2×3.14×5=31.4.", "About 31.4 units."], "31.4"),
         kid_tip("d = 2r", "If a problem gives diameter, halve it before you use A=πr²."),
         1)
@@ -241,7 +244,7 @@ def build_unit6():
          "A full turn around the point is 360°.",
          "Vertical does not mean 'up and down.' It means 'across the vertex.'",
          "Mark equal angles with the same letter."],
-        angle_pair("vertical")
+        angle_pair("vertical", caption="If one angle is 80°, the opposite is 80° and each neighbor is 100°.")
         + solved(1, "Two lines cross. One angle is 80°. The opposite angle is…",
                  ["Vertical angles are equal.", "Opposite is also 80°.", "Neighbors are 100°."], "80°"),
         16)
@@ -253,7 +256,16 @@ def build_unit6():
          "This pairs with the circle and line facts: 90, 180, 360 are the landmark sums.",
          "If a number would force a third angle of 0° or negative, the given measures cannot make a triangle.",
          "Sketch and label before you subtract from 180."],
-        solved(1, "A triangle has angles 50° and 60°. The third?",
+        figure(
+            "A triangle's angles add to 180°",
+            '<svg viewBox="0 0 260 170" width="260" role="img" aria-label="triangle angles 50 60 70">'
+            '<polygon points="40,150 230,150 100,30" fill="#fde68a" stroke="#92400e" stroke-width="2"/>'
+            '<text x="62" y="142" font-size="13" font-weight="700">50°</text>'
+            '<text x="175" y="142" font-size="13" font-weight="700">60°</text>'
+            '<text x="108" y="58" font-size="13" font-weight="700">70°</text>'
+            "</svg>",
+            "50° + 60° + 70° = 180°.")
+        + solved(1, "A triangle has angles 50° and 60°. The third?",
                ["Sum is 180°.", "50+60=110.", "180−110=70°."], "70°")
         + step_reveal(["Write the landmark sum (90, 180, or 360).", "Subtract the known pieces.",
                        "Name the relationship.", "Label degrees."], vid="g7u6-c5-steps"),
@@ -266,7 +278,9 @@ def build_unit6():
          "Read whether the story wants around (C), inside (A), or a leftover angle.",
          "Using 3.14 is an approximation. Exact answers can stay in terms of π: C=10π when r=5.",
          "Keep square units on area and degree marks on angles."],
-        solved(1, "A circular path has radius 10 m. Using 3.14, about how far is one lap?",
+        circle_figure(10, show="circumference", title="One lap around a circle of radius 10",
+                      caption="r=10. C = 2πr ≈ 2×3.14×10 = 62.8. That is one roll's distance.")
+        + solved(1, "A circular path has radius 10 m. Using 3.14, about how far is one lap?",
                ["That is circumference.", "2×3.14×10=62.8.", "About 62.8 m."], "62.8 m")
         + try_this("Name the measure", "Around, inside, leftover to 90, leftover to 180 — pick the formula from that word."),
         26)
@@ -344,7 +358,9 @@ def build_unit7():
          "A photo 2 by 5 with k=3 becomes 6 by 15. The area goes from 10 to 90, which is ×9.",
          "If a drawing is half as long as the object, k=1/2, and the drawing's area is 1/4 of the object's area.",
          "Always ask: am I scaling a length, an area, or a volume?"],
-        solved(1, "A rectangle has area 12. Scale factor 4. New area?",
+        scale_drawing("Lengths ×4, so area ×16",
+                      "The small 4-by-3 rectangle has area 12. The 16-by-12 copy has area 192. Areas scale by k²=16.")
+        + solved(1, "A rectangle has area 12. Scale factor 4. New area?",
                ["Areas scale by k².", "4²=16.", "12×16=192."], "192")
         + watch_out("Using k on area", "A scale of 4 on lengths is not ×4 on area. Square the scale factor first."),
         6)
@@ -383,7 +399,8 @@ def build_unit7():
          "For a rectangular prism, B is already l×w, so V = (lw)×h, the same formula as before.",
          "The height in B for a triangle is the perpendicular height of the triangle, not the prism's length.",
          "Sketch the base first, find B, then multiply by the prism height."],
-        solved(1, "A triangular prism has base ½×6×4 = 12 and prism height 5. Volume?",
+        triangle_area(6, 4, title="Triangular base: B = ½ × 6 × 4 = 12")
+        + solved(1, "A triangular prism has base ½×6×4 = 12 and prism height 5. Volume?",
                ["V = B × h.", "B is already 12.", "12×5=60."], "60")
         + step_reveal(["Draw the base.", "Find base area B.", "Multiply by the prism height.",
                        "Label cubic units."], vid="g7u7-c5-steps"),
@@ -396,7 +413,9 @@ def build_unit7():
          "Doubling every edge of a cube multiplies volume by 8 and surface area by 4.",
          "Nets that cannot fold without overlapping faces are not nets of that prism.",
          "Write the formula, substitute, then name the unit type."],
-        solved(1, "A plan uses 1 in : 4 ft. A wall is 6 in on the plan. How long is the wall?",
+        scale_drawing("Scale 1 in : 4 ft",
+                      "k=4, same as 1 in : 4 ft. A 6 in plan length is 24 ft in real life.")
+        + solved(1, "A plan uses 1 in : 4 ft. A wall is 6 in on the plan. How long is the wall?",
                ["Each inch stands for 4 feet.", "6×4=24.", "24 ft."], "24 ft")
         + try_this("Name the job", "Wrap, fill, or enlarge? That one word picks SA, volume, or scale."),
         26)
@@ -460,7 +479,9 @@ def build_unit8():
          "Use a sample to infer about the population, then say how sure you are by looking at size and spread.",
          "Larger random samples tend to sit closer to the population story, but they are still not the whole group.",
          "Ask: who was left out?"],
-        solved(1, "You want to know typical seventh-grade sleep hours at a school. Which sample is fairer?",
+        dot_plot([6, 7, 7, 8, 8, 8, 9, 9, 10], title="A sample of sleep hours",
+                 caption="Nine students, not the whole grade. Use a random sample to infer about the population.")
+        + solved(1, "You want to know typical seventh-grade sleep hours at a school. Which sample is fairer?",
                ["Give every student a chance, not just one friend group.", "A random sample from the whole grade.",
                 "Then report center and spread."], "a random sample of the grade")
         + watch_out("Sampling only the easy people", "A lunch table is a cluster of friends, not the whole school."),
@@ -473,7 +494,9 @@ def build_unit8():
          "A mean can be pulled by one extreme value. The median often holds still.",
          "Spread tells whether the group is tight or mixed. A long box and long whiskers mean more variability.",
          "Always name both a center and a spread. One number is not the whole story."],
-        solved(1, "Find the median of 2, 5, 7, 9, 11.",
+        box_plot(2, 5, 7, 9, 11, title="Center and spread for 2, 5, 7, 9, 11",
+                 caption="The middle line is the median 7. The box runs from Q1=5 to Q3=9. Whiskers reach 2 and 11.")
+        + solved(1, "Find the median of 2, 5, 7, 9, 11.",
                ["Order is already done.", "The middle of five values is the third.", "7."], "7")
         + matching([("mean of 2,4,6,8", "5"), ("median of 2,5,7,9,11", "7"),
                     ("IQR", "Q3 − Q1"), ("range", "max − min")], vid="g7u8-c2-match"),
@@ -529,7 +552,9 @@ def build_unit8():
          "P(sure)=1 and P(impossible)=0 are landmarks, just like 90°, 180°, and 360° were for angles.",
          "Write the sample space in words: 'four spinner colors' or 'HH, HT, TH, TT.'",
          "Finish with a sentence: what the number means for the people or the game."],
-        solved(1, "A coin, then a four-section spinner. P(heads and A)?",
+        spinner(title="Coin, then a four-section spinner",
+                caption="P(heads and A) = (1/2)×(1/4)=1/8. Independent events multiply.")
+        + solved(1, "A coin, then a four-section spinner. P(heads and A)?",
                ["Independent events.", "(1/2)×(1/4)=1/8.", "One of eight equally likely combined outcomes."], "1/8")
         + watch_out("Adding instead of multiplying", "For independent 'and', multiply. Adding 1/2 + 1/4 would be a different question."),
         26)

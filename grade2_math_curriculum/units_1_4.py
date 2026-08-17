@@ -1,5 +1,19 @@
 """Second Grade Math units 1–4: numbers to 1,000, regrouping add/sub, two-step stories."""
 
+from curriculum_kit import (
+    lesson_figure,
+    svg_dots,
+    svg_ten_frame,
+    svg_number_line,
+    svg_clock,
+    svg_tape,
+    svg_coins,
+    svg_base10,
+    svg_rect,
+    svg_fraction_bar,
+    svg_balance,
+)
+
 from .common import (
     concept_block,
     solved,
@@ -128,7 +142,12 @@ def build_unit1():
             "Skip-count to move faster: by 5s, 10s, and 100s.",
             "Say numbers out loud. Big numbers feel friendly when you hear them.",
         ],
-        solved(1, "What comes after 199?",
+        lesson_figure(
+            svg_number_line(196, 204, marks=[(199, "199"), (200, "200")], highlight=200),
+            "199 then 200",
+            "199 has 9 tens and 9 ones. One more rolls the ones and tens into a new hundred: 200.",
+        )
+        + solved(1, "What comes after 199?",
                ["199 is 1 hundred, 9 tens, and 9 ones.",
                 "One more one makes 10 ones, which become 1 more ten. Now you have 10 tens.",
                 "10 tens make 1 more hundred. So 199 + 1 = 200."],
@@ -157,7 +176,18 @@ def build_unit1():
             "Zero can hold a place. 704 has 0 tens. Do not skip that 0 when you write it.",
             "Think of base-ten blocks: flats for hundreds, rods for tens, little cubes for ones.",
         ],
-        solved(1, "What is the hundreds digit in 461?",
+        lesson_figure(
+            '<svg viewBox="0 0 220 64" width="220" role="img">'
+            '<rect x="8" y="8" width="44" height="44" fill="#7dd3fc" stroke="#0c4a6e"/>'
+            '<rect x="58" y="8" width="44" height="44" fill="#7dd3fc" stroke="#0c4a6e"/>'
+            '<rect x="108" y="8" width="44" height="44" fill="#7dd3fc" stroke="#0c4a6e"/>'
+            '<rect x="158" y="8" width="44" height="44" fill="#7dd3fc" stroke="#0c4a6e"/>'
+            '<text x="110" y="60" text-anchor="middle" font-size="11">4 hundreds</text></svg>'
+            + svg_base10(6, 1),
+            "461 as hundreds, tens, and ones",
+            "Four flats are 4 hundreds. Six rods are 6 tens. One cube is 1 one. The hundreds digit is 4.",
+        )
+        + solved(1, "What is the hundreds digit in 461?",
                ["Write 461 with places: hundreds | tens | ones.",
                 "4 is in hundreds, 6 in tens, 1 in ones.",
                 "The hundreds digit is 4."],
@@ -191,7 +221,12 @@ def build_unit1():
             "Expanded form shows the value of each digit: 412 = 400 + 10 + 2.",
             "Practice reading a number, then writing it, then expanding it.",
         ],
-        solved(1, "How do we write three hundred forty-six?",
+        lesson_figure(
+            svg_tape([300, 40, 6], ["300", "40", "6"]),
+            "Three hundred forty-six",
+            "Three hundred puts 3 in hundreds, forty puts 4 in tens, six puts 6 in ones. Write 346.",
+        )
+        + solved(1, "How do we write three hundred forty-six?",
                ["Three hundred → 3 in hundreds.",
                 "Forty → 4 in tens.",
                 "Six → 6 in ones. Write 346."],
@@ -220,7 +255,19 @@ def build_unit1():
             "The open mouth of > or < faces the bigger number. 800 > 799.",
             "Equal numbers match in every place: 707 = 707.",
         ],
-        solved(1, "Which is greater: 671 or 617?",
+        lesson_figure(
+            '<svg viewBox="0 0 320 150" width="100%" style="max-width:320px" role="img">'
+            '<rect x="36" y="16" width="56" height="104" fill="#86efac" stroke="#0f172a"/>'
+            '<text x="64" y="72" text-anchor="middle" font-size="13" font-weight="700">671</text>'
+            '<text x="64" y="138" text-anchor="middle" font-size="11">7 tens</text>'
+            '<rect x="130" y="64" width="56" height="56" fill="#93c5fd" stroke="#0f172a"/>'
+            '<text x="158" y="96" text-anchor="middle" font-size="13" font-weight="700">617</text>'
+            '<text x="158" y="138" text-anchor="middle" font-size="11">1 ten</text>'
+            '<text x="250" y="80" text-anchor="middle" font-size="16" font-weight="700">671 &gt; 617</text></svg>',
+            "Compare 671 and 617",
+            "Hundreds are both 6, so look at tens. 7 tens beat 1 ten, so 671 is greater.",
+        )
+        + solved(1, "Which is greater: 671 or 617?",
                ["Hundreds are both 6. Same.",
                 "Tens: 7 vs 1. 7 tens is more.",
                 "671 is greater."],
@@ -250,7 +297,12 @@ def build_unit1():
             "100 less than 346 is 246.",
             "These jumps help you move on a number line without counting by ones.",
         ],
-        solved(1, "What is 10 more than 590?",
+        lesson_figure(
+            svg_number_line(590, 600, marks=[(590, "590"), (600, "+10")], highlight=600),
+            "10 more than 590",
+            "590 already has 9 tens. One more ten makes 10 tens, which become the next hundred: 600.",
+        )
+        + solved(1, "What is 10 more than 590?",
                ["590 has 9 tens. One more ten makes 10 tens.",
                 "10 tens become 1 extra hundred.",
                 "590 + 10 = 600."],
@@ -282,7 +334,12 @@ def build_unit1():
             "You can start in the middle: 465, 475, 485 if you jump by tens.",
             "Clap the jumps. A beat helps your brain remember the pattern.",
         ],
-        solved(1, "Count by tens: 670, 680, 690, ___. Next?",
+        lesson_figure(
+            svg_tape([10, 10, 10], ["670 to 680", "680 to 690", "690 to 700"]),
+            "Skip-count by tens to 700",
+            "Each hop adds 10. The ones digit stays 0. 690 + 10 rolls into 700.",
+        )
+        + solved(1, "Count by tens: 670, 680, 690, ___. Next?",
                ["Add 10 each time.",
                 "690 + 10 = 700."],
                "700")
@@ -399,7 +456,12 @@ def build_unit2():
             "You can also add tens first in your head: 30+40=70, then 2+5=7, total 77.",
             "Check by adding the other way: 45 + 32 should match.",
         ],
-        solved(1, "41 + 26 = ?",
+        lesson_figure(
+            svg_base10(4, 1) + svg_base10(2, 6),
+            "41 + 26 with tens rods and ones",
+            "4 tens and 1 one plus 2 tens and 6 ones. Ones: 1+6=7. Tens: 4+2=6. Sum 67.",
+        )
+        + solved(1, "41 + 26 = ?",
                ["Ones: 1 + 6 = 7.",
                 "Tens: 4 + 2 = 6.",
                 "Write 67."],
@@ -428,7 +490,12 @@ def build_unit2():
             "People also call this carrying. Same idea: you carry a ten next door.",
             "Play Make a Ten. When you snap 10 ones together, that is regrouping.",
         ],
-        solved(1, "38 + 27 = ?",
+        lesson_figure(
+            svg_ten_frame(15),
+            "Ones 8 + 7 = 15",
+            "15 ones fill one ten-frame and leave 5. Write 5 in ones and carry the new ten. 38 + 27 = 65.",
+        )
+        + solved(1, "38 + 27 = ?",
                ["Ones: 8 + 7 = 15. Write 5. Carry 1 ten.",
                 "Tens: 3 + 2 + 1 = 6.",
                 "65."],
@@ -458,7 +525,12 @@ def build_unit2():
             "You can estimate first: 48 + 36 is near 50 + 40 = 90. The exact sum should be close.",
             "Draw tens rods and ones cubes if the paper feels crowded.",
         ],
-        solved(1, "57 + 28 = ?",
+        lesson_figure(
+            svg_base10(5, 7) + svg_base10(2, 8),
+            "57 + 28 with tens and ones",
+            "Ones 7+8=15, so write 5 and carry 1 ten. Tens 5+2+1=8. Sum 85.",
+        )
+        + solved(1, "57 + 28 = ?",
                ["Ones: 7+8=15. Write 5, carry 1.",
                 "Tens: 5+2+1=8.",
                 "85."],
@@ -487,7 +559,12 @@ def build_unit2():
             "Keep columns straight. Three-digit numbers need three columns.",
             "If a place is 0, it is still a place. 204 + 158 still has a tens column.",
         ],
-        solved(1, "246 + 135 = ?",
+        lesson_figure(
+            svg_tape([246, 135], ["246", "135"]),
+            "246 + 135",
+            "Add ones, then tens, then hundreds. Ones 6+5=11, so write 1 and carry a ten. Sum 381.",
+        )
+        + solved(1, "246 + 135 = ?",
                ["Ones: 6+5=11. Write 1, carry 1 ten.",
                 "Tens: 4+3+1=8.",
                 "Hundreds: 2+1=3. Sum 381."],
@@ -519,7 +596,12 @@ def build_unit2():
             "Ones might make 20 or more. Then you carry 2 tens, not just 1.",
             "Check by adding in a different order. The sum should match.",
         ],
-        solved(1, "16 + 27 + 14 = ?",
+        lesson_figure(
+            svg_tape([16, 27, 14], ["16", "27", "14"]),
+            "16 + 27 + 14",
+            "Pair 16 and 14 to make 30, then add 27. The three parts total 57.",
+        )
+        + solved(1, "16 + 27 + 14 = ?",
                ["16 + 14 = 30 (nice tens).",
                 "30 + 27 = 57."],
                "57")
@@ -546,7 +628,12 @@ def build_unit2():
             "Label the answer: 45 crayons, not just 45. The label tells what you counted.",
             "If the story only adds once, it is a one-step story. Two-step stories come in Unit 4.",
         ],
-        solved(1, "A shelf has 46 books. You add 38 books. How many books now?",
+        lesson_figure(
+            svg_tape([46, 38], ["46 books", "38 books"]),
+            "46 books and 38 more",
+            "Together means add. Ones 6+8=14, so write 4 and carry 1 ten. 46 + 38 = 84 books.",
+        )
+        + solved(1, "A shelf has 46 books. You add 38 books. How many books now?",
                ["Together means add: 46 + 38.",
                 "Ones: 6+8=14. Write 4, carry 1.",
                 "Tens: 4+3+1=8. Answer 84 books."],
@@ -664,7 +751,12 @@ def build_unit3():
             "Minus means take away, find the difference, or how many more.",
             "Check by adding the answer to the number you subtracted. You should get back to the start.",
         ],
-        solved(1, "57 − 23 = ?",
+        lesson_figure(
+            svg_base10(5, 7),
+            "57 take away 23",
+            "5 tens and 7 ones. Remove 2 tens and 3 ones. Ones 7−3=4, tens 5−2=3. Difference 34.",
+        )
+        + solved(1, "57 − 23 = ?",
                ["Ones: 7 − 3 = 4.",
                 "Tens: 5 − 2 = 3.",
                 "34."],
@@ -693,7 +785,12 @@ def build_unit3():
             "Cross out the old tens digit. Write the new tens digit. Write the new ones as a two-digit number like 12.",
             "Never skip crossing out. It keeps the new amounts clear.",
         ],
-        solved(1, "71 − 26 = ?",
+        lesson_figure(
+            svg_ten_frame(11),
+            "Borrow to make 11 ones",
+            "71 has only 1 one, less than 6. Borrow a ten: ones become 11, tens become 6. Then 11−6=5 and 6−2=4, so 45.",
+        )
+        + solved(1, "71 − 26 = ?",
                ["Ones: 1 is less than 6. Borrow 1 ten. Ones become 11. Tens become 6.",
                 "11 − 6 = 5. Tens: 6 − 2 = 4.",
                 "45."],
@@ -723,7 +820,12 @@ def build_unit3():
             "Estimate: 81 − 39 is near 80 − 40 = 40. Exact should be close to 40.",
             "If your answer is bigger than the starting number, you added by mistake.",
         ],
-        solved(1, "63 − 29 = ?",
+        lesson_figure(
+            svg_tape([34, 29], ["34 left", "29"]),
+            "63 − 29",
+            "3 ones are not enough, so borrow. Ones 13−9=4, tens 5−2=3. Difference 34.",
+        )
+        + solved(1, "63 − 29 = ?",
                ["3 < 9, so borrow. Ones 13 − 9 = 4. Tens 5 − 2 = 3.",
                 "34."],
                "34")
@@ -749,7 +851,12 @@ def build_unit3():
             "Check with addition: 376 + 147 should return 523.",
             "Line up hundreds carefully. A drifted 5 becomes a wrong place.",
         ],
-        solved(1, "641 − 258 = ?",
+        lesson_figure(
+            svg_tape([383, 258], ["383 left", "258"]),
+            "641 split as 383 and 258",
+            "Borrow from tens, then from hundreds. 641 − 258 = 383.",
+        )
+        + solved(1, "641 − 258 = ?",
                ["Ones: 1 < 8, borrow. 11 − 8 = 3. Tens now 3.",
                 "Tens: 3 < 5, borrow from 6 hundreds. 13 − 5 = 8. Hundreds 5 − 2 = 3.",
                 "383."],
@@ -781,7 +888,12 @@ def build_unit3():
             "Think: you unbundle 1 hundred into 10 tens, then unbundle 1 ten into 10 ones.",
             "Write every new digit. Do not try to hold three new numbers only in your head.",
         ],
-        solved(1, "500 − 268 = ?",
+        lesson_figure(
+            svg_tape([232, 268], ["232", "268"]),
+            "500 as 232 and 268",
+            "Unbundle 1 hundred into 10 tens, then 1 ten into 10 ones. Then 500 − 268 = 232.",
+        )
+        + solved(1, "500 − 268 = ?",
                ["Borrow across zeros: hundreds 4, tens 9, ones 10.",
                 "10 − 8 = 2. 9 − 6 = 3. 4 − 2 = 2.",
                 "232."],
@@ -806,7 +918,12 @@ def build_unit3():
             "A check that is 10 or 100 off often means a forgotten regroup.",
             "Label the answer with the thing in the story: balloons, books, cents.",
         ],
-        solved(1, "A tank holds 264 fish. 89 fish are moved. How many fish stay?",
+        lesson_figure(
+            svg_balance("175 + 89", "264"),
+            "Check 264 − 89",
+            "89 fish move, so 264 − 89 = 175 stay. Add to check: 175 + 89 balances 264.",
+        )
+        + solved(1, "A tank holds 264 fish. 89 fish are moved. How many fish stay?",
                ["Stay means take away: 264 − 89.",
                 "Borrow as needed. 264 − 89 = 175.",
                 "Check: 175 + 89 = 264."],
@@ -972,7 +1089,12 @@ def build_unit4():
             "A tape or bar drawing helps. Show the first change, then the second.",
             "If you only do one step, your answer is usually too big or too small.",
         ],
-        solved(1, "Sam has 12 apples. He buys 9 more, then eats 4. How many apples now?",
+        lesson_figure(
+            svg_tape([12, 9], ["12 apples", "buys 9"]),
+            "Sam buys 9 more apples",
+            "First join 12 and 9 to make 21. Then 4 are eaten, so 21 − 4 = 17 apples left.",
+        )
+        + solved(1, "Sam has 12 apples. He buys 9 more, then eats 4. How many apples now?",
                ["Step 1: 12 + 9 = 21 apples after buying.",
                 "Step 2: 21 − 4 = 17 after eating.",
                 "He has 17 apples."],
@@ -998,7 +1120,12 @@ def build_unit4():
             "Check: does the story end with less than the middle amount? Then step 2 was minus.",
             "Write both sentences: 35 + 18 = 53 and 53 − 10 = 43.",
         ],
-        solved(1, "A shelf has 50 books. You add 24. Then 12 are borrowed. How many books remain?",
+        lesson_figure(
+            svg_tape([50, 24], ["50 books", "add 24"]),
+            "Add 24 books, then borrow 12",
+            "50 + 24 = 74 on the shelf. Then 12 are borrowed: 74 − 12 = 62 remain.",
+        )
+        + solved(1, "A shelf has 50 books. You add 24. Then 12 are borrowed. How many books remain?",
                ["50 + 24 = 74 on the shelf.",
                 "74 − 12 = 62 after borrowing.",
                 "62 books."],
@@ -1029,7 +1156,12 @@ def build_unit4():
             "Order in the story is the order of the math.",
             "If you mix the order, you tell a different story.",
         ],
-        solved(1, "28 birds sit. 11 fly away. 6 come back. How many birds now?",
+        lesson_figure(
+            svg_tape([17, 11], ["17 still sit", "11 flew"]),
+            "28 birds, then 11 fly away",
+            "First 28 − 11 = 17. Then 6 come back: 17 + 6 = 23 birds.",
+        )
+        + solved(1, "28 birds sit. 11 fly away. 6 come back. How many birds now?",
                ["28 − 11 = 17 after they fly.",
                 "17 + 6 = 23 after some return.",
                 "23 birds."],
@@ -1052,7 +1184,12 @@ def build_unit4():
             "Empty seats: fill some, fill more, then subtract from the total seats.",
             "Pages left: add pages already read, subtract that from the book length.",
         ],
-        solved(1, "You bake 36 cookies. Give 12 to a friend and 8 to a neighbor. How many left?",
+        lesson_figure(
+            svg_tape([12, 8, 16], ["12 friend", "8 neighbor", "16 left"]),
+            "36 cookies given away",
+            "12 + 8 = 20 given away. Then 36 − 20 = 16 cookies left.",
+        )
+        + solved(1, "You bake 36 cookies. Give 12 to a friend and 8 to a neighbor. How many left?",
                ["12 + 8 = 20 given away.",
                 "36 − 20 = 16 left.",
                 "Or 36 − 12 = 24, then 24 − 8 = 16. Same."],
@@ -1082,7 +1219,12 @@ def build_unit4():
             "Drawing slows you down in a good way. You see plus vs minus.",
             "If you cannot draw the story, read it again. Find the whole.",
         ],
-        solved(1, "Nia has 15 red buttons and 17 blue. She uses 9. How many buttons left?",
+        lesson_figure(
+            svg_tape([15, 17], ["15 red", "17 blue"]),
+            "Bar for 15 and 17 buttons",
+            "The bar shows 15 + 17 = 32 buttons in all. Then 9 are used, so 32 − 9 = 23 left.",
+        )
+        + solved(1, "Nia has 15 red buttons and 17 blue. She uses 9. How many buttons left?",
                ["Bar 1: 15 + 17 = 32 buttons in all.",
                 "Bar 2: 32 with 9 used. 32 − 9 = 23 left."],
                "23")
@@ -1107,7 +1249,12 @@ def build_unit4():
             "Check reasonableness: can you have more cookies left than you baked? No. Then a step is wrong.",
             "Read the question sentence last. It tells you which number to report.",
         ],
-        solved(1, "You have 70 pages. You read 25, then 30. How many pages left?",
+        lesson_figure(
+            svg_tape([25, 30], ["25 pages", "30 pages"]),
+            "Pages already read",
+            "Add the pages read: 25 + 30 = 55. Then 70 − 55 = 15 pages left.",
+        )
+        + solved(1, "You have 70 pages. You read 25, then 30. How many pages left?",
                ["Operations: add the pages read, then subtract from 70.",
                 "25 + 30 = 55 read.",
                 "70 − 55 = 15 left."],

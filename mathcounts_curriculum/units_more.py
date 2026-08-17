@@ -4,6 +4,10 @@
 from __future__ import annotations
 
 import math
+from curriculum_kit import (
+    lesson_figure, svg_slots, svg_tree, svg_venn, svg_dots, svg_tape,
+    svg_rect, svg_plane,
+)
 from .common import (
     concept_block,
     solved,
@@ -18,6 +22,10 @@ from .common import (
     pie_divisible,
     lattice_paths,
     fib,
+)
+from .units_deep import (
+    _tiles, _stars_bars, _choose_dots, _group_dots, _lattice, _stairs,
+    _slots_minus, _octagon, _three_venn,
 )
 
 
@@ -66,7 +74,12 @@ def build_unit3():
         ],
         "<p>Combinations remove order from permutations.</p>",
         "<p>Ask: if I swap two chosen people, does the problem see a new outcome? If no, use C(n,k).</p>",
-        solved(1, "Choose 2 co-captains from 11 players (no different titles)?",
+        lesson_figure(
+            _choose_dots(11, 2),
+            "Choose 2 co-captains from 11",
+            "Gold dots are the chosen pair. Order does not matter: $\\binom{11}{2}=55$.",
+        )
+        + solved(1, "Choose 2 co-captains from 11 players (no different titles)?",
                ["Order does not matter.", "$\\binom{11}{2}=55$."], "$55$", "", "Easy")
         + solved(2, "Connect to P: $P(10,3)/3! = \\binom{10}{3}$.",
                  ["$P(10,3)=720$.", "$720/6=120$.", "$\\binom{10}{3}=120$."], "$120$", "", "Medium")
@@ -98,7 +111,12 @@ def build_unit3():
         ],
         "<p>Fast accurate C(n,k) arithmetic wins Sprint points.</p>",
         "<p>Write falling product / k!, cancel, then multiply.</p>",
-        solved(4, "Compute $\\binom{12}{2}$.", ["$\\frac{12\\times11}{2}=66$."], "$66$", "", "Easy")
+        lesson_figure(
+            _choose_dots(12, 2),
+            "Compute $\\binom{12}{2}$",
+            "Highlight any 2 of 12: $\\frac{12\\times11}{2}=66$.",
+        )
+        + solved(4, "Compute $\\binom{12}{2}$.", ["$\\frac{12\\times11}{2}=66$."], "$66$", "", "Easy")
         + solved(5, "Compute $\\binom{12}{10}$ using symmetry.",
                  ["$\\binom{12}{10}=\\binom{12}{2}=66$."], "$66$", "", "Medium")
         + solved(6, "Compute $\\binom{15}{3}$.",
@@ -130,7 +148,12 @@ def build_unit3():
         ],
         "<p>Restrictions turn one C into a product or a complement of C’s.</p>",
         "<p>Translate English restrictions into “must / must not / at least,” then choose the matching setup.</p>",
-        solved(7, "2 girls and 2 boys from 6 girls and 5 boys?",
+        lesson_figure(
+            _group_dots([(6, "#f9a8d4", "#9d174d"), (5, "#93c5fd", "#1d4ed8")]),
+            "2 girls and 2 boys",
+            "6 pink (girls) and 5 blue (boys). Choose 2 from each: $\\binom{6}{2}\\binom{5}{2}=150$.",
+        )
+        + solved(7, "2 girls and 2 boys from 6 girls and 5 boys?",
                ["$\\binom{6}{2}\\binom{5}{2}=15\\times10=150$."], "$150$", "", "Medium")
         + solved(8, "Committee of 3 from 10, must include the president (person P)?",
                  ["P is fixed in.", "Choose 2 more from 9: $\\binom{9}{2}=36$."], "$36$", "", "Medium")
@@ -163,7 +186,12 @@ def build_unit3():
         ],
         "<p>Pascal is sum rule hiding inside combinations.</p>",
         "<p>Pick a special element; split include/exclude.</p>",
-        solved(10, "Check $\\binom{8}{3}=\\binom{7}{2}+\\binom{7}{3}$.",
+        lesson_figure(
+            _choose_dots(8, 3),
+            "Pascal’s split on 8 people",
+            "Teams of 3: exclude Zoe $\\binom{7}{3}=35$ or include Zoe $\\binom{7}{2}=21$; sum $56=\\binom{8}{3}$.",
+        )
+        + solved(10, "Check $\\binom{8}{3}=\\binom{7}{2}+\\binom{7}{3}$.",
                ["$\\binom{7}{2}=21$, $\\binom{7}{3}=35$, sum 56.", "$\\binom{8}{3}=56$."], "$56$", "", "Easy")
         + solved(11, "Explain $\\binom{5}{2}$ with special person.",
                  ["Exclude: $\\binom{4}{2}=6$.", "Include: $\\binom{4}{1}=4$.", "Total 10."], "$10$", "", "Medium")
@@ -200,7 +228,12 @@ def build_unit3():
         ],
         "<p>Binomial coefficients count ways to choose positions for y’s.</p>",
         "<p>To find a coefficient, identify how many y’s you need; that index is k.</p>",
-        solved(13, "Coefficient of $x^2y^2$ in $(x+y)^4$?",
+        lesson_figure(
+            svg_slots(["x or y", "x or y", "x or y", "x or y"]),
+            "$(x+y)^4$ — pick 2 factors for $y$",
+            "Choose which 2 of the 4 factors contribute $y$: $\\binom{4}{2}=6$ is the coefficient of $x^2y^2$.",
+        )
+        + solved(13, "Coefficient of $x^2y^2$ in $(x+y)^4$?",
                ["Need exactly 2 y’s from 4 factors: $\\binom{4}{2}=6$."], "$6$", "", "Easy")
         + solved(14, "Coefficient of $x^3$ in $(1+x)^7$?",
                  ["$\\binom{7}{3}=35$."], "$35$", "", "Medium")
@@ -232,7 +265,12 @@ def build_unit3():
         ],
         "<p>Tool choice is half the battle.</p>",
         "<p>Write “ordered?” yes/no before picking C or P.</p>",
-        solved(16, "Committee of 4 from 10, then elect chair from committee?",
+        lesson_figure(
+            _choose_dots(10, 4),
+            "Committee of 4, then a chair",
+            "Choose 4 gold members ($\\binom{10}{4}=210$), then $\\times4$ chairs: $840$.",
+        )
+        + solved(16, "Committee of 4 from 10, then elect chair from committee?",
                ["$\\binom{10}{4}\\times4=210\\times4=840$."], "$840$", "", "Hard")
         + solved(17, "Same as choose chair first then 3 members from remaining 9?",
                  ["Chair: 10.", "Then $\\binom{9}{3}=84$.", "Product $840$ — matches."], "$840$", "", "Hard")
@@ -302,7 +340,12 @@ def build_unit4():
         ],
         "<p>Cases organize complexity.</p>",
         "<p>Define cases in words first.</p>",
-        solved(1, "Positive integers <50 with digit sum 9?",
+        lesson_figure(
+            svg_tree([["sum 9, <50"], ["1-digit", "2-digit"], ["only 9", "18,27,36,45"]]),
+            "Cases by number of digits",
+            "Piles do not overlap: $1+4=5$.",
+        )
+        + solved(1, "Positive integers <50 with digit sum 9?",
                ["1-digit: only 9 → 1.", "2-digit: 18,27,36,45 → 4.", "Total 5."], "$5$", "", "Easy")
         + solved(2, "2-digit even numbers with distinct digits?",
                  ["Units in {0,2,4,6,8}. Casework on units often helps.",
@@ -329,7 +372,12 @@ def build_unit4():
         ],
         "<p>Cases organize complexity.</p>",
         "<p>Define cases in words first.</p>",
-        solved(1, "Positive integers <50 with digit sum 9?",
+        lesson_figure(
+            svg_tree([["sum 9, <50"], ["1-digit", "2-digit"], ["only 9", "18,27,36,45"]]),
+            "Cases by number of digits",
+            "Piles do not overlap: $1+4=5$.",
+        )
+        + solved(1, "Positive integers <50 with digit sum 9?",
                ["1-digit: only 9 → 1.", "2-digit with tens≤4: 18,27,36,45 → 4.", "Total 5."],
                "$5$", "", "Easy")
         + solved(2, "How many 2-digit numbers have exactly one digit equal to 7?",
@@ -370,7 +418,12 @@ def build_unit4():
         ],
         "<p>Division repairs uniform overcount.</p>",
         "<p>Compute raw count, find m, divide.</p>",
-        solved(4, "Two unlabeled teams of 3 from 6?",
+        lesson_figure(
+            _choose_dots(6, 3),
+            "Two unlabeled teams of 3",
+            "Gold vs gray is one partition; swapping colors double-counts, so $\\binom{6}{3}/2=10$.",
+        )
+        + solved(4, "Two unlabeled teams of 3 from 6?",
                ["Labeled: $\\binom{6}{3}=20$.", "Unlabeled: $20/2=10$."], "$10$", "", "Medium")
         + solved(5, "Two labeled rooms Red/Blue teams of 3 from 6?",
                  ["Choose Red: $\\binom{6}{3}=20$; rest Blue.", "No divide."], "$20$", "", "Easy")
@@ -404,7 +457,12 @@ def build_unit4():
         ],
         "<p>Geometry counting is often combinations.</p>",
         "<p>Translate shapes into “choose lines / choose vertices.”</p>",
-        solved(7, "Diagonals of octagon?",
+        lesson_figure(
+            _octagon(),
+            "Diagonals of a convex octagon",
+            "Every 2 of 8 vertices make a segment, minus 8 sides: $\\binom{8}{2}-8=20$.",
+        )
+        + solved(7, "Diagonals of octagon?",
                ["$\\binom{8}{2}-8=28-8=20$."], "$20$", "", "Easy")
         + solved(8, "Rectangles in 3×3 unit squares?",
                  ["Lines: 4 and 4.", "$\\binom{4}{2}^2=36$."], "$36$", "", "Medium")
@@ -436,7 +494,12 @@ def build_unit4():
         ],
         "<p>Digits + cases = MathCounts staple.</p>",
         "<p>Slots + cases + leading zero check.</p>",
-        solved(10, "Strictly increasing 4-digit numbers using digits 1–9?",
+        lesson_figure(
+            _choose_dots(9, 4),
+            "Strictly increasing 4-digit numbers",
+            "Choose 4 gold digits from 1–9; only one increasing order: $\\binom{9}{4}=126$.",
+        )
+        + solved(10, "Strictly increasing 4-digit numbers using digits 1–9?",
                ["Once 4 distinct digits chosen, only one increasing order.",
                 "$\\binom{9}{4}=126$."], "$126$", "", "Challenge")
         + solved(11, "3-digit palindromes?",
@@ -469,7 +532,12 @@ def build_unit4():
         ],
         "<p>Through a point means product of path counts.</p>",
         "<p>Compute each leg, then multiply.</p>",
-        solved(13, "Paths (0,0)→(2,2) through (1,1), only right/up?",
+        lesson_figure(
+            _lattice(2, 2, via=(1, 1)),
+            "Paths $(0,0)\\to(2,2)$ through $(1,1)$",
+            "Only right and up. Leg counts $2\\times2=4$.",
+        )
+        + solved(13, "Paths (0,0)→(2,2) through (1,1), only right/up?",
                ["To (1,1): $\\binom{2}{1}=2$.", "Then to (2,2): 2.", "Product 4."], "$4$", "", "Medium")
         + solved(14, "Paths (0,0)→(3,2)?",
                  ["$\\binom{5}{2}=10$."], "$10$", "", "Easy")
@@ -501,7 +569,12 @@ def build_unit4():
         ],
         "<p>Trap awareness is a scoring strategy.</p>",
         "<p>Before submitting, run swap/label/leading-zero checks.</p>",
-        solved(16, "Why is C(6,3)=20 wrong for unlabeled two teams of 3 without /2?",
+        lesson_figure(
+            _choose_dots(6, 3),
+            "Unlabeled complementary teams",
+            "Choosing the gold 3 also chooses the gray 3; divide by 2 so $\\binom{6}{3}/2=10$.",
+        )
+        + solved(16, "Why is C(6,3)=20 wrong for unlabeled two teams of 3 without /2?",
                ["Because choosing team A vs complement double-counts each partition.", "Need /2 → 10."],
                "$10$", "", "Medium")
         + solved(17, "Quick check: rectangles in 1×1 grid?",
@@ -572,7 +645,12 @@ def build_unit5():
         ],
         "<p>Identical vs distinct changes everything.</p>",
         "<p>Label: objects identical? boxes distinct?</p>",
-        solved(1, "Identical cookies to 2 distinct kids, 5 cookies, each ≥0?",
+        lesson_figure(
+            _stars_bars("★★★|★★"),
+            "5 identical cookies, 2 kids",
+            "One solution of $x+y=5$ is $3+2$. All non-negative splits: 6 ways (0+5 through 5+0).",
+        )
+        + solved(1, "Identical cookies to 2 distinct kids, 5 cookies, each ≥0?",
                ["Solutions of x+y=5, x,y≥0: 6 ways (0+5…5+0)."], "$6$", "", "Easy")
         + solved(2, "Why not 2^5?",
                  ["2^5 would count if cookies were distinct.", "Here cookies identical."],
@@ -610,7 +688,12 @@ def build_unit5():
         ],
         "<p>Bars create box boundaries.</p>",
         "<p>Draw stars and bars for a tiny case (n=3,k=2).</p>",
-        solved(4, "Nonneg solutions x+y+z=5?",
+        lesson_figure(
+            _stars_bars("★★★★★||"),
+            "Non-negative $x+y+z=5$",
+            "5 stars and 2 bars: $\\binom{7}{2}=21$ ways to place the bars.",
+        )
+        + solved(4, "Nonneg solutions x+y+z=5?",
                [f"$\\binom{{7}}{{2}}={stars_bars_nonneg(5,3)}$."], str(stars_bars_nonneg(5, 3)), "", "Easy")
         + solved(5, "Nonneg x1+…+x4=3?",
                  [f"{stars_bars_nonneg(3,4)}."], str(stars_bars_nonneg(3, 4)), "", "Medium")
@@ -639,7 +722,12 @@ def build_unit5():
         ],
         "<p>Lower bounds become a substitution.</p>",
         "<p>Subtract the minimum from n, then use non-neg formula.</p>",
-        solved(7, "Positive x+y+z=5?",
+        lesson_figure(
+            _stars_bars("★|★|★  then  ★★"),
+            "Positive $x+y+z=5$",
+            "Give each variable 1 first (uses 3), then distribute 2 freely: $\\binom{4}{2}=6$.",
+        )
+        + solved(7, "Positive x+y+z=5?",
                [f"x'=x-1 etc → sum x'=2 → {stars_bars_positive(5,3)}."],
                str(stars_bars_positive(5, 3)), "", "Medium")
         + solved(8, "Positive w+x+y+z=7?",
@@ -673,7 +761,12 @@ def build_unit5():
         ],
         "<p>Caps use complement.</p>",
         "<p>Total − too-big cases.</p>",
-        solved(10, "Nonneg x+y+z=10 with x≤4?",
+        lesson_figure(
+            _stars_bars("★★★★★★★★★★||"),
+            "Non-negative $x+y+z=10$ with $x\\le4$",
+            "Total $\\binom{12}{2}=66$. Bad $x\\ge5$ is 21. Good: $66-21=45$.",
+        )
+        + solved(10, "Nonneg x+y+z=10 with x≤4?",
                ["Total C(12,2)=66.", "Bad x≥5: let x''=x-5, sum=5 → C(7,2)=21.",
                 "Good 45."], "$45$", "", "Hard")
         + solved(11, "Nonneg x+y=10, x≤6?",
@@ -709,7 +802,12 @@ def build_unit5():
         ],
         "<p>Food counting is often stars/bars.</p>",
         "<p>Write x1+…+xk=n, interpret constraints.</p>",
-        solved(13, "7 bagels, 3 types?",
+        lesson_figure(
+            _stars_bars("★★★★★★★||"),
+            "7 bagels, 3 types",
+            "7 identical bagels and 2 bars: $\\binom{9}{2}=36$ orders.",
+        )
+        + solved(13, "7 bagels, 3 types?",
                [f"{stars_bars_nonneg(7,3)}."], str(stars_bars_nonneg(7, 3)), "", "Easy")
         + solved(14, "5 scoops from 4 flavors?",
                  [f"{stars_bars_nonneg(5,4)}."], str(stars_bars_nonneg(5, 4)), "", "Medium")
@@ -737,7 +835,12 @@ def build_unit5():
         ],
         "<p>Tool choice protects you.</p>",
         "<p>Identical objects? If no, stop before stars/bars.</p>",
-        solved(16, "3 distinct books into 2 distinct bags, bags may be empty, each book chooses a bag?",
+        lesson_figure(
+            svg_slots(["book1: 2", "book2: 2", "book3: 2"]),
+            "3 distinct books, 2 distinct bags",
+            "Each book chooses a bag: $2^3=8$. Identical books would instead be $x+y=3$ (4 ways).",
+        )
+        + solved(16, "3 distinct books into 2 distinct bags, bags may be empty, each book chooses a bag?",
                ["Each book 2 choices → $2^3=8$.", "Not stars/bars."], "$8$", "", "Medium")
         + solved(17, "3 identical books into 2 distinct bags?",
                  ["Nonneg x+y=3 → 4 ways."], "$4$", "", "Easy")
@@ -803,7 +906,12 @@ def build_unit6():
         ],
         "<p>Subtract the double-counted overlap.</p>",
         "<p>Draw two circles; place both first.</p>",
-        solved(1, "|A|=12,|B|=9,|A∩B|=4. |A∪B|?",
+        lesson_figure(
+            svg_venn("A", "B", only_a="8", only_b="5", both="4"),
+            "|A|=12, |B|=9, both=4",
+            "Only A is $12-4=8$, only B is $9-4=5$. Union $8+4+5=17$.",
+        )
+        + solved(1, "|A|=12,|B|=9,|A∩B|=4. |A∪B|?",
                ["12+9-4=17."], "$17$", "", "Easy")
         + solved(2, "100 people; 50 tea; 40 coffee; 20 both. Neither?",
                  ["Union 70.", "Neither 30."], "$30$", "", "Medium")
@@ -835,7 +943,12 @@ def build_unit6():
         ],
         "<p>Plus singles, minus pairs, plus triple.</p>",
         "<p>Write formula first, then substitute.</p>",
-        solved(4, "Singles 18,15,12; pairs 7,6,5; triple 3. Union?",
+        lesson_figure(
+            _three_venn(),
+            "Three-set union",
+            "Singles $18+15+12$, minus pairs $7+6+5$, plus triple $3$: union $30$.",
+        )
+        + solved(4, "Singles 18,15,12; pairs 7,6,5; triple 3. Union?",
                ["18+15+12-7-6-5+3=30."], "$30$", "", "Medium")
         + solved(5, "All singles 10; all pairs 3; triple 1. Union?",
                  ["30-9+1=22."], "$22$", "", "Medium")
@@ -872,7 +985,12 @@ def build_unit6():
         ],
         "<p>Floors + PIE = divisibility counts.</p>",
         "<p>Add each, subtract pairwise LCMs, add triple LCM.</p>",
-        solved(7, "1–100 div by 2 or 5?",
+        lesson_figure(
+            svg_venn("div by 2", "div by 5", only_a="40", only_b="10", both="10"),
+            "1–100 divisible by 2 or 5",
+            "50 multiples of 2 and 20 of 5, overlap 10: $50+20-10=60$.",
+        )
+        + solved(7, "1–100 div by 2 or 5?",
                ["50+20-10=60."], "$60$", "", "Easy")
         + solved(8, "1–60 div by 2,3, or 5?",
                  [f"{pie_divisible(60,[2,3,5])}."], str(pie_divisible(60, [2, 3, 5])), "", "Hard")
@@ -900,7 +1018,12 @@ def build_unit6():
         ],
         "<p>Complement + PIE is a power combo.</p>",
         "<p>Translate logic to Total − |union|.</p>",
-        solved(10, "How many of 1–100 not divisible by 2 or 5?",
+        lesson_figure(
+            svg_venn("div 2", "div 5", only_a="40", only_b="10", both="10", outside="neither 40"),
+            "Not divisible by 2 or 5",
+            "Universe 100 minus the union 60 leaves 40.",
+        )
+        + solved(10, "How many of 1–100 not divisible by 2 or 5?",
                ["100-60=40."], "$40$", "", "Medium")
         + solved(11, "1–30 not div by 2 or 3?",
                  ["30-20=10."], "$10$", "", "Easy")
@@ -933,7 +1056,12 @@ def build_unit6():
         ],
         "<p>Onto = all functions minus missing-outputs via PIE.</p>",
         "<p>Start with k=2, then k=3.</p>",
-        solved(13, "Onto functions [3]→[2]?",
+        lesson_figure(
+            svg_slots(["2", "2", "2"]),
+            "Functions [3]→[2]",
+            "All functions $2^3=8$. Subtract the 2 constant (not onto) maps: $8-2=6$.",
+        )
+        + solved(13, "Onto functions [3]→[2]?",
                ["$2^3-2=6$."], "$6$", "", "Medium")
         + solved(14, "Onto [4]→[2]?",
                  ["$16-2=14$."], "$14$", "", "Medium")
@@ -966,7 +1094,12 @@ def build_unit6():
         ],
         "<p>Derangements = permutations with no fixed points.</p>",
         "<p>List small n; memorize !3 and !4.</p>",
-        solved(16, "!3=?",
+        lesson_figure(
+            _tiles("BCA"),
+            "A derangement of ABC",
+            "No letter stays home: BCA and CAB are the only two, so $!3=2$.",
+        )
+        + solved(16, "!3=?",
                ["List: BCA, CAB → 2."], "$2$", "", "Easy")
         + solved(17, "!4=?",
                  ["$!4=9$."], "$9$", "", "Medium")
@@ -1035,7 +1168,12 @@ def build_unit7():
         ],
         "<p>Paths = choose when to go right.</p>",
         "<p>Count rights and ups; choose positions.</p>",
-        solved(1, "Paths to (3,2)?",
+        lesson_figure(
+            _lattice(3, 2),
+            "Lattice paths to $(3,2)$",
+            "3 right and 2 up from $(0,0)$. Choose positions for the ups: $\\binom{5}{2}=10$.",
+        )
+        + solved(1, "Paths to (3,2)?",
                [f"$\\binom{{5}}{{2}}={lattice_paths(3,2)}$."], str(lattice_paths(3, 2)), "", "Easy")
         + solved(2, "Paths to (4,3)?",
                  [f"{lattice_paths(4,3)}."], str(lattice_paths(4, 3)), "", "Easy")
@@ -1062,7 +1200,12 @@ def build_unit7():
         ],
         "<p>Gateway points multiply path counts.</p>",
         "<p>Compute each leg’s binomial, multiply.</p>",
-        solved(4, "To (2,2) via (1,1)?",
+        lesson_figure(
+            _lattice(2, 2, via=(1, 1)),
+            "Must pass through $(1,1)$ on the way to $(2,2)$",
+            "Paths to the gateway times paths after: $2\\times2=4$.",
+        )
+        + solved(4, "To (2,2) via (1,1)?",
                ["2×2=4."], "$4$", "", "Easy")
         + solved(5, "To (5,5) via (2,3)?",
                  ["C(5,2)×C(5,2)=100."], "$100$", "", "Hard")
@@ -1095,7 +1238,12 @@ def build_unit7():
         ],
         "<p>Tilings create Fibonacci-like recurrences.</p>",
         "<p>Classify based on the left ending.</p>",
-        solved(7, "Tilings of 2×3?",
+        lesson_figure(
+            _stairs([1, 2]),
+            "Climb 3 with steps of 1 and 2",
+            "One tiling of length 3 is a 1-block then a 2-block. Recurrence $a_3=a_2+a_1=3$.",
+        )
+        + solved(7, "Tilings of 2×3?",
                ["a1=1,a2=2,a3=a2+a1=3."], "$3$", "", "Easy")
         + solved(8, "Tilings of 2×5?",
                  ["Sequence 1,2,3,5,8 → a5=8."], "$8$", "", "Medium")
@@ -1133,7 +1281,12 @@ def build_unit7():
         ],
         "<p>Restrictions create recurrences.</p>",
         "<p>Case on the ending bits.</p>",
-        solved(10, "b1 and b2?",
+        lesson_figure(
+            _slots_minus(["0/1", "0/1"], ["1", "1"]),
+            "Length-2 bits, consecutive 1s forbidden",
+            "Valid: 00, 01, 10 so $b_2=3$. Length 1 is 0 or 1 so $b_1=2$.",
+        )
+        + solved(10, "b1 and b2?",
                ["b1=2, b2=3."], "2 and 3", "", "Easy")
         + solved(11, "b5?",
                  ["b1=2, b2=3, so b3=5, b4=8, b5=13."],
@@ -1169,7 +1322,12 @@ def build_unit7():
         ],
         "<p>Catalan counts carefully balanced structures.</p>",
         "<p>Memorize C_2,C_3,C_4 and the formula shape.</p>",
-        solved(13, "C_3?",
+        lesson_figure(
+            _tiles("(()())"),
+            "One of the 5 matched parenthesis strings for $n=3$",
+            "Catalan $C_3=\\frac{1}{4}\\binom{6}{3}=5$ counts these balanced strings.",
+        )
+        + solved(13, "C_3?",
                ["$\\frac{1}{4}\\binom{6}{3}=5$."], "$5$", "", "Medium")
         + solved(14, "C_4?",
                  ["$\\frac{1}{5}\\binom{8}{4}=14$."], "$14$", "", "Hard")
@@ -1195,7 +1353,12 @@ def build_unit7():
         ],
         "<p>Match path problem type to tool.</p>",
         "<p>Sketch, then choose binomial vs recurrence vs Catalan.</p>",
-        solved(16, "Label method: paths to each point on small grid to (2,2).",
+        lesson_figure(
+            _lattice(2, 2),
+            "Fill path counts to $(2,2)$",
+            "Right/up only: the corner is $\\binom{4}{2}=6$ paths, matching the label method.",
+        )
+        + solved(16, "Label method: paths to each point on small grid to (2,2).",
                ["To (1,0)=1,(0,1)=1,(1,1)=2,(2,1)=3,(1,2)=3,(2,2)=6.",
                 "Matches C(4,2)=6."], "$6$", "", "Medium")
         + solved(17, "First step case: paths to (2,2).",
@@ -1257,7 +1420,12 @@ def build_unit8():
         ],
         "<p>Sprint counting is plan speed + accuracy.</p>",
         "<p>Underline constraints; name the tool; compute; sanity-check size.</p>",
-        solved(1, "Sprint: 4×3×2 outfits?",
+        lesson_figure(
+            svg_slots(["4", "3", "2"]),
+            "Sprint outfits",
+            "Product of independent choices: $4\\times3\\times2=24$.",
+        )
+        + solved(1, "Sprint: 4×3×2 outfits?",
                ["Product 24 — under 10 seconds."], "$24$", "", "Easy")
         + solved(2, "Sprint: at least one head in 3 flips?",
                  ["8-1=7."], "$7$", "", "Easy")
@@ -1289,7 +1457,12 @@ def build_unit8():
         ],
         "<p>Deep problems need written plans and verification.</p>",
         "<p>Two methods when time allows.</p>",
-        solved(4, "Verify committee 4 from 10 then chair two ways.",
+        lesson_figure(
+            _choose_dots(10, 4),
+            "Committee of 4 from 10, then a chair",
+            "Two routes agree: $\\binom{10}{4}\\times4=10\\times\\binom{9}{3}=840$.",
+        )
+        + solved(4, "Verify committee 4 from 10 then chair two ways.",
                ["C(10,4)×4=840.", "10×C(9,3)=840."], "$840$", "", "Medium")
         + solved(5, "Tiny analog idea.",
                  ["Replace 10 by 4, committee 2 then chair: C(4,2)×2=12; 4×C(3,1)=12."],
@@ -1323,7 +1496,12 @@ def build_unit8():
         ],
         "<p>Answer form is a checksum.</p>",
         "<p>Integer check + magnitude check + object sentence.</p>",
-        solved(7, "If you get 12.5 on AMC 8 counting?",
+        lesson_figure(
+            svg_slots(["10", "10", "10", "10", "10"]),
+            "5-digit codes, repeats OK",
+            "Ballpark: $10^5=100000$ — large but plausible for five free digits.",
+        )
+        + solved(7, "If you get 12.5 on AMC 8 counting?",
                ["Impossible as final; re-read constraints."], "re-read", "", "Easy")
         + solved(8, "Ballpark: 5-digit codes with repeats from 10 digits?",
                  ["10^5=100000 — large but plausible."], "$100000$", "", "Easy")
@@ -1355,7 +1533,12 @@ def build_unit8():
         ],
         "<p>Picker first, calculator second.</p>",
         "<p>Run the decision tree aloud.</p>",
-        solved(10, "Pick tool: identical bagels 3 types buy 7.",
+        lesson_figure(
+            svg_tree([["7 bagels, 3 types"], ["identical objects"], ["stars/bars C(9,2)"]]),
+            "Tool picker for the bagel problem",
+            "Identical bagels, distinct types → non-negative stars and bars: $36$.",
+        )
+        + solved(10, "Pick tool: identical bagels 3 types buy 7.",
                ["Stars/bars nonneg."], "stars/bars", "", "Easy")
         + solved(11, "Pick tool: president/VP from 12.",
                  ["P(12,2)."], "permutation", "", "Easy")
@@ -1398,7 +1581,12 @@ def build_unit8():
         "Students who skip the outline often do only one layer and submit that number. Contests reward the full program.",
         "Write Outline → Compute each boxed piece → Verify on a tiny analog → Finalize. "
         "Never reverse the order on Target/National: computing first and outlining later is how layers get dropped.",
-        solved(13, "How many distinct length-6 strings using digits 0–9 have at least one zero?",
+        lesson_figure(
+            _slots_minus(["10", "9", "8", "7", "6", "5"], ["9", "8", "7", "6", "5", "4"]),
+            "Distinct length-6 codes with at least one 0",
+            "Total $P(10,6)=151200$ minus no-zero $P(9,6)=60480$ leaves $90720$.",
+        )
+        + solved(13, "How many distinct length-6 strings using digits 0–9 have at least one zero?",
                [
                    "Outline: Total = $P(10,6)$; Bad = no zeros = $P(9,6)$; Good = Total − Bad.",
                    "Total: $10×9×8×7×6×5 = 151200$.",
@@ -1463,7 +1651,12 @@ def build_unit8():
         ],
         "<p>Verification is part of solving, not optional polish.</p>",
         "<p>Run A–E quickly before locking an answer.</p>",
-        solved(16, "Catch: using C(6,3) for unlabeled two teams without /2.",
+        lesson_figure(
+            _choose_dots(6, 3),
+            "Unlabeled two teams of 3",
+            "Habit B: labels. $\\binom{6}{3}=20$ double-counts each partition, so divide by 2.",
+        )
+        + solved(16, "Catch: using C(6,3) for unlabeled two teams without /2.",
                ["Missed Habit B labels → fix /2."], "divide by 2", "", "Medium")
         + solved(17, "Catch: 3-digit codes counted as 900 when zeros allowed.",
                  ["Codes allow 000–999 → 1000."], "$1000$", "", "Easy")

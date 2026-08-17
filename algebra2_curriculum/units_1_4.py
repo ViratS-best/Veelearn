@@ -5,6 +5,11 @@ from __future__ import annotations
 
 import math
 
+from curriculum_kit import (
+    lesson_figure, svg_plane, svg_parabola, svg_number_line, svg_circle,
+    svg_rect, svg_balance, svg_tree, svg_dots,
+)
+
 from .common import (
     concept_block,
     solved,
@@ -17,6 +22,118 @@ from .common import (
     near_str,
     p,
 )
+
+
+def _xy(curves=None, points=None, dashes=None, xlim=(-6, 6), ylim=(-6, 6), w=300, h=300, xlab="x", ylab="y"):
+    """Compact axes + polylines. curves: [(color, [(x,y), ...])]; dashes: [('v'|'h', val, label)]."""
+    pad = 24
+    x0, x1 = xlim
+    y0, y1 = ylim
+
+    def X(x):
+        return pad + (x - x0) / (x1 - x0) * (w - 2 * pad)
+
+    def Y(y):
+        return h - pad - (y - y0) / (y1 - y0) * (h - 2 * pad)
+
+    bits = [
+        f'<line x1="{pad}" y1="{Y(0) if y0 <= 0 <= y1 else h - pad}" x2="{w - pad}" y2="{Y(0) if y0 <= 0 <= y1 else h - pad}" stroke="#0f172a" stroke-width="1.6"/>'
+        if y0 <= 0 <= y1 else f'<line x1="{pad}" y1="{h - pad}" x2="{w - pad}" y2="{h - pad}" stroke="#0f172a" stroke-width="1.6"/>',
+        f'<line x1="{X(0) if x0 <= 0 <= x1 else pad}" y1="{pad}" x2="{X(0) if x0 <= 0 <= x1 else pad}" y2="{h - pad}" stroke="#0f172a" stroke-width="1.6"/>'
+        if x0 <= 0 <= x1 else f'<line x1="{pad}" y1="{pad}" x2="{pad}" y2="{h - pad}" stroke="#0f172a" stroke-width="1.6"/>',
+        f'<text x="{w - pad}" y="{(Y(0) if y0 <= 0 <= y1 else h - pad) - 6}" font-size="11">{xlab}</text>',
+        f'<text x="{(X(0) if x0 <= 0 <= x1 else pad) + 6}" y="{pad + 4}" font-size="11">{ylab}</text>',
+    ]
+    for kind, val, lab in (dashes or []):
+        col = "#dc2626" if kind == "v" else "#2563eb"
+        if kind == "v":
+            bits.append(f'<line x1="{X(val):.1f}" y1="{pad}" x2="{X(val):.1f}" y2="{h - pad}" stroke="{col}" stroke-width="1.5" stroke-dasharray="5 4"/>')
+            bits.append(f'<text x="{X(val) + 4:.1f}" y="{pad + 12}" font-size="11" fill="{col}">{lab}</text>')
+        else:
+            bits.append(f'<line x1="{pad}" y1="{Y(val):.1f}" x2="{w - pad}" y2="{Y(val):.1f}" stroke="{col}" stroke-width="1.5" stroke-dasharray="5 4"/>')
+            bits.append(f'<text x="{pad + 4}" y="{Y(val) - 4:.1f}" font-size="11" fill="{col}">{lab}</text>')
+
+    def path_for(pts, color, sw=2):
+        segs, cur = [], []
+        for x, y in pts:
+            if x0 - 0.2 <= x <= x1 + 0.2 and y0 - 0.2 <= y <= y1 + 0.2 and abs(y) < 1e8:
+                cur.append((x, y))
+            else:
+                if len(cur) >= 2:
+                    segs.append(cur)
+                cur = []
+        if len(cur) >= 2:
+            segs.append(cur)
+        out = []
+        for seg in segs:
+            d = " ".join(("M" if i == 0 else "L") + f"{X(x):.1f},{Y(y):.1f}" for i, (x, y) in enumerate(seg))
+            out.append(f'<path d="{d}" fill="none" stroke="{color}" stroke-width="{sw}"/>')
+        return "".join(out)
+
+    for color, pts in (curves or []):
+        bits.append(path_for(pts, color))
+    for item in (points or []):
+        x, y, lab = item[0], item[1], item[2] if len(item) > 2 else ""
+        col = item[3] if len(item) > 3 else "#b91c1c"
+        bits.append(f'<circle cx="{X(x):.1f}" cy="{Y(y):.1f}" r="4.2" fill="{col}"/>')
+        if lab:
+            bits.append(f'<text x="{X(x) + 7:.1f}" y="{Y(y) - 6:.1f}" font-size="11" fill="{col}">{lab}</text>')
+    return f'<svg viewBox="0 0 {w} {h}" width="100%" style="max-width:{w}px" role="img">{"".join(bits)}</svg>'
+
+
+def _pts(fn, a, b, n=56, skip=()):
+    out = []
+    for i in range(n + 1):
+        x = a + (b - a) * i / n
+        if any(abs(x - s) < 0.12 for s in skip):
+            out.append((x, 1e9))
+            continue
+        try:
+            out.append((x, fn(x)))
+        except (ZeroDivisionError, ValueError, OverflowError):
+            out.append((x, 1e9))
+    return out
+
+
+def _nline(lo, hi, closed=(), opened=(), shade=None, w=460):
+    """Number line with open/closed dots. shade: ('out', a, b) | ('right', a) | ('left', a) | ('between', a, b)."""
+    h, left, right, y = 78, 28, w - 28, 36
+    n = max(hi - lo, 1)
+
+    def xp(v):
+        return left + (v - lo) * (right - left) / n
+
+    ticks = []
+    for v in range(lo, hi + 1):
+        x = xp(v)
+        ticks.append(f'<line x1="{x:.1f}" y1="{y - 7}" x2="{x:.1f}" y2="{y + 7}" stroke="#0f172a" stroke-width="2"/>')
+        ticks.append(f'<text x="{x:.1f}" y="{y + 22}" text-anchor="middle" font-size="11">{v}</text>')
+    extra = []
+    if shade:
+        kind = shade[0]
+        if kind == "out":
+            extra.append(f'<line x1="{left}" y1="{y}" x2="{xp(shade[1]):.1f}" y2="{y}" stroke="#7c3aed" stroke-width="6"/>')
+            extra.append(f'<line x1="{xp(shade[2]):.1f}" y1="{y}" x2="{right}" y2="{y}" stroke="#7c3aed" stroke-width="6"/>')
+        elif kind == "right":
+            extra.append(f'<line x1="{xp(shade[1]):.1f}" y1="{y}" x2="{right}" y2="{y}" stroke="#7c3aed" stroke-width="6"/>')
+        elif kind == "left":
+            extra.append(f'<line x1="{left}" y1="{y}" x2="{xp(shade[1]):.1f}" y2="{y}" stroke="#7c3aed" stroke-width="6"/>')
+        elif kind == "between":
+            extra.append(f'<line x1="{xp(shade[1]):.1f}" y1="{y}" x2="{xp(shade[2]):.1f}" y2="{y}" stroke="#7c3aed" stroke-width="6"/>')
+    dots = []
+    for v, lab in closed:
+        dots.append(f'<circle cx="{xp(v):.1f}" cy="{y}" r="6" fill="#dc2626"/>')
+        if lab:
+            dots.append(f'<text x="{xp(v):.1f}" y="{y - 14}" text-anchor="middle" font-size="11" fill="#b91c1c">{lab}</text>')
+    for v, lab in opened:
+        dots.append(f'<circle cx="{xp(v):.1f}" cy="{y}" r="6" fill="#fff" stroke="#dc2626" stroke-width="2.5"/>')
+        if lab:
+            dots.append(f'<text x="{xp(v):.1f}" y="{y - 14}" text-anchor="middle" font-size="11" fill="#b91c1c">{lab}</text>')
+    return f'<svg viewBox="0 0 {w} {h}" width="100%" style="max-width:{w}px" role="img"><line x1="{left}" y1="{y}" x2="{right}" y2="{y}" stroke="#0f172a" stroke-width="2"/>{"".join(ticks)}{"".join(extra)}{"".join(dots)}</svg>'
+
+
+def _argand(points, lim=6, w=300):
+    return _xy(points=points, xlim=(-lim, lim), ylim=(-lim, lim), w=w, h=w, xlab="real", ylab="imag")
 
 
 def _fill(qs, need, factory):
@@ -279,7 +396,14 @@ def build_unit1():
         "$f(x+2)$ as $f(x)+2$ is a small mistake that quietly causes wrong answers for years if it is never fixed.",
         "Read $f(x)$ like a machine: whatever sits inside the parentheses gets substituted for every single "
         "$x$ in the rule, and only then do you simplify, left to right, following order of operations.",
-        solved(1, "If $f(x)=2x+3$, find $f(4)$.",
+        lesson_figure(
+            _xy(curves=[("#4f46e5", _pts(lambda x: 2 * x + 3, -2, 5))],
+                points=[(0, 3, "(0,3)"), (4, 11, "f(4)=11")],
+                xlim=(-2, 6), ylim=(-2, 13), ylab="f(x)"),
+            "Graph of $f(x)=2x+3$",
+            "The example input $x=4$ lands on the point $(4,11)$.",
+        )
+        + solved(1, "If $f(x)=2x+3$, find $f(4)$.",
                ["Substitute $4$ for every $x$ in the rule: $f(4)=2(4)+3$.",
                 "Multiply first: $2(4)=8$.",
                 "Add: $8+3=11$."],
@@ -336,7 +460,12 @@ def build_unit1():
         "Before solving anything else, ask two questions: is there a denominator that could be zero, and is "
         "there an even root whose inside could be negative? Write each restriction as its own inequality, then "
         "combine them.",
-        solved(4, "Find the domain of $f(x)=\\dfrac{1}{x-4}$.",
+        lesson_figure(
+            _nline(0, 8, opened=[(4, "x=4 open")], shade=None),
+            "Domain of $f(x)=1/(x-4)$",
+            "Open circle at $4$: every real except $x=4$ is allowed.",
+        )
+        + solved(4, "Find the domain of $f(x)=\\dfrac{1}{x-4}$.",
                ["The denominator cannot equal $0$: set $x-4\\neq0$.",
                 "Solve: $x\\neq4$.",
                 "Every other real number is allowed."],
@@ -390,7 +519,14 @@ def build_unit1():
         "from scratch.",
         "For any new function, first ask which parent family it belongs to. Then picture that parent shape in "
         "your head before applying any shifts, stretches, or reflections on top of it.",
-        solved(7, "For the parent quadratic $f(x)=x^2$, find $f(-3)$ and state the vertex.",
+        lesson_figure(
+            _xy(curves=[("#4f46e5", _pts(lambda x: x * x, -3, 3))],
+                points=[(0, 0, "vertex (0,0)"), (-3, 9, "f(-3)=9")],
+                xlim=(-4, 4), ylim=(-1, 10)),
+            "Parent quadratic $f(x)=x^2$",
+            "U-shaped parabola with vertex at the origin; $f(-3)=9$.",
+        )
+        + solved(7, "For the parent quadratic $f(x)=x^2$, find $f(-3)$ and state the vertex.",
                ["Substitute $x=-3$: $f(-3)=(-3)^2=9$.",
                 "The vertex of $f(x)=x^2$ is the lowest point of the U shape, which is $(0,0)$."],
                "$f(-3)=9$; vertex $(0,0)$", "", "Easy")
@@ -443,7 +579,17 @@ def build_unit1():
         "later exponentials and logarithms — gets graphed using this exact same transformation language.",
         "List the transformations in words first: “shift right $h$, stretch vertically by $a$, shift up $k$.” "
         "Only after that sentence is correct should you plot points or sketch the curve.",
-        solved(10, "$f(x)=x^2$. Describe the transformation to $g(x)=(x-3)^2+2$ and find $g(3)$.",
+        lesson_figure(
+            _xy(curves=[
+                    ("#94a3b8", _pts(lambda x: x * x, -2.5, 2.5)),
+                    ("#4f46e5", _pts(lambda x: (x - 3) ** 2 + 2, 0.5, 5.5)),
+                ],
+                points=[(0, 0, "parent (0,0)"), (3, 2, "g vertex (3,2)")],
+                xlim=(-3, 6), ylim=(-1, 8)),
+            "Parent $y=x^2$ and $g(x)=(x-3)^2+2$",
+            "Shift right $3$ and up $2$; the new vertex is $(3,2)=g(3)$.",
+        )
+        + solved(10, "$f(x)=x^2$. Describe the transformation to $g(x)=(x-3)^2+2$ and find $g(3)$.",
                ["Compare to the parent form $a\\,f(b(x-h))+k$: here $h=3$ and $k=2$.",
                 "So the graph shifts right $3$ and up $2$ from the parent parabola.",
                 "Evaluate: $g(3)=(3-3)^2+2=0+2=2$."],
@@ -499,7 +645,18 @@ def build_unit1():
         "absolute value equations, and real-world models with changing rates.",
         "Before evaluating, write the input number next to each inequality in the definition and decide, on "
         "paper, which single inequality is true. Only then substitute into that one rule.",
-        solved(13, "For $f(x)=\\begin{cases}x+1 & x<0\\\\ x^2 & 0\\leq x<3\\\\ 2x-1 & x\\geq3\\end{cases}$, find $f(-2)$.",
+        lesson_figure(
+            _xy(curves=[
+                    ("#4f46e5", _pts(lambda x: x + 1, -4, -0.05)),
+                    ("#059669", _pts(lambda x: x * x, 0, 2.95)),
+                    ("#d97706", _pts(lambda x: 2 * x - 1, 3, 5)),
+                ],
+                points=[(-2, -1, "f(-2)=-1"), (2, 4, "f(2)=4"), (3, 5, "f(3)=5")],
+                xlim=(-4, 6), ylim=(-3, 8), ylab="f(x)"),
+            "Piecewise $f$: $x+1$, then $x^2$, then $2x-1$",
+            "Use the piece that owns the input: $(-2,-1)$, $(2,4)$, and boundary $(3,5)$.",
+        )
+        + solved(13, "For $f(x)=\\begin{cases}x+1 & x<0\\\\ x^2 & 0\\leq x<3\\\\ 2x-1 & x\\geq3\\end{cases}$, find $f(-2)$.",
                ["Check which piece applies: is $-2<0$? Yes.",
                 "Use the first rule: $f(-2)=-2+1=-1$."],
                "$-1$", "", "Easy")
@@ -549,7 +706,18 @@ def build_unit1():
         "in force when you study logarithms as the official inverse of exponential functions.",
         "Write $y=f(x)$, swap $x$ and $y$, then solve for $y$ using the same algebra tools (adding, dividing, "
         "square rooting) you already know, one step at a time.",
-        solved(16, "Find the inverse of $f(x)=2x+6$.",
+        lesson_figure(
+            _xy(curves=[
+                    ("#4f46e5", _pts(lambda x: 2 * x + 6, -4, 2)),
+                    ("#059669", _pts(lambda x: (x - 6) / 2, -2, 10)),
+                    ("#94a3b8", _pts(lambda x: x, -4, 8)),
+                ],
+                points=[(0, 6, "f: (0,6)"), (6, 0, "f^{-1}: (6,0)")],
+                xlim=(-4, 10), ylim=(-4, 10)),
+            "$f(x)=2x+6$ and $f^{-1}(x)=(x-6)/2$",
+            "Inverse graphs are reflections across the dashed-looking line $y=x$.",
+        )
+        + solved(16, "Find the inverse of $f(x)=2x+6$.",
                ["Write $y=2x+6$.",
                 "Swap $x$ and $y$: $x=2y+6$.",
                 "Solve for $y$: subtract $6$ from both sides, $x-6=2y$.",
@@ -888,7 +1056,14 @@ def build_unit2():
         "forms are the toolkit you reuse in every later chapter that touches parabolas.",
         "Ask what the question wants: vertex → use vertex form; intercepts → use intercept form; y-intercept or "
         "formula work → use standard form. Convert to whichever form answers the question fastest.",
-        solved(1, "Expand $y=(x-3)^2+5$ into standard form.",
+        lesson_figure(
+            _xy(curves=[("#4f46e5", _pts(lambda x: (x - 3) ** 2 + 5, -1, 7))],
+                points=[(3, 5, "vertex (3,5)")],
+                xlim=(-1, 7), ylim=(-1, 12)),
+            "Vertex form $y=(x-3)^2+5$",
+            "The vertex is $(h,k)=(3,5)$ before expanding to standard form.",
+        )
+        + solved(1, "Expand $y=(x-3)^2+5$ into standard form.",
                ["Expand the squared binomial: $(x-3)^2=x^2-6x+9$.",
                 "Add the constant outside: $x^2-6x+9+5=x^2-6x+14$."],
                "$y=x^2-6x+14$", "", "Easy")
@@ -938,7 +1113,15 @@ def build_unit2():
         "produced it, and a systematic routine prevents you from forgetting a key feature under time pressure.",
         "Work through the same five steps every single time: find the vertex, draw the axis of symmetry, plot "
         "the y-intercept, find the x-intercepts if they exist, and state the end behavior last.",
-        solved(4, "Analyze $y=x^2-8x+12$: find the vertex, axis of symmetry, and y-intercept.",
+        lesson_figure(
+            _xy(curves=[("#4f46e5", _pts(lambda x: x * x - 8 * x + 12, 0, 8))],
+                points=[(4, -4, "vertex (4,-4)"), (0, 12, "y-int 12")],
+                dashes=[("v", 4, "x=4")],
+                xlim=(-1, 9), ylim=(-8, 14)),
+            "$y=x^2-8x+12$",
+            "Vertex $(4,-4)$, axis $x=4$, y-intercept $12$; both ends rise.",
+        )
+        + solved(4, "Analyze $y=x^2-8x+12$: find the vertex, axis of symmetry, and y-intercept.",
                ["Axis of symmetry: $x=-\\dfrac{-8}{2}=4$.",
                 "Vertex height: $f(4)=16-32+12=-4$, so the vertex is $(4,-4)$.",
                 "Y-intercept: substitute $x=0$: $f(0)=12$."],
@@ -992,7 +1175,12 @@ def build_unit2():
         "factors nicely (versus needing the formula) is itself an important skill you build with practice.",
         "First move everything to one side so the equation equals $0$. Then check for a GCF, then look for a "
         "recognizable pattern or trial-and-check the factors of $c$ that add to $b$.",
-        solved(7, "Solve $x^2-5x+6=0$ by factoring.",
+        lesson_figure(
+            _nline(0, 6, closed=[(2, "x=2"), (3, "x=3")]),
+            "Zeros of $x^2-5x+6=(x-2)(x-3)$",
+            "The factored equation is zero at $x=2$ and $x=3$.",
+        )
+        + solved(7, "Solve $x^2-5x+6=0$ by factoring.",
                ["Look for two numbers that multiply to $6$ and add to $-5$: those numbers are $-2$ and $-3$.",
                 "Write the factored form: $(x-2)(x-3)=0$.",
                 "Apply the zero product property: $x=2$ or $x=3$."],
@@ -1047,7 +1235,16 @@ def build_unit2():
         "it the reliable fallback whenever factoring feels difficult or impossible.",
         "Identify $a$, $b$, and $c$ carefully, writing each in parentheses. Compute the discriminant first and "
         "decide what kind of solutions to expect, then finish substituting into the formula.",
-        solved(10, "Solve $x^2-4x+1=0$ using the quadratic formula.",
+        lesson_figure(
+            _xy(curves=[("#4f46e5", _pts(lambda x: x * x - 4 * x + 1, -1, 5))],
+                points=[(2, -3, "vertex (2,-3)"),
+                        (2 - 1.73, 0, "2-√3"),
+                        (2 + 1.73, 0, "2+√3")],
+                xlim=(-1, 6), ylim=(-5, 6)),
+            "$x^2-4x+1=0$",
+            "Vertex $(2,-3)$; roots $2\\pm\\sqrt{3}$ marked on the x-axis.",
+        )
+        + solved(10, "Solve $x^2-4x+1=0$ using the quadratic formula.",
                ["Identify $a=1$, $b=-4$, $c=1$.",
                 "Compute the discriminant: $(-4)^2-4(1)(1)=16-4=12$.",
                 "Substitute into the formula: $x=\\dfrac{4\\pm\\sqrt{12}}{2}$.",
@@ -1103,7 +1300,14 @@ def build_unit2():
         "Translate the words into an equation first. Decide whether the question wants a maximum/minimum "
         "(use the vertex) or a specific value (solve the equation). Always check your answer against the "
         "real-world context at the end.",
-        solved(13, "A ball's height is $h(t)=-16t^2+64t$. Find the time of maximum height and the height itself.",
+        lesson_figure(
+            _xy(curves=[("#4f46e5", _pts(lambda t: -16 * t * t + 64 * t, 0, 4))],
+                points=[(0, 0, "t=0"), (2, 64, "max (2,64)"), (4, 0, "lands")],
+                xlim=(-0.3, 4.5), ylim=(-8, 72), xlab="t", ylab="h(t)"),
+            "Projectile $h(t)=-16t^2+64t$",
+            "Downward parabola: max height $64$ at $t=2$, back on the ground at $t=4$.",
+        )
+        + solved(13, "A ball's height is $h(t)=-16t^2+64t$. Find the time of maximum height and the height itself.",
                ["Maximum height occurs at the vertex: $t=-\\dfrac{64}{2(-16)}=2$.",
                 "Substitute $t=2$: $h(2)=-16(4)+64(2)=-64+128=64$."],
                "Max height $64$ at $t=2$", "", "Easy")
@@ -1158,7 +1362,12 @@ def build_unit2():
         "method you learn here reappears for rational and polynomial inequalities in later units.",
         "Find the critical values first by solving the related equation. Mark them on a number line, test one "
         "point from each resulting interval in the original inequality, and shade the intervals that work.",
-        solved(16, "Solve $x^2-5x+6>0$.",
+        lesson_figure(
+            _nline(-1, 8, opened=[(2, "2"), (3, "3")], shade=("out", 2, 3)),
+            "Solution of $x^2-5x+6>0$",
+            "Open dots at the roots $2$ and $3$; shade outside because the parabola opens up.",
+        )
+        + solved(16, "Solve $x^2-5x+6>0$.",
                ["Find the critical values by solving the related equation: $x^2-5x+6=0$ factors as "
                 "$(x-2)(x-3)=0$, giving $x=2$ and $x=3$.",
                 "These values split the number line into three intervals: $x<2$, $2<x<3$, and $x>3$.",
@@ -1487,7 +1696,12 @@ def build_unit3():
         "complex, and this completeness matters again later when you study polynomial roots in Unit 4.",
         "Treat $i$ like a variable in every computation, then substitute $i^2=-1$ at the very end to simplify. "
         "For high powers, divide the exponent by $4$ and use only the remainder.",
-        solved(1, "Simplify $i^2$.",
+        lesson_figure(
+            _argand([(1, 0, "i^4=1"), (0, 1, "i"), (-1, 0, "i^2=-1"), (0, -1, "i^3=-i")], lim=3),
+            "Powers of $i$ on the Argand plane",
+            "Each extra factor of $i$ rotates $90°$: $i,-1,-i,1$, then the cycle repeats.",
+        )
+        + solved(1, "Simplify $i^2$.",
                ["By the definition of the imaginary unit, $i^2=-1$."],
                "$-1$", "", "Easy")
         + solved(2, "Simplify $i^{10}$.",
@@ -1536,7 +1750,12 @@ def build_unit3():
         "with complex roots, or eventually study complex numbers in Precalculus and beyond.",
         "Treat $i$ as a variable throughout the distributing or combining step, and only substitute $i^2=-1$ "
         "as your very last simplification move.",
-        solved(4, "Simplify $(4+3i)+(2-6i)$.",
+        lesson_figure(
+            _argand([(3, -4, "3-4i"), (3, 0, "3"), (0, -4, "-4i")], lim=6),
+            "The product $(2-i)^2=3-4i$",
+            "Argand plane: real part $3$, imaginary part $-4$. Distance from origin is $5$.",
+        )
+        + solved(4, "Simplify $(4+3i)+(2-6i)$.",
                ["Combine the real parts: $4+2=6$.",
                 "Combine the imaginary parts: $3+(-6)=-3$."],
                "$6-3i$", "", "Easy")
@@ -1589,7 +1808,14 @@ def build_unit3():
         "pairs.",
         "For division, multiply the top and bottom by the conjugate of the denominator. This always turns the "
         "denominator into a real number, after which the division becomes simple arithmetic.",
-        solved(7, "Find the conjugate of $7+2i$ and compute the product $(7+2i)(7-2i)$.",
+        lesson_figure(
+            _xy(curves=[("#4f46e5", [(0, 0), (7, 2)])],
+                points=[(7, 2, "7+2i"), (0, 0, "0")],
+                xlim=(-2, 10), ylim=(-3, 8), xlab="real", ylab="imag"),
+            "Modulus of $7+2i$",
+            "$|7+2i|=\\sqrt{7^2+2^2}=\\sqrt{53}$ is the distance from the origin — not a real-only number line.",
+        )
+        + solved(7, "Find the conjugate of $7+2i$ and compute the product $(7+2i)(7-2i)$.",
                ["The conjugate flips the sign of the imaginary part: $7+2i \\to 7-2i$.",
                 "Multiply: $(7+2i)(7-2i)=7^2-(2i)^2=49-4i^2=49+4=53$."],
                "Conjugate $7-2i$; product $53$", "", "Easy")
@@ -1644,7 +1870,14 @@ def build_unit3():
         "in math.",
         "Move the constant to the other side first. Take half of the $x$-coefficient, square it, and add that "
         "number to both sides. Then factor the perfect square and take the square root of both sides.",
-        solved(10, "Complete the square for $x^2+8x$.",
+        lesson_figure(
+            _xy(curves=[("#4f46e5", _pts(lambda x: (x - 2) ** 2 + 3, -1, 5))],
+                points=[(2, 3, "vertex (2,3)")],
+                xlim=(-1, 6), ylim=(-1, 8)),
+            "Completing the square: $y=x^2-4x+7=(x-2)^2+3$",
+            "Vertex $(2,3)$ sits above the x-axis, so this quadratic has no real roots.",
+        )
+        + solved(10, "Complete the square for $x^2+8x$.",
                ["Take half of $8$: $4$.",
                 "Square that result: $4^2=16$.",
                 "Add and subtract $16$ to keep the expression equivalent: $x^2+8x+16-16=(x+4)^2-16$."],
@@ -1705,7 +1938,12 @@ def build_unit3():
         "solution” for a quadratic again.",
         "Compute the discriminant first. If it is negative, keep going anyway: rewrite the negative square "
         "root using $i$, and simplify the two conjugate solutions completely.",
-        solved(13, "Solve $x^2+4=0$.",
+        lesson_figure(
+            _argand([(0, 2, "2i"), (0, -2, "-2i")], lim=4),
+            "Solutions of $x^2+4=0$ on the Argand plane",
+            "The roots $\\pm 2i$ lie on the imaginary axis, not on the real number line.",
+        )
+        + solved(13, "Solve $x^2+4=0$.",
                ["Isolate the squared term: $x^2=-4$.",
                 "Take the square root of both sides, remembering both signs: $x=\\pm\\sqrt{-4}$.",
                 "Rewrite using $i$: $\\sqrt{-4}=\\sqrt{4}\\cdot i=2i$, so $x=\\pm2i$."],
@@ -1761,7 +1999,14 @@ def build_unit3():
         "Compute the discriminant. Positive means two real crossings, zero means one tangent touch, negative "
         "means no crossing at all (complex roots). Picture the parabola matching that description before "
         "moving on.",
-        solved(16, "For $x^2-4x+4=0$, find the discriminant and describe the graph's relationship to the x-axis.",
+        lesson_figure(
+            _xy(curves=[("#4f46e5", _pts(lambda x: (x - 2) ** 2, -1, 5))],
+                points=[(2, 0, "touches (2,0)")],
+                xlim=(-1, 5), ylim=(-1, 8)),
+            "Discriminant $0$: $x^2-4x+4=(x-2)^2$",
+            "The vertex sits on the x-axis — one repeated real root, graph touches once.",
+        )
+        + solved(16, "For $x^2-4x+4=0$, find the discriminant and describe the graph's relationship to the x-axis.",
                ["Compute the discriminant: $(-4)^2-4(1)(4)=16-16=0$.",
                 "A discriminant of $0$ means one repeated real root, so the parabola's vertex touches the "
                 "x-axis at exactly one point, without crossing through it."],
@@ -2124,7 +2369,14 @@ def build_unit4():
         "immediately sketch the rough shape of the whole graph before doing any other work.",
         "Find the term with the highest exponent first. Its exponent is the degree; its coefficient is the "
         "leading coefficient. Use both together to state the end behavior on each side.",
-        solved(1, "Identify the degree and leading coefficient of $f(x)=5x^4-3x^2+2$.",
+        lesson_figure(
+            _xy(curves=[("#4f46e5", _pts(lambda x: 0.08 * x ** 4, -3.2, 3.2))],
+                points=[(0, 0, "")],
+                xlim=(-4, 4), ylim=(-1, 9)),
+            "End behavior of $f(x)=5x^4-3x^2+2$",
+            "Even degree, positive leading coefficient: both ends rise (wide degree-4 sketch).",
+        )
+        + solved(1, "Identify the degree and leading coefficient of $f(x)=5x^4-3x^2+2$.",
                ["Find the term with the highest exponent: $5x^4$.",
                 "The exponent, $4$, is the degree.",
                 "The coefficient of that term, $5$, is the leading coefficient."],
@@ -2180,7 +2432,12 @@ def build_unit4():
         "rational expressions in every unit that follows this one.",
         "Always check for a GCF first. Then count the terms: two terms suggests a difference of squares or "
         "cubes pattern; four terms suggests grouping; three terms suggests a trinomial factoring method.",
-        solved(4, "Factor $6x^3-9x^2$ completely.",
+        lesson_figure(
+            svg_tree([["6x^3-9x^2"], ["3x^2", "2x-3"]]),
+            "Factor tree for $6x^3-9x^2$",
+            "Pull the GCF $3x^2$ first: $3x^2(2x-3)$.",
+        )
+        + solved(4, "Factor $6x^3-9x^2$ completely.",
                ["Find the GCF of $6x^3$ and $9x^2$: it is $3x^2$.",
                 "Factor it out: $3x^2(2x-3)$."],
                "$3x^2(2x-3)$", "", "Easy")
@@ -2234,7 +2491,12 @@ def build_unit4():
         "Write every missing-degree placeholder with coefficient $0$ first. Then divide (synthetically for "
         "linear divisors), tracking coefficients carefully, and read the quotient and remainder from the "
         "bottom row.",
-        solved(7, "Use synthetic division to divide $x^3-4x^2+5x-2$ by $(x-1)$.",
+        lesson_figure(
+            svg_tree([["x^3-4x^2+5x-2"], ["(x-1)", "x^2-3x+2"], ["x-1", "x-2", "x-1"]]),
+            "Dividing $x^3-4x^2+5x-2$ by $(x-1)$",
+            "Remainder $0$ means $(x-1)$ is a factor; quotient $x^2-3x+2=(x-1)(x-2)$.",
+        )
+        + solved(7, "Use synthetic division to divide $x^3-4x^2+5x-2$ by $(x-1)$.",
                ["Write the coefficients: $1,-4,5,-2$, using root $r=1$.",
                 "Bring down the first coefficient: $1$.",
                 "Multiply by $1$ and add: $-4+1(1)=-3$; then $5+(-3)(1)=2$; then $-2+2(1)=0$.",
@@ -2290,7 +2552,12 @@ def build_unit4():
         "task.",
         "Ask yourself which question is being asked: “what is the remainder” (use the remainder theorem: "
         "compute $f(r)$) or “is this a factor” (use the factor theorem: check whether $f(r)=0$).",
-        solved(10, "Use the remainder theorem to find the remainder when $x^3+2x^2-5x+1$ is divided by $(x-2)$.",
+        lesson_figure(
+            _nline(-1, 5, closed=[(2, "x=2, f(2)=7")]),
+            "Remainder theorem: evaluate at the root",
+            "Dividing by $(x-2)$ leaves remainder $f(2)=7$.",
+        )
+        + solved(10, "Use the remainder theorem to find the remainder when $x^3+2x^2-5x+1$ is divided by $(x-2)$.",
                ["By the remainder theorem, the remainder equals $f(2)$.",
                 "Substitute: $f(2)=8+8-10+1=7$."],
                "$7$", "", "Easy")
@@ -2343,7 +2610,12 @@ def build_unit4():
         "factor by inspection, and it is a skill that scales up to any degree polynomial you might encounter.",
         "List rational root candidates using $\\dfrac{p}{q}$. Test the smallest ones first. The instant one "
         "works, divide it out and repeat the process on the smaller quotient.",
-        solved(13, "List the possible rational roots of $x^3-6x^2+11x-6$, then find all actual roots.",
+        lesson_figure(
+            _nline(-1, 5, closed=[(1, "1"), (2, "2"), (3, "3")]),
+            "Zeros of $x^3-6x^2+11x-6$",
+            "All three rational roots $x=1,2,3$ on the number line.",
+        )
+        + solved(13, "List the possible rational roots of $x^3-6x^2+11x-6$, then find all actual roots.",
                ["The constant term is $-6$, with factors $\\pm1,\\pm2,\\pm3,\\pm6$. The leading coefficient is "
                 "$1$, with factor $\\pm1$, so the candidate list is $\\pm1,\\pm2,\\pm3,\\pm6$.",
                 "Test $x=1$: $1-6+11-6=0$. It works.",
@@ -2402,7 +2674,14 @@ def build_unit4():
         "toward.",
         "Factor completely first. For each distinct factor, read its exponent as the multiplicity. Then decide "
         "cross (odd) or touch (even) for each root before sketching or describing the graph.",
-        solved(16, "Solve $x^2(x-3)=0$ and state the multiplicity of each root.",
+        lesson_figure(
+            _xy(curves=[("#4f46e5", _pts(lambda x: (x ** 2) * (x - 3), -1.2, 4))],
+                points=[(0, 0, "touch x=0"), (3, 0, "cross x=3")],
+                xlim=(-2, 5), ylim=(-6, 6)),
+            "$y=x^2(x-3)$",
+            "Even multiplicity at $0$ (touches); odd multiplicity at $3$ (crosses).",
+        )
+        + solved(16, "Solve $x^2(x-3)=0$ and state the multiplicity of each root.",
                ["The equation is already factored: $x^2(x-3)=0$.",
                 "The factor $x^2$ gives root $x=0$ with multiplicity $2$ (even).",
                 "The factor $(x-3)$ gives root $x=3$ with multiplicity $1$ (odd)."],

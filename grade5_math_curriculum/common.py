@@ -4,6 +4,8 @@ import html
 import json
 import urllib.parse
 
+from curriculum_kit import svg_tree
+
 
 def page_break():
     return '<hr class="page-break" />'
@@ -268,6 +270,231 @@ def coordinate_plane(points=None, xmax=6, ymax=6, title="The coordinate plane", 
         "Go right for x, then up for y."
     )
     return figure(title, svg, caption or default_cap)
+
+
+_fig_seq = 0
+
+
+def _fid():
+    global _fig_seq
+    _fig_seq += 1
+    return f"vl-g5-{_fig_seq}"
+
+
+def decimal_number_line(lo, hi, marks=None, tick_step=None, title="Number line", caption=""):
+    """Number line that can show tenths and hundredths. marks: (value, label)."""
+    marks = marks or []
+    w, h = 520, 90
+    left, right, y = 36, 500, 40
+    span = hi - lo if hi != lo else 1
+    if tick_step is None:
+        if span <= 1:
+            tick_step = 0.1
+        elif span <= 3:
+            tick_step = 0.5
+        else:
+            tick_step = 1
+
+    def x_of(val):
+        return left + (float(val) - lo) * (right - left) / span
+
+    ticks = []
+    n_ticks = int(round(span / tick_step)) + 1
+    for i in range(n_ticks):
+        val = lo + i * tick_step
+        if val > hi + tick_step * 0.01:
+            break
+        x = x_of(min(val, hi))
+        ticks.append(
+            f'<line x1="{x:.1f}" y1="{y - 8}" x2="{x:.1f}" y2="{y + 8}" stroke="#0f172a" stroke-width="2"/>'
+        )
+        lab = f"{val:g}"
+        ticks.append(
+            f'<text x="{x:.1f}" y="{y + 24}" text-anchor="middle" font-size="11" fill="#334155">{lab}</text>'
+        )
+    dots = []
+    colors = ["#dc2626", "#2563eb", "#059669", "#d97706"]
+    for i, item in enumerate(marks):
+        val, lab = item if isinstance(item, (list, tuple)) else (item, "")
+        x = x_of(val)
+        c = colors[i % 4]
+        dots.append(f'<circle cx="{x:.1f}" cy="{y}" r="6" fill="{c}"/>')
+        if lab:
+            dots.append(
+                f'<text x="{x:.1f}" y="{y - 14}" text-anchor="middle" font-size="12" '
+                f'font-weight="700" fill="{c}">{html.escape(str(lab))}</text>'
+            )
+    mid = _fid()
+    svg = f'''<svg viewBox="0 0 {w} {h}" width="100%" style="max-width:{w}px" role="img">
+  <defs><marker id="{mid}" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#0f172a"/></marker></defs>
+  <line x1="{left}" y1="{y}" x2="{right}" y2="{y}" stroke="#0f172a" stroke-width="2" marker-end="url(#{mid})"/>
+  {''.join(ticks)}{''.join(dots)}</svg>'''
+    return figure(title, svg, caption)
+
+
+def double_number_line(top_label, top_vals, bot_label, bot_vals, title="Double number line", caption=""):
+    n = max(len(top_vals), 1)
+    w, h = 520, 130
+    left, right = 50, 490
+    y_top, y_bot = 40, 90
+    marker = _fid()
+    ticks = []
+    for i in range(n):
+        x = left + i * (right - left) / max(n - 1, 1)
+        ticks.append(f'<line x1="{x}" y1="{y_top - 8}" x2="{x}" y2="{y_top + 8}" stroke="#0f172a" stroke-width="2"/>')
+        ticks.append(f'<line x1="{x}" y1="{y_bot - 8}" x2="{x}" y2="{y_bot + 8}" stroke="#0f172a" stroke-width="2"/>')
+        ticks.append(
+            f'<text x="{x}" y="{y_top - 14}" text-anchor="middle" font-size="13" font-weight="700">{html.escape(str(top_vals[i]))}</text>'
+        )
+        ticks.append(
+            f'<text x="{x}" y="{y_bot + 22}" text-anchor="middle" font-size="13" font-weight="700">{html.escape(str(bot_vals[i]))}</text>'
+        )
+    svg = f"""
+<svg viewBox="0 0 {w} {h}" width="{w}" role="img" aria-label="{html.escape(title)}">
+  <defs>
+    <marker id="{marker}" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#0f172a"/>
+    </marker>
+  </defs>
+  <text x="8" y="{y_top + 4}" font-size="12" fill="#1e3a8a" font-weight="700">{html.escape(top_label)}</text>
+  <text x="8" y="{y_bot + 4}" font-size="12" fill="#9a3412" font-weight="700">{html.escape(bot_label)}</text>
+  <line x1="{left}" y1="{y_top}" x2="{right}" y2="{y_top}" stroke="#0f172a" stroke-width="2" marker-end="url(#{marker})"/>
+  <line x1="{left}" y1="{y_bot}" x2="{right}" y2="{y_bot}" stroke="#0f172a" stroke-width="2" marker-end="url(#{marker})"/>
+  {''.join(ticks)}
+</svg>
+"""
+    return figure(title, svg, caption)
+
+
+def hundredths_grid(cols=0, rows=0, title="Hundredths grid", caption=""):
+    """10×10 cells. Shade a cols-by-rows rectangle (tenths × tenths)."""
+    cell = 16
+    rects = []
+    for r in range(10):
+        for c in range(10):
+            x = 20 + c * cell
+            y = 8 + r * cell
+            fill = "#6366f1" if (c < cols and r < rows) else "#f8fafc"
+            rects.append(
+                f'<rect x="{x}" y="{y}" width="{cell}" height="{cell}" fill="{fill}" stroke="#334155"/>'
+            )
+    svg = f'<svg viewBox="0 0 200 180" width="200" role="img">{"".join(rects)}</svg>'
+    return figure(title, svg, caption)
+
+
+def area_model(row_parts, col_parts, title="Area model", caption=""):
+    """Split rectangle: row_parts along the height, col_parts along the width."""
+    cell = (
+        "border:1px solid #1e3a8a;padding:10px 12px;text-align:center;font-weight:700;"
+    )
+    head = cell + "background:#e0e7ff;font-size:0.85rem;"
+    body = cell + "background:#eff6ff;"
+    thead = (
+        f"<tr><th style='{head}'></th>"
+        + "".join(f"<th style='{head}'>{c}</th>" for c in col_parts)
+        + "</tr>"
+    )
+    body_rows = []
+    for r in row_parts:
+        tds = "".join(
+            f"<td style='{body}'>{r} × {c} = {r * c}</td>" for c in col_parts
+        )
+        body_rows.append(f"<tr><th style='{head}'>{r}</th>{tds}</tr>")
+    table = (
+        f"<table style='border-collapse:collapse;margin:0 auto;'>{thead}{''.join(body_rows)}</table>"
+    )
+    return figure(title, table, caption)
+
+
+def fraction_area_model(n1, d1, n2, d2, title="", caption=""):
+    """Grid area model: d1 rows × d2 cols. Overlap of n1 rows and n2 cols is the product."""
+    cell = 28
+    pad = 8
+    w = pad * 2 + d2 * cell
+    h = pad * 2 + d1 * cell + 8
+    rects = []
+    for r in range(d1):
+        for c in range(d2):
+            x = pad + c * cell
+            y = pad + r * cell
+            in_row = r < n1
+            in_col = c < n2
+            if in_row and in_col:
+                fill = "#7c3aed"
+            elif in_row:
+                fill = "#93c5fd"
+            elif in_col:
+                fill = "#fde68a"
+            else:
+                fill = "#f8fafc"
+            rects.append(
+                f'<rect x="{x}" y="{y}" width="{cell}" height="{cell}" fill="{fill}" stroke="#0f172a"/>'
+            )
+    svg = (
+        f'<svg viewBox="0 0 {w} {h}" width="100%" style="max-width:360px" role="img">'
+        f'{"".join(rects)}</svg>'
+    )
+    return figure(
+        title or f"{n1}/{d1} × {n2}/{d2}",
+        svg,
+        caption or f"The purple overlap is {n1 * n2}/{d1 * d2} of the whole.",
+    )
+
+
+def unit_fraction_groups(wholes, pieces, title="", caption="", color="#818cf8"):
+    """Draw `wholes` bars, each cut into `pieces` equal bits (whole ÷ unit fraction)."""
+    bars = []
+    cell_w = max(16, int(100 / max(pieces, 1)))
+    for _ in range(wholes):
+        cells = []
+        for _i in range(pieces):
+            cells.append(
+                f'<span style="display:inline-block;width:{cell_w}px;height:22px;border:1px solid #1e293b;'
+                f'background:{color};box-sizing:border-box;"></span>'
+            )
+        bars.append(
+            f'<span style="display:inline-block;margin:4px 8px 4px 0;">{"".join(cells)}</span>'
+        )
+    return figure(
+        title or f"{wholes} wholes in {pieces}ths",
+        f'<div>{"".join(bars)}</div>',
+        caption,
+    )
+
+
+def expr_tree(levels, title="Expression tree", caption=""):
+    """Tiny tree of expression parts. levels: list of lists of labels."""
+    return figure(title, svg_tree(levels), caption)
+
+
+def stacked_line_plot(lo, hi, stacks, title="Line plot", caption=""):
+    """Number line with stacked marks. stacks: list of (value, count)."""
+    w, h = 520, 120
+    left, right, y = 36, 500, 96
+    span = hi - lo if hi != lo else 1
+
+    def x_of(val):
+        return left + (val - lo) * (right - left) / span
+
+    ticks = []
+    for v in range(lo, hi + 1):
+        x = x_of(v)
+        ticks.append(f'<line x1="{x:.1f}" y1="{y - 7}" x2="{x:.1f}" y2="{y + 7}" stroke="#0f172a" stroke-width="2"/>')
+        ticks.append(f'<text x="{x:.1f}" y="{y + 22}" text-anchor="middle" font-size="11">{v}</text>')
+    xs = []
+    for val, count in stacks:
+        x = x_of(val)
+        for k in range(count):
+            yy = y - 14 - k * 12
+            xs.append(
+                f'<text x="{x:.1f}" y="{yy}" text-anchor="middle" font-size="12" font-weight="700" fill="#1d4ed8">×</text>'
+            )
+    mid = _fid()
+    svg = f'''<svg viewBox="0 0 {w} {h}" width="100%" style="max-width:{w}px" role="img">
+  <defs><marker id="{mid}" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#0f172a"/></marker></defs>
+  <line x1="{left}" y1="{y}" x2="{right}" y2="{y}" stroke="#0f172a" stroke-width="2" marker-end="url(#{mid})"/>
+  {''.join(ticks)}{''.join(xs)}</svg>'''
+    return figure(title, svg, caption)
 
 
 def solved(num, problem, steps, answer, note=""):

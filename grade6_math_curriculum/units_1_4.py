@@ -123,7 +123,15 @@ def build_unit1():
             "A ratio table lists equivalent pairs in columns. Each column is a scale-up or scale-down.",
             "If someone writes 6:12 for 3:4, that is not equivalent — check by simplifying.",
         ],
-        double_number_line(
+        tape_diagram(
+            [
+                ("first", [("#f87171", 2, "")]),
+                ("second", [("#60a5fa", 7, "")]),
+            ],
+            title="2 : 7",
+            caption="Two of the first for seven of the second. Scale by 4: 8 of the first for 28 of the second. 2:7 = 8:28.",
+        )
+        + double_number_line(
             "red", [2, 4, 6, 8],
             "blue", [3, 6, 9, 12],
             title="Equivalent ratios 2 : 3",
@@ -181,7 +189,15 @@ def build_unit1():
             "Look down a column: those two numbers should simplify to the original ratio.",
             "If a column does not simplify to the same ratio, a multiply went wrong.",
         ],
-        solved(1, "A map key is 1 cm : 5 km. Complete 4 cm on the map.",
+        tape_diagram(
+            [
+                ("map cm", [("#fbbf24", 1, "1")]),
+                ("real km", [("#34d399", 5, "5")]),
+            ],
+            title="Map key 1 cm : 5 km",
+            caption="One yellow box pairs with five green boxes. Scale by 4: 4 cm on the map is 20 km in real life.",
+        )
+        + solved(1, "A map key is 1 cm : 5 km. Complete 4 cm on the map.",
                ["The ratio is 1:5.",
                 "Scale by 4.",
                 "4 cm represents 20 km."],
@@ -227,7 +243,15 @@ def build_unit1():
             "Write the ratio, pick a tool (tape, table, or double number line), then compute.",
             "End with a sentence that answers the question, with units.",
         ],
-        solved(1, "Paint mix is 1 part blue to 4 parts white. You want 20 liters in all. How much blue?",
+        tape_diagram(
+            [
+                ("blue", [("#3b82f6", 1, "")]),
+                ("white", [("#e2e8f0", 4, "")]),
+            ],
+            title="Paint mix 1 : 4",
+            caption="5 equal parts in all. 20 liters ÷ 5 = 4 liters per part. Blue is 1 part: 4 liters.",
+        )
+        + solved(1, "Paint mix is 1 part blue to 4 parts white. You want 20 liters in all. How much blue?",
                ["1 + 4 = 5 parts.",
                 "20 ÷ 5 = 4 liters per part.",
                 "Blue is 1 part: 4 liters."],
@@ -350,7 +374,19 @@ def build_unit2():
             "Sometimes per 10 or per 100 is easier mental math — still a fair comparison if both use the same 'per.'",
             "Estimate first: if one deal is obviously about $2 and the other about $1.50, you already know the winner.",
         ],
-        solved(1, "Which is the better buy: 3 snacks for $6 or 5 snacks for $9?",
+        double_number_line(
+            "$", [0, 2, 4, 6],
+            "snacks", [0, 1, 2, 3],
+            title="Deal A: 3 snacks for $6",
+            caption="Each snack adds $2. Unit price is $2 per snack.",
+        )
+        + double_number_line(
+            "$", [0, 9],
+            "snacks", [0, 5],
+            title="Deal B: 5 snacks for $9",
+            caption="9 ÷ 5 = $1.80 per snack. $1.80 < $2, so 5 for $9 is the better buy.",
+        )
+        + solved(1, "Which is the better buy: 3 snacks for $6 or 5 snacks for $9?",
                ["3 for $6 → $2 each.",
                 "5 for $9 → $1.80 each.",
                 "$1.80 < $2, so 5 for $9."],
@@ -397,7 +433,7 @@ def build_unit2():
             "A double number line with 0–100% on one line and 0–whole on the other keeps the three pieces honest.",
             "Always ask: did I find a part, a percent, or a whole?",
         ],
-        percent_bar(50, 60, title="50% of 60", caption="Half the bar is 30. So 30 is 50% of 60, and 30 is 50% of what? 60.")
+        percent_bar(25, 60, title="25% of 60", caption="15 is 25% of 60. Part ÷ whole = 15/60 = 0.25 = 25%.")
         + solved(1, "15 is what percent of 60?",
                  ["Part over whole: 15/60.",
                   "Simplify: 1/4.",
@@ -422,7 +458,8 @@ def build_unit2():
             "For mental math: 15% = 10% + 5%. 10% of 80 is 8, 5% is 4, total 12.",
             "Estimate: 19% of 50 is near 20% of 50 = 10.",
         ],
-        solved(1, "A meal is $40. You leave a 20% tip. How much is the tip?",
+        percent_bar(20, 40, title="20% tip on $40", caption="20% of 40 is 8. The tip is $8. You pay $48 if you add the tip to the meal.")
+        + solved(1, "A meal is $40. You leave a 20% tip. How much is the tip?",
                ["20% = 0.20.",
                 "0.20 × 40 = 8.",
                 "The tip is $8."],
@@ -561,7 +598,14 @@ def build_unit3():
             "A whole number is a fraction with bottom 1. 6 ÷ 2/3 = 6/1 × 3/2 = 9.",
             "Simplify before or after. Canceling common factors is just early simplifying.",
         ],
-        solved(1, "Compute (2/3) ÷ (4/9).",
+        tape_diagram(
+            [
+                ("2/3", [("#86efac", 4, "1/6")]),
+            ],
+            title="(2/3) ÷ (1/6) is keep, change, flip",
+            caption="2/3 = 4/6, so four sixths fit. Keep 2/3, change ÷ to ×, flip 1/6 to 6: (2/3)×6 = 4. Same count.",
+        )
+        + solved(1, "Compute (2/3) ÷ (4/9).",
                ["Flip 4/9 to 9/4.",
                 "2/3 × 9/4 = 18/12.",
                 "18/12 = 3/2."],
@@ -611,7 +655,13 @@ def build_unit3():
             "Estimate: 24.6 ÷ 3 is near 24 ÷ 3 = 8, so 8.2 is reasonable.",
             "Place value still rules. 0.09 + 0.01 = 0.10, not 0.1 written carelessly as 0.010 unless you mean thousandths.",
         ],
-        solved(1, "Find 7.2 ÷ 0.8.",
+        double_number_line(
+            "amount", [0, 0.8, 7.2],
+            "groups", [0, 1, 9],
+            title="How many 0.8s fit in 7.2?",
+            caption="Each group is 0.8. Nine groups make 7.2, so 7.2 ÷ 0.8 = 9. Same as 72 ÷ 8 after moving the point.",
+        )
+        + solved(1, "Find 7.2 ÷ 0.8.",
                ["Multiply both by 10: 72 ÷ 8.",
                 "72 ÷ 8 = 9.",
                 "Check: 9 × 0.8 = 7.2."],
@@ -653,7 +703,14 @@ def build_unit3():
             "A number line, a tape, or an area model can confirm the operation.",
             "Sixth grade fluency is not speed for its own sake. It is choosing the right tool quickly.",
         ],
-        solved(1, "You have 2/3 cup of mix and use 1/2 of it. How much do you use?",
+        tape_diagram(
+            [
+                ("cup", [("#86efac", 2, "2/3"), ("#e2e8f0", 1, "")]),
+            ],
+            title="Half of a 2/3-cup mix",
+            caption="The cup has 3 equal parts. 2/3 is two parts. Half of those two parts is one part: (1/2)×(2/3)=1/3 cup.",
+        )
+        + solved(1, "You have 2/3 cup of mix and use 1/2 of it. How much do you use?",
                ["'Half of' means multiply.",
                 "(1/2)×(2/3)=1/3.",
                 "1/3 cup."],
@@ -819,7 +876,10 @@ def build_unit4():
             "Closest to 0 among −8, −1, 5 is −1 (absolute value 1).",
             "A table of elevations or scores becomes easy once you imagine the line.",
         ],
-        solved(1, "Order −3, 2, and −1 from least to greatest.",
+        integer_line(-6, 6, marks=[(-3, "−3"), (-1, "−1"), (2, "2")],
+                     title="Order −3, −1, and 2",
+                     caption="Read left to right for least to greatest: −3, then −1, then 2.")
+        + solved(1, "Order −3, 2, and −1 from least to greatest.",
                ["Plot: −3, then −1, then 2.",
                 "Least is leftmost: −3.",
                 "Then −1, then 2."],
@@ -869,7 +929,10 @@ def build_unit4():
             "If |n| = 6, the two landings are 6 and −6. The story may pick one (only below zero, only a loss).",
             "Keep 0 in view. It is the landmark that makes 'left' and 'right' mean something.",
         ],
-        solved(1, "You start at 1 and move 3 units left. Where do you land?",
+        integer_line(-6, 6, marks=[(1, "start"), (-2, "land")],
+                     title="Start at 1, move 3 left",
+                     caption="Left 3 units from 1 lands at −2. Moving left is toward the negatives.")
+        + solved(1, "You start at 1 and move 3 units left. Where do you land?",
                ["Left means toward the negatives.",
                 "1 − 3 = −2.",
                 "You land at −2."],

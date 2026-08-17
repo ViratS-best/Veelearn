@@ -1,5 +1,10 @@
 """Fifth Grade Math units 5–8: divide fractions, volume, coordinate plane, expressions — plus master page."""
 
+from curriculum_kit import (
+    lesson_figure,
+    svg_tape,
+)
+
 from .common import (
     concept_block,
     solved,
@@ -14,6 +19,11 @@ from .common import (
     volume_prism,
     coordinate_plane,
     page_break,
+    fraction_bars,
+    unit_fraction_groups,
+    area_model,
+    expr_tree,
+    stacked_line_plot,
     mq,
     renumber,
 )
@@ -124,7 +134,12 @@ def build_unit5():
             "The quotient is larger than the starting whole number. That feels surprising until you picture the pieces.",
             "Think of a pizza: 4 pizzas cut into halves make 8 half-pizzas.",
         ],
-        solved(1, "Find 6 ÷ 1/2.",
+        unit_fraction_groups(
+            6, 2,
+            title="How many halves in 6 wholes?",
+            caption="Each whole is split into 2 halves. 6 × 2 = 12, so 6 ÷ 1/2 = 12.",
+        )
+        + solved(1, "Find 6 ÷ 1/2.",
                ["Each 1 holds two 1/2 pieces.",
                 "6 wholes × 2 pieces each = 12.",
                 "There are 12 halves in 6."],
@@ -147,7 +162,11 @@ def build_unit5():
             "The quotient is smaller than the unit fraction you started with.",
             "Ribbon 1/3 yard cut into 4 equal pieces: each piece is 1/12 yard.",
         ],
-        solved(1, "Find 1/2 ÷ 4.",
+        fraction_bars(
+            [("1/2", 1, 2, "#6366f1"), ("four shares", 4, 8, "#10b981")],
+            "Split one half into 4 equal shares. Each share is 1/8 of the original whole. 1/2 ÷ 4 = 1/8.",
+        )
+        + solved(1, "Find 1/2 ÷ 4.",
                ["Start with one half.",
                 "Cut it into 4 equal shares.",
                 "Each share is 1/8 of the original whole."],
@@ -173,7 +192,12 @@ def build_unit5():
             "If you can count the pieces, you can name the quotient.",
             "Stories about servings, time slots, and cutting ribbon all use this picture.",
         ],
-        solved(1, "How many 1/2-cup servings are in 3 cups?",
+        unit_fraction_groups(
+            3, 2,
+            title="3 cups in 1/2-cup servings",
+            caption="Each cup makes 2 half-cup servings. 3 cups make 6 servings. 3 ÷ 1/2 = 6.",
+        )
+        + solved(1, "How many 1/2-cup servings are in 3 cups?",
                ["Each cup makes 2 half-cup servings.",
                 "3 cups make 6 servings.",
                 "3 ÷ 1/2 = 6."],
@@ -193,7 +217,12 @@ def build_unit5():
             "This rule matches the pictures. Use pictures until the rule feels honest.",
             "Keep, change, flip is a memory phrase: keep the first number, change ÷ to ×, flip the second.",
         ],
-        solved(1, "Rewrite 6 ÷ 1/2 as a multiply, then compute.",
+        lesson_figure(
+            svg_tape([1, 1], ["6", "× 2"]),
+            "6 ÷ 1/2 is the same as 6 × 2",
+            "The reciprocal of 1/2 is 2. Keep 6, change to multiply, flip 1/2 to 2. 6 × 2 = 12.",
+        )
+        + solved(1, "Rewrite 6 ÷ 1/2 as a multiply, then compute.",
                ["Reciprocal of 1/2 is 2/1.",
                 "6 × 2/1 = 12.",
                 "Same answer as counting halves."],
@@ -216,7 +245,11 @@ def build_unit5():
             "Write the equation from the story before you compute.",
             "Label servings, hours, yards — the unit tells you that you answered the right question.",
         ],
-        solved(1, "Ribbon is 1/3 yard long. Cut into 4 equal pieces. How long is each piece?",
+        fraction_bars(
+            [("1/3 yd", 1, 3, "#6366f1"), ("4 pieces", 4, 12, "#10b981")],
+            "Ribbon 1/3 yard cut into 4 equal pieces. Each piece is 1/12 yard. 1/3 ÷ 4 = 1/12.",
+        )
+        + solved(1, "Ribbon is 1/3 yard long. Cut into 4 equal pieces. How long is each piece?",
                ["This is 1/3 ÷ 4.",
                 "1/3 × 1/4 = 1/12.",
                 "Each piece is 1/12 yard."],
@@ -242,7 +275,12 @@ def build_unit5():
             "1/2 ÷ 4 and 4 ÷ 1/2 are different. The check tells you which one you actually solved.",
             "When the check fails, look at whether you flipped the correct number.",
         ],
-        solved(1, "Check: is 8 a reasonable answer for 2 ÷ 1/4?",
+        unit_fraction_groups(
+            2, 4,
+            title="Check: 8 fourths make 2",
+            caption="8 × 1/4 = 2, so 2 ÷ 1/4 = 8. Multiply the quotient by the divisor to check.",
+        )
+        + solved(1, "Check: is 8 a reasonable answer for 2 ÷ 1/4?",
                ["2 ÷ 1/4 should be 8.",
                 "Check: 8 × 1/4 = 2.",
                 "Yes. The check matches."],
@@ -377,7 +415,8 @@ def build_unit6():
             "Area is about covering a flat face (square units). Volume is about filling space (cubic units).",
             "Leave no air pockets in the packing picture. Volume counts every cube inside.",
         ],
-        solved(1, "A box holds 2 layers of 5-by-3 unit cubes. What is the volume?",
+        volume_prism(5, 3, 2)
+        + solved(1, "A box holds 2 layers of 5-by-3 unit cubes. What is the volume?",
                ["One layer: 5 × 3 = 15 cubes.",
                 "Two layers: 15 × 2 = 30.",
                 "Volume = 30 cubic units."],
@@ -421,7 +460,8 @@ def build_unit6():
             "It also prepares you for later prisms whose bases are not rectangles.",
             "Check: a 4-by-3 base has B=12. Height 2 → 24, matching l×w×h.",
         ],
-        solved(1, "Base area is 12 square units. Height is 5. Volume?",
+        volume_prism(4, 3, 5)
+        + solved(1, "Base area is 12 square units. Height is 5. Volume?",
                ["V = B × h.",
                 "12 × 5 = 60.",
                 "60 cubic units."],
@@ -447,7 +487,9 @@ def build_unit6():
             "A sketch helps you see the two boxes.",
             "This is like adding areas of two rectangles, one dimension up.",
         ],
-        solved(1, "Prism A is 4×3×2. Prism B is 2×2×3. Total volume?",
+        volume_prism(4, 3, 2)
+        + volume_prism(2, 2, 3)
+        + solved(1, "Prism A is 4×3×2. Prism B is 2×2×3. Total volume?",
                ["A: 4×3×2 = 24.",
                 "B: 2×2×3 = 12.",
                 "24+12 = 36 cubic units."],
@@ -470,7 +512,8 @@ def build_unit6():
             "A cube: if volume is 64, the edge is 4 because 4×4×4=64.",
             "Check by multiplying back. The three edges times each other must return V.",
         ],
-        solved(1, "Volume is 48. Length 4, width 3. What is the height?",
+        volume_prism(4, 3, 4)
+        + solved(1, "Volume is 48. Length 4, width 3. What is the height?",
                ["4 × 3 × h = 48.",
                 "12 × h = 48.",
                 "h = 4."],
@@ -489,7 +532,8 @@ def build_unit6():
             "Read which lengths are given. Sometimes a story gives base area instead of both base edges.",
             "Include cubic units so the answer is a volume, not an area or a length.",
         ],
-        solved(1, "A tank is 5 m long, 4 m wide, and 2 m high. How much space inside?",
+        volume_prism(5, 4, 2)
+        + solved(1, "A tank is 5 m long, 4 m wide, and 2 m high. How much space inside?",
                ["V = 5 × 4 × 2.",
                 "20 × 2 = 40.",
                 "40 cubic meters."],
@@ -621,7 +665,11 @@ def build_unit7():
             "In fifth grade we use the first quadrant: right and up, so both numbers are 0 or positive.",
             "x tells you how far right. y tells you how far up.",
         ],
-        coordinate_plane(title="A blank first-quadrant grid")
+        coordinate_plane(
+            points=[(0, 0, "origin (0, 0)")],
+            title="First quadrant: origin (0, 0)",
+            caption="The axes meet at (0, 0). x is right. y is up. Grade 5 stays in this first quadrant.",
+        )
         + solved(1, "What do we call (0, 0)?",
                  ["x is 0 and y is 0.",
                   "That is where the axes meet.",
@@ -646,9 +694,9 @@ def build_unit7():
             "Label the point with its pair so you can check later.",
         ],
         coordinate_plane(
-            points=[(2, 5, "A (2, 5)"), (5, 2, "B (5, 2)"), (4, 4, "C (4, 4)")],
-            title="Three points on the same grid",
-            caption="A is up more. B is right more. C is equally over and up. (2, 5) is not the same as (5, 2).",
+            points=[(4, 1, "(4, 1)"), (1, 4, "(1, 4)")],
+            title="Plot (4, 1) — over, then up",
+            caption="(4, 1) is right 4, then up 1. (1, 4) is the flip: right 1, then up 4. They are different points.",
         )
         + solved(1, "How do you plot (4, 1)?",
                  ["Start at (0, 0).",
@@ -670,7 +718,12 @@ def build_unit7():
             "(7, 1) is farther right than (2, 9). (2, 9) is higher.",
             "Practice until your eyes go over-then-up without thinking about it.",
         ],
-        solved(1, "A point is 2 right of the origin and 5 up. Name it.",
+        coordinate_plane(
+            points=[(2, 5, "(2, 5)")],
+            title="Read this point",
+            caption="Right 2, up 5. The ordered pair is (2, 5). x first, then y.",
+        )
+        + solved(1, "A point is 2 right of the origin and 5 up. Name it.",
                ["Right is x = 2.",
                 "Up is y = 5.",
                 "The point is (2, 5)."],
@@ -694,7 +747,12 @@ def build_unit7():
             "Graphing a pattern is how algebra starts to look like geometry.",
             "If a point does not fit the line of the others, check the table.",
         ],
-        solved(1, "The rule is y = 2x. What is y when x = 3? What point do you plot?",
+        coordinate_plane(
+            points=[(1, 2, "(1, 2)"), (2, 4, "(2, 4)"), (3, 6, "(3, 6)")],
+            title="Table for y = 2x",
+            caption="When x = 3, y = 6. Plot (3, 6): right 3, up 6.",
+        )
+        + solved(1, "The rule is y = 2x. What is y when x = 3? What point do you plot?",
                ["y = 2 × 3 = 6.",
                 "The pair is (3, 6).",
                 "Right 3, up 6."],
@@ -720,7 +778,13 @@ def build_unit7():
             "Grade 5 distance on the plane stays on these grid lines (no diagonal shortcut formula yet).",
             "You can walk a city-block path: right, then up, counting squares.",
         ],
-        solved(1, "How far is (2, 3) from (2, 7)?",
+        coordinate_plane(
+            points=[(2, 3, "(2, 3)"), (2, 7, "(2, 7)")],
+            ymax=8,
+            title="Same x: a vertical segment",
+            caption="(2, 3) to (2, 7): subtract the y values. 7 − 3 = 4 units up.",
+        )
+        + solved(1, "How far is (2, 3) from (2, 7)?",
                ["The x-coordinates match, so it is a vertical segment.",
                 "Subtract: 7 − 3 = 4.",
                 "4 units."],
@@ -745,7 +809,17 @@ def build_unit7():
             "The same ordered-pair rules work whether the story is a treasure map or a science graph.",
             "Always check which axis is which. Maps should label x and y or east and north.",
         ],
-        solved(1, "On a block map the museum is (4, 3). How do you walk from the origin?",
+        coordinate_plane(
+            points=[
+                (3, 2, "library"),
+                (0, 5, "school"),
+                (6, 0, "park"),
+                (4, 3, "museum"),
+            ],
+            title="A block map",
+            caption="Museum is (4, 3): from the origin, right 4 and up 3. School (0, 5) is on the y-axis. Park (6, 0) is on the x-axis.",
+        )
+        + solved(1, "On a block map the museum is (4, 3). How do you walk from the origin?",
                ["x = 4 means 4 blocks right (east on this map).",
                 "y = 3 means 3 blocks up (north).",
                 "Right 4, then up 3."],
@@ -869,7 +943,12 @@ def build_unit8():
             "When you write an expression from a story, parentheses help you show what is grouped.",
             "If there are nested groups, start in the innermost pair.",
         ],
-        solved(1, "Compare 3 + 4 × 2 and (3 + 4) × 2.",
+        expr_tree(
+            [["3 + 4 × 2"], ["3", "4 × 2"], ["3", "8"], ["11"]],
+            title="3 + 4 × 2 — multiply first",
+            caption="4 × 2 = 8, then 3 + 8 = 11. Parentheses (3 + 4) × 2 would be 7 × 2 = 14 instead.",
+        )
+        + solved(1, "Compare 3 + 4 × 2 and (3 + 4) × 2.",
                ["Without parentheses, × before +: 4×2=8, 3+8=11.",
                 "With parentheses: 3+4=7, 7×2=14.",
                 "Same digits, two different values."],
@@ -892,7 +971,12 @@ def build_unit8():
             "4 × 0 + 7 = 7, not 0. Multiply first.",
             "This order is a shared agreement so everyone gets the same value from the same expression.",
         ],
-        solved(1, "Evaluate 6 + 2 × 5.",
+        expr_tree(
+            [["6 + 2 × 5"], ["6", "2 × 5"], ["6", "10"], ["16"]],
+            title="6 + 2 × 5",
+            caption="Multiply first: 2 × 5 = 10. Then add: 6 + 10 = 16. Not (6 + 2) × 5 = 40.",
+        )
+        + solved(1, "Evaluate 6 + 2 × 5.",
                ["Multiply first: 2 × 5 = 10.",
                 "Then add: 6 + 10 = 16.",
                 "Not 40 — that would be (6+2)×5."],
@@ -919,7 +1003,12 @@ def build_unit8():
             "If n = 6, then n + 3 = 9. Substitute, then use order of operations.",
             "Expressions do not have equals signs. Equations do. 2n + 1 is an expression. 2n + 1 = 9 is an equation.",
         ],
-        solved(1, "Write an expression for 'twice a number n, plus 1.' Then find the value when n = 7.",
+        lesson_figure(
+            svg_tape([7, 7, 1], ["n=7", "n=7", "+1"]),
+            "Twice n, plus 1, when n = 7",
+            "2n + 1 → two sevens and one more: 14 + 1 = 15.",
+        )
+        + solved(1, "Write an expression for 'twice a number n, plus 1.' Then find the value when n = 7.",
                ["Twice n is 2n. Plus 1 is 2n + 1.",
                 "Substitute 7: 2×7 + 1.",
                 "14 + 1 = 15."],
@@ -943,7 +1032,13 @@ def build_unit8():
             "Name the rule in words, then generate the next two or three terms to prove you have it.",
             "Some problems give two patterns that work together — that is the bridge to graphing.",
         ],
-        solved(1, "The pattern is 5, 8, 11, 14, … What is the rule, and what comes next?",
+        stacked_line_plot(
+            0, 20,
+            [(5, 1), (8, 1), (11, 1), (14, 1), (17, 1)],
+            title="Pattern 5, 8, 11, 14, …",
+            caption="Each mark is 3 more than the one before. The next term is 17.",
+        )
+        + solved(1, "The pattern is 5, 8, 11, 14, … What is the rule, and what comes next?",
                ["Each term is 3 more than the one before.",
                 "Rule: add 3.",
                 "Next term: 17."],
@@ -967,7 +1062,14 @@ def build_unit8():
             "The graph is a picture of the rule. The table is a list of the rule. The expression is the rule in symbols.",
             "When x=4 and y=2x, you plot (4, 8).",
         ],
-        solved(1, "x grows 1, 2, 3, 4. y = 2x. What point do you plot when x = 4?",
+        coordinate_plane(
+            points=[(1, 2, "(1, 2)"), (2, 4, "(2, 4)"), (3, 6, "(3, 6)"), (4, 8, "(4, 8)")],
+            xmax=6,
+            ymax=8,
+            title="y = 2x on the coordinate plane",
+            caption="When x = 4, y = 8. Plot (4, 8). The points line up as x grows by 1.",
+        )
+        + solved(1, "x grows 1, 2, 3, 4. y = 2x. What point do you plot when x = 4?",
                ["y = 2 × 4 = 8.",
                 "The ordered pair is (4, 8).",
                 "Right 4, up 8."],
@@ -993,7 +1095,12 @@ def build_unit8():
             "5 × (3 − 1) = 5×3 − 5×1 = 15 − 5 = 10, same as 5 × 2.",
             "You will use these constantly in middle school. Fifth grade is the handshake.",
         ],
-        solved(1, "Use the distributive property to compute 5 × (3 + 2).",
+        area_model(
+            [5], [3, 2],
+            title="Distributive: 5 × (3 + 2)",
+            caption="A 5-by-(3+2) rectangle splits into 5×3 and 5×2. 15 + 10 = 25, same as 5 × 5.",
+        )
+        + solved(1, "Use the distributive property to compute 5 × (3 + 2).",
                ["5×3 + 5×2.",
                 "15 + 10 = 25.",
                 "Check: 5 × 5 = 25."],

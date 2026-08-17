@@ -4,6 +4,10 @@
 from __future__ import annotations
 
 import math
+from curriculum_kit import (
+    lesson_figure, svg_slots, svg_tree, svg_venn, svg_dots, svg_tape,
+    svg_rect, svg_plane,
+)
 from .common import (
     concept_block,
     solved,
@@ -22,6 +26,174 @@ from .common import (
     fib,
     p,
 )
+
+
+def _tiles(letters):
+    bits = []
+    for i, ch in enumerate(letters):
+        x = 12 + i * 44
+        bits.append(
+            f'<rect x="{x}" y="10" width="38" height="42" rx="5" fill="#eef2ff" stroke="#312e81" stroke-width="2"/>'
+            f'<text x="{x + 19}" y="38" text-anchor="middle" font-size="18" font-weight="700">{ch}</text>'
+        )
+    w = 20 + len(letters) * 44
+    return f'<svg viewBox="0 0 {w} 62" width="100%" style="max-width:{w}px" role="img">{"".join(bits)}</svg>'
+
+
+def _stars_bars(pattern):
+    w = max(160, 22 * len(pattern) + 24)
+    return (
+        f'<svg viewBox="0 0 {w} 56" width="100%" style="max-width:{w}px" role="img">'
+        f'<text x="12" y="38" font-size="26" font-weight="700" fill="#0f172a">{pattern}</text></svg>'
+    )
+
+
+def _choose_dots(n, k, per_row=10):
+    cols = min(per_row, max(n, 1))
+    rows = max(1, (n + per_row - 1) // per_row)
+    w = 16 + cols * 22
+    h = 16 + rows * 22
+    circles = []
+    for i in range(n):
+        r, c = divmod(i, per_row)
+        fill, stroke = ("#f59e0b", "#92400e") if i < k else ("#e2e8f0", "#64748b")
+        circles.append(
+            f'<circle cx="{14 + c * 22}" cy="{14 + r * 22}" r="8" fill="{fill}" stroke="{stroke}"/>'
+        )
+    return f'<svg viewBox="0 0 {w} {h}" width="100%" style="max-width:{min(w, 420)}px" role="img">{"".join(circles)}</svg>'
+
+
+def _group_dots(counts):
+    """counts: list of (n, color, stroke)."""
+    x = 14
+    bits = []
+    for n, color, stroke in counts:
+        for _ in range(n):
+            bits.append(f'<circle cx="{x}" cy="16" r="8" fill="{color}" stroke="{stroke}"/>')
+            x += 22
+        x += 10
+    return f'<svg viewBox="0 0 {x} 32" width="100%" style="max-width:{min(x, 420)}px" role="img">{"".join(bits)}</svg>'
+
+
+def _lattice(right, up, via=None):
+    cell, pad = 36, 32
+    w = pad * 2 + right * cell + 28
+    h = pad * 2 + up * cell + 10
+
+    def X(x):
+        return pad + x * cell
+
+    def Y(y):
+        return pad + (up - y) * cell
+
+    bits = []
+    for i in range(right + 1):
+        bits.append(f'<line x1="{X(i)}" y1="{Y(0)}" x2="{X(i)}" y2="{Y(up)}" stroke="#cbd5e1" stroke-width="1.5"/>')
+    for j in range(up + 1):
+        bits.append(f'<line x1="{X(0)}" y1="{Y(j)}" x2="{X(right)}" y2="{Y(j)}" stroke="#cbd5e1" stroke-width="1.5"/>')
+    bits.append(f'<line x1="{X(0)}" y1="{Y(0)}" x2="{X(right)}" y2="{Y(0)}" stroke="#0f172a" stroke-width="2"/>')
+    bits.append(f'<line x1="{X(0)}" y1="{Y(0)}" x2="{X(0)}" y2="{Y(up)}" stroke="#0f172a" stroke-width="2"/>')
+
+    def manhattan(x0, y0, x1, y1):
+        pts = [(x0, y0)]
+        x, y = x0, y0
+        while x < x1 or y < y1:
+            take_right = x < x1 and (y == y1 or (x - x0) * max(y1 - y0, 1) <= (y - y0) * max(x1 - x0, 1))
+            if take_right:
+                x += 1
+            else:
+                y += 1
+            pts.append((x, y))
+        return pts
+
+    pts = manhattan(0, 0, via[0], via[1]) + manhattan(via[0], via[1], right, up)[1:] if via else manhattan(0, 0, right, up)
+    d = " ".join(("M" if i == 0 else "L") + f"{X(x):.0f},{Y(y):.0f}" for i, (x, y) in enumerate(pts))
+    bits.append(f'<path d="{d}" fill="none" stroke="#7c3aed" stroke-width="3"/>')
+    labels = [(0, 0, "(0,0)", "#dc2626"), (right, up, f"({right},{up})", "#16a34a")]
+    if via:
+        labels.append((via[0], via[1], f"({via[0]},{via[1]})", "#d97706"))
+    for x, y, lab, col in labels:
+        bits.append(f'<circle cx="{X(x)}" cy="{Y(y)}" r="5" fill="{col}"/>')
+        bits.append(f'<text x="{X(x) + 8}" y="{Y(y) - 8}" font-size="11" fill="{col}">{lab}</text>')
+    return f'<svg viewBox="0 0 {w} {h}" width="100%" style="max-width:{min(w, 420)}px" role="img">{"".join(bits)}</svg>'
+
+
+def _stairs(parts):
+    y_base = 96
+    bits, x = [], 12
+    for b in parts:
+        bh = 28 * b
+        bits.append(
+            f'<rect x="{x}" y="{y_base - bh}" width="40" height="{bh}" fill="#c7d2fe" stroke="#312e81" stroke-width="2"/>'
+            f'<text x="{x + 20}" y="{y_base - bh / 2 + 5}" text-anchor="middle" font-size="16" font-weight="700">{b}</text>'
+        )
+        x += 46
+    return f'<svg viewBox="0 0 {x + 8} {y_base + 8}" width="100%" style="max-width:{x + 8}px" role="img">{"".join(bits)}</svg>'
+
+
+def _slots_minus(total_labels, bad_labels):
+    def row(labels, y):
+        bits = []
+        for i, lab in enumerate(labels):
+            x = 16 + i * 88
+            bits.append(f'<rect x="{x}" y="{y}" width="76" height="40" fill="#f8fafc" stroke="#0f172a" stroke-width="2" rx="6"/>')
+            bits.append(f'<text x="{x + 38}" y="{y + 26}" text-anchor="middle" font-size="13" font-weight="700">{lab}</text>')
+        return bits
+
+    w = 16 + max(len(total_labels), len(bad_labels)) * 88
+    bits = row(total_labels, 8)
+    bits.append('<text x="16" y="68" font-size="12" fill="#334155">minus forbidden:</text>')
+    bits.extend(row(bad_labels, 76))
+    bw = 16 + len(bad_labels) * 88
+    bits.append(f'<line x1="20" y1="80" x2="{bw - 8}" y2="112" stroke="#dc2626" stroke-width="3"/>')
+    bits.append(f'<line x1="{bw - 8}" y1="80" x2="20" y2="112" stroke="#dc2626" stroke-width="3"/>')
+    return f'<svg viewBox="0 0 {w} 132" width="100%" style="max-width:{w}px" role="img">{"".join(bits)}</svg>'
+
+
+def _octagon():
+    return (
+        '<svg viewBox="0 0 200 200" width="100%" style="max-width:220px" role="img">'
+        '<polygon points="70,20 130,20 180,70 180,130 130,180 70,180 20,130 20,70" fill="#e0e7ff" stroke="#312e81" stroke-width="2"/>'
+        '<line x1="70" y1="20" x2="180" y2="130" stroke="#7c3aed" stroke-width="1.5"/>'
+        '<line x1="70" y1="20" x2="130" y2="180" stroke="#7c3aed" stroke-width="1.5"/>'
+        '<text x="100" y="108" text-anchor="middle" font-size="12">8 vertices</text></svg>'
+    )
+
+
+def _grid_squares(n):
+    cell, pad = 28, 16
+    w = pad * 2 + n * cell
+    bits = []
+    for i in range(n + 1):
+        bits.append(f'<line x1="{pad}" y1="{pad + i * cell}" x2="{pad + n * cell}" y2="{pad + i * cell}" stroke="#0f172a"/>')
+        bits.append(f'<line x1="{pad + i * cell}" y1="{pad}" x2="{pad + i * cell}" y2="{pad + n * cell}" stroke="#0f172a"/>')
+    return f'<svg viewBox="0 0 {w} {w}" width="100%" style="max-width:220px" role="img">{"".join(bits)}</svg>'
+
+
+def _circle_seats(n):
+    cx, cy, r = 90, 90, 62
+    bits = [f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="#cbd5e1" stroke-width="2"/>']
+    for i in range(n):
+        ang = math.radians(-90 + i * 360 / n)
+        x, y = cx + r * math.cos(ang), cy + r * math.sin(ang)
+        fill = "#fde68a" if i == 0 else "#e0e7ff"
+        lab = "fix" if i == 0 else str(n - i)
+        bits.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="14" fill="{fill}" stroke="#312e81" stroke-width="2"/>')
+        bits.append(f'<text x="{x:.1f}" y="{y + 4:.1f}" text-anchor="middle" font-size="10" font-weight="700">{lab}</text>')
+    return f'<svg viewBox="0 0 180 180" width="100%" style="max-width:200px" role="img">{"".join(bits)}</svg>'
+
+
+def _three_venn():
+    return (
+        '<svg viewBox="0 0 260 200" width="100%" style="max-width:280px" role="img">'
+        '<circle cx="100" cy="90" r="58" fill="#93c5fd" fill-opacity="0.4" stroke="#1d4ed8"/>'
+        '<circle cx="160" cy="90" r="58" fill="#86efac" fill-opacity="0.4" stroke="#166534"/>'
+        '<circle cx="130" cy="130" r="58" fill="#fde68a" fill-opacity="0.4" stroke="#a16207"/>'
+        '<text x="78" y="80" font-size="12" font-weight="700">18</text>'
+        '<text x="168" y="80" font-size="12" font-weight="700">15</text>'
+        '<text x="122" y="160" font-size="12" font-weight="700">12</text>'
+        '<text x="130" y="108" text-anchor="middle" font-size="11">+3</text></svg>'
+    )
 
 
 def _fill(qs, need, factory):
@@ -275,7 +447,12 @@ def build_unit1():
         ],
         "<p>Contest writers love counting because it rewards careful reading. One wrong assumption about order or zeros can change the answer completely.</p>",
         "<p>Before computing, write a one-sentence plan: “I will multiply three slots” or “I will subtract the cases with no A.”</p>",
-        solved(1, "How many outfits from 3 shirts and 2 pants (one each)?",
+        lesson_figure(
+            svg_slots(["shirt: 3", "pants: 2"]),
+            "Outfit slots",
+            "Each shirt pairs with each pair of pants: $3\\times2=6$.",
+        )
+        + solved(1, "How many outfits from 3 shirts and 2 pants (one each)?",
                ["Name the choices: shirt, then pants.",
                 "Shirt: 3 options.",
                 "Pants: 2 options, and the pants choice does not change how many shirts you had.",
@@ -317,7 +494,12 @@ def build_unit1():
         ],
         "<p>Most Sprint counting problems are product-rule problems in disguise.</p>",
         "<p>Draw slots. Write a number above each slot. Multiply left to right. Then re-read the problem for hidden restrictions.</p>",
-        solved(4, "Bike lock: 3 digits 0–9, repeats allowed. How many locks?",
+        lesson_figure(
+            svg_slots(["0–9", "0–9", "0–9"]),
+            "3-digit lock (repeats OK)",
+            "Each slot has 10 choices, including 000: $10\\times10\\times10=1000$.",
+        )
+        + solved(4, "Bike lock: 3 digits 0–9, repeats allowed. How many locks?",
                ["Slot1: 10 choices (0–9).", "Slot2: 10.", "Slot3: 10.",
                 "Independent stages → $10\\times10\\times10=1000$.",
                 "Including 000 is correct for a lock."],
@@ -355,7 +537,12 @@ def build_unit1():
         ],
         "<p>Sum rule is how you stay organized when one formula does not cover everything.</p>",
         "<p>Write Case 1 / Case 2 headings. Compute each completely. Add only when you are sure they do not overlap.</p>",
-        solved(7, "2-digit numbers with both digits even OR both odd?",
+        lesson_figure(
+            svg_tree([["2-digit"], ["both even", "both odd"], ["4×5=20", "5×5=25"]]),
+            "Disjoint piles",
+            "Both-even and both-odd cannot overlap, so add: $20+25=45$.",
+        )
+        + solved(7, "2-digit numbers with both digits even OR both odd?",
                ["Case both even: tens ∈{2,4,6,8} (4); units ∈{0,2,4,6,8} (5) → 20.",
                 "Case both odd: tens ∈{1,3,5,7,9} (5); units ∈{1,3,5,7,9} (5) → 25.",
                 "No overlap → $20+25=45$."],
@@ -389,7 +576,12 @@ def build_unit1():
         ],
         "<p>Complement is one of the highest-value contest skills per minute of learning.</p>",
         "<p>Write Total = … and Bad = … then Good = Total − Bad. Define Bad in one clear sentence.</p>",
-        solved(10, "3-letter strings from {A,B,C,D} with at least one A (repeats OK)?",
+        lesson_figure(
+            _slots_minus(["4", "4", "4"], ["no A: 3", "3", "3"]),
+            "At least one A",
+            "Total $4^3=64$ minus the crossed-out no-A strings $3^3=27$ leaves $37$.",
+        )
+        + solved(10, "3-letter strings from {A,B,C,D} with at least one A (repeats OK)?",
                ["Total: $4^3=64$.", "Bad = no A: $3^3=27$.", "Good: $64-27=37$."],
                "$37$", "", "Medium")
         + solved(11, "3-digit numbers with at least one digit 7?",
@@ -422,7 +614,12 @@ def build_unit1():
         ],
         "<p>Mixing tools is what separates Chapter winners from State/National scorers.</p>",
         "<p>Outline in words first (2–3 lines). Compute second. Verify with a smaller analogous problem.</p>",
-        solved(13, "Odd 3-digit numbers with all distinct digits?",
+        lesson_figure(
+            svg_slots(["odd units: 5", "hundreds: 9", "tens: 8"]),
+            "Odd 3-digit, distinct digits",
+            "Fill the units slot first so the number is odd: $5\\times9\\times8=360$.",
+        )
+        + solved(13, "Odd 3-digit numbers with all distinct digits?",
                ["Units digit must be odd: 1,3,5,7,9 → 5 choices.",
                 "Hundreds: 1–9 except the units digit → 9 choices (units is never 0).",
                 "Tens: 10 total digits minus 2 used → 8.",
@@ -457,7 +654,12 @@ def build_unit1():
         ],
         "<p>Great counters are careful readers first.</p>",
         "<p>Underline constraints. Write a 1-line plan. Compute. Sanity-check size (is 1,000,000 reasonable for a 3-digit count?).</p>",
-        solved(16, "Which is larger: number of 3-digit integers, or number of 3-digit lock codes with repeats?",
+        lesson_figure(
+            svg_slots(["1st: 10 vs 9", "2nd: 10", "3rd: 10"]),
+            "Lock codes vs 3-digit numbers",
+            "Codes allow a leading zero ($10\\times10\\times10=1000$). Numbers do not ($9\\times10\\times10=900$).",
+        )
+        + solved(16, "Which is larger: number of 3-digit integers, or number of 3-digit lock codes with repeats?",
                ["3-digit integers: 900 (100–999).",
                 "Lock codes 000–999: 1000.",
                 "Codes are more because leading zeros are allowed."],

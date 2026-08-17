@@ -1,5 +1,9 @@
 """Fourth Grade Math units 1–4: millions, multi-digit × and ÷, like-denominator fractions."""
 
+from curriculum_kit import (
+    lesson_figure, svg_dots, svg_number_line, svg_rect, svg_fraction_bar,
+    svg_tape, svg_circle, svg_triangle, svg_plane, svg_percent_bar,
+)
 from .common import (
     concept_block,
     solved,
@@ -14,6 +18,43 @@ from .common import (
     mq,
     renumber,
 )
+
+
+def _place_chart(headers, digits, glow=None):
+    cols = len(headers)
+    cw, rh = 78, 30
+    w = 16 + cols * cw
+    h = 16 + 2 * rh
+    bits = []
+    for i, (head, dig) in enumerate(zip(headers, digits)):
+        x = 8 + i * cw
+        fill_d = "#fef08a" if glow == i else "#fff"
+        bits.append(f'<rect x="{x}" y="8" width="{cw}" height="{rh}" fill="#e0e7ff" stroke="#0f172a"/>')
+        bits.append(f'<text x="{x + cw / 2}" y="28" text-anchor="middle" font-size="10" font-weight="700">{head}</text>')
+        bits.append(f'<rect x="{x}" y="{8 + rh}" width="{cw}" height="{rh}" fill="{fill_d}" stroke="#0f172a"/>')
+        bits.append(f'<text x="{x + cw / 2}" y="{8 + rh + 20}" text-anchor="middle" font-size="16" font-weight="700">{dig}</text>')
+    return f'<svg viewBox="0 0 {w} {h}" width="100%" style="max-width:{w}px" role="img">{"".join(bits)}</svg>'
+
+
+def _sparse_line(points, marks=None, w=480):
+    """points: (value, tick_label). marks: (value, label)."""
+    marks = marks or []
+    lo, hi = points[0][0], points[-1][0]
+    span = hi - lo or 1
+    left, right, y = 28, w - 28, 36
+    bits = [f'<line x1="{left}" y1="{y}" x2="{right}" y2="{y}" stroke="#0f172a" stroke-width="2"/>']
+    for val, lab in points:
+        x = left + (val - lo) * (right - left) / span
+        bits.append(f'<line x1="{x:.1f}" y1="{y - 7}" x2="{x:.1f}" y2="{y + 7}" stroke="#0f172a" stroke-width="2"/>')
+        bits.append(f'<text x="{x:.1f}" y="{y + 22}" text-anchor="middle" font-size="11">{lab}</text>')
+    colors = ["#dc2626", "#2563eb", "#059669", "#d97706"]
+    for i, (val, lab) in enumerate(marks):
+        x = left + (val - lo) * (right - left) / span
+        c = colors[i % 4]
+        bits.append(f'<circle cx="{x:.1f}" cy="{y}" r="6" fill="{c}"/>')
+        if lab:
+            bits.append(f'<text x="{x:.1f}" y="{y - 12}" text-anchor="middle" font-size="11" fill="{c}" font-weight="700">{lab}</text>')
+    return f'<svg viewBox="0 0 {w} 78" width="100%" style="max-width:{w}px" role="img">{"".join(bits)}</svg>'
 
 
 def _fill(qs, need, factory):
@@ -100,7 +141,16 @@ def build_unit1():
             "Each place is 10 times the place on its right. 10 hundred thousands make 1 million.",
             "A place-value chart keeps every digit in its home.",
         ],
-        solved(1, "What is the value of the 8 in 4,582,136?",
+        lesson_figure(
+            _place_chart(
+                ["1,000,000", "100,000", "10,000", "1,000", "100", "10", "1"],
+                ["4", "5", "8", "2", "1", "3", "6"],
+                glow=2,
+            ),
+            "Places in 4,582,136",
+            "Each digit has a home. The highlighted 8 is ten thousands, so it is worth 80,000.",
+        )
+        + solved(1, "What is the value of the 8 in 4,582,136?",
                ["The 8 sits in the ten-thousands place.",
                 "8 ten thousands = 80,000."],
                "80,000")
@@ -124,7 +174,13 @@ def build_unit1():
             "This is why 6 in the thousands place is 10 times 6 in the hundreds place.",
             "Write a small arrow: ×10 left, ÷10 right.",
         ],
-        solved(1, "The 3 in 3,000 is how many times the 3 in 300?",
+        lesson_figure(
+            _place_chart(["1,000", "100", "10", "1"], ["3", "0", "0", "0"], glow=0)
+            + _place_chart(["100", "10", "1"], ["3", "0", "0"], glow=0),
+            "3,000 is 10 times 300",
+            "The 3 slides one place left from hundreds to thousands. One place left multiplies the value by 10.",
+        )
+        + solved(1, "The 3 in 3,000 is how many times the 3 in 300?",
                ["Thousands is one place left of hundreds.",
                 "One place left is 10 times as much."],
                "10 times")
@@ -154,7 +210,15 @@ def build_unit1():
             "508,060 is five hundred eight thousand sixty — not five hundred eighty thousand.",
             "Practice switching among the three forms until they feel like the same number.",
         ],
-        solved(1, "Write 3,000,000 + 40,000 + 200 + 5 in standard form.",
+        lesson_figure(
+            _place_chart(
+                ["1,000,000", "100,000", "10,000", "1,000", "100", "10", "1"],
+                ["3", "0", "4", "0", "2", "0", "5"],
+            ),
+            "Expanded form builds 3,040,205",
+            "3,000,000 + 40,000 + 200 + 5. The zeros hold empty places so every digit stays in its home.",
+        )
+        + solved(1, "Write 3,000,000 + 40,000 + 200 + 5 in standard form.",
                ["3 millions, 4 ten thousands, 2 hundreds, 5 ones.",
                 "3,040,205."],
                "3,040,205")
@@ -177,7 +241,15 @@ def build_unit1():
             "34,500 to the nearest thousand is 35,000. Halfway rounds up.",
             "Rounding helps you estimate a sum before you compute the exact answer.",
         ],
-        solved(1, "Round 128,360 to the nearest thousand.",
+        lesson_figure(
+            _sparse_line(
+                [(128000, "128,000"), (128500, "128,500"), (129000, "129,000")],
+                marks=[(128360, "128,360")],
+            ),
+            "Nearest thousand to 128,360",
+            "The hundreds digit is 3, so 128,360 sits left of the halfway mark and rounds to 128,000.",
+        )
+        + solved(1, "Round 128,360 to the nearest thousand.",
                ["Hundreds digit is 3, less than 5.",
                 "Keep 128 thousands. 128,000."],
                "128,000")
@@ -199,7 +271,12 @@ def build_unit1():
             "Check by adding the other way, or by a reverse subtract.",
             "Sums can pass a million: 750,000 + 500,000 = 1,250,000.",
         ],
-        solved(1, "458,216 + 367,089 = ?",
+        lesson_figure(
+            svg_tape([458216, 367089], labels=["458,216", "367,089"]),
+            "Add the two lengths",
+            "Line up places and add. 458,216 + 367,089 = 825,305, near the estimate 460,000 + 370,000.",
+        )
+        + solved(1, "458,216 + 367,089 = ?",
                ["Add place by place, regrouping as needed.",
                 "Ones through hundred thousands.",
                 "Sum 825,305."],
@@ -219,7 +296,12 @@ def build_unit1():
             "Stories: population, money, and distance use these large subtracts.",
             "Keep the greater number on top when finding how many more.",
         ],
-        solved(1, "800,000 − 256,173 = ?",
+        lesson_figure(
+            svg_tape([543827, 256173], labels=["543,827 left", "256,173"]),
+            "Take 256,173 from 800,000",
+            "The whole bar is 800,000. After you subtract 256,173, 543,827 remains. Check: 543,827 + 256,173 = 800,000.",
+        )
+        + solved(1, "800,000 − 256,173 = ?",
                ["Borrow across the zeros.",
                 "800,000 − 256,173 = 543,827."],
                "543,827")
@@ -311,7 +393,12 @@ def build_unit2():
             "Zeros help: 70 × 8 = 560 because 7 × 8 = 56, then one extra zero.",
             "Keep place value. 3 × 4 is 12 ones, not 12 tens.",
         ],
-        solved(1, "45 × 6 = ?",
+        lesson_figure(
+            svg_rect(45, 6) + svg_dots(30, per_row=5, label="ones: 5 × 6 = 30"),
+            "45 × 6 as tens and ones",
+            "A 45-by-6 rectangle splits into 40×6 = 240 and 5×6 = 30. Add the parts: 270.",
+        )
+        + solved(1, "45 × 6 = ?",
                ["40 × 6 = 240.",
                 "5 × 6 = 30.",
                 "240 + 30 = 270."],
@@ -334,7 +421,12 @@ def build_unit2():
             "Watch zeros in the middle: 2,106 × 4. The 0 still needs a 0 in that place (plus any carry).",
             "Stories: packs, pages, and crates use these products.",
         ],
-        solved(1, "128 × 4 = ?",
+        lesson_figure(
+            svg_tape([400, 80, 32], labels=["100×4", "20×4", "8×4"]),
+            "128 × 4 by place value",
+            "400 + 80 + 32 = 512. Every place of 128 is multiplied by 4, then the parts add.",
+        )
+        + solved(1, "128 × 4 = ?",
                ["100 × 4 = 400.",
                 "20 × 4 = 80.",
                 "8 × 4 = 32. Total 512."],
@@ -360,7 +452,12 @@ def build_unit2():
             "This model is the same idea as (20+6)×(10+4).",
             "Draw the rectangle. Label the splits. Fill each area. Add.",
         ],
-        solved(1, "23 × 15 with an area model.",
+        lesson_figure(
+            svg_rect(23, 15),
+            "Area model for 23 × 15",
+            "Split 23 into 20 and 3, and 15 into 10 and 5. Four rectangles: 200 + 100 + 30 + 15 = 345.",
+        )
+        + solved(1, "23 × 15 with an area model.",
                ["20×10=200, 20×5=100, 3×10=30, 3×5=15.",
                 "200+100+30+15=345."],
                "345")
@@ -386,7 +483,12 @@ def build_unit2():
             "A placeholder zero in the ones place of that row reminds you.",
             "Both methods must match. If they do not, a place got lost.",
         ],
-        solved(1, "34 × 12 = ?",
+        lesson_figure(
+            svg_tape([340, 68], labels=["34×10 = 340", "34×2 = 68"]),
+            "Partial products for 34 × 12",
+            "12 is 10 + 2. Multiply each part, then add: 340 + 68 = 408. The tens row needs a 0 in ones.",
+        )
+        + solved(1, "34 × 12 = ?",
                ["34 × 10 = 340.",
                 "34 × 2 = 68.",
                 "340 + 68 = 408."],
@@ -409,7 +511,12 @@ def build_unit2():
             "40 × 15: 4 × 15 = 60, then ×10 → 600.",
             "Do not only stick zeros if the other factor also needs multiplying.",
         ],
-        solved(1, "25 × 20 = ?",
+        lesson_figure(
+            svg_rect(25, 20),
+            "25 × 20",
+            "20 is 2 × 10, so 25 × 20 = 25 × 2 × 10 = 50 × 10 = 500. Do not treat 20 as 100.",
+        )
+        + solved(1, "25 × 20 = ?",
                ["25 × 2 = 50.",
                 "Times 10 because of the extra zero: 500."],
                "500")
@@ -428,7 +535,12 @@ def build_unit2():
             "Label the product: 288 seats, not a bare 288.",
             "If extras appear after the packs, that is a two-step story (× then +). We keep one-step here, then mix in later units.",
         ],
-        solved(1, "A crate has 36 bottles. 12 crates. How many bottles?",
+        lesson_figure(
+            svg_tape([360, 72], labels=["10 crates = 360", "2 crates = 72"]),
+            "12 crates of 36 bottles",
+            "The story is 36 × 12. Split 12 into 10 and 2: 360 + 72 = 432 bottles.",
+        )
+        + solved(1, "A crate has 36 bottles. 12 crates. How many bottles?",
                ["36 × 12.",
                 "36 × 10 = 360. 36 × 2 = 72.",
                 "432 bottles."],
@@ -537,7 +649,12 @@ def build_unit3():
             "Estimate first. 84 ÷ 4 is near 80 ÷ 4 = 20.",
             "Check always: quotient × divisor = dividend (when no remainder).",
         ],
-        solved(1, "96 ÷ 6 = ?",
+        lesson_figure(
+            svg_tape([16, 16, 16, 16, 16, 16], labels=["16"] * 6),
+            "96 split into 6 equal groups",
+            "6 × 16 = 96, so 96 ÷ 6 = 16. Each equal piece of the tape is 16.",
+        )
+        + solved(1, "96 ÷ 6 = ?",
                ["6 × 10 = 60. Left 36.",
                 "6 × 6 = 36.",
                 "10 + 6 = 16."],
@@ -561,7 +678,12 @@ def build_unit3():
             "If a place is 0 in the quotient, write the 0. Do not skip it.",
             "1,248 ÷ 6: 6 into 12 is 2 (hundreds). Continue through tens and ones. Quotient 208 — that 0 matters.",
         ],
-        solved(1, "365 ÷ 5 = ?",
+        lesson_figure(
+            svg_tape([73, 73, 73, 73, 73], labels=["73"] * 5),
+            "365 ÷ 5 as five equal parts",
+            "5 groups of 73 make 365. In long division the 7 is tens and the 3 is ones: quotient 73.",
+        )
+        + solved(1, "365 ÷ 5 = ?",
                ["5 into 36 is 7, remainder 1.",
                 "Bring down 5 → 15. 5 into 15 is 3.",
                 "73."],
@@ -588,7 +710,12 @@ def build_unit3():
             "Both paths must match.",
             "Estimate with compatible numbers: 2,025 ÷ 5 is near 2,000 ÷ 5 = 400.",
         ],
-        solved(1, "1,248 ÷ 6 = ?",
+        lesson_figure(
+            svg_tape([1200, 48], labels=["6×200 = 1,200", "6×8 = 48"]),
+            "Partial quotients for 1,248 ÷ 6",
+            "Subtract 6×200, then 6×8. The quotient is 200 + 8 = 208. Keep the 0 in tens.",
+        )
+        + solved(1, "1,248 ÷ 6 = ?",
                ["6 × 200 = 1,200.",
                 "Left 48. 6 × 8 = 48.",
                 "200 + 8 = 208."],
@@ -612,7 +739,12 @@ def build_unit3():
             "Stories care what the remainder means: leftover eggs, leftover seats, leftover days.",
             "Sometimes the question wants full groups only. Sometimes it wants leftovers only. Read it.",
         ],
-        solved(1, "50 eggs packed 6 per carton. How many full cartons? How many left?",
+        lesson_figure(
+            svg_dots(50, per_row=6, label="50 eggs · 6 per carton"),
+            "50 ÷ 6 = 8 remainder 2",
+            "Each row is one full carton of 6. There are 8 full rows and 2 leftover eggs.",
+        )
+        + solved(1, "50 eggs packed 6 per carton. How many full cartons? How many left?",
                ["50 ÷ 6 = 8 remainder 2.",
                 "8 full cartons. 2 eggs left."],
                "8 cartons, 2 left")
@@ -634,7 +766,12 @@ def build_unit3():
             "Underline the question: full groups, leftovers, or enough containers for everyone?",
             "The math 29 ÷ 5 = 5 R4 stays the same. The answer you report changes.",
         ],
-        solved(1, "29 seats in rows of 5. How many full rows?",
+        lesson_figure(
+            svg_dots(29, per_row=5, label="29 seats · 5 per row"),
+            "Same division, two story answers",
+            "29 ÷ 5 = 5 R4. Full rows = 5. Leftover kids = 4. If everyone needs a seat, you still need one more row.",
+        )
+        + solved(1, "29 seats in rows of 5. How many full rows?",
                ["29 ÷ 5 = 5 R4.",
                 "Full rows: 5."],
                "5")
@@ -656,7 +793,12 @@ def build_unit3():
             "Fact families still work with larger numbers.",
             "Checking takes a minute and saves a wrong answer.",
         ],
-        solved(1, "Check 23 ÷ 4 = 5 R3.",
+        lesson_figure(
+            svg_dots(23, per_row=4, label="23 ÷ 4 = 5 R3"),
+            "Check 5 R3 with groups of 4",
+            "5 full groups of 4 is 20. Remainder 3. Check: 4 × 5 + 3 = 23.",
+        )
+        + solved(1, "Check 23 ÷ 4 = 5 R3.",
                ["4 × 5 = 20.",
                 "20 + 3 = 23. The check matches."],
                "yes")
@@ -798,7 +940,12 @@ def build_unit4():
             "Unit fractions add: 1/8 + 1/8 + 1/8 = 3/8.",
             "This only works when the bottom numbers match.",
         ],
-        solved(1, "2/5 + 1/5 = ?",
+        lesson_figure(
+            svg_fraction_bar(2, 5, "#93c5fd") + svg_fraction_bar(3, 5, "#86efac"),
+            "2/5 + 1/5 = 3/5",
+            "The pieces are the same size — fifths. Count them: 2 fifths plus 1 fifth is 3 fifths. The bottom number stays 5.",
+        )
+        + solved(1, "2/5 + 1/5 = ?",
                ["Pieces are fifths.",
                 "2 + 1 = 3 pieces.",
                 "3/5."],
@@ -823,7 +970,12 @@ def build_unit4():
             "Number-line hops backward work the same as minus.",
             "Check by adding the answer to the part you took. You should return to the start.",
         ],
-        solved(1, "7/10 − 3/10 = ?",
+        lesson_figure(
+            svg_fraction_bar(7, 10, "#c4b5fd") + svg_fraction_bar(4, 10, "#86efac"),
+            "7/10 − 3/10 = 4/10",
+            "Start with 7 tenths. Take 3 tenths away. 4 tenths remain. The pieces stay tenths — do not subtract the 10s.",
+        )
+        + solved(1, "7/10 − 3/10 = ?",
                ["7 tenths take away 3 tenths.",
                 "4 tenths. 4/10."],
                "4/10")
@@ -842,7 +994,14 @@ def build_unit4():
             "Write at least two ways when you can.",
             "This is like breaking 9 into 5+4, but with pieces.",
         ],
-        solved(1, "Write 5/6 as 2/6 plus something.",
+        lesson_figure(
+            svg_fraction_bar(5, 6, "#a78bfa")
+            + svg_fraction_bar(2, 6, "#93c5fd")
+            + svg_fraction_bar(3, 6, "#86efac"),
+            "5/6 = 2/6 + 3/6",
+            "The top bar is 5 sixths. Split that count into 2 sixths and 3 sixths. Same-size pieces, two friendly groups.",
+        )
+        + solved(1, "Write 5/6 as 2/6 plus something.",
                ["2/6 + ? = 5/6.",
                 "? = 3/6."],
                "3/6")
@@ -868,7 +1027,12 @@ def build_unit4():
             "2 = 8/4. That rename helps when you subtract a fraction from a whole.",
             "2 − 1/4: think 1 4/4 − 1/4 = 1 3/4.",
         ],
-        solved(1, "3/4 + 3/4 = ?",
+        lesson_figure(
+            svg_fraction_bar(3, 4, "#93c5fd") + svg_fraction_bar(6, 4, "#fbbf24"),
+            "3/4 + 3/4 = 6/4 = 1 2/4",
+            "Six fourths is more than one whole. 4/4 makes 1, and 2/4 is left, so the mixed number is 1 2/4.",
+        )
+        + solved(1, "3/4 + 3/4 = ?",
                ["3+3=6 fourths. 6/4.",
                 "4/4 is 1 whole, leftover 2/4.",
                 "1 2/4."],
@@ -892,7 +1056,12 @@ def build_unit4():
             "Check with addition.",
             "Keep the denominator. Only the numerator and the whole-number part change.",
         ],
-        solved(1, "1 1/5 − 3/5 = ?",
+        lesson_figure(
+            svg_fraction_bar(6, 5, "#fde68a") + svg_fraction_bar(3, 5, "#86efac"),
+            "Rename 1 1/5 as 6/5, then subtract",
+            "You cannot take 3 fifths from 1 fifth. Write the mixed number as 6/5, then 6/5 − 3/5 = 3/5.",
+        )
+        + solved(1, "1 1/5 − 3/5 = ?",
                ["Rename 1 1/5 as 6/5.",
                 "6/5 − 3/5 = 3/5."],
                "3/5")
@@ -918,7 +1087,12 @@ def build_unit4():
             "If two recipes each need 2/8 cup, that is 2/8 + 2/8, not 2 × 2/8 yet as a new operation — but 2 copies of 2/8 is the same add.",
             "Draw a bar split into equal parts. Shade, then add or cross out.",
         ],
-        solved(1, "A board is 5/6 yard. You cut off 1/6 yard. How much remains?",
+        lesson_figure(
+            svg_fraction_bar(5, 6, "#c4b5fd") + svg_fraction_bar(4, 6, "#86efac"),
+            "A 5/6-yard board, cut 1/6",
+            "One bar is the whole board. Shade 5/6, then take 1/6 away. 4/6 yard remains.",
+        )
+        + solved(1, "A board is 5/6 yard. You cut off 1/6 yard. How much remains?",
                ["5/6 − 1/6 = 4/6 yard."],
                "4/6")
         + phet_box("frac_eq"),
