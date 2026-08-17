@@ -56,6 +56,40 @@ def publish(src: Path, dest: Path) -> None:
     raise last_err
 
 
+def render_one(cls: str, name: str) -> int:
+    clear_dir(STAGE, name)
+    cmd = [
+        str(MANIM),
+        str(ROOT / "scenes.py"),
+        cls,
+        "-w",
+        "-m",
+        "--file_name",
+        name,
+        "--video_dir",
+        str(STAGE),
+        "-c",
+        "#0b1020",
+        "--config_file",
+        str(ROOT / "custom_config.yml"),
+    ]
+    print("\n===", name, "===")
+    print(" ".join(cmd))
+    env = {k: v for k, v in os.environ.items()}
+    env["PYTHONPATH"] = str(ROOT)
+    env.pop("G8_SMOKE", None)
+    # Retry OpenGL access-violation crashes common on Windows.
+    for attempt in range(1, 4):
+        proc = subprocess.run(cmd, cwd=str(ROOT), env=env)
+        staged = STAGE / f"{name}.mp4"
+        if proc.returncode == 0 and staged.exists():
+            return 0
+        print("attempt", attempt, "FAILED", name, proc.returncode, "staged", staged.exists())
+        clear_dir(STAGE, name)
+        time.sleep(2.5 * attempt)
+    return 1
+
+
 def main():
     STAGE.mkdir(parents=True, exist_ok=True)
     OUT.mkdir(parents=True, exist_ok=True)
@@ -67,35 +101,22 @@ def main():
             print("No matching scenes", only)
             return 1
     for cls, name in scenes:
-        clear_dir(STAGE, name)
-        cmd = [
-            str(MANIM),
-            str(ROOT / "scenes.py"),
-            cls,
-            "-w",
-            "-m",
-            "--file_name",
-            name,
-            "--video_dir",
-            str(STAGE),
-            "-c",
-            "#0b1020",
-            "--config_file",
-            str(ROOT / "custom_config.yml"),
-        ]
-        print("\n===", name, "===")
-        print(" ".join(cmd))
-        env = {k: v for k, v in os.environ.items()}
-        env["PYTHONPATH"] = str(ROOT)
-        env.pop("G8_SMOKE", None)
-        proc = subprocess.run(cmd, cwd=str(ROOT), env=env)
+        # Skip if a fresh staged file already exists (resume support).
         staged = STAGE / f"{name}.mp4"
-        if proc.returncode != 0 or not staged.exists():
-            print("FAILED", name, proc.returncode, "staged", staged.exists())
-            return proc.returncode or 1
+        if "--resume" in only and staged.exists() and staged.stat().st_size > 1_000_000:
+            dest = OUT / f"{name}.mp4"
+            publish(staged, dest)
+            print("resume-copied", dest, dest.stat().st_size)
+            continue
+        code = render_one(cls, name)
+        staged = STAGE / f"{name}.mp4"
+        if code != 0 or not staged.exists():
+            print("FAILED", name)
+            return code or 1
         dest = OUT / f"{name}.mp4"
         publish(staged, dest)
         print("wrote", dest, dest.stat().st_size)
+        time.sleep(1.5)
     return 0
 
 

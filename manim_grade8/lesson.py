@@ -38,12 +38,13 @@ PLAIN = {
     "−": "-", "–": "-",
 }
 SUP_CHARS = set(SUP_MAP)
-OPS = set("×÷·+=<>≤≥≠")
+# Include ASCII hyphen so binary minus never becomes a low "_" glyph.
+OPS = set("×÷·+=<>≤≥≠-−–")
 
 
 def caretify(text) -> str:
     """Keep ^ for exponents so 10³ becomes 10^3, never '10 3'."""
-    s = str(text).replace("−", "-").replace("–", "-")
+    s = str(text).replace("−", "-").replace("–", "-").replace("→", " -> ").replace("⇒", " -> ")
     s = s.replace("×", " x ").replace("·", " x ").replace("÷", " / ").replace("√", "sqrt ")
     s = re.sub(
         r"[⁰¹²³⁴⁵⁶⁷⁸⁹ⁿ⁻]+",
@@ -57,9 +58,14 @@ def clean(text) -> str:
     return caretify(text)
 
 
+def _pretty_minus(s) -> str:
+    """Keep ASCII hyphen; Georgia + DirectWrite hangs on U+2212 on some Windows installs."""
+    return str(s).replace("−", "-").replace("–", "-")
+
+
 def power_mob(base, exp, base_size=52, exp_size=28, base_color=WHITE, exp_color=GOLD):
-    b = Text(str(base), font=FONT, font_size=base_size).set_color(base_color)
-    e = Text(str(exp), font=FONT, font_size=exp_size).set_color(exp_color)
+    b = Text(_pretty_minus(base), font=FONT, font_size=base_size).set_color(base_color)
+    e = Text(_pretty_minus(exp), font=FONT, font_size=exp_size).set_color(exp_color)
     e.next_to(b.get_corner(UR), RIGHT, buff=0.04)
     e.shift(0.08 * UP)
     return VGroup(b, e)
@@ -88,11 +94,15 @@ def _read_atom(s, i):
 
 
 def tokenize_math(text):
-    s = str(text).replace("−", "-").replace("–", "-")
+    s = str(text).replace("−", "-").replace("–", "-").replace("→", "->").replace("⇒", "->")
     i, n, out = 0, len(s), []
     while i < n:
         if s[i].isspace():
             i += 1
+            continue
+        if s.startswith("->", i) or s.startswith("=>", i):
+            out.append(("arrow",))
+            i += 2
             continue
         if s[i] == "√":
             atom, i = _read_atom(s, i + 1)
@@ -105,22 +115,23 @@ def tokenize_math(text):
             atom, i = _read_atom(s, i)
             out.append(("sqrt", atom or ""))
             continue
-        if s[i] in OPS or s[i] == "/":
-            out.append(("op", s[i]))
-            i += 1
-            continue
-        # −3² is minus, then 3 squared — not the number -3
+        # Unary minus before a number: draw as op bar + digits (never "−2" font glyph).
         if s[i] == "-" and i + 1 < n and s[i + 1].isdigit():
-            look = i + 1
-            while look < n and (s[look].isdigit() or s[look] == "."):
-                look += 1
-            if look < n and (s[look] in SUP_CHARS or s[look] == "^"):
+            prev = out[-1][0] if out else None
+            if prev in (None, "op", "arrow"):
                 out.append(("op", "-"))
                 i += 1
                 continue
-        if s[i] == "(" or s[i].isdigit() or (
-            s[i] == "-" and i + 1 < n and s[i + 1].isdigit()
-        ):
+            # Binary-looking but glued (rare): still treat as operator.
+            out.append(("op", "-"))
+            i += 1
+            continue
+        if s[i] in OPS or s[i] == "/":
+            ch = "-" if s[i] in "-−–" else s[i]
+            out.append(("op", ch))
+            i += 1
+            continue
+        if s[i] == "(" or s[i].isdigit():
             atom, i = _read_atom(s, i)
             exp = ""
             if i < n and s[i] in SUP_CHARS:
@@ -150,6 +161,10 @@ def tokenize_math(text):
                     i += 1 + em.end()
             out.append(("pow", word, exp) if exp else ("txt", word))
             continue
+        # Skip unknown glyphs that Georgia cannot draw (prevents random junk).
+        if ord(s[i]) > 127 and s[i] not in "√πθ≤≥≠±°×÷·":
+            i += 1
+            continue
         out.append(("txt", s[i]))
         i += 1
     return out
@@ -161,31 +176,59 @@ def token_mob(tok, size, color, font=FONT):
         return power_mob(tok[1], tok[2], size, max(14, int(size * 0.55)), color, GOLD)
     if kind == "sqrt":
         rad = Text("√", font=font, font_size=int(size * 1.2)).set_color(TEAL)
-        inner = Text(tok[1] or "", font=font, font_size=size).set_color(color)
-        return VGroup(rad, inner).arrange(RIGHT, buff=0.02, aligned_edge=DOWN)
+        inner = Text(_pretty_minus(tok[1] or ""), font=font, font_size=size).set_color(color)
+        return VGroup(rad, inner).arrange(RIGHT, buff=0.02, aligned_edge=ORIGIN)
+    if kind == "arrow":
+        # Simple teal chevron — avoid Triangle/OpenGL quirks.
+        tip = Text(">", font=font, font_size=int(size * 0.9)).set_color(TEAL)
+        return tip
     if kind == "op":
-        shown = {"-": "−", "*": "×", "·": "×"}.get(tok[1], tok[1])
+        if tok[1] == "-":
+            # Drawn minus bar — never a low "_" glyph from font metrics.
+            bar = Line(LEFT * 0.22, RIGHT * 0.22).set_stroke(color, max(3, int(size / 14)))
+            return bar
+        shown = {"*": "x", "·": "x"}.get(tok[1], tok[1])
         col = GOLD if tok[1] == "=" else (TEAL if tok[1] in "×÷·*" else color)
         return Text(shown, font=font, font_size=size).set_color(col)
-    return Text(str(tok[1]), font=font, font_size=size).set_color(color)
+    return Text(_pretty_minus(tok[1]), font=font, font_size=size).set_color(color)
 
 
 def formula(text, size=36, color=WHITE, max_width=12.0, font=FONT):
     tokens = tokenize_math(text)
     if not tokens:
         return Text("", font=font, font_size=size).set_color(color)
+    # Multi-step chains (a -> b -> c) stack vertically so arrows never jam.
+    if any(t[0] == "arrow" for t in tokens):
+        chunks, cur = [], []
+        for t in tokens:
+            if t[0] == "arrow":
+                if cur:
+                    chunks.append(cur)
+                    cur = []
+            else:
+                cur.append(t)
+        if cur:
+            chunks.append(cur)
+        rows = []
+        for ci, chunk in enumerate(chunks):
+            pieces = [token_mob(tok, size, color, font) for tok in chunk]
+            row = VGroup(*pieces).arrange(RIGHT, buff=0.12, aligned_edge=ORIGIN)
+            rows.append(row)
+            if ci < len(chunks) - 1:
+                rows.append(token_mob(("arrow",), size, TEAL, font))
+        return VGroup(*rows).arrange(DOWN, buff=0.22, aligned_edge=LEFT)
     pieces = [token_mob(tok, size, color, font) for tok in tokens]
     rows, row, row_w, gap = [], [], 0.0, 0.12
     for p in pieces:
         w = p.get_width()
         if row and row_w + gap + w > max_width:
-            rows.append(VGroup(*row).arrange(RIGHT, buff=gap, aligned_edge=DOWN))
+            rows.append(VGroup(*row).arrange(RIGHT, buff=gap, aligned_edge=ORIGIN))
             row, row_w = [p], w
         else:
             row.append(p)
             row_w = row_w + (gap if len(row) > 1 else 0) + w
     if row:
-        rows.append(VGroup(*row).arrange(RIGHT, buff=gap, aligned_edge=DOWN))
+        rows.append(VGroup(*row).arrange(RIGHT, buff=gap, aligned_edge=ORIGIN))
     return rows[0] if len(rows) == 1 else VGroup(*rows).arrange(DOWN, aligned_edge=LEFT, buff=0.16)
 
 
@@ -397,7 +440,7 @@ class LessonScene(Scene):
             body = T(step, 32, WHITE, 32)
             if body.get_width() > 10.4:
                 body.set_width(10.4)
-            row = VGroup(n, body).arrange(RIGHT, buff=0.2)
+            row = VGroup(n, body).arrange(RIGHT, buff=0.2, aligned_edge=ORIGIN)
             row.next_to(stack, DOWN, buff=0.32, aligned_edge=LEFT)
             if row.get_bottom()[1] < -2.6:
                 self.play(stack.animate.scale(0.88).shift(0.35 * UP), run_time=0.35)
@@ -414,6 +457,40 @@ class LessonScene(Scene):
         pack = VGroup(box, ans).to_edge(DOWN, buff=0.45)
         self.play(FadeIn(pack, 0.4 * UP), run_time=0.7)
         self.rest()
+
+        # Extra picture for the answer — graph / number line when it fits.
+        if self._example_wants_picture(ex):
+            self.wipe()
+            self.narrate("Here is the same answer as a picture.")
+            self._example_picture(ex)
+            self.rest()
+
+    def _example_wants_picture(self, ex):
+        ans = caretify(ex.get("answer", ""))
+        prob = caretify(ex.get("problem", ""))
+        if has(prob, "how many solutions", "no solution") or has(ans, "no solution", "none"):
+            return True
+        if has(ans, "infinitely", "all real", "identity"):
+            return True
+        if re.search(r"x\s*=\s*-?\d+", ans) or re.search(r"x\s*=\s*-?\d+", prob):
+            return True
+        if re.search(r"\(\s*-?\d+\s*,\s*-?\d+\s*\)", ans):
+            return True
+        return False
+
+    def _example_picture(self, ex):
+        ans = caretify(ex.get("answer", ""))
+        prob = caretify(ex.get("problem", ""))
+        if has(prob, "how many solutions", "no solution") or has(ans, "no solution", "none"):
+            return self.demo_eq_graph_parallel(prob or "x + 1 = x + 4")
+        if has(ans, "infinitely", "all real", "identity"):
+            return self.demo_eq_graph_same(prob)
+        if re.search(r"x\s*=\s*-?\d+", ans) or re.search(r"x\s*=\s*-?\d+", prob):
+            return self.demo_eq_graph_solve(ans if "x =" in ans else prob)
+        if re.search(r"\(\s*-?\d+\s*,\s*-?\d+\s*\)", ans):
+            m = re.search(r"\(\s*(-?\d+)\s*,\s*(-?\d+)\s*\)", ans)
+            return self.demo_cross(int(m.group(1)), int(m.group(2)))
+        return None
 
     def animate_visual(self, kind, beat_i, beat=""):
         makers = {
@@ -731,20 +808,140 @@ class LessonScene(Scene):
         self.play(FadeIn(tag), run_time=0.3)
         return VGroup(pair, tag)
 
-    # ----- equations: show THIS beat's equation -----
+    # ----- equations: graphs for one-variable too -----
 
     def anim_balance(self, beat_i, beat):
-        if has(beat, "no solution", "never true", "contradiction"):
-            return self.demo_no_solution(beat)
-        if has(beat, "identity", "every x", "infinitely"):
-            return self.demo_identity(beat)
-        if has(beat, "distribut") or "3(2x" in caretify(beat) or "3(x" in caretify(beat):
+        t = caretify(beat)
+        if has(beat, "no solution", "never true", "contradiction", "nothing works", "numbers disagree"):
+            return self.demo_eq_graph_parallel(beat)
+        if has(beat, "identity", "every x", "infinitely", "every x works", "numbers match"):
+            return self.demo_eq_graph_same(beat)
+        if "->" in t or "→" in beat:
+            return self.demo_eq_chain_and_graph(beat)
+        if has(beat, "distribut") or "3(2x" in t or "3(x" in t or "4(x" in t:
             return self.demo_distribute(beat)
-        if has(beat, "fraction", "/3", "/2", "/4") or "0.5" in beat:
+        if has(beat, "fraction", "/3", "/2", "/4", "0.5", "decimal", "denominator"):
             return self.demo_clear_fraction(beat)
+        if has(beat, "check", "original"):
+            return self.demo_number_line_check(beat)
+        if has(beat, "balance", "both sides stay", "stay equal", "parentheses first"):
+            return self.demo_scale()
+        if has(beat, "minus in front", "hits every"):
+            return self.demo_distribute(beat)
         if "=" in beat:
-            return self.demo_show_math(beat)
+            return self.demo_eq_graph_solve(beat)
         return self.demo_scale()
+
+    def _axes_pair(self, xrange=(-1, 8), yrange=(-2, 10), h=3.0, w=3.6):
+        axes = Axes(xrange, yrange, height=h, width=w)
+        axes.set_stroke(MUTED, 2)
+        return axes
+
+    def demo_eq_graph_solve(self, beat):
+        """Graph left side vs right side; mark the intersection (the solution)."""
+        sol = self._guess_solution(beat)
+        axes = self._axes_pair((-1, max(8, sol + 2)), (-2, 12))
+        # Generic rising line vs horizontal — shows a unique x meets a constant.
+        left = axes.get_graph(lambda x: 0.55 * x + 2.0).set_stroke(BLUE, 5)
+        right = axes.get_graph(lambda x: 0.55 * sol + 2.0).set_stroke(PINK, 5)
+        x_hit = sol
+        y_hit = 0.55 * sol + 2.0
+        dot = Dot(axes.c2p(x_hit, y_hit), fill_color=GOLD).scale(1.25)
+        tip = formula(f"x = {sol}", 26, GOLD, 12)
+        tip.next_to(dot, UR, buff=0.1)
+        eq = formula(extract_math(beat), 22, CREAM, 10)
+        if eq.get_width() > 5.5:
+            eq.set_width(5.5)
+        pack = VGroup(axes, left, right)
+        g = VGroup(pack, eq).arrange(RIGHT, buff=0.45).move_to(0.25 * DOWN)
+        self.play(ShowCreation(axes), FadeIn(eq), run_time=0.35)
+        self.sfx("whoosh", -12)
+        self.play(ShowCreation(left), run_time=0.45)
+        self.play(ShowCreation(right), run_time=0.35)
+        self.play(GrowFromCenter(dot), FadeIn(tip), run_time=0.35)
+        self.pop_flash(dot.get_center(), GOLD, 0.55)
+        return VGroup(g, dot, tip)
+
+    def demo_eq_graph_parallel(self, beat):
+        axes = self._axes_pair((-1, 6), (-1, 6))
+        l1 = axes.get_graph(lambda x: 0.8 * x + 1.2).set_stroke(BLUE, 5)
+        l2 = axes.get_graph(lambda x: 0.8 * x + 2.6).set_stroke(PINK, 5)
+        lab = formula("parallel  ->  no solution", 22, RED, 28)
+        eq = formula(extract_math(beat), 20, CREAM, 10)
+        if eq.get_width() > 11:
+            eq.set_width(11)
+        pack = VGroup(VGroup(axes, l1, l2), lab, eq).arrange(DOWN, buff=0.18).move_to(0.2 * DOWN)
+        self.play(ShowCreation(axes), FadeIn(eq), run_time=0.35)
+        self.play(ShowCreation(l1), ShowCreation(l2), run_time=0.55)
+        self.sfx("wrong", -9)
+        self.play(FadeIn(lab), run_time=0.3)
+        return pack
+
+    def demo_eq_graph_same(self, beat):
+        axes = self._axes_pair((-1, 6), (-1, 6))
+        l1 = axes.get_graph(lambda x: 0.6 * x + 1).set_stroke(BLUE, 8, 0.45)
+        l2 = axes.get_graph(lambda x: 0.6 * x + 1).set_stroke(GOLD, 4)
+        lab = formula("same line  ->  every x works", 22, GREEN, 32)
+        eq = formula(extract_math(beat), 20, CREAM, 10)
+        if eq.get_width() > 11:
+            eq.set_width(11)
+        pack = VGroup(VGroup(axes, l1, l2), lab, eq).arrange(DOWN, buff=0.18).move_to(0.2 * DOWN)
+        self.play(ShowCreation(axes), FadeIn(eq), run_time=0.35)
+        self.play(ShowCreation(l1), ShowCreation(l2), FadeIn(lab), run_time=0.7)
+        self.sfx("success", -10)
+        return pack
+
+    def demo_eq_chain_and_graph(self, beat):
+        """Show arrow steps stacked, then a graph of the solution."""
+        sol = self._guess_solution(beat)
+        chain = formula(extract_math(beat), 26, CREAM, 11)
+        if chain.get_width() > 6.2:
+            chain.set_width(6.2)
+        axes = self._axes_pair((-1, max(6, sol + 2)), (-1, 10), h=2.6, w=3.0)
+        line = axes.get_graph(lambda x: (x / 4.0) + 3).set_stroke(BLUE, 4)
+        flat = axes.get_graph(lambda x: 7).set_stroke(PINK, 4)
+        # Prefer a generic rising vs horizontal if fraction form not clear.
+        if "x/4" not in caretify(beat) and "/4" not in caretify(beat):
+            line = axes.get_graph(lambda x: 0.5 * x + 1).set_stroke(BLUE, 4)
+            flat = axes.get_graph(lambda x: 0.5 * sol + 1).set_stroke(PINK, 4)
+        dot = Dot(axes.c2p(sol, 0.5 * sol + 1 if "x/4" not in caretify(beat) else 7), fill_color=GOLD)
+        if "x/4" in caretify(beat) or "/4" in caretify(beat):
+            dot = Dot(axes.c2p(sol, 7), fill_color=GOLD)
+        tip = formula(f"x = {sol}", 22, GOLD, 10).next_to(dot, UR, buff=0.08)
+        graph = VGroup(axes, line, flat, dot, tip)
+        pack = VGroup(chain, graph).arrange(RIGHT, buff=0.4).move_to(0.2 * DOWN)
+        self.play(FadeIn(chain, LEFT), run_time=0.45)
+        self.sfx("whoosh", -11)
+        self.play(ShowCreation(axes), ShowCreation(line), ShowCreation(flat), run_time=0.55)
+        self.play(GrowFromCenter(dot), FadeIn(tip), run_time=0.3)
+        self.pop_flash(dot.get_center())
+        return pack
+
+    def demo_number_line_check(self, beat):
+        sol = self._guess_solution(beat)
+        line = NumberLine(x_range=(-2, max(16, sol + 2), 2), width=10)
+        line.set_stroke(MUTED, 3)
+        tip = Dot(line.n2p(sol), fill_color=GOLD).scale(1.3)
+        lab = formula(f"check x = {sol}", 26, GOLD, 20).next_to(tip, UP, buff=0.25)
+        g = VGroup(line, tip, lab).move_to(0.3 * DOWN)
+        self.play(ShowCreation(line), run_time=0.4)
+        self.sfx("ding", -10)
+        self.play(GrowFromCenter(tip), FadeIn(lab), run_time=0.4)
+        return g
+
+    def _guess_solution(self, beat):
+        t = caretify(beat)
+        m = re.search(r"x\s*=\s*(-?\d+(?:\.\d+)?)", t)
+        if m:
+            try:
+                return float(m.group(1)) if "." in m.group(1) else int(m.group(1))
+            except ValueError:
+                pass
+        # Common curriculum answers used as graph targets.
+        for val in (16, 14, 11, 10, 8, 5, 4, 3, 18, 6):
+            if re.search(rf"(?<!\d){val}(?!\d)", t):
+                return val
+        return 4
 
     def demo_scale(self):
         base = Line(LEFT * 2.4, RIGHT * 2.4).set_stroke(MUTED, 5)
@@ -764,53 +961,60 @@ class LessonScene(Scene):
         return g
 
     def demo_distribute(self, beat="3(x + 4) = 3x + 12"):
-        eq = formula(extract_math(beat), 34, CREAM, 12)
-        if eq.get_width() > 12:
-            eq.set_width(12)
-        eq.move_to(0.55 * UP)
-        self.play(FadeIn(eq), run_time=0.4)
-        out = formula("each term inside gets multiplied", 22, TEAL, 36).move_to(0.7 * DOWN)
+        eq = formula(extract_math(beat), 30, CREAM, 11)
+        if eq.get_width() > 11.5:
+            eq.set_width(11.5)
+        eq.move_to(0.85 * UP)
+        self.play(FadeIn(eq), run_time=0.35)
+        # Picture: arrows from the outer factor into each inside term.
+        box = RoundedRectangle(4.2, 1.1, corner_radius=0.12).set_stroke(BLUE, 3)
+        inside = formula("x + 4", 28, CREAM, 10).move_to(box)
+        factor = formula("3", 36, GOLD, 6).next_to(box, LEFT, buff=0.35)
+        group = VGroup(factor, box, inside).move_to(0.35 * DOWN)
+        a1 = Arrow(factor.get_right() + 0.1 * UP, inside.get_left() + 0.2 * LEFT + 0.15 * UP, fill_color=GOLD, buff=0.05)
+        a2 = Arrow(factor.get_right() + 0.1 * DOWN, inside.get_right() + 0.1 * LEFT + 0.15 * DOWN, fill_color=TEAL, buff=0.05)
+        out = formula("3x + 12", 32, GREEN, 12).next_to(group, DOWN, buff=0.35)
+        self.play(FadeIn(factor), ShowCreation(box), FadeIn(inside), run_time=0.4)
         self.sfx("pop", -11)
-        self.play(FadeIn(out), run_time=0.3)
-        return VGroup(eq, out)
+        self.play(ShowCreation(a1), ShowCreation(a2), run_time=0.35)
+        self.play(GrowFromCenter(out), run_time=0.3)
+        return VGroup(eq, group, a1, a2, out)
 
     def demo_both_sides(self, beat="6x - 7 = 5x + 7"):
-        eq = formula(extract_math(beat), 32, CREAM, 12).move_to(0.55 * UP)
-        if eq.get_width() > 12:
-            eq.set_width(12)
-        self.play(FadeIn(eq), run_time=0.45)
-        step = formula("keep both sides equal", 22, TEAL, 36)
-        self.play(FadeIn(step, UP), run_time=0.3)
-        return VGroup(eq, step)
+        return self.demo_eq_graph_solve(beat)
 
     def demo_no_solution(self, beat="x + 1 = x + 4"):
-        eq = formula(extract_math(beat), 32, CREAM, 12).move_to(0.5 * UP)
-        if eq.get_width() > 12:
-            eq.set_width(12)
-        self.play(FadeIn(eq), run_time=0.3)
-        no = formula("no solution", 36, RED, 20).move_to(0.7 * DOWN)
-        self.sfx("wrong", -9)
-        self.play(GrowFromCenter(no), run_time=0.35)
-        return VGroup(eq, no)
+        return self.demo_eq_graph_parallel(beat)
 
     def demo_identity(self, beat="2(x + 1) = 2x + 2"):
-        eq = formula(extract_math(beat), 30, CREAM, 12).move_to(0.5 * UP)
-        if eq.get_width() > 12:
-            eq.set_width(12)
-        self.play(FadeIn(eq), run_time=0.3)
-        yes = formula("always true", 32, GREEN, 20).move_to(0.6 * DOWN)
-        self.sfx("success", -10)
-        self.play(GrowFromCenter(yes), run_time=0.4)
-        return VGroup(eq, yes)
+        return self.demo_eq_graph_same(beat)
 
     def demo_clear_fraction(self, beat="(x + 2)/3 = 4"):
-        eq = formula(extract_math(beat), 32, CREAM, 12).move_to(0.55 * UP)
-        if eq.get_width() > 12:
-            eq.set_width(12)
+        t = caretify(beat)
+        if "->" in t:
+            return self.demo_eq_chain_and_graph(beat)
+        eq = formula(extract_math(beat), 30, CREAM, 11)
+        if eq.get_width() > 11:
+            eq.set_width(11)
+        eq.move_to(0.9 * UP)
         self.play(FadeIn(eq), run_time=0.3)
-        times = formula("multiply both sides to clear the denominator", 22, TEAL, 36)
-        self.play(FadeIn(times), run_time=0.3)
-        return VGroup(eq, times)
+        # Visual: multiply both sides by the denominator.
+        left = self._card(extract_math(beat).split("=")[0].strip() if "=" in extract_math(beat) else "frac", BLUE, 2.6, 0.9)
+        right = self._card(extract_math(beat).split("=")[-1].strip() if "=" in extract_math(beat) else "n", TEAL, 1.6, 0.9)
+        pair = VGroup(left, formula("=", 28, GOLD, 4), right).arrange(RIGHT, buff=0.25).move_to(0.15 * DOWN)
+        times = formula("× denominator on both sides", 22, TEAL, 32).next_to(pair, DOWN, buff=0.3)
+        self.play(FadeIn(pair), run_time=0.35)
+        self.sfx("whoosh", -11)
+        self.play(pair.animate.scale(1.08), FadeIn(times), run_time=0.35)
+        # Small graph of the answer on a number line.
+        sol = self._guess_solution(beat)
+        nl = NumberLine(x_range=(0, max(12, sol + 2), 2), width=7)
+        nl.set_stroke(MUTED, 2)
+        tip = Dot(nl.n2p(sol), fill_color=GOLD)
+        tip_lab = formula(f"x = {sol}", 20, GOLD, 10).next_to(tip, UP, buff=0.15)
+        nl_g = VGroup(nl, tip, tip_lab).next_to(times, DOWN, buff=0.3)
+        self.play(ShowCreation(nl), GrowFromCenter(tip), FadeIn(tip_lab), run_time=0.45)
+        return VGroup(eq, pair, times, nl_g)
 
     # ----- slope: different lines each beat -----
 
@@ -904,27 +1108,55 @@ class LessonScene(Scene):
     def anim_function(self, beat_i, beat):
         if has(beat, "vertical line"):
             return self.demo_vlt()
-        if has(beat, "table"):
+        if has(beat, "table", "first differences"):
             return self.demo_table()
-        if has(beat, "nonlinear", "x to the 2", "curve"):
+        if has(beat, "nonlinear", "x to the 2", "curve", "not a line"):
             return self.demo_curve()
-        if has(beat, "machine", "f(x)", "notation"):
+        if has(beat, "machine", "f(x)", "notation", "input", "output"):
             return self.demo_machine()
-        return self.demo_show_math(beat)
+        if has(beat, "linear", "mx + b", "equal x-steps", "straight"):
+            return self.demo_slope_line(1.5, "linear: equal steps", intercept=1)
+        if has(beat, "domain", "range"):
+            return self.demo_curve()
+        if "=" in beat or "f(" in beat:
+            return self.demo_function_graph(beat)
+        return self.demo_machine()
+
+    def demo_function_graph(self, beat):
+        axes = Axes((-2, 5), (-2, 8), height=3.1, width=3.6)
+        axes.set_stroke(MUTED, 2)
+        t = caretify(beat)
+        if "x^2" in t or "x²" in beat:
+            curve = axes.get_graph(lambda x: 0.35 * x * x).set_stroke(PINK, 5)
+            lab = formula("curve", 20, PINK, 12)
+        else:
+            curve = axes.get_graph(lambda x: 1.2 * x + 1).set_stroke(GOLD, 5)
+            lab = formula("y = f(x)", 20, GOLD, 14)
+        pack = VGroup(VGroup(axes, curve), lab).arrange(DOWN, buff=0.12).move_to(0.25 * DOWN)
+        self.play(ShowCreation(axes), run_time=0.3)
+        self.sfx("whoosh", -12)
+        self.play(ShowCreation(curve), FadeIn(lab), run_time=0.55)
+        return pack
 
     def demo_machine(self):
         inn = self._card("x = 3", BLUE, 1.6, 0.75)
         box = self._card("2x + 1", GOLD, 2.0, 1.1)
         out = self._card("7", TEAL, 1.3, 0.75)
-        row = VGroup(inn, box, out).arrange(RIGHT, buff=0.7).move_to(0.2 * DOWN)
+        row = VGroup(inn, box, out).arrange(RIGHT, buff=0.7).move_to(0.55 * UP)
         a1 = Arrow(inn.get_right(), box.get_left(), buff=0.06, fill_color=GOLD)
         a2 = Arrow(box.get_right(), out.get_left(), buff=0.06, fill_color=TEAL)
+        axes = Axes((-1, 5), (-1, 8), height=2.2, width=2.6)
+        axes.set_stroke(MUTED, 2)
+        line = axes.get_graph(lambda x: 2 * x + 1).set_stroke(GOLD, 4)
+        dot = Dot(axes.c2p(3, 7), fill_color=TEAL)
+        graph = VGroup(axes, line, dot).move_to(1.15 * DOWN)
         self.play(GrowFromCenter(box), run_time=0.3)
         self.sfx("whoosh", -12)
         self.play(FadeIn(inn, RIGHT), ShowCreation(a1), run_time=0.3)
         self.pop_flash(box.get_center(), GOLD, 0.45)
         self.play(ShowCreation(a2), GrowFromCenter(out), run_time=0.35)
-        return VGroup(row, a1, a2)
+        self.play(ShowCreation(axes), ShowCreation(line), GrowFromCenter(dot), run_time=0.45)
+        return VGroup(row, a1, a2, graph)
 
     def demo_table(self):
         headers = VGroup(T("x", 22, GOLD, 6), T("f(x)", 22, TEAL, 8)).arrange(RIGHT, buff=1.4)
@@ -965,19 +1197,26 @@ class LessonScene(Scene):
             return self.demo_parallel()
         if has(beat, "same line", "infinitely"):
             return self.demo_same_line()
-        if has(beat, "eliminat", "add", "cancel"):
+        if has(beat, "eliminat", "add", "cancel", "oppose"):
             return self.demo_eliminate()
         if has(beat, "substitut"):
             return self.demo_substitute()
-        return self.demo_show_math(beat)
+        pts = re.findall(r"\(\s*(-?\d+)\s*,\s*(-?\d+)\s*\)", beat)
+        if pts:
+            return self.demo_cross(int(pts[0][0]), int(pts[0][1]))
+        if has(beat, "intersect", "one solution", "cross"):
+            return self.demo_cross(2, 3)
+        if "=" in beat:
+            return self.demo_cross(3, 4)
+        return self.demo_cross(2, 3)
 
     def demo_cross(self, x, y):
-        axes = Axes((-1, 5), (-1, 6), height=3.2, width=3.6)
+        axes = Axes((-1, max(5, x + 2)), (-1, max(6, y + 2)), height=3.2, width=3.6)
         axes.set_stroke(MUTED, 2)
         l1 = axes.get_graph(lambda t: y + (t - x)).set_stroke(BLUE, 5)
         l2 = axes.get_graph(lambda t: y - (t - x)).set_stroke(PINK, 5)
         dot = Dot(axes.c2p(x, y), fill_color=GOLD).scale(1.3)
-        lab = T(f"({x}, {y})", 20, GOLD, 12).next_to(dot, UR, buff=0.08)
+        lab = formula(f"({x}, {y})", 20, GOLD, 12).next_to(dot, UR, buff=0.08)
         g = VGroup(axes, l1, l2).move_to(0.35 * DOWN)
         self.play(ShowCreation(axes), run_time=0.28)
         self.play(ShowCreation(l1), run_time=0.4)
@@ -992,32 +1231,47 @@ class LessonScene(Scene):
         axes.set_stroke(MUTED, 2)
         l1 = axes.get_graph(lambda x: 0.5 * x + 1).set_stroke(BLUE, 8, 0.5)
         l2 = axes.get_graph(lambda x: 0.5 * x + 1).set_stroke(GOLD, 4)
-        lab = T("same line  infinitely many", 20, GOLD, 32)
+        lab = formula("same line  infinitely many", 20, GOLD, 32)
         pack = VGroup(VGroup(axes, l1, l2), lab).arrange(DOWN, buff=0.12).move_to(0.3 * DOWN)
         self.play(ShowCreation(axes), ShowCreation(l1), ShowCreation(l2), FadeIn(lab), run_time=0.85)
         return pack
 
     def demo_substitute(self):
-        a = T("y = x + 1", 28, BLUE, 18).move_to(2.3 * LEFT + 0.5 * UP)
-        b = T("2x + y = 10", 28, PINK, 18).move_to(2.3 * LEFT + 0.3 * DOWN)
+        a = formula("y = x + 1", 26, BLUE, 16).move_to(3.2 * LEFT + 0.9 * UP)
+        b = formula("2x + y = 10", 26, PINK, 16).move_to(3.2 * LEFT + 0.35 * UP)
         self.play(FadeIn(a, LEFT), FadeIn(b, LEFT), run_time=0.35)
-        plug = T("2x + (x + 1) = 10", 26, GOLD, 24).move_to(2.4 * RIGHT + 0.4 * UP)
-        out = T("(3, 4)", 40, GREEN, 12).move_to(2.4 * RIGHT + 0.7 * DOWN)
+        plug = formula("2x + (x + 1) = 10", 24, GOLD, 22).move_to(3.2 * LEFT + 0.35 * DOWN)
+        out = formula("(3, 4)", 34, GREEN, 12).move_to(3.2 * LEFT + 1.15 * DOWN)
         self.sfx("whoosh", -11)
         self.play(FadeIn(plug, RIGHT), run_time=0.3)
-        self.play(GrowFromCenter(out), run_time=0.35)
-        return VGroup(a, b, plug, out)
+        self.play(GrowFromCenter(out), run_time=0.3)
+        axes = Axes((-1, 6), (-1, 8), height=2.8, width=3.0)
+        axes.set_stroke(MUTED, 2)
+        l1 = axes.get_graph(lambda x: x + 1).set_stroke(BLUE, 4)
+        l2 = axes.get_graph(lambda x: 10 - 2 * x).set_stroke(PINK, 4)
+        dot = Dot(axes.c2p(3, 4), fill_color=GOLD)
+        graph = VGroup(axes, l1, l2, dot).move_to(2.6 * RIGHT + 0.15 * DOWN)
+        self.play(ShowCreation(axes), ShowCreation(l1), ShowCreation(l2), GrowFromCenter(dot), run_time=0.6)
+        self.pop_flash(dot.get_center())
+        return VGroup(a, b, plug, out, graph)
 
     def demo_eliminate(self):
-        a = T("x + y = 10", 26, BLUE, 18).move_to(2.2 * LEFT + 0.45 * UP)
-        b = T("x - y = 2", 26, PINK, 18).move_to(2.2 * LEFT + 0.35 * DOWN)
+        a = formula("x + y = 10", 26, BLUE, 16).move_to(3.0 * LEFT + 0.85 * UP)
+        b = formula("x − y = 2", 26, PINK, 16).move_to(3.0 * LEFT + 0.3 * UP)
         self.play(FadeIn(a), FadeIn(b), run_time=0.3)
-        plus = T("ADD  ->  2x = 12", 26, GOLD, 22).move_to(2.3 * RIGHT + 0.35 * UP)
-        out = T("x = 6, y = 4", 30, GREEN, 20).move_to(2.3 * RIGHT + 0.7 * DOWN)
+        plus = formula("ADD  ->  2x = 12", 24, GOLD, 20).move_to(3.0 * LEFT + 0.35 * DOWN)
+        out = formula("x = 6, y = 4", 28, GREEN, 18).move_to(3.0 * LEFT + 1.1 * DOWN)
         self.sfx("thud", -11)
-        self.play(a.animate.shift(0.15 * DOWN), b.animate.shift(0.15 * UP), run_time=0.25)
+        self.play(a.animate.shift(0.12 * DOWN), b.animate.shift(0.12 * UP), run_time=0.25)
         self.play(FadeIn(plus), GrowFromCenter(out), run_time=0.4)
-        return VGroup(a, b, plus, out)
+        axes = Axes((-1, 8), (-1, 8), height=2.8, width=3.0)
+        axes.set_stroke(MUTED, 2)
+        l1 = axes.get_graph(lambda x: 10 - x).set_stroke(BLUE, 4)
+        l2 = axes.get_graph(lambda x: x - 2).set_stroke(PINK, 4)
+        dot = Dot(axes.c2p(6, 4), fill_color=GOLD)
+        graph = VGroup(axes, l1, l2, dot).move_to(2.7 * RIGHT + 0.1 * DOWN)
+        self.play(ShowCreation(axes), ShowCreation(l1), ShowCreation(l2), GrowFromCenter(dot), run_time=0.55)
+        return VGroup(a, b, plus, out, graph)
 
     # ----- pythagoras: NEVER loop the same 3-4-5 -----
 
