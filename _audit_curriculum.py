@@ -26,6 +26,12 @@ PACKAGES = [
     ("grade8_math_curriculum", "Eighth"),
     ("algebra2_curriculum", "Algebra 2"),
     ("mathcounts_curriculum", "MathCounts"),
+    ("algebra1_curriculum", "Algebra 1"),
+    ("geometry_curriculum", "Geometry"),
+    ("trigonometry_curriculum", "Trigonometry"),
+    ("precalculus_curriculum", "Precalculus"),
+    ("apcalc_ab_curriculum", "AP Calculus AB"),
+    ("apcalc_bc_curriculum", "AP Calculus BC"),
 ]
 
 BANNED = re.compile(r"\b(wait|recalculate)\b", re.I)

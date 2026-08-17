@@ -16,6 +16,26 @@ def challenges_for(title: str) -> list:
     t = (title or "").lower()
     out = []
 
+    # --- High school (check before Algebra 2 / grade bands) ---
+    if "ap calculus bc" in t or "calculus bc" in t:
+        out += _bc(t)
+        return [q for q in out if q]
+    if "ap calculus ab" in t or "calculus ab" in t:
+        out += _ab()
+        return [q for q in out if q]
+    if "precalculus" in t or "precalc" in t:
+        out += _precalc(t)
+        return [q for q in out if q]
+    if t.startswith("trigonometry") or "trigonometry unit" in t:
+        out += _trig(t)
+        return [q for q in out if q]
+    if t.startswith("geometry") or "geometry unit" in t:
+        out += _geo(t)
+        return [q for q in out if q]
+    if "algebra 1" in t:
+        out += _a1(t)
+        return [q for q in out if q]
+
     # --- MathCounts ---
     if "mathcounts" in t:
         if "permut" in t or "arrangement" in t:
@@ -554,3 +574,180 @@ def _g1():
         _q("Full ten-frame +6, add 5. Total?", 21, "", [16, 15, 20], "hard"),
         _q("SAT Stretch: Need 20 crayons; have 7+6. How many more?", 7, "", [6, 8, 13], "stretch"),
     ]
+
+
+def _a1(t):
+    if "quadratic" in t:
+        return [
+            _q("Vertex of y=(x-3)^2+2?", "(3,2)", "h,k from vertex form.", ["(−3,2)", "(3,−2)", "(2,3)"], "hard"),
+            _q("SAT Stretch: Roots of x²−5x+6=0?", "2 and 3", "Factor (x−2)(x−3).", ["−2 and −3", "5 and 6", "1 and 6"], "stretch"),
+            _q("SAT Stretch: Max of h=−16t²+64t?", 64, "Vertex t=2; h=64.", [32, 16, 48], "stretch"),
+        ]
+    if "system" in t:
+        return [
+            _q("x+y=10, x−y=2. x?", 6, "Add: 2x=12.", [4, 8, 5], "hard"),
+            _q("SAT Stretch: 3x+2y=16, x−y=1. x?", "18/5", "x=y+1 into first.", [3, 4, 2], "stretch"),
+        ]
+    if "exponent" in t:
+        return _g8_exponents()
+    if "factor" in t or "polynomial" in t:
+        return [
+            _q("Factor x²+5x+6.", "(x+2)(x+3)", "(x+2)(x+3).", ["(x+6)(x+1)", "(x+5)(x+1)", "x(x+5)+6"], "hard"),
+            _q("SAT Stretch: Factor 2x²+7x+3.", "(2x+1)(x+3)", "(2x+1)(x+3).", ["(2x+3)(x+1)", "(2x+7)(x+3)", "(x+1)(x+3)"], "stretch"),
+        ]
+    if "inequal" in t or "equation" in t:
+        return _g8_equations() + [
+            _q("SAT Stretch: |2x−3|=7. Sum of solutions?", 3, "2x−3=±7 → x=5 or x=−2; sum 3.", [7, 5, 10], "stretch"),
+        ]
+    if "linear function" in t or "graph" in t:
+        return _g8_slope()
+    if "data" in t or "sequence" in t:
+        return _g8_data() + [
+            _q("SAT Stretch: Arithmetic a1=7, d=4. a20?", 83, "7+19·4.", [80, 87, 27], "stretch"),
+        ]
+    return _g8_equations() + _g8_slope()[:2]
+
+
+def _geo(t):
+    if "circle" in t:
+        return [
+            _q("Inscribed angle intercepting a 80° arc?", 40, "Half the arc.", [80, 160, 100], "hard"),
+            _q("SAT Stretch: Sector area r=6, θ=60°. In terms of π?", "6π", "60/360·π·36=6π.", ["36π", "12π", "3π"], "stretch"),
+        ]
+    if "similar" in t:
+        return [
+            _q("Triangles similar with ratio 2:5. Area ratio?", "4:25", "Squares of sides.", ["2:5", "8:125", "4:5"], "hard"),
+            _q("SAT Stretch: Shadow 8 ft, pole 6 ft, tree shadow 20 ft. Tree height?", 15, "6/8=h/20.", [12, 18, 14], "stretch"),
+        ]
+    if "right" in t or "trig" in t or "pythag" in t:
+        return _g8_pythag() + [
+            _q("SAT Stretch: 30-60-90 short leg 5. Hypotenuse?", 10, "2×short.", ["5√3", 15, "5√2"], "stretch"),
+        ]
+    if "volume" in t or "area" in t or "coordinate" in t:
+        return [
+            _q("Prism 4×3×5 volume?", 60, "lwh.", [12, 24, 47], "hard"),
+            _q("SAT Stretch: Sphere r=3. Volume in terms of π?", "36π", "4/3πr³=36π.", ["12π", "9π", "108π"], "stretch"),
+        ]
+    if "congruence" in t:
+        return [
+            _q("Which is NOT a congruence shortcut?", "SSA", "SSA is ambiguous.", ["SAS", "ASA", "HL"], "hard"),
+            _q("SAT Stretch: HL applies only to…", "right triangles", "Right triangles only.", ["all triangles", "isosceles only", "obtuse only"], "stretch"),
+        ]
+    return [
+        _q("Vertical angles are…", "congruent", "Vertical angles are congruent.", ["supplementary always", "complementary", "adjacent"], "hard"),
+        _q("SAT Stretch: Parallel lines, corresponding angles 3x+10 and 70. x?", 20, "3x+10=70.", [30, 20 / 3, 80], "stretch"),
+    ]
+
+
+def _trig(t):
+    if "unit circle" in t or "radian" in t:
+        return [
+            _q("cos(2π/3)?", "-1/2", "120° in QII.", ["1/2", "√3/2", "−√3/2"], "hard"),
+            _q("SAT Stretch: Arc length r=6, θ=2π/3?", "4π", "s=rθ=4π.", ["2π", "12π", "π"], "stretch"),
+        ]
+    if "identity" in t:
+        return [
+            _q("1+tan²θ = ?", "sec²θ", "Pythagorean.", ["csc²θ", "cos²θ", "1"], "hard"),
+            _q("SAT Stretch: sin(2θ) if sinθ=3/5, θ in QI?", "24/25", "2sin cos; cos=4/5.", ["6/5", "7/25", "12/25"], "stretch"),
+        ]
+    if "law of" in t or "sine" in t and "cosine" in t:
+        return [
+            _q("SSA ambiguous: a=8, A=30°, b=10. How many triangles?", 2, "a>b sin A and a<b.", [0, 1, 3], "hard"),
+            _q("SAT Stretch: SAS a=7,b=8,C=60°. c²?", 57, "49+64−2·7·8·1/2=57.", ["113", "15", "64"], "stretch"),
+        ]
+    if "inverse" in t or "equation" in t:
+        return [
+            _q("arcsin(1/2) in radians?", "π/6", "Range of arcsin.", ["π/3", "5π/6", "π/2"], "hard"),
+            _q("SAT Stretch: Solutions of sin θ=1/2 on [0,2π)?", "π/6 and 5π/6", "Q1 and Q2.", ["π/6 only", "π/3 and 2π/3", "π/6 and 7π/6"], "stretch"),
+        ]
+    return [
+        _q("sin 30°?", "1/2", "", ["√3/2", "√2/2", "1"], "hard"),
+        _q("SAT Stretch: Period of y=3 sin(2x)?", "π", "2π/|b|.", ["2π", "4π", "3"], "stretch"),
+        _q("SAT Stretch: Amplitude of y=−4 cos(x−π)+1?", 4, "Absolute value of coeff.", [-4, 1, 5], "stretch"),
+    ]
+
+
+def _precalc(t):
+    if "conic" in t:
+        return [
+            _q("x²/9+y²/4=1. Semi-major?", 3, "a=3 along x.", [2, 9, 4], "hard"),
+            _q("SAT Stretch: xy=0 is which degenerate conic idea?", "the axes (two lines)", "The coordinate axes.", ["a circle", "a parabola", "a hyperbola"], "stretch"),
+        ]
+    if "polar" in t or "analytic" in t:
+        return [
+            _q("Rectangular for r=2, θ=π/3?", "(1, √3)", "x=r cos, y=r sin.", ["(2, π/3)", "(√3, 1)", "(1, 1)"], "hard"),
+            _q("SAT Stretch: r=2a cos θ is a circle of diameter…", "2a", "Through origin.", ["a", "4a", "a/2"], "stretch"),
+        ]
+    if "sequence" in t or "limit" in t:
+        return [
+            _q("Sum of infinite 1/2+1/4+1/8+…?", 1, "a/(1−r).", ["2", "1/2", "∞"], "hard"),
+            _q("SAT Stretch: lim x→0 (sin 3x)/x ?", 3, "3·sinc.", [1, 0, "3x"], "stretch"),
+        ]
+    if "vector" in t or "matrix" in t or "parametric" in t:
+        return [
+            _q("Dot product <3,4>·<4,-3>?", 0, "12-12.", [7, 25, -7], "hard"),
+            _q("SAT Stretch: Inverse of [[1,1],[0,1]]?", "[[1,−1],[0,1]]", "Shear inverse.", ["[[1,0],[1,1]]", "[[1,1],[0,1]]", "no inverse"], "stretch"),
+        ]
+    return _a2_explog() + _a2_poly()[:2]
+
+
+def _ab():
+    return [
+        _q("lim x→0 (sin x)/x ?", 1, "Standard limit.", [0, "∞", "x"], "hard"),
+        _q("d/dx [x³]?", "3x²", "Power rule.", ["3x", "x²", "3x³"], "hard"),
+        _q("d/dx [sin x]?", "cos x", "", ["−cos x", "sin x", "−sin x"], "hard"),
+        _q("AP Stretch: d/dx [x² sin x]?", "2x sin x + x² cos x", "Product rule.", ["2x cos x", "2x sin x", "x² cos x"], "stretch"),
+        _q("AP Stretch: ∫ 2x dx from 0 to 3?", 9, "x² from 0 to 3.", [6, 3, 18], "stretch"),
+        _q("AP Stretch: Average value of x² on [0,3]?", 3, "(1/3)∫x²=9/3=3.", [9, 1, 6], "stretch"),
+        _q("AP Stretch: If f'(x)>0 on (a,b), f is…", "increasing", ["concave up", "decreasing", "constant"], "stretch"),
+        _q("MVT: f(0)=1, f(2)=7. Some c in (0,2) with f'(c)=?", 3, "(7−1)/2.", [6, 4, 8], "hard"),
+        _q("AP Stretch: Volume of y=x rotated about x-axis on [0,2] (disks, π)?", "8π/3", "π∫x² dx=π(8/3).", ["4π", "2π", "16π/3"], "stretch"),
+    ]
+
+
+def _bc(t=""):
+    """Unit-specific BC padding so series never lands on polar (and vice versa)."""
+    t = (t or "").lower()
+    if "euler" in t or "logistic" in t or "mixed frq" in t:
+        return [
+            _q("Euler: y'=y, y(0)=1, h=0.5. After one step y₁ is?", 1.5, "y+hy'=1+0.5.", [2, 0.5, 1.25], "hard"),
+            _q("If dy/dt=2y(5−y), the carrying capacity is?", 5, "Equilibrium y=L.", [2, 10, 0], "hard"),
+            _q("AP Stretch: Two Euler steps for y'=x+y, y(0)=1, h=0.1 give y(0.2)≈?", 1.22, "y1=1.1, y2=1.22.", [1.2, 1.21, 1.3], "stretch"),
+        ]
+    if "polar area" in t or "parametric applications" in t:
+        return [
+            _q("Polar area of r=2 on [0,π/2] is?", "π", "(1/2)∫4 dθ=π.", ["2π", "4", "π/2"], "hard"),
+            _q("One petal of r=cos 2θ has area?", "π/8", "(1/2)∫ cos²2θ on a petal.", ["π/4", "π/2", "π/16"], "hard"),
+            _q("AP Stretch: Polar area of one petal of the rose r=2 cos 2θ?", "π/2", "a=2 so πa²/8=π/2.", ["π", "π/4", "π/8"], "stretch"),
+        ]
+    if "taylor" in t or "maclaurin" in t:
+        return [
+            _q("Maclaurin for e^x through degree 2?", "1+x+x²/2", "1+x+x²/2!.", ["1+x+x²", "1+x²/2", "x+x²/2"], "hard"),
+            _q("AP Stretch: Lagrange bound |R₂(1)| for e^x on [0,1] is at most?", "e/6", "M=e, 1³/3!=e/6.", ["1/6", "e/2", "e"], "stretch"),
+        ]
+    if "power series" in t or "ratio, root" in t:
+        return [
+            _q("Radius of Σ x^n/n! is?", "∞", "Ratio limit 0.", [1, 0, "1/e"], "hard"),
+            _q("AP Stretch: Interval of Σ (x−2)^n/n is?", "[1,3)", "Radius 1; ln at x=3 diverges, x=1 converges.", ["(1,3)", "[1,3]", "(1,3]"], "stretch"),
+        ]
+    if "sequences" in t or "series tests" in t:
+        return [
+            _q("Geometric Σ (1/3)^n from n=0 to ∞ equals?", "3/2", "1/(1−1/3).", ["1/3", "1", "3"], "hard"),
+            _q("AP Stretch: Σ (−1)^{n+1}/n^2 converges…", "absolutely", "p=2>1.", ["conditionally", "diverges", "to 0"], "stretch"),
+        ]
+    if "arc length" in t and "polar" not in t:
+        return [
+            _q("Arc length of y=x on [0,1] is?", "√2", "∫√(1+1) dx.", ["1", "2", "π/4"], "hard"),
+            _q("AP Stretch: Surface of y=x on [0,1] about the x-axis?", "π√2", "2π∫x√2 dx=π√2.", ["2π", "π", "√2"], "stretch"),
+        ]
+    if "advanced integration" in t:
+        return [
+            _q("∫ x e^x dx (parts, +C)?", "e^x(x−1)+C", "u=x, dv=e^x dx.", ["e^x + C", "x e^x + C", "e^x(x+1)+C"], "hard"),
+            _q("AP Stretch: ∫_1^∞ dx/x^2 equals?", 1, "lim b→∞ (1−1/b)=1.", [0, "∞", "1/2"], "stretch"),
+        ]
+    return [
+        _q("If x=t², y=t³ (t≠0), dy/dx equals?", "3t/2", "(3t²)/(2t).", ["3t", "2t/3", "t"], "hard"),
+        _q("Speed of r(t)=⟨t,t²⟩ at t=1?", "√5", "|⟨1,2⟩|.", ["5", "3", "√2"], "hard"),
+        _q("AP Stretch: Polar dy/dx for r=2 cos θ at θ=π/4?", 0, "Numerator of dy/dθ vanishes.", [1, "undefined", "√2"], "stretch"),
+    ]
+

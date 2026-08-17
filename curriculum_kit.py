@@ -254,12 +254,26 @@ def svg_rect(length, width, label=True):
 
 
 def svg_triangle(a=3, b=4, c=5, right=True):
+    if right:
+        poly = "30,140 190,140 30,40"
+        mark = '<rect x="30" y="124" width="16" height="16" fill="none" stroke="#0f172a"/>'
+        labels = (
+            f'<text x="110" y="158" text-anchor="middle" font-size="12">{a}</text>'
+            f'<text x="18" y="96" font-size="12">{b}</text>'
+            f'<text x="130" y="80" font-size="12">{c}</text>'
+        )
+    else:
+        # Scalene acute/obtuse-looking triangle — no right-angle square.
+        poly = "28,148 210,132 92,28"
+        mark = ""
+        labels = (
+            f'<text x="118" y="160" text-anchor="middle" font-size="12">{a}</text>'
+            f'<text x="44" y="88" font-size="12">{b}</text>'
+            f'<text x="168" y="70" font-size="12">{c}</text>'
+        )
     return f'''<svg viewBox="0 0 240 170" width="100%" style="max-width:240px" role="img">
-  <polygon points="30,140 190,140 30,40" fill="#fde68a" stroke="#0f172a" stroke-width="2"/>
-  <rect x="30" y="124" width="16" height="16" fill="none" stroke="#0f172a"/>
-  <text x="110" y="158" text-anchor="middle" font-size="12">{a}</text>
-  <text x="18" y="96" font-size="12">{b}</text>
-  <text x="130" y="80" font-size="12">{c}</text>
+  <polygon points="{poly}" fill="#fde68a" stroke="#0f172a" stroke-width="2"/>
+  {mark}{labels}
 </svg>'''
 
 
@@ -786,12 +800,19 @@ def diagram_for_context(unit_title: str, text: str, answer=None, *, require_tool
         return q_figure(svg_number_line(lo, hi, marks=marks, highlight=focus), "Numbers from this problem on the line.")
 
     # Scatter / stats BEFORE any "plot" / coordinate-plane match.
-    if has_kw(blob, "outlier", "scatter", "association", "line of best fit", "best fit", "fitted line"):
+    if has_kw(blob, "outlier", "scatter", "association", "line of best fit", "best fit", "fitted line",
+              "trend line", "sketch a trend"):
         cloud = [(1, 2), (2, 2.5), (3, 3.8), (4, 3.6), (5, 5.1), (6, 5.7)]
         trend = (0.8, 1.7, 6.5, 6.0)
         outlier = (7.4, 1.4) if has_kw(blob, "outlier") else None
         cap = "Orange point is an outlier, far from the cloud." if outlier else "Points form a cloud. The dashed line is a model, not every exact y."
         return q_figure(svg_scatter(cloud, trend=trend, outlier=outlier), cap)
+
+    if has_kw(blob, "derivative", "tangent line", "difference quotient") or "f'(" in blob:
+        return q_figure(
+            svg_parabola(h=0, k=0, lim=6),
+            "A smooth curve — the derivative at a point is the slope of the tangent there.",
+        )
 
     if has_kw(blob, "box plot", "boxplot") or (
         has_kw(blob, "median") and has_kw(blob, "quartile", "iqr", "whisker", "two groups")
@@ -828,10 +849,16 @@ def diagram_for_context(unit_title: str, text: str, answer=None, *, require_tool
         return q_figure(svg_triangle(a, b, c), f"Legs {a} and {b}; hypotenuse {c}.")
 
     if has_kw(blob, "circle", "radius", "circumference", "diameter", "π", "pi"):
-        r = abs(n_at(0, 1, 15, 2 + seed % 8))
-        if has_kw(blob, "diameter") and ans is not None and ans > 0:
-            r = max(1, ans // 2)
-        return q_figure(svg_circle(r), f"Circle with radius {r}.")
+        # Number-line "open/closed circle" is not a geometry circle.
+        if has_kw(blob, "open circle", "closed circle", "open dot", "closed dot", "shade right", "shade left"):
+            pass
+        elif has_kw(blob, "number line") or ("circle at" in blob and has_kw(blob, "shade", "inequality", "inequal")):
+            pass
+        else:
+            r = abs(n_at(0, 1, 15, 2 + seed % 8))
+            if has_kw(blob, "diameter") and ans is not None and ans > 0:
+                r = max(1, ans // 2)
+            return q_figure(svg_circle(r), f"Circle with radius {r}.")
 
     if has_kw(blob, "area", "perimeter", "rectangle", "surface area", "volume"):
         length = abs(n_at(0, 2, 20, 4 + seed % 10))
@@ -1069,6 +1096,12 @@ def polish_content(title: str, content: str) -> str:
         if re.search(r"<svg|vl-figure|vl-q-diagram|phet-sim-wrapper", block, re.I):
             return block
         plain = re.sub(r"<[^>]+>", " ", block)
+        # High-school (and all) solved examples already have a matching lesson_figure
+        # before the block. Only add another picture when the example itself asks
+        # for a visual tool — otherwise "closed circle" becomes a geometry disk,
+        # "10%" becomes a percent bar, and "r = 1/2" becomes a fraction pie.
+        if not asks_for_tool(plain):
+            return block
         fig = lesson_figure_for(title, plain)
         if not fig:
             return block
@@ -1411,8 +1444,12 @@ def polish_questions(title: str, questions) -> list:
     while len(core) < CONCEPT_QUESTIONS and hard_pool:
         core.append(hard_pool.pop(0))
 
-    # Finale prefers hard / stretch challenges (not leftover easy fillers).
-    unique = core + hard_pool + other_pool
+    # Keep authored finale items that are real challenges (SAT Stretch, etc.).
+    finale_hw = [
+        q for q in handwritten[CONCEPT_QUESTIONS:]
+        if not _is_too_easy_for_hard(q.get("question_text") or "")
+    ]
+    unique = core + finale_hw + hard_pool + other_pool
 
     n = 0
     while len(unique) < TARGET_QUESTIONS and n < 500:
