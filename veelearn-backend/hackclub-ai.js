@@ -2,6 +2,7 @@ const axios = require('axios');
 
 const HACKCLUB_URL = 'https://ai.hackclub.com/proxy/v1/chat/completions';
 const DEFAULT_MODEL = 'dots-studio/dots-3-note-preview:free';
+const DEFAULT_JSON_MODEL = 'qwen/qwen3-32b';
 const DEFAULT_TIMEOUT_MS = 180000;
 
 const JSON_MUST =
@@ -15,14 +16,31 @@ function getHackClubModel() {
     return String(process.env.HACKCLUBAI_MODEL || DEFAULT_MODEL).trim() || DEFAULT_MODEL;
 }
 
-function flattenContent(content) {
+function getHackClubJsonModel() {
+    return String(process.env.HACKCLUBAI_JSON_MODEL || DEFAULT_JSON_MODEL).trim() || DEFAULT_JSON_MODEL;
+}
+
+function isReasoningPart(part) {
+    const t = String(part?.type || '').toLowerCase();
+    return t === 'reasoning' || t === 'thinking' || t === 'reason';
+}
+
+function flattenContent(content, opts = {}) {
+    const includeReasoning = Boolean(opts.includeReasoning);
     if (content == null) return '';
     if (typeof content === 'string') return content;
     if (typeof content === 'number' || typeof content === 'boolean') return String(content);
     if (Array.isArray(content)) {
-        return content.map(flattenContent).filter(Boolean).join('\n');
+        return content
+            .map((part) => {
+                if (part && typeof part === 'object' && isReasoningPart(part) && !includeReasoning) return '';
+                return flattenContent(part, opts);
+            })
+            .filter(Boolean)
+            .join('\n');
     }
     if (typeof content === 'object') {
+        if (!includeReasoning && isReasoningPart(content)) return '';
         if (typeof content.text === 'string') return content.text;
         if (typeof content.output_text === 'string') return content.output_text;
         if (typeof content.content === 'string') return content.content;
@@ -31,8 +49,15 @@ function flattenContent(content) {
                 return JSON.stringify(content.parsed);
             } catch (_) { /* ignore */ }
         }
-        if (content.content) return flattenContent(content.content);
-        if (Array.isArray(content.parts)) return flattenContent(content.parts);
+        if (content.content) return flattenContent(content.content, opts);
+        if (Array.isArray(content.parts)) return flattenContent(content.parts, opts);
+    }
+    return '';
+}
+
+function firstNonEmpty(parts) {
+    for (const p of parts) {
+        if (typeof p === 'string' && p.trim()) return p.trim();
     }
     return '';
 }
@@ -40,23 +65,27 @@ function flattenContent(content) {
 function extractAssistantText(data) {
     const choice = data?.choices?.[0] || {};
     const msg = choice.message || choice.delta || {};
-    const chunks = [
-        flattenContent(msg.content),
-        flattenContent(msg.refusal),
-        flattenContent(msg.reasoning_content),
-        flattenContent(msg.reasoning),
-        flattenContent(choice.text),
-        flattenContent(data?.output_text)
-    ];
     if (msg.parsed && typeof msg.parsed === 'object') {
         try {
-            chunks.push(JSON.stringify(msg.parsed));
+            return JSON.stringify(msg.parsed);
         } catch (_) { /* ignore */ }
     }
+    const outputBits = [];
     if (Array.isArray(data?.output)) {
-        for (const item of data.output) chunks.push(flattenContent(item?.content));
+        for (const item of data.output) outputBits.push(flattenContent(item?.content));
     }
-    return chunks.filter((p) => typeof p === 'string' && p.trim()).join('\n').trim();
+    const primary = firstNonEmpty([
+        flattenContent(msg.content),
+        flattenContent(choice.text),
+        flattenContent(data?.output_text),
+        ...outputBits
+    ]);
+    if (primary) return primary;
+    return firstNonEmpty([
+        flattenContent(msg.refusal),
+        flattenContent(msg.reasoning_content, { includeReasoning: true }),
+        flattenContent(msg.reasoning, { includeReasoning: true })
+    ]);
 }
 
 function isFilePart(part) {
@@ -303,6 +332,8 @@ module.exports = {
     toHackClubMessages,
     getHackClubKey,
     getHackClubModel,
+    getHackClubJsonModel,
     JSON_MUST,
-    DEFAULT_MODEL
+    DEFAULT_MODEL,
+    DEFAULT_JSON_MODEL
 };
