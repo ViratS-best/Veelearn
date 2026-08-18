@@ -85,6 +85,10 @@ def extra_questions(title: str):
     for key, fn in matchers:
         if key in t:
             return [q for q in fn() if q]
+    if any(k in t for k in (
+        "biology", "ap chemistry", "ap chem", "physics", "physical science",
+    )):
+        return []
     return [q for q in generic(title) if q]
 
 

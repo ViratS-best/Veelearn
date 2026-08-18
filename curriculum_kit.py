@@ -1319,7 +1319,8 @@ _FILLER_STEM = re.compile(
     r"if 2:5 =|if \$f\(x\)=2x\$|if f\(x\)=2x|"
     r"find the discriminant of \$x\^2\+|leading coefficient of|"
     r"simplify \$i\^\{|"
-    r"a machine starts at",
+    r"a machine starts at|skill check|this lesson is|replace this filler|"
+    r"replace this placeholder",
     re.I,
 )
 

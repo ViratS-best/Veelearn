@@ -16,7 +16,27 @@ def challenges_for(title: str) -> list:
     t = (title or "").lower()
     out = []
 
-    # --- High school (check before Algebra 2 / grade bands) ---
+    # --- High school science (before math) ---
+    if "physical science" in t:
+        out += _psci(t)
+        return [q for q in out if q]
+    if "ap biology" in t or t.startswith("biology"):
+        out += _apbio(t)
+        return [q for q in out if q]
+    if "ap chemistry" in t or "ap chem" in t:
+        out += _apchem(t)
+        return [q for q in out if q]
+    if "physics c" in t and ("e&m" in t or "e and m" in t or "electricity" in t or "electromag" in t):
+        out += _c_em(t)
+        return [q for q in out if q]
+    if "physics c" in t and "mechanic" in t:
+        out += _c_mech(t)
+        return [q for q in out if q]
+    if t.startswith("ap physics") or "ap physics unit" in t:
+        out += _apphys1(t)
+        return [q for q in out if q]
+
+    # --- High school math (check before Algebra 2 / grade bands) ---
     if "ap calculus bc" in t or "calculus bc" in t:
         out += _bc(t)
         return [q for q in out if q]
@@ -750,4 +770,184 @@ def _bc(t=""):
         _q("Speed of r(t)=⟨t,t²⟩ at t=1?", "√5", "|⟨1,2⟩|.", ["5", "3", "√2"], "hard"),
         _q("AP Stretch: Polar dy/dx for r=2 cos θ at θ=π/4?", 0, "Numerator of dy/dθ vanishes.", [1, "undefined", "√2"], "stretch"),
     ]
+
+
+def _psci(t):
+    if "motion" in t or "force" in t:
+        return [
+            _q("A 2 kg cart speeds up from 0 to 4 m/s in 2 s. Net force?", 4, "a=2 m/s²; F=ma=4 N.", [8, 2, 0.5], "hard"),
+            _q("Challenge Stretch: 3 kg pulled 6 N right, 3 N friction. a?", 1, "Fnet=3; a=1 m/s².", [2, 3, 9], "stretch"),
+        ]
+    if "wave" in t or "sound" in t or "light" in t:
+        return [
+            _q("f=5 Hz, λ=4 m. Wave speed?", 20, "v=fλ.", [1.25, 9, 0.8], "hard"),
+            _q("Challenge Stretch: Light in glass n=1.5. If c=3.0×10^8, v?", "2.0×10^8 m/s", "v=c/n.", ["4.5×10^8 m/s", "3.0×10^8 m/s", "1.5×10^8 m/s"], "stretch"),
+        ]
+    if "electric" in t or "magnet" in t:
+        return [
+            _q("Two 3 Ω resistors in series. Equivalent?", 6, "Add series.", [1.5, 9, 0], "hard"),
+            _q("Challenge Stretch: Two 6 Ω in parallel. Req?", 3, "1/R=1/6+1/6.", [12, 6, 9], "stretch"),
+        ]
+    if "atom" in t or "periodic" in t:
+        return [
+            _q("Carbon-14 has 6 protons. Neutrons?", 8, "14−6.", [6, 14, 20], "hard"),
+            _q("Challenge Stretch: Mg²⁺ has 12 protons. Electrons?", 10, "Lost two.", [12, 14, 2], "stretch"),
+        ]
+    if "bond" in t or "reaction" in t:
+        return [
+            _q("Balance: H2 + O2 → H2O. O2 coefficient?", 1, "2 H2 + 1 O2 → 2 H2O.", [2, 3, 0], "hard"),
+            _q("Challenge Stretch: 2 H2 + O2 → 2 H2O. Molecules of water from 6 H2?", 6, "2:2 ratio.", [3, 12, 2], "stretch"),
+        ]
+    return [
+        _q("Density of 20 g in 4 cm³?", 5, "m/V = 20/4 = 5 g/cm³.", [80, 16, 0.2], "hard"),
+        _q("Challenge Stretch: 8 g metal, V=2 cm³. Density vs water (1 g/cm³)?",
+           "sinks (4 g/cm³)", "Density 8/2=4 g/cm³, greater than water, so it sinks.",
+           ["floats", "same as water", "cannot tell"], "stretch"),
+        _q("A sample has mass 12 g and volume 3 mL. Density?", 4, "12/3=4 g/mL.", [36, 9, 0.25], "hard"),
+        _q("Which change is physical, not chemical?", "ice melting",
+           "Melting keeps H2O as H2O. Burning or rusting makes new substances.",
+           ["wood burning", "iron rusting", "baking a cake"], "hard"),
+    ]
+
+
+def _apbio(t):
+    if "energetic" in t or "enzyme" in t or "photo" in t or "respiration" in t:
+        return [
+            _q("If a competitive inhibitor is added, Vmax…", "stays the same",
+               "Competitive inhibitors can be outcompeted by more substrate, so Vmax is unchanged.",
+               ["decreases", "increases", "becomes zero"], "hard"),
+            _q("AP Stretch: Water-splitting in photosynthesis releases O2 at…", "photosystem II",
+               "PSII oxidizes water; the O2 byproduct comes from H2O, not CO2.",
+               ["photosystem I", "Calvin cycle", "ATP synthase"], "stretch"),
+        ]
+    if "expression" in t or "replication" in t or "transcription" in t or "translation" in t:
+        return [
+            _q("DNA replication is…", "semiconservative",
+               "Each new duplex keeps one parental strand.",
+               ["conservative", "dispersive", "random"], "hard"),
+            _q("AP Stretch: A lac operon with lactose present and glucose absent is typically…",
+               "strongly transcribed",
+               "Lactose removes the repressor; low glucose raises cAMP-CAP, so transcription is high.",
+               ["fully repressed", "transcribed only by RNA pol I", "translated but not transcribed"], "stretch"),
+        ]
+    if "heredity" in t or "mendel" in t or "punnett" in t or "pedigree" in t:
+        return [
+            _q("Aa × Aa. Probability of aa?", "1/4", "Punnett square: 1/4 homozygous recessive.",
+               ["1/2", "3/4", "0"], "hard"),
+            _q("AP Stretch: Linked genes 20 cM apart. Recombinant frequency?", "0.20",
+               "1 map unit = 1% recombination, so 20 cM → 0.20.",
+               ["0.80", "0.02", "2"], "stretch"),
+        ]
+    if "ecology" in t or "population" in t:
+        return [
+            _q("10% rule: 1000 J at producers. Herbivores get about…", "100 J",
+               "About 10% of energy transfers up one trophic step.",
+               ["900 J", "10 J", "1000 J"], "hard"),
+            _q("AP Stretch: dN/dt = rN(1−N/K). Max growth at…", "N=K/2",
+               "Logistic growth rate peaks at half carrying capacity.",
+               ["N=K", "N=0", "N=r"], "stretch"),
+        ]
+    return [
+        _q("Which macromolecule stores genetic information?", "nucleic acids",
+           "DNA and RNA are nucleic acids that store and transmit genetic information.",
+           ["lipids", "carbs", "proteins"], "hard"),
+        _q("AP Stretch: Water potential of pure water at 1 atm is…", 0,
+           "By definition ψ of pure water at atmospheric pressure is 0.",
+           [1, -1, "∞"], "stretch"),
+        _q("Hydrogen bonds in water form between…", "H of one molecule and O of another",
+           "The δ+ hydrogen is attracted to a δ− oxygen on a neighbor.",
+           ["two hydrogens on the same molecule", "two oxygens covalently", "carbon and oxygen"], "hard"),
+        _q("A cell with a nucleus and mitochondria is…", "eukaryotic",
+           "Membrane-bound organelles define eukaryotes.",
+           ["prokaryotic", "a virus", "an unencapsulated prion"], "hard"),
+    ]
+
+
+def _apchem(t):
+    if "kinetic" in t:
+        return [
+            _q("Rate = k[A]². Double [A]. Rate becomes…", "4 times", "Second order.", ["2 times", "unchanged", "half"], "hard"),
+            _q("AP Stretch: First-order half-life 20 min. Fraction left after 60 min?", "1/8", "Three half-lives.", ["1/4", "1/6", "1/3"], "stretch"),
+        ]
+    if "equilibrium" in t:
+        return [
+            _q("K=4 for A⇌B. If Q=9, the net reaction…", "shifts left", "Q>K.", ["shifts right", "is at eq", "stops"], "hard"),
+            _q("AP Stretch: Add product to a system at eq. Q…",
+               "increases, then returns toward K",
+               "Adding product raises Q above K, so the net reaction makes reactant until Q returns to K. K itself is unchanged at constant T.",
+               ["decreases forever", "K increases", "K decreases"], "stretch"),
+        ]
+    if "acid" in t or "base" in t or "electro" in t:
+        return [
+            _q("pH of 0.010 M HCl?", 2, "Strong acid.", [12, 1, 0.01], "hard"),
+            _q("AP Stretch: 0.10 M HOAc, Ka=1.8e-5. Approx [H+]?", "1.3×10⁻³ M", "√(Ka C).", ["0.10 M", "1.8×10⁻⁵ M", "1.8×10⁻⁶ M"], "stretch"),
+        ]
+    return [
+        _q("Moles in 18 g H2O?", 1, "18 g/mol.", [18, 0.5, 2], "hard"),
+        _q("AP Stretch: Limiting: 2 H2+O2→2 H2O with 4 mol H2 and 1 mol O2. Water produced?", 2, "O2 limits.", [4, 1, 3], "stretch"),
+    ]
+
+
+def _apphys1(t):
+    if "kinematic" in t:
+        return [
+            _q("v=0, a=2 m/s², t=3 s. Δx?", 9, "½at².", [6, 18, 3], "hard"),
+            _q("AP Stretch: Projected 20 m/s at 30°. Max height? (g=10)", 5, "v_y=10; h=v²/2g=5.", [10, 20, 15], "stretch"),
+        ]
+    if "force" in t or "dynamic" in t:
+        return [
+            _q("5 kg, Fnet=10 N. a?", 2, "F=ma.", [50, 0.5, 15], "hard"),
+            _q("AP Stretch: 4 kg on μ=0.2 horizontal, pull 12 N. a? (g=10)", 1, "f=8 N; Fnet=4; a=1.", [3, 2, 0.2], "stretch"),
+        ]
+    if "energy" in t or "work" in t:
+        return [
+            _q("m=2 kg dropped 5 m. ΔK? (g=10)", 100, "mgh.", [10, 50, 20], "hard"),
+            _q("AP Stretch: k=200 N/m, compress 0.10 m. U_s?", 1, "½kx².", [2, 20, 0.1], "stretch"),
+        ]
+    if "momentum" in t:
+        return [
+            _q("3 kg at 2 m/s hits 1 kg at rest, stick. v?", 1.5, "6=4v.", [2, 6, 0.5], "hard"),
+            _q("AP Stretch: Impulse 12 N·s on 4 kg. Δv?", 3, "J=Δp.", [48, 0.33, 16], "stretch"),
+        ]
+    return [
+        _q("Period of spring k=100, m=1 kg?", "π/5", "2π√(m/k)=2π/10.", ["2π", "10", "1"], "hard"),
+        _q("AP Stretch: Fluid: A1v1=A2v2. A2=A1/2. v2/v1?", 2, "Continuity.", ["1/2", "4", "1"], "stretch"),
+    ]
+
+
+def _c_mech(t):
+    if "gravitation" in t:
+        return [
+            _q("Circular orbit: v=?", "√(GM/r)", "GM/r²=v²/r.", ["GM/r", "GMm/r", "√(GMm/r)"], "hard"),
+            _q("AP Stretch: Escape from surface. v_esc=?", "√(2GM/R)", "½mv²=GMm/R.", ["√(GM/R)", "2GM/R", "GM/R"], "stretch"),
+        ]
+    if "oscillation" in t:
+        return [
+            _q("ω for x''=-ω²x with k,m?", "√(k/m)", "x''=-(k/m)x.", ["k/m", "2π√(k/m)", "√(m/k)"], "hard"),
+            _q("AP Stretch: Physical pendulum T=2π√(I/mgd). Increase I, T…", "increases",
+               "Period grows with √I when m, g, and d are fixed.",
+               ["decreases", "unchanged", "becomes zero"], "stretch"),
+        ]
+    return [
+        _q("If v=3t², a(t=2)?", 12, "a=dv/dt=6t.", [6, 3, 24], "hard"),
+        _q("AP Stretch: F=6x² (SI). Work from x=1 to 2?", 14, "∫6x² dx=2x³ from 1 to 2.", [18, 6, 8], "stretch"),
+    ]
+
+
+def _c_em(t):
+    if "gauss" in t:
+        return [
+            _q("Flux through closed surface with q_enc=2ε0?", 2, "Φ=q/ε0.", ["2ε0", "1/2", "0"], "hard"),
+            _q("AP Stretch: Infinite line λ. E at r?", "λ/(2π ε0 r)", "Cylindrical Gauss.", ["λ/(4π ε0 r²)", "λ/ε0", "2kλ/r²"], "stretch"),
+        ]
+    if "induction" in t or "faraday" in t:
+        return [
+            _q("ε = −dΦB/dt. ΦB doubles in same dt. |ε|…", "doubles", "Linear in dΦ/dt.", ["halves", "unchanged", "squares"], "hard"),
+            _q("AP Stretch: RL, τ=L/R. After many τ, current approaches…", "ε/R", "Like DC.", ["0", "εL/R", "∞"], "stretch"),
+        ]
+    return [
+        _q("Two +q separated by r. Force magnitude?", "kq²/r²", "Coulomb.", ["kq/r²", "kq²/r", "k/r²"], "hard"),
+        _q("AP Stretch: Parallel plates V, d. E between?", "V/d", "Uniform E.", ["Vd", "V d²", "0"], "stretch"),
+    ]
+
 

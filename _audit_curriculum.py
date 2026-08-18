@@ -32,6 +32,12 @@ PACKAGES = [
     ("precalculus_curriculum", "Precalculus"),
     ("apcalc_ab_curriculum", "AP Calculus AB"),
     ("apcalc_bc_curriculum", "AP Calculus BC"),
+    ("apbio_curriculum", "AP Biology"),
+    ("apphysics1_curriculum", "AP Physics"),
+    ("apphysics_c_mech_curriculum", "AP Physics C Mechanics"),
+    ("apphysics_c_em_curriculum", "AP Physics C E&M"),
+    ("physical_science_curriculum", "Physical Science"),
+    ("apchem_curriculum", "AP Chemistry"),
 ]
 
 BANNED = re.compile(r"\b(wait|recalculate)\b", re.I)
