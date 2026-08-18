@@ -17,6 +17,7 @@ const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const axios = require('axios');
 const { openRouterChatCompletion, openRouterChatCompletionStream, getOpenRouterKeys } = require('./openrouter');
+const { createNotesMasterCourseHandlers } = require('./notes-master-course-handlers');
 const { debug, info, warn, error } = require('./logger');
 // path is already required above
 
@@ -901,6 +902,23 @@ const initializeDatabase = async () => {
         `);
         info('✓ AI editor help history table ready');
 
+        await query(`
+            CREATE TABLE IF NOT EXISTS notes_course_jobs (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                status ENUM('queued','running','done','error') DEFAULT 'queued',
+                step VARCHAR(255) DEFAULT 'queued',
+                course_id INT NULL,
+                error TEXT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_user (user_id),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE SET NULL
+            )
+        `);
+        info('✓ Notes-to-course jobs table ready');
+
         // Course likes table
         await query(`
             CREATE TABLE IF NOT EXISTS course_likes (
@@ -1248,6 +1266,18 @@ const aiSimulatorHelpLimiter = rateLimit({
     message: { success: false, message: 'Too many Simulator AI requests. Please wait a moment and try again.' }
 });
 
+const aiNotesCourseLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 5,
+    message: { success: false, message: 'Too many notes-to-course requests. Please wait before generating another course.' }
+});
+
+const aiNotesCoursePollLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 60,
+    message: { success: false, message: 'Too many status checks. Please wait a moment.' }
+});
+
 const createAiTutorHandlers = require('./ai-tutor-handlers');
 const aiTutorHandlers = createAiTutorHandlers({ query, openRouterChatCompletion, apiResponse });
 
@@ -1266,6 +1296,9 @@ const aiSimulatorHelpHandlers = createAiSimulatorHelpHandlers({
     apiResponse,
     getOpenRouterKeys
 });
+
+const notesMasterCourse = createNotesMasterCourseHandlers({ query, apiResponse });
+notesMasterCourse.ensureReady().catch((e) => console.error('notes-course table:', e.message));
 
 const { createLearnerGamificationHandlers } = require('./learner-gamification-handlers');
 const learnerGamification = createLearnerGamificationHandlers({
@@ -8000,6 +8033,20 @@ app.post('/api/ai/simulator-help/stream', aiSimulatorHelpLimiter, authenticateTo
             } catch (_) { /* ignore */ }
             res.end();
         }
+    });
+});
+
+app.post('/api/ai/notes-course', aiNotesCourseLimiter, authenticateToken, (req, res) => {
+    notesMasterCourse.startJob(req, res).catch((e) => {
+        console.error('notes-course start:', e);
+        apiResponse(res, 500, 'Could not start course generation');
+    });
+});
+
+app.get('/api/ai/notes-course/:jobId', aiNotesCoursePollLimiter, authenticateToken, (req, res) => {
+    notesMasterCourse.getJob(req, res).catch((e) => {
+        console.error('notes-course status:', e);
+        apiResponse(res, 500, 'Could not load generation status');
     });
 });
 

@@ -2115,6 +2115,16 @@ select:focus {
 .vl-callout-body { flex: 1; min-width: 0; }
 .vl-callout-body h4 { margin: 0 0 6px; }
 .vl-callout-body p { margin: 0; }
+.vl-worked-example {
+  margin: 1.1em 0;
+  padding: 16px 18px;
+  border-radius: 12px;
+  border: 1px solid var(--border, #e2e8f0);
+  background: var(--bg-card, #fff);
+  border-left: 5px solid var(--ls-accent, #6366f1);
+}
+.vl-worked-example h4 { margin: 0 0 8px; }
+.vl-worked-example ol { margin: 8px 0; padding-left: 1.3em; }
 .vl-step-pred { margin-bottom: 10px; }
 .vl-step-pred-result {
   margin: 8px 0 0;

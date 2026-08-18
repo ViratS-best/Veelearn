@@ -1905,3 +1905,173 @@ body.course-viewer-active #viewer-next-btn:hover {
   max-width: 100%;
 }
 
+/* Notes → master course */
+.ls-main-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--ls-bg);
+  padding: 0 0 8px;
+  margin: 0 0 4px;
+}
+
+.ls-main-toolbar .ls-btn-primary {
+  border: none;
+  border-radius: 12px;
+  padding: 8px 14px;
+  font: inherit;
+  font-weight: 800;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.ls-notes-modal {
+  background: var(--ls-card);
+  color: var(--ls-text);
+  border-radius: 16px;
+  padding: 20px;
+  width: min(640px, 100%);
+  box-shadow: var(--ls-shadow);
+  max-height: min(88vh, 720px);
+  overflow-y: auto;
+}
+
+.ls-notes-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.ls-notes-head h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--ls-text) !important;
+}
+
+.ls-notes-x {
+  border: none;
+  background: transparent;
+  color: var(--ls-muted);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.ls-notes-sub {
+  color: var(--ls-muted);
+  font-size: 0.9rem;
+  margin: 0 0 14px;
+  line-height: 1.4;
+}
+
+.ls-notes-drop {
+  border: 1.5px dashed var(--ls-border);
+  border-radius: 16px;
+  padding: 12px;
+  background: var(--ls-input-bg);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.ls-notes-drop.is-drag {
+  border-color: var(--ls-accent);
+  background: var(--ls-accent-soft);
+}
+
+.ls-notes-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.ls-notes-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--ls-accent-soft);
+  color: var(--ls-accent);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.ls-notes-chip button {
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0;
+}
+
+.ls-notes-modal textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--ls-border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font: inherit;
+  color: var(--ls-text);
+  background: var(--ls-card);
+  resize: vertical;
+  margin-bottom: 8px;
+}
+
+.ls-notes-modal textarea:focus {
+  outline: 2px solid var(--ls-accent);
+  outline-offset: 1px;
+}
+
+.ls-notes-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ls-notes-plus {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.4rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ls-notes-bar .ls-btn-primary {
+  border: none;
+  border-radius: 12px;
+  padding: 10px 16px;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.ls-notes-step {
+  font-weight: 800;
+  margin: 8px 0 4px;
+}
+
+.ls-notes-error {
+  color: #b91c1c;
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin: 10px 0 0;
+}
+
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-notes-error,
+body.learner-shell-active #learner-shell .ls-notes-error {
+  color: #fca5a5;
+}
+

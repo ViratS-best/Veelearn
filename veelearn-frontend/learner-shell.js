@@ -87,6 +87,9 @@
         </div>
       </aside>
       <main id="learner-main">
+        <div class="ls-main-toolbar">
+          <button type="button" class="ls-btn-primary" id="ls-notes-open-btn">+ From notes</button>
+        </div>
         <section class="ls-pane active" id="ls-pane-dashboard" data-pane="dashboard">
           <div class="ls-home-hero">
             <h2>How can I help you study today?</h2>
@@ -113,6 +116,7 @@
           <h2 class="ls-section-title">Help</h2>
           <p class="ls-section-sub">Quick tips for getting around Veelearn.</p>
           <div class="ls-help-card">
+            <p><strong>From notes</strong> — Top-right button. Attach notes or homework and generate a private master course.</p>
             <p><strong>Dashboard</strong> — Ask the study coach anything, or describe what you want to learn for course ideas.</p>
             <p><strong>Achievements</strong> — Visit daily to grow your streak and earn gems.</p>
             <p><strong>Gem Store</strong> — Spend gems on avatar looks and dashboard themes.</p>
@@ -159,6 +163,9 @@
         e.preventDefault();
         window.LearnerGamification?.sendDashboardAi?.();
       }
+    });
+    document.getElementById('ls-notes-open-btn')?.addEventListener('click', () => {
+      window.NotesMasterCourse?.open?.();
     });
   }
 
