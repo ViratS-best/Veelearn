@@ -6,7 +6,7 @@ const DEFAULT_JSON_MODEL = 'qwen/qwen3-32b';
 const DEFAULT_TIMEOUT_MS = 180000;
 
 const JSON_MUST =
-    'You MUST use JSON. Reply with a single JSON object and nothing else. No markdown. No code fences. No explanation. The first character of your reply must be { and the last character must be }.';
+    '/no_think\nYou MUST use JSON. Reply with a single JSON object and nothing else. No markdown. No code fences. No explanation. Do not think out loud. The first character of your reply must be { and the last character must be }.';
 
 function getHackClubKey() {
     return String(process.env.HACKCLUBAI_KEY || '').trim();
