@@ -2,7 +2,10 @@ const axios = require('axios');
 
 const HACKCLUB_URL = 'https://ai.hackclub.com/proxy/v1/chat/completions';
 const DEFAULT_MODEL = 'dots-studio/dots-3-note-preview:free';
-const DEFAULT_TIMEOUT_MS = 120000;
+const DEFAULT_TIMEOUT_MS = 180000;
+
+const JSON_MUST =
+    'You MUST use JSON. Reply with a single JSON object and nothing else. No markdown. No code fences. No explanation. The first character of your reply must be { and the last character must be }.';
 
 function getHackClubKey() {
     return String(process.env.HACKCLUBAI_KEY || '').trim();
@@ -39,6 +42,7 @@ function extractAssistantText(data) {
     const msg = choice.message || choice.delta || {};
     const chunks = [
         flattenContent(msg.content),
+        flattenContent(msg.refusal),
         flattenContent(msg.reasoning_content),
         flattenContent(msg.reasoning),
         flattenContent(choice.text),
@@ -55,24 +59,138 @@ function extractAssistantText(data) {
     return chunks.filter((p) => typeof p === 'string' && p.trim()).join('\n').trim();
 }
 
-function diagnostic(data, status) {
-    const choice = data?.choices?.[0] || {};
-    const msg = choice.message || {};
-    return {
-        status,
-        finish: choice.finish_reason || choice.native_finish_reason || data?.finish_reason,
-        contentType: msg.content == null ? 'null' : Array.isArray(msg.content) ? 'array' : typeof msg.content,
-        msgKeys: msg && typeof msg === 'object' ? Object.keys(msg).slice(0, 12) : [],
-        error: data?.error?.message || null
-    };
+function isFilePart(part) {
+    return part && typeof part === 'object' && part.type === 'file' && part.file;
+}
+
+function isImagePart(part) {
+    return part && typeof part === 'object' && part.type === 'image_url' && part.image_url;
+}
+
+function contentHasFiles(content) {
+    return Array.isArray(content) && content.some(isFilePart);
+}
+
+function messagesHaveFiles(messages) {
+    return (messages || []).some((m) => contentHasFiles(m?.content));
+}
+
+function appendJsonMust(text) {
+    const t = String(text || '').trim();
+    if (!t) return JSON_MUST;
+    if (/MUST use JSON/i.test(t) && /first character/i.test(t)) return t;
+    return `${t}\n\n${JSON_MUST}`;
 }
 
 /**
- * Chat completion via Hack Club AI (OpenAI-compatible proxy).
- * `messages[].content` may be a string or a multimodal array (text / image_url / file).
- * @param {Array} messages
- * @param {{ temperature?: number, max_tokens?: number, model?: string, timeoutMs?: number, json?: boolean }} [opts]
- * @returns {Promise<string>}
+ * One user (or user+history) turn. Keeps PDF `file` parts and `image_url` parts.
+ * JSON is forced in the text. Matches Hack Club image/PDF input docs.
+ */
+function toHackClubMessages(messages, { jsonMust = true } = {}) {
+    const texts = [];
+    const files = [];
+    const images = [];
+    const extraTurns = [];
+
+    for (const m of messages || []) {
+        const role = m?.role || 'user';
+        const c = m?.content;
+        if (role === 'assistant') {
+            extraTurns.push({
+                role: 'assistant',
+                content: typeof c === 'string' ? c : flattenContent(c),
+                ...(m.annotations ? { annotations: m.annotations } : {})
+            });
+            continue;
+        }
+        if (typeof c === 'string') {
+            texts.push(role === 'system' ? `INSTRUCTIONS:\n${c}` : c);
+            continue;
+        }
+        if (Array.isArray(c)) {
+            for (const part of c) {
+                if (!part || typeof part !== 'object') continue;
+                if (part.type === 'text' && part.text) {
+                    texts.push(role === 'system' ? `INSTRUCTIONS:\n${part.text}` : String(part.text));
+                } else if (isFilePart(part) && files.length < 3) {
+                    files.push({
+                        type: 'file',
+                        file: {
+                            filename: String(part.file.filename || 'document.pdf').slice(0, 180),
+                            file_data: part.file.file_data
+                        }
+                    });
+                } else if (isImagePart(part) && images.length < 6) {
+                    images.push({
+                        type: 'image_url',
+                        image_url: { url: part.image_url.url }
+                    });
+                }
+            }
+        }
+    }
+
+    const text = jsonMust ? appendJsonMust(texts.filter(Boolean).join('\n\n')) : texts.filter(Boolean).join('\n\n');
+    const parts = [{ type: 'text', text }];
+    for (const f of files) parts.push(f);
+    for (const img of images) parts.push(img);
+
+    const userMessage =
+        files.length || images.length
+            ? { role: 'user', content: parts }
+            : { role: 'user', content: text };
+
+    return { messages: [userMessage, ...extraTurns], userMessage };
+}
+
+function fileParserPlugin(engine) {
+    return {
+        id: 'file-parser',
+        pdf: { engine: engine || 'native' }
+    };
+}
+
+function withFileContext(newMessages, fileContext) {
+    if (!fileContext?.userMessage || !fileContext?.annotations) {
+        return toHackClubMessages(newMessages);
+    }
+    const follow = toHackClubMessages(newMessages);
+    const followUser = follow.userMessage;
+    const followContent =
+        typeof followUser.content === 'string'
+            ? followUser.content
+            : flattenContent((followUser.content || []).filter((p) => p.type === 'text'));
+    return {
+        messages: [
+            fileContext.userMessage,
+            {
+                role: 'assistant',
+                content: fileContext.content || '',
+                annotations: fileContext.annotations
+            },
+            { role: 'user', content: appendJsonMust(followContent) }
+        ],
+        userMessage: fileContext.userMessage
+    };
+}
+
+async function postChat(body, timeoutMs) {
+    const key = getHackClubKey();
+    return axios.post(HACKCLUB_URL, body, {
+        headers: {
+            Authorization: `Bearer ${key}`,
+            'Content-Type': 'application/json'
+        },
+        timeout: timeoutMs,
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity,
+        validateStatus: () => true
+    });
+}
+
+/**
+ * Hack Club chat completions. Documented fields: model, messages, temperature, max_tokens.
+ * PDFs use plugins file-parser (native → pdf-text → mistral-ocr). JSON is forced in the user text.
  */
 async function hackClubChatCompletion(messages, opts = {}) {
     const key = getHackClubKey();
@@ -83,92 +201,96 @@ async function hackClubChatCompletion(messages, opts = {}) {
     }
 
     const model = opts.model || getHackClubModel();
+    const packed = opts.fileContext?.annotations
+        ? withFileContext(messages, opts.fileContext)
+        : toHackClubMessages(messages);
+    const hcMessages = packed.messages;
+    const hasFiles = messagesHaveFiles(hcMessages) && !opts.fileContext?.annotations;
+    const maxTokens = opts.max_tokens ?? 8192;
+    const timeoutMs = opts.timeoutMs ?? (hasFiles ? 240000 : DEFAULT_TIMEOUT_MS);
 
-    const postOnce = async (body) => {
-        const res = await axios.post(HACKCLUB_URL, body, {
-            headers: {
-                Authorization: `Bearer ${key}`,
-                'Content-Type': 'application/json'
-            },
-            timeout: opts.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-            maxBodyLength: Infinity,
-            maxContentLength: Infinity,
-            validateStatus: () => true
-        });
-        return res;
-    };
-
-    const base = {
-        model,
-        messages,
-        temperature: opts.temperature ?? 0.2,
-        max_tokens: opts.max_tokens ?? 4096
-    };
-
-    const attempts = [];
-    if (opts.json !== false) {
-        attempts.push({
-            ...base,
-            response_format: { type: 'json_object' },
-            reasoning: { exclude: true },
-            include_reasoning: false
-        });
-    }
-    attempts.push({
-        ...base,
-        reasoning: { exclude: true },
-        include_reasoning: false
+    const engines = hasFiles
+        ? [opts.pdfEngine || 'native', 'pdf-text', 'mistral-ocr']
+        : [null];
+    const seen = new Set();
+    const engineList = engines.filter((e) => {
+        const k = e || 'none';
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
     });
-    attempts.push({ ...base });
 
     let lastError;
-    for (let i = 0; i < attempts.length; i++) {
-        const body = attempts[i];
-        try {
-            const res = await postOnce(body);
+    for (const engine of engineList) {
+        const body = {
+            model,
+            messages: hcMessages,
+            temperature: opts.temperature ?? 0.1,
+            max_tokens: maxTokens
+        };
+        if (hasFiles && engine) {
+            body.plugins = [fileParserPlugin(engine)];
+        }
 
+        try {
+            const res = await postChat(body, timeoutMs);
             if (res.status === 429) {
                 const err = new Error('Hack Club AI rate limited');
                 err.code = 'HACKCLUB_RATE_LIMITED';
                 err.status = 429;
                 throw err;
             }
-
-            // Unknown fields (response_format / reasoning) — try a simpler body
-            if (res.status === 400 && i < attempts.length - 1) {
-                console.warn('[hackclub] HTTP 400, retrying simpler body', res.data?.error?.message || res.data?.message || '');
+            if (res.status === 400) {
+                lastError = Object.assign(
+                    new Error(res.data?.error?.message || res.data?.message || 'Hack Club AI HTTP 400'),
+                    { code: 'HACKCLUB_ERROR', status: 400 }
+                );
                 continue;
             }
-
             if (res.status < 200 || res.status >= 300) {
-                const msg =
-                    res.data?.error?.message ||
-                    res.data?.message ||
-                    `Hack Club AI HTTP ${res.status}`;
-                const err = new Error(typeof msg === 'string' ? msg : 'Hack Club AI request failed');
-                err.code = 'HACKCLUB_ERROR';
-                err.status = res.status;
-                lastError = err;
+                const msg = res.data?.error?.message || res.data?.message || `Hack Club AI HTTP ${res.status}`;
+                lastError = Object.assign(new Error(typeof msg === 'string' ? msg : 'Hack Club AI request failed'), {
+                    code: 'HACKCLUB_ERROR',
+                    status: res.status
+                });
                 continue;
             }
 
+            const choice = res.data?.choices?.[0] || {};
+            const msg = choice.message || {};
             const content = extractAssistantText(res.data);
-            if (content) return content;
+            if (content) {
+                return {
+                    content,
+                    annotations: msg.annotations || null,
+                    userMessage: packed.userMessage,
+                    finishReason: choice.finish_reason || null
+                };
+            }
 
-            console.warn('[hackclub] empty content', diagnostic(res.data, res.status));
-            lastError = Object.assign(new Error('Hack Club AI returned an empty response'), {
-                code: 'HACKCLUB_EMPTY'
+            const parseErr = res.data?.error?.message || null;
+            console.warn('[hackclub] empty content', {
+                status: res.status,
+                finish: choice.finish_reason,
+                engine,
+                contentType: msg.content == null ? 'null' : typeof msg.content,
+                msgKeys: Object.keys(msg).slice(0, 12),
+                error: parseErr
             });
+            lastError = Object.assign(
+                new Error(parseErr || 'Hack Club AI returned an empty response'),
+                { code: parseErr && /timed out/i.test(parseErr) ? 'HACKCLUB_TIMEOUT' : 'HACKCLUB_EMPTY' }
+            );
         } catch (e) {
             if (e.code === 'HACKCLUB_RATE_LIMITED' || e.code === 'HACKCLUB_NOT_CONFIGURED') throw e;
             if (e.code && String(e.code).startsWith('HACKCLUB_')) {
                 lastError = e;
                 continue;
             }
-            const err = new Error(e.message || 'Hack Club AI request failed');
-            err.code = e.code === 'ECONNABORTED' ? 'HACKCLUB_TIMEOUT' : 'HACKCLUB_ERROR';
-            err.status = e.response?.status;
-            lastError = err;
+            lastError = Object.assign(new Error(e.message || 'Hack Club AI request failed'), {
+                code: e.code === 'ECONNABORTED' ? 'HACKCLUB_TIMEOUT' : 'HACKCLUB_ERROR',
+                status: e.response?.status
+            });
         }
     }
 
@@ -178,7 +300,9 @@ async function hackClubChatCompletion(messages, opts = {}) {
 module.exports = {
     hackClubChatCompletion,
     extractAssistantText,
+    toHackClubMessages,
     getHackClubKey,
     getHackClubModel,
+    JSON_MUST,
     DEFAULT_MODEL
 };

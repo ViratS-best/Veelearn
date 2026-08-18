@@ -3,7 +3,7 @@
  */
 
 const xss = require('xss');
-const { hackClubChatCompletion, getHackClubKey } = require('./hackclub-ai');
+const { hackClubChatCompletion, getHackClubKey, JSON_MUST } = require('./hackclub-ai');
 
 const MAX_FILES = 8;
 const MAX_FILE_BYTES = 8 * 1024 * 1024;
@@ -139,15 +139,33 @@ function parseJsonFromModel(text) {
 }
 
 async function askJson(messages, opts = {}) {
-    const tries = [
-        { json: true, temperature: opts.temperature ?? 0.15, max_tokens: opts.max_tokens ?? 4096 },
-        { json: true, temperature: 0.05, max_tokens: Math.min(opts.max_tokens ?? 4096, 3072) },
-        { json: false, temperature: 0.1, max_tokens: opts.max_tokens ?? 4096 }
+    const maxTokens = opts.max_tokens ?? 8192;
+    const session = opts.session;
+    const attempts = [
+        { messages, temperature: opts.temperature ?? 0.15, max_tokens: maxTokens },
+        {
+            messages: [...messages, { role: 'user', content: JSON_MUST }],
+            temperature: 0.05,
+            max_tokens: Math.max(maxTokens, 12288)
+        }
     ];
     let lastErr;
-    for (const attempt of tries) {
+    for (const attempt of attempts) {
         try {
-            const raw = await hackClubChatCompletion(messages, attempt);
+            const result = await hackClubChatCompletion(attempt.messages, {
+                temperature: attempt.temperature,
+                max_tokens: attempt.max_tokens,
+                fileContext: session,
+                timeoutMs: opts.timeoutMs
+            });
+            const raw = result?.content || '';
+            if (session) {
+                if (result.userMessage && contentHasFileParts(result.userMessage.content)) {
+                    session.userMessage = result.userMessage;
+                }
+                if (result.annotations) session.annotations = result.annotations;
+                if (raw) session.content = raw;
+            }
             const parsed = parseJsonFromModel(raw);
             if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
             lastErr = Object.assign(new Error('Model did not return JSON'), { code: 'HACKCLUB_PARSE' });
@@ -157,6 +175,10 @@ async function askJson(messages, opts = {}) {
         }
     }
     throw lastErr || Object.assign(new Error('Model did not return JSON'), { code: 'HACKCLUB_PARSE' });
+}
+
+function contentHasFileParts(content) {
+    return Array.isArray(content) && content.some((p) => p && p.type === 'file');
 }
 
 function stemKey(text) {
@@ -266,15 +288,18 @@ async function ingestFiles(files) {
 
         if (PDF_MIMES.has(mime)) {
             const text = await extractPdfText(buf);
-            if (text) notes.push(`[PDF ${name}]\n${clip(text, 20000)}`);
-            else notes.push(`[PDF ${name}: scanned or unreadable text; use the attached file.]`);
-            pdfParts.push({
-                type: 'file',
-                file: {
-                    filename: name.endsWith('.pdf') ? name : `${name}.pdf`,
-                    file_data: `data:application/pdf;base64,${buf.toString('base64')}`
-                }
-            });
+            if (text) notes.push(`[PDF ${name}]\n${clip(text, 12000)}`);
+            else notes.push(`[PDF ${name}: little selectable text locally; the attached file is the source.]`);
+            if (pdfParts.length < 3) {
+                const filename = name.toLowerCase().endsWith('.pdf') ? name : `${name}.pdf`;
+                pdfParts.push({
+                    type: 'file',
+                    file: {
+                        filename,
+                        file_data: `data:application/pdf;base64,${buf.toString('base64')}`
+                    }
+                });
+            }
             continue;
         }
 
@@ -306,28 +331,34 @@ async function ingestFiles(files) {
         extractedText: clip(notes.join('\n\n'), MAX_EXTRACT_CHARS),
         imageParts,
         pdfParts,
-        warnings
+        warnings,
+        session: {}
     };
 }
 
 function userContentParts({ promptText, extractedText, imageParts, pdfParts }) {
-    const parts = [{ type: 'text', text: promptText }];
-    if (extractedText) {
-        parts.push({ type: 'text', text: `EXTRACTED_NOTES:\n${extractedText}` });
-    }
-    for (const p of pdfParts.slice(0, 3)) parts.push(p);
-    for (const p of imageParts) parts.push(p);
+    const text = [
+        promptText,
+        extractedText ? `EXTRACTED_NOTES:\n${extractedText}` : '',
+        JSON_MUST
+    ].filter(Boolean).join('\n\n');
+    const parts = [{ type: 'text', text }];
+    for (const p of pdfParts || []) parts.push(p);
+    for (const p of imageParts || []) parts.push(p);
+    if (parts.length === 1) return text;
     return parts;
 }
 
 const PLAN_SYSTEM = `You are a curriculum designer for Veelearn. Build a MASTER COURSE outline from a student's notes, homework, and stated struggles.
+
+You MUST use JSON. Reply with a single JSON object only. First character { last character }. No markdown fences. No other text.
 
 Rules:
 - Combine standard knowledge of the topic with what appears in the notes/HW.
 - At least 2 units, at most 6. Split a long chapter into multiple units.
 - Units that cover stated struggles get struggle_depth true (those lessons will go much deeper).
 - Do not invent a student name. Do not mention being an AI.
-- Reply with ONLY a JSON object. First character { last character }. No markdown fences.
+JSON shape:
 {
   "title": "short course title",
   "description": "1-3 sentences",
@@ -343,7 +374,7 @@ Rules:
 }
 grade_level must be an integer 1-13 (13 = college).`;
 
-const UNIT_LESSON_SYSTEM = `You write one Veelearn course UNIT lesson as a JSON object. Output JSON only. The first character must be { and the last must be }. No markdown fences, no commentary.
+const UNIT_LESSON_SYSTEM = `You write one Veelearn course UNIT lesson. You MUST use JSON. Output a JSON object only. The first character must be { and the last must be }. No markdown fences, no commentary.
 
 Hard rules:
 - Teach from first principles AND weave in the student's notes/HW wording.
@@ -356,7 +387,7 @@ Hard rules:
 Required JSON shape:
 {"title":"unit title","content_html":"<h1>...</h1>..."}`;
 
-const UNIT_HW_SYSTEM = `You write homework for one Veelearn unit as a JSON object. Output JSON only. First character { last character }. No markdown.
+const UNIT_HW_SYSTEM = `You write homework for one Veelearn unit. You MUST use JSON. Output a JSON object only. First character { last character }. No markdown. No other text.
 
 Rules:
 - 5 to 8 questions. Mostly multiple_choice with exactly 4 distinct options. 1-2 short_answer allowed.
@@ -458,15 +489,9 @@ function createNotesMasterCourseHandlers({ query, apiResponse }) {
         const plan = await askJson(
             [
                 { role: 'system', content: PLAN_SYSTEM },
-                {
-                    role: 'user',
-                    content: [
-                        ...content,
-                        { type: 'text', text: 'Return a single JSON object only. First character { last character }. No markdown.' }
-                    ]
-                }
+                { role: 'user', content }
             ],
-            { temperature: 0.2, max_tokens: 2048 }
+            { temperature: 0.2, max_tokens: 8192, session: ingest.session, timeoutMs: 240000 }
         );
         if (!plan || !Array.isArray(plan.units)) {
             const err = new Error('Could not parse a course outline from the model');
@@ -528,7 +553,7 @@ function createNotesMasterCourseHandlers({ query, apiResponse }) {
                 { role: 'system', content: UNIT_LESSON_SYSTEM },
                 { role: 'user', content: `Write the lesson JSON for this unit.\n\n${notes}` }
             ],
-            { temperature: 0.2, max_tokens: 4096 }
+            { temperature: 0.2, max_tokens: 8192, session: ingest.session }
         );
         if (!lesson || !lesson.content_html) {
             const err = new Error(`Could not generate unit: ${unitSpec.title}`);
@@ -552,7 +577,7 @@ function createNotesMasterCourseHandlers({ query, apiResponse }) {
                         ].filter(Boolean).join('\n\n')
                     }
                 ],
-                { temperature: 0.25, max_tokens: 2048 }
+                { temperature: 0.25, max_tokens: 4096, session: ingest.session }
             );
             homework = Array.isArray(hw?.homework) ? hw.homework : [];
         } catch (e) {
@@ -642,7 +667,7 @@ function createNotesMasterCourseHandlers({ query, apiResponse }) {
         await setJob(jobId, { status: 'running', step: 'Reading notes…', error: null });
         try {
             const ingest = await ingestFiles(payload.files);
-            if (!ingest.extractedText && !ingest.imageParts.length && !ingest.pdfParts.length && !clip(payload.prompt, 20)) {
+            if (!ingest.extractedText && !ingest.imageParts.length && !(ingest.pdfParts && ingest.pdfParts.length) && !clip(payload.prompt, 20)) {
                 throw new Error('Add notes, an attachment, or describe what the course should cover.');
             }
 
