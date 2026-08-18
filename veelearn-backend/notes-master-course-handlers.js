@@ -123,13 +123,40 @@ function parseJsonFromModel(text) {
         }
     };
     let parsed = tryParse(s);
-    if (parsed) return parsed;
+    if (parsed && typeof parsed === 'object') return parsed;
     const objMatch = s.match(/\{[\s\S]*\}/);
     if (objMatch) {
         parsed = tryParse(objMatch[0]);
-        if (parsed) return parsed;
+        if (parsed && typeof parsed === 'object') return parsed;
+        const repaired = objMatch[0]
+            .replace(/,\s*([}\]])/g, '$1')
+            .replace(/[\u201C\u201D]/g, '"')
+            .replace(/[\u2018\u2019]/g, "'");
+        parsed = tryParse(repaired);
+        if (parsed && typeof parsed === 'object') return parsed;
     }
     return null;
+}
+
+async function askJson(messages, opts = {}) {
+    const tries = [
+        { json: true, temperature: opts.temperature ?? 0.15, max_tokens: opts.max_tokens ?? 4096 },
+        { json: true, temperature: 0.05, max_tokens: Math.min(opts.max_tokens ?? 4096, 3072) },
+        { json: false, temperature: 0.1, max_tokens: opts.max_tokens ?? 4096 }
+    ];
+    let lastErr;
+    for (const attempt of tries) {
+        try {
+            const raw = await hackClubChatCompletion(messages, attempt);
+            const parsed = parseJsonFromModel(raw);
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
+            lastErr = Object.assign(new Error('Model did not return JSON'), { code: 'HACKCLUB_PARSE' });
+        } catch (e) {
+            if (e.code === 'HACKCLUB_NOT_CONFIGURED' || e.code === 'HACKCLUB_RATE_LIMITED') throw e;
+            lastErr = e;
+        }
+    }
+    throw lastErr || Object.assign(new Error('Model did not return JSON'), { code: 'HACKCLUB_PARSE' });
 }
 
 function stemKey(text) {
@@ -300,7 +327,7 @@ Rules:
 - At least 2 units, at most 6. Split a long chapter into multiple units.
 - Units that cover stated struggles get struggle_depth true (those lessons will go much deeper).
 - Do not invent a student name. Do not mention being an AI.
-- Reply with ONLY JSON (no markdown fences):
+- Reply with ONLY a JSON object. First character { last character }. No markdown fences.
 {
   "title": "short course title",
   "description": "1-3 sentences",
@@ -316,33 +343,28 @@ Rules:
 }
 grade_level must be an integer 1-13 (13 = college).`;
 
-const UNIT_SYSTEM = `You write one Veelearn course UNIT as JSON. The student will study this HTML in a course viewer with MathJax.
+const UNIT_LESSON_SYSTEM = `You write one Veelearn course UNIT lesson as a JSON object. Output JSON only. The first character must be { and the last must be }. No markdown fences, no commentary.
 
 Hard rules:
-- Teach from first principles AND weave in the student's notes/HW wording and examples.
+- Teach from first principles AND weave in the student's notes/HW wording.
 - If struggle_depth is true, go very deep on those weak spots: slower pace, why it is confusing, common mistakes, extra worked examples.
-- Include at least 2 fully solved examples in the lesson HTML using <div class="vl-worked-example"> with <h4>Worked example</h4>, <p><strong>Problem:</strong> ...</p>, an ordered list of steps, and <p><strong>Answer:</strong> ...</p>.
-- Worked examples MUST NOT be reused as homework. Homework must be new problems.
+- Include at least 2 fully solved examples in content_html using <div class="vl-worked-example"> with <h4>Worked example</h4>, <p><strong>Problem:</strong> ...</p>, an ordered list of steps, and <p><strong>Answer:</strong> ...</p>.
 - Use $...$ or $$...$$ for math. No script tags. No iframes.
-- Structure HTML as: <h1>unit title</h1>, audience line, <h2>What you will learn in this unit</h2> + ol, then <hr class="page-break"> between major concepts, each concept as <h2>, explanations, callouts <div class="vl-callout vl-callout-strategy"><div class="vl-callout-body">...</div></div>, worked examples, then <h2>Practice</h2> (homework is attached separately, not inside content_html).
-- Homework: 5 to 8 items. Mostly multiple_choice with exactly 4 distinct options. 1-2 short_answer allowed. Include explanation and correct_answer matching one option for MC.
-- Reply with ONLY JSON:
-{
-  "title": "unit title",
-  "content_html": "<h1>...</h1>...",
-  "homework": [
-    {
-      "question_text": "plain or simple HTML stem",
-      "question_type": "multiple_choice",
-      "options": ["A","B","C","D"],
-      "correct_answer": "A",
-      "explanation": "why",
-      "points": 1,
-      "difficulty": "easy"
-    }
-  ]
-}
-difficulty is easy|medium|hard. points 1-3.`;
+- Structure HTML as: <h1>unit title</h1>, <h2>What you will learn in this unit</h2> + ol, then <hr class="page-break"> between concepts, each concept as <h2>, explanations, optional <div class="vl-callout vl-callout-strategy"><div class="vl-callout-body">...</div></div>, then worked examples.
+- Do not include homework questions in content_html.
+- Keep content_html complete but compact (several short sections, not a novel).
+Required JSON shape:
+{"title":"unit title","content_html":"<h1>...</h1>..."}`;
+
+const UNIT_HW_SYSTEM = `You write homework for one Veelearn unit as a JSON object. Output JSON only. First character { last character }. No markdown.
+
+Rules:
+- 5 to 8 questions. Mostly multiple_choice with exactly 4 distinct options. 1-2 short_answer allowed.
+- Do NOT reuse any worked-example problems from the lesson.
+- correct_answer must match one option for multiple_choice.
+- difficulty is easy, medium, or hard. points 1-3.
+Required JSON shape:
+{"homework":[{"question_text":"...","question_type":"multiple_choice","options":["A","B","C","D"],"correct_answer":"A","explanation":"why","points":1,"difficulty":"easy"}]}`;
 
 function createNotesMasterCourseHandlers({ query, apiResponse }) {
     async function ensureReady() {
@@ -433,14 +455,19 @@ function createNotesMasterCourseHandlers({ query, apiResponse }) {
             pdfParts: ingest.pdfParts
         });
 
-        const raw = await hackClubChatCompletion(
+        const plan = await askJson(
             [
                 { role: 'system', content: PLAN_SYSTEM },
-                { role: 'user', content }
+                {
+                    role: 'user',
+                    content: [
+                        ...content,
+                        { type: 'text', text: 'Return a single JSON object only. First character { last character }. No markdown.' }
+                    ]
+                }
             ],
-            { temperature: 0.3, max_tokens: 4096 }
+            { temperature: 0.2, max_tokens: 2048 }
         );
-        const plan = parseJsonFromModel(raw);
         if (!plan || !Array.isArray(plan.units)) {
             const err = new Error('Could not parse a course outline from the model');
             err.code = 'HACKCLUB_PARSE';
@@ -478,49 +505,61 @@ function createNotesMasterCourseHandlers({ query, apiResponse }) {
         };
     }
 
-    async function generateUnit(ingest, plan, unitSpec, prompt, struggles) {
-        const promptText = [
-            `Write UNIT JSON for: ${unitSpec.title}`,
+    function unitNotesText(ingest, plan, unitSpec, prompt, struggles) {
+        return [
+            `UNIT: ${unitSpec.title}`,
             unitSpec.description ? `Unit description: ${unitSpec.description}` : '',
             unitSpec.concepts?.length ? `Concepts: ${unitSpec.concepts.join('; ')}` : '',
             `struggle_depth: ${unitSpec.struggle_depth ? 'true' : 'false'}`,
             `Course title: ${plan.title}`,
             `Other units: ${plan.units.map((u) => u.title).join(' | ')}`,
-            prompt ? `STUDENT_PROMPT:\n${clip(prompt, 4000)}` : '',
-            struggles ? `STRUGGLES:\n${clip(struggles, 3000)}` : '',
-            'Incorporate the attached notes/images/PDFs. Do not copy homework from worked examples.'
+            prompt ? `STUDENT_PROMPT:\n${clip(prompt, 2500)}` : '',
+            struggles ? `STRUGGLES:\n${clip(struggles, 2000)}` : '',
+            ingest.extractedText ? `EXTRACTED_NOTES:\n${clip(ingest.extractedText, 18000)}` : '',
+            'Reply with one JSON object only. First character { last character }. No markdown fences.'
         ].filter(Boolean).join('\n\n');
+    }
 
-        const content = userContentParts({
-            promptText,
-            extractedText: ingest.extractedText,
-            imageParts: ingest.imageParts,
-            pdfParts: ingest.pdfParts
-        });
+    async function generateUnit(ingest, plan, unitSpec, prompt, struggles) {
+        const notes = unitNotesText(ingest, plan, unitSpec, prompt, struggles);
 
-        const call = async () => {
-            const raw = await hackClubChatCompletion(
-                [
-                    { role: 'system', content: UNIT_SYSTEM },
-                    { role: 'user', content }
-                ],
-                { temperature: 0.4, max_tokens: 8192 }
-            );
-            return parseJsonFromModel(raw);
-        };
-
-        let unit = await call();
-        if (!unit || !unit.content_html) {
-            unit = await call();
-        }
-        if (!unit || !unit.content_html) {
+        const lesson = await askJson(
+            [
+                { role: 'system', content: UNIT_LESSON_SYSTEM },
+                { role: 'user', content: `Write the lesson JSON for this unit.\n\n${notes}` }
+            ],
+            { temperature: 0.2, max_tokens: 4096 }
+        );
+        if (!lesson || !lesson.content_html) {
             const err = new Error(`Could not generate unit: ${unitSpec.title}`);
             err.code = 'HACKCLUB_PARSE';
             throw err;
         }
 
-        const homework = Array.isArray(unit.homework) ? unit.homework : [];
-        const exampleKey = stemKey(unit.content_html);
+        let homework = [];
+        try {
+            const hw = await askJson(
+                [
+                    { role: 'system', content: UNIT_HW_SYSTEM },
+                    {
+                        role: 'user',
+                        content: [
+                            `Write NEW homework JSON for unit: ${unitSpec.title}`,
+                            struggles ? `STRUGGLES:\n${clip(struggles, 1500)}` : '',
+                            `Do not repeat these worked-example snippets:\n${clip(stemKey(lesson.content_html), 900)}`,
+                            ingest.extractedText ? `NOTES:\n${clip(ingest.extractedText, 8000)}` : '',
+                            'JSON object only. First character { last character }.'
+                        ].filter(Boolean).join('\n\n')
+                    }
+                ],
+                { temperature: 0.25, max_tokens: 2048 }
+            );
+            homework = Array.isArray(hw?.homework) ? hw.homework : [];
+        } catch (e) {
+            console.warn('[notes-course] homework JSON failed, continuing with lesson only:', e.message);
+        }
+
+        const exampleKey = stemKey(lesson.content_html);
         const cleanedHw = homework
             .filter((q) => q && q.question_text)
             .filter((q) => {
@@ -530,8 +569,8 @@ function createNotesMasterCourseHandlers({ query, apiResponse }) {
             .slice(0, 10);
 
         return {
-            title: clip(unit.title || unitSpec.title, 180),
-            content_html: String(unit.content_html),
+            title: clip(lesson.title || unitSpec.title, 180),
+            content_html: String(lesson.content_html),
             homework: cleanedHw
         };
     }
