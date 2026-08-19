@@ -134,7 +134,10 @@ main {
 #landing-page {
   min-height: auto !important;
   padding: 0 !important;
-  background: transparent !important;
+  background:
+    radial-gradient(940px 460px at 12% 14%, rgba(47, 170, 237, 0.22), transparent 58%),
+    radial-gradient(860px 460px at 88% 88%, rgba(80, 205, 146, 0.24), transparent 56%),
+    linear-gradient(160deg, #f4f8fc 0%, #fcf6f0 100%) !important;
   border: 0 !important;
   box-shadow: none !important;
 }

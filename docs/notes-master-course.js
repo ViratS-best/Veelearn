@@ -244,7 +244,7 @@
     backdrop.innerHTML = `
       <div class="ls-notes-modal" role="dialog" aria-labelledby="ls-notes-title">
         <div class="ls-notes-head">
-          <h3 id="ls-notes-title">From notes</h3>
+          <h3 id="ls-notes-title">Make a course based on your notes/HW with ai!</h3>
           <button type="button" class="ls-notes-x" id="ls-notes-close" aria-label="Close">×</button>
         </div>
         <p class="ls-notes-sub">Attach notes, homework, or past work. Say what you struggle with. We'll build a private master course with units, worked examples, and practice — not the same problems as the examples.</p>
