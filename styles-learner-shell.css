@@ -1,0 +1,2134 @@
+/* Khan-style learner shell — warm & theme-aware */
+
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&display=swap');
+
+:root {
+  --ls-bg: #FFF8F1;
+  --ls-sidebar: #FFFFFF;
+  --ls-text: #1A1A1A;
+  --ls-muted: #6B7280;
+  --ls-accent: #EA580C;
+  --ls-accent-soft: #FFEDD5;
+  --ls-btn: #1A1A1A;
+  --ls-btn-text: #FFFFFF;
+  --ls-btn-hover: #EA580C;
+  --ls-btn-hover-text: #FFFFFF;
+  --ls-active-bg: #FFEDD5;
+  --ls-active-text: #9A3412;
+  --ls-user-bubble: #FFF1E6;
+  --ls-coach-bubble: #FFF7ED;
+  --ls-border: #F3E8DE;
+  --ls-card: #FFFFFF;
+  --ls-input-bg: #FFFCF8;
+  --ls-shadow: 0 8px 24px rgba(234, 88, 12, 0.08);
+  --ls-radius: 16px;
+  --ls-sidebar-w: 260px;
+}
+
+/* Hide site chrome while learner shell is open */
+body.learner-shell-active > header,
+body.learner-shell-active > footer,
+body.learner-shell-active #auto-save-indicator,
+body.learner-shell-active #landing-page,
+body.learner-shell-active #auth-section,
+body.learner-shell-active #dashboard-section,
+body.learner-shell-active #redesign-container,
+body.learner-shell-active > main:not(#learner-main) {
+  display: none !important;
+}
+
+body.learner-shell-active {
+  background: var(--ls-bg, #FFF8F1) !important;
+  overflow: hidden;
+}
+
+#learner-shell {
+  display: none;
+  min-height: 100vh;
+  font-family: 'Nunito', system-ui, sans-serif;
+  background: var(--ls-bg);
+  color: var(--ls-text);
+}
+
+body.learner-shell-active #learner-shell {
+  display: flex;
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+}
+
+/* Kill global section/card styles leaking into the shell */
+#learner-shell section,
+#learner-shell .ls-pane {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  color: var(--ls-text);
+}
+
+#learner-shell h1,
+#learner-shell h2,
+#learner-shell h3,
+#learner-shell h4,
+#learner-shell p,
+#learner-shell strong,
+#learner-shell label,
+#learner-shell li,
+#learner-shell span {
+  color: inherit;
+  border: none;
+  padding-bottom: 0;
+}
+
+#learner-shell h2,
+#learner-shell h3,
+#learner-shell h4 {
+  color: var(--ls-text) !important;
+  border-bottom: none !important;
+}
+
+#learner-sidebar {
+  width: var(--ls-sidebar-w);
+  flex-shrink: 0;
+  background: var(--ls-sidebar);
+  border-right: 1px solid var(--ls-border);
+  display: flex;
+  flex-direction: column;
+  padding: 18px 12px 12px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  z-index: 40;
+  color: var(--ls-text);
+}
+
+.ls-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 10px 18px;
+}
+
+.ls-brand-name {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ls-text);
+  margin: 0;
+}
+
+.ls-sidebar-close {
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  color: var(--ls-muted);
+  cursor: pointer;
+  line-height: 1;
+  display: none;
+}
+
+.ls-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.ls-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--ls-text);
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 11px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.ls-nav-btn:hover {
+  background: var(--ls-accent-soft);
+  color: var(--ls-accent);
+}
+
+.ls-nav-btn.active {
+  background: var(--ls-active-bg);
+  color: var(--ls-active-text);
+}
+
+.ls-nav-flyout {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.ls-flyout-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.22s ease;
+  margin: 0 4px 2px 10px;
+}
+
+.ls-nav-flyout:hover .ls-flyout-panel,
+.ls-nav-flyout.is-open .ls-flyout-panel,
+.ls-nav-flyout:focus-within .ls-flyout-panel {
+  grid-template-rows: 1fr;
+}
+
+.ls-flyout-panel-inner {
+  overflow: hidden;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 0 6px 0;
+}
+
+.ls-flyout-action,
+.ls-flyout-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
+  border: none;
+  background: var(--ls-input-bg, rgba(0, 0, 0, 0.03));
+  color: var(--ls-text);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 4px 4px 4px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  border: 1px solid transparent;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.ls-flyout-item {
+  cursor: default;
+}
+
+.ls-flyout-edit {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+  padding: 6px 4px;
+}
+
+.ls-flyout-play {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(99, 102, 241, 0.18);
+  color: var(--ls-text);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease, background 0.12s ease;
+}
+
+.ls-flyout-item:hover .ls-flyout-play,
+.ls-flyout-item:focus-within .ls-flyout-play {
+  opacity: 1;
+}
+
+.ls-flyout-play:hover {
+  background: #6366f1;
+  color: #fff;
+}
+
+.ls-flyout-action {
+  background: var(--ls-accent-soft);
+  color: var(--ls-active-text, var(--ls-accent));
+}
+
+.ls-flyout-action:hover,
+.ls-flyout-item:hover {
+  border-color: var(--ls-border);
+  background: var(--ls-accent-soft);
+  color: var(--ls-accent);
+}
+
+.ls-flyout-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.ls-flyout-meta {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--ls-muted);
+  opacity: 0.9;
+}
+
+.ls-flyout-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.ls-flyout-empty {
+  font-size: 0.8rem;
+  color: var(--ls-muted);
+  padding: 6px 8px;
+  font-weight: 600;
+}
+
+.ls-created-section {
+  margin-top: 36px;
+}
+
+.ls-created-grid {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.ls-created-card {
+  background: var(--ls-card, #fff);
+  border: 1px solid var(--ls-border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--ls-shadow);
+}
+
+.ls-created-thumb {
+  position: relative;
+  height: 112px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+}
+
+.ls-created-play {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: rgba(15, 23, 42, 0.45);
+  color: #fff;
+  font-size: 36px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+.ls-created-card:hover .ls-created-play,
+.ls-created-card:focus-within .ls-created-play {
+  opacity: 1;
+}
+
+.ls-created-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ls-nav-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  opacity: 0.9;
+  color: inherit;
+}
+
+.ls-nav-bottom {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--ls-border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ls-gems-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 8px 4px;
+  padding: 8px 10px;
+  background: var(--ls-accent-soft);
+  color: var(--ls-text);
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+
+.ls-xp-block {
+  margin: 4px 8px 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--ls-accent-soft);
+  color: var(--ls-text);
+}
+.ls-xp-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+.ls-xp-track {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.12);
+  overflow: hidden;
+}
+.ls-xp-fill {
+  height: 100%;
+  width: 0%;
+  background: #6366f1;
+  transition: width 0.35s ease;
+}
+
+.ls-profile {
+  position: relative;
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  color: var(--ls-text);
+}
+
+.ls-profile:hover,
+.ls-profile:focus-within {
+  background: var(--ls-accent-soft);
+}
+
+.ls-avatar-stack {
+  position: relative;
+  width: 44px;
+  height: 54px;
+  flex-shrink: 0;
+}
+
+.ls-avatar-stack img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.ls-profile-name {
+  font-weight: 700;
+  font-size: 0.9rem;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ls-text);
+}
+
+.ls-profile-menu {
+  display: none;
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: calc(100% + 6px);
+  background: var(--ls-card);
+  border: 1px solid var(--ls-border);
+  border-radius: 12px;
+  box-shadow: var(--ls-shadow);
+  padding: 6px;
+  z-index: 50;
+}
+
+.ls-profile:hover .ls-profile-menu,
+.ls-profile:focus-within .ls-profile-menu {
+  display: block;
+}
+
+.ls-profile-menu button {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--ls-text);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.ls-profile-menu button:hover {
+  background: var(--ls-accent-soft);
+  color: var(--ls-accent);
+}
+
+#learner-main {
+  flex: 1;
+  min-width: 0;
+  padding: 28px 32px 48px;
+  overflow-y: auto;
+  background: var(--ls-bg);
+  color: var(--ls-text);
+}
+
+.ls-pane {
+  display: none;
+  max-width: 920px;
+  margin: 0 auto;
+  animation: lsFade 0.25s ease;
+  color: var(--ls-text);
+}
+
+.ls-pane.active {
+  display: block;
+}
+
+@keyframes lsFade {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Dashboard AI home */
+.ls-home-hero {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 40px 0 24px;
+  text-align: left;
+}
+
+.ls-home-hero h2 {
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  font-weight: 800;
+  margin: 0;
+  letter-spacing: -0.03em;
+  color: var(--ls-text) !important;
+  border: none !important;
+}
+
+.ls-home-hero img {
+  width: 72px;
+  height: 72px;
+}
+
+.ls-ai-box {
+  background: var(--ls-card);
+  border: 1.5px solid var(--ls-border);
+  border-radius: 20px;
+  box-shadow: var(--ls-shadow);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  min-height: 320px;
+  color: var(--ls-text);
+}
+
+#ls-ai-messages {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 42vh;
+  padding: 8px 4px 12px;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: var(--ls-text);
+}
+
+.ls-bubble-user {
+  background: var(--ls-user-bubble) !important;
+  color: var(--ls-text);
+}
+
+.ls-bubble-coach {
+  background: var(--ls-coach-bubble) !important;
+  color: var(--ls-text);
+}
+
+.ls-ai-composer {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  border-top: 1px solid var(--ls-border);
+  padding-top: 12px;
+}
+
+.ls-ai-composer textarea {
+  flex: 1;
+  min-height: 56px;
+  max-height: 140px;
+  resize: vertical;
+  border: 1.5px solid var(--ls-border);
+  border-radius: 14px;
+  padding: 12px 14px;
+  font: inherit;
+  background: var(--ls-input-bg);
+  color: var(--ls-text);
+}
+
+.ls-ai-composer textarea::placeholder {
+  color: var(--ls-muted);
+}
+
+.ls-ai-composer button {
+  border: none;
+  background: var(--ls-btn);
+  color: var(--ls-btn-text);
+  font: inherit;
+  font-weight: 800;
+  padding: 12px 18px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+
+.ls-ai-composer button:hover {
+  background: var(--ls-btn-hover);
+  color: var(--ls-btn-hover-text);
+}
+
+.ls-ai-hint {
+  text-align: center;
+  color: var(--ls-muted);
+  font-size: 0.9rem;
+  margin: 14px 0 0;
+}
+
+#ls-ai-recs {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.ls-rec-card {
+  background: var(--ls-card);
+  border: 1px solid var(--ls-border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: var(--ls-shadow);
+  color: var(--ls-text);
+}
+
+.ls-rec-card strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--ls-text);
+}
+
+.ls-rec-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.ls-rec-actions button {
+  border: none;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.ls-btn-primary {
+  background: var(--ls-btn);
+  color: var(--ls-btn-text);
+}
+
+.ls-btn-primary:hover {
+  background: var(--ls-btn-hover);
+  color: var(--ls-btn-hover-text);
+}
+
+.ls-btn-soft {
+  background: var(--ls-accent-soft);
+  color: var(--ls-accent);
+}
+
+.ls-btn-soft:hover {
+  background: var(--ls-btn-hover);
+  color: var(--ls-btn-hover-text);
+}
+
+/* Achievements */
+.ls-ach-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.ls-ach-header h2 {
+  margin: 0 0 4px;
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--ls-text) !important;
+}
+
+.ls-ach-header p {
+  margin: 0;
+  color: var(--ls-muted);
+}
+
+.ls-ach-header img {
+  width: 120px;
+  height: 120px;
+}
+
+.ls-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.ls-metric {
+  background: var(--ls-card);
+  border-radius: var(--ls-radius);
+  padding: 16px;
+  text-align: center;
+  border: 1px solid var(--ls-border);
+  box-shadow: var(--ls-shadow);
+  color: var(--ls-text);
+}
+
+.ls-metric img {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 8px;
+}
+
+.ls-metric .val {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--ls-text);
+}
+
+.ls-metric .label {
+  color: var(--ls-muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.ls-badges {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.ls-badge {
+  background: var(--ls-card);
+  border: 1px solid var(--ls-border);
+  border-radius: 16px;
+  padding: 14px 16px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--ls-text);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ls-badge .ls-badge-how {
+  font-weight: 500;
+  font-size: 0.8rem;
+  color: var(--ls-muted, #64748b);
+  line-height: 1.35;
+}
+
+.ls-badge.locked {
+  opacity: 0.72;
+  background: rgba(148, 163, 184, 0.12);
+}
+
+.ls-badge-track {
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.28);
+  overflow: hidden;
+  margin-top: 2px;
+}
+
+.ls-badge-fill {
+  height: 100%;
+  background: #6366f1;
+  border-radius: 999px;
+}
+
+/* Store / enrolled / settings */
+.ls-section-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  margin: 0 0 6px;
+  color: var(--ls-text) !important;
+  border: none !important;
+}
+
+.ls-section-sub {
+  color: var(--ls-muted);
+  margin: 0 0 22px;
+}
+
+.ls-store-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+}
+
+.ls-store-card {
+  background: var(--ls-card);
+  border: 1px solid var(--ls-border);
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: var(--ls-shadow);
+  color: var(--ls-text);
+}
+
+.ls-store-card h4 {
+  margin: 8px 0 4px;
+  font-size: 1rem;
+  color: var(--ls-text) !important;
+}
+
+.ls-store-card p {
+  margin: 0 0 10px;
+  color: var(--ls-muted);
+  font-size: 0.85rem;
+}
+
+.ls-store-card img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+}
+
+.ls-store-card .ls-btn-primary,
+.ls-store-card .ls-btn-soft {
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.ls-enrolled-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.ls-enrolled-list li {
+  background: var(--ls-card);
+  border: 1px solid var(--ls-border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  box-shadow: var(--ls-shadow);
+  color: var(--ls-text);
+}
+
+.ls-enrolled-list li strong {
+  color: inherit;
+}
+
+.ls-settings-card,
+.ls-help-card {
+  background: var(--ls-card);
+  border: 1px solid var(--ls-border);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: var(--ls-shadow);
+  max-width: 520px;
+  color: var(--ls-text);
+}
+
+.ls-volunteer-stats {
+  max-width: 720px;
+}
+
+.ls-volunteer-metrics {
+  margin-bottom: 20px;
+}
+
+.ls-volunteer-certs-title {
+  margin: 0 0 12px;
+  font-size: 1.05rem;
+  color: var(--ls-text);
+}
+
+.ls-cert-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ls-cert-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: var(--ls-card);
+  border: 1px solid var(--ls-border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: var(--ls-shadow);
+  color: var(--ls-text);
+}
+
+.ls-cert-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ls-cert-meta {
+  font-size: 0.85rem;
+  color: var(--ls-muted);
+}
+
+.ls-cert-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ls-cert-actions a {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.ls-cert-actions .ls-btn-primary {
+  background: var(--ls-btn);
+  color: var(--ls-btn-text, #fff);
+}
+
+.ls-cert-actions .ls-btn-soft {
+  background: var(--ls-accent-soft);
+  color: var(--ls-active-text, var(--ls-accent));
+  border: 1px solid var(--ls-border);
+}
+
+.ls-settings-card label {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--ls-text);
+}
+
+.ls-settings-card input,
+.ls-feedback-modal textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1.5px solid var(--ls-border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font: inherit;
+  background: var(--ls-input-bg);
+  color: var(--ls-text);
+}
+
+.ls-settings-card button,
+.ls-feedback-modal button.ls-btn-primary,
+.ls-feedback-modal #ls-feedback-send {
+  margin-top: 12px;
+  border: none;
+  background: var(--ls-btn);
+  color: var(--ls-btn-text);
+  font: inherit;
+  font-weight: 800;
+  padding: 10px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.ls-settings-card button:hover,
+.ls-feedback-modal #ls-feedback-send:hover {
+  background: var(--ls-btn-hover);
+  color: var(--ls-btn-hover-text);
+}
+
+/* ===== Store theme packs (full surfaces) ===== */
+#learner-shell[data-learner-theme="warm"] {
+  --ls-bg: #FFF8F1;
+  --ls-sidebar: #FFFFFF;
+  --ls-text: #1A1A1A;
+  --ls-muted: #6B7280;
+  --ls-accent: #EA580C;
+  --ls-accent-soft: #FFEDD5;
+  --ls-btn: #1A1A1A;
+  --ls-btn-hover: #EA580C;
+  --ls-active-bg: #FFEDD5;
+  --ls-active-text: #9A3412;
+  --ls-user-bubble: #FFF1E6;
+  --ls-coach-bubble: #FFF7ED;
+  --ls-border: #F3E8DE;
+  --ls-card: #FFFFFF;
+  --ls-input-bg: #FFFCF8;
+  --ls-shadow: 0 8px 24px rgba(234, 88, 12, 0.08);
+}
+
+#learner-shell[data-learner-theme="blue"] {
+  --ls-bg: #F0F7FF;
+  --ls-sidebar: #FFFFFF;
+  --ls-text: #0F172A;
+  --ls-muted: #64748B;
+  --ls-accent: #2563EB;
+  --ls-accent-soft: #DBEAFE;
+  --ls-btn: #0F172A;
+  --ls-btn-hover: #2563EB;
+  --ls-active-bg: #DBEAFE;
+  --ls-active-text: #1D4ED8;
+  --ls-user-bubble: #EFF6FF;
+  --ls-coach-bubble: #F8FAFC;
+  --ls-border: #DBeafe;
+  --ls-card: #FFFFFF;
+  --ls-input-bg: #F8FAFF;
+  --ls-shadow: 0 8px 24px rgba(37, 99, 235, 0.08);
+}
+
+#learner-shell[data-learner-theme="red"] {
+  --ls-bg: #FFF5F5;
+  --ls-sidebar: #FFFFFF;
+  --ls-text: #1A1A1A;
+  --ls-muted: #7F1D1D;
+  --ls-accent: #DC2626;
+  --ls-accent-soft: #FEE2E2;
+  --ls-btn: #1A1A1A;
+  --ls-btn-hover: #DC2626;
+  --ls-active-bg: #FEE2E2;
+  --ls-active-text: #B91C1C;
+  --ls-user-bubble: #FEF2F2;
+  --ls-coach-bubble: #FFF7F7;
+  --ls-border: #FECACA;
+  --ls-card: #FFFFFF;
+  --ls-input-bg: #FFFBFB;
+  --ls-shadow: 0 8px 24px rgba(220, 38, 38, 0.08);
+}
+
+#learner-shell[data-learner-theme="cool"] {
+  --ls-bg: #F0FDFA;
+  --ls-sidebar: #FFFFFF;
+  --ls-text: #134E4A;
+  --ls-muted: #0F766E;
+  --ls-accent: #0D9488;
+  --ls-accent-soft: #CCFBF1;
+  --ls-btn: #134E4A;
+  --ls-btn-hover: #0D9488;
+  --ls-active-bg: #CCFBF1;
+  --ls-active-text: #0F766E;
+  --ls-user-bubble: #ECFDF5;
+  --ls-coach-bubble: #F0FDFA;
+  --ls-border: #99F6E4;
+  --ls-card: #FFFFFF;
+  --ls-input-bg: #F7FFFE;
+  --ls-shadow: 0 8px 24px rgba(13, 148, 136, 0.08);
+}
+
+#learner-shell[data-learner-theme="happy"] {
+  --ls-bg: #FFFBEB;
+  --ls-sidebar: #FFFFFF;
+  --ls-text: #1A1A1A;
+  --ls-muted: #A16207;
+  --ls-accent: #EAB308;
+  --ls-accent-soft: #FEF9C3;
+  --ls-btn: #1A1A1A;
+  --ls-btn-hover: #CA8A04;
+  --ls-btn-hover-text: #FFFFFF;
+  --ls-active-bg: #FEF9C3;
+  --ls-active-text: #A16207;
+  --ls-user-bubble: #FEFCE8;
+  --ls-coach-bubble: #FFFBEB;
+  --ls-border: #FDE68A;
+  --ls-card: #FFFFFF;
+  --ls-input-bg: #FFFDF5;
+  --ls-shadow: 0 8px 24px rgba(234, 179, 8, 0.12);
+}
+
+#learner-shell[data-learner-theme="hacker"] {
+  --ls-bg: #0B1220;
+  --ls-sidebar: #0F172A;
+  --ls-text: #F8FAFC;
+  --ls-muted: #A7F3D0;
+  --ls-accent: #4ADE80;
+  --ls-accent-soft: rgba(74, 222, 128, 0.18);
+  --ls-btn: #020617;
+  --ls-btn-text: #F8FAFC;
+  --ls-btn-hover: #22C55E;
+  --ls-btn-hover-text: #052E16;
+  --ls-active-bg: rgba(74, 222, 128, 0.22);
+  --ls-active-text: #86EFAC;
+  --ls-user-bubble: #12261a;
+  --ls-coach-bubble: #111827;
+  --ls-border: #334155;
+  --ls-card: #111827;
+  --ls-input-bg: #0B1220;
+  --ls-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+#learner-shell[data-learner-theme="superhero"] {
+  --ls-bg: #F5F3FF;
+  --ls-sidebar: #FFFFFF;
+  --ls-text: #1E1B4B;
+  --ls-muted: #6D28D9;
+  --ls-accent: #7C3AED;
+  --ls-accent-soft: #EDE9FE;
+  --ls-btn: #1E1B4B;
+  --ls-btn-hover: #EF4444;
+  --ls-active-bg: #EDE9FE;
+  --ls-active-text: #5B21B6;
+  --ls-user-bubble: #EEF2FF;
+  --ls-coach-bubble: #FAF5FF;
+  --ls-border: #DDD6FE;
+  --ls-card: #FFFFFF;
+  --ls-input-bg: #FAFAFF;
+  --ls-shadow: 0 8px 24px rgba(124, 58, 237, 0.1);
+}
+
+#learner-shell[data-learner-theme="midnight"] {
+  --ls-bg: #020617;
+  --ls-sidebar: #0B1220;
+  --ls-text: #E2E8F0;
+  --ls-muted: #94A3B8;
+  --ls-accent: #38BDF8;
+  --ls-accent-soft: rgba(56, 189, 248, 0.16);
+  --ls-btn: #0F172A;
+  --ls-btn-text: #F8FAFC;
+  --ls-btn-hover: #38BDF8;
+  --ls-btn-hover-text: #082F49;
+  --ls-active-bg: rgba(56, 189, 248, 0.18);
+  --ls-active-text: #7DD3FC;
+  --ls-user-bubble: #0F172A;
+  --ls-coach-bubble: #111827;
+  --ls-border: #1E293B;
+  --ls-card: #0F172A;
+  --ls-input-bg: #020617;
+  --ls-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+#learner-shell[data-learner-theme="gold"] {
+  --ls-bg: #FFFBEB;
+  --ls-sidebar: #FFFFFF;
+  --ls-text: #422006;
+  --ls-muted: #A16207;
+  --ls-accent: #D97706;
+  --ls-accent-soft: #FEF3C7;
+  --ls-btn: #78350F;
+  --ls-btn-hover: #F59E0B;
+  --ls-active-bg: #FDE68A;
+  --ls-active-text: #92400E;
+  --ls-user-bubble: #FEF3C7;
+  --ls-coach-bubble: #FFFBEB;
+  --ls-border: #FCD34D;
+  --ls-card: #FFFFFF;
+  --ls-input-bg: #FFFBEB;
+  --ls-shadow: 0 8px 24px rgba(217, 119, 6, 0.14);
+}
+
+#learner-shell[data-learner-theme="galaxy"] {
+  --ls-bg: #1E1B4B;
+  --ls-sidebar: #312E81;
+  --ls-text: #F5F3FF;
+  --ls-muted: #C4B5FD;
+  --ls-accent: #A78BFA;
+  --ls-accent-soft: rgba(167, 139, 250, 0.22);
+  --ls-btn: #4C1D95;
+  --ls-btn-text: #F5F3FF;
+  --ls-btn-hover: #EC4899;
+  --ls-btn-hover-text: #FFFFFF;
+  --ls-active-bg: rgba(236, 72, 153, 0.28);
+  --ls-active-text: #F9A8D4;
+  --ls-user-bubble: #3730A3;
+  --ls-coach-bubble: #1E1B4B;
+  --ls-border: #6366F1;
+  --ls-card: #312E81;
+  --ls-input-bg: #1E1B4B;
+  --ls-shadow: 0 8px 24px rgba(76, 29, 149, 0.45);
+}
+
+/* Celebration overlay */
+#ls-celebrate {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 99999;
+  overflow: hidden;
+}
+
+.ls-emoji-particle {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  font-size: 48px;
+  line-height: 1;
+  transform: translate(-50%, -50%);
+  animation: lsBurst 2.8s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+
+@keyframes lsBurst {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 0; }
+  8% { transform: translate(-50%, -50%) scale(1.35); opacity: 1; }
+  38% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.9); opacity: 0; }
+}
+
+.ls-enroll-prog { margin-top: 6px; font-size: 0.75rem; color: var(--ls-muted, #64748b); }
+.ls-enroll-track { height: 6px; border-radius: 999px; background: rgba(0,0,0,0.1); overflow: hidden; margin-top: 4px; }
+.ls-enroll-fill { height: 100%; background: #6366f1; }
+
+.ls-gem-toast {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--ls-card);
+  color: var(--ls-text);
+  border: 1px solid var(--ls-border);
+  box-shadow: var(--ls-shadow);
+  border-radius: 999px;
+  padding: 10px 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  z-index: 100000;
+  animation: lsFade 0.2s ease;
+}
+
+.ls-gem-toast img {
+  width: 24px;
+  height: 24px;
+}
+
+/* Modals */
+.ls-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.ls-feedback-modal {
+  background: var(--ls-card);
+  color: var(--ls-text);
+  border-radius: 16px;
+  padding: 20px;
+  width: min(480px, 100%);
+  box-shadow: var(--ls-shadow);
+}
+
+.ls-feedback-modal h3 {
+  margin: 0 0 10px;
+  color: var(--ls-text) !important;
+}
+
+.ls-mobile-toggle {
+  display: none;
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 45;
+  border: none;
+  background: var(--ls-card);
+  color: var(--ls-text);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-weight: 800;
+  box-shadow: var(--ls-shadow);
+  cursor: pointer;
+}
+
+@media (max-width: 860px) {
+  .ls-mobile-toggle { display: block; }
+  #learner-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    transform: translateX(-105%);
+    transition: transform 0.2s ease;
+    box-shadow: var(--ls-shadow);
+  }
+  body.ls-sidebar-open #learner-sidebar {
+    transform: none;
+  }
+  .ls-sidebar-close { display: block; }
+  #learner-main { padding: 64px 16px 40px; }
+  .ls-metrics { grid-template-columns: repeat(2, 1fr); }
+  .ls-home-hero { flex-direction: column; text-align: center; }
+}
+
+/*
+ * Global theme-toggle.css uses [data-theme="light"] button { color:#1e293b !important }
+ * which makes hacker/dark store themes black-on-black. Force shell tokens instead.
+ */
+html[data-theme="light"] body.learner-shell-active #learner-shell,
+html[data-theme="dark"] body.learner-shell-active #learner-shell,
+body.learner-shell-active #learner-shell {
+  color: var(--ls-text) !important;
+}
+
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-brand-name,
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-nav-btn,
+html[data-theme="light"] body.learner-shell-active #learner-shell button.ls-nav-btn,
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-nav-btn span,
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-nav-icon,
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-profile-name,
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-gems-pill,
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-profile,
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-profile-menu button,
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-section-title,
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-home-hero h2,
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-metric .val,
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-store-card h4,
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-badge,
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-help-card,
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-settings-card,
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-settings-card label,
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-enrolled-list li,
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-rec-card,
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-ai-box,
+html[data-theme="light"] body.learner-shell-active #learner-shell #ls-ai-messages,
+html[data-theme="light"] body.learner-shell-active #learner-shell h1,
+html[data-theme="light"] body.learner-shell-active #learner-shell h2,
+html[data-theme="light"] body.learner-shell-active #learner-shell h3,
+html[data-theme="light"] body.learner-shell-active #learner-shell h4,
+html[data-theme="light"] body.learner-shell-active #learner-shell p,
+html[data-theme="light"] body.learner-shell-active #learner-shell strong,
+html[data-theme="light"] body.learner-shell-active #learner-shell label,
+html[data-theme="light"] body.learner-shell-active #learner-shell li,
+html[data-theme="light"] body.learner-shell-active #learner-shell div,
+html[data-theme="light"] body.learner-shell-active #learner-shell span,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-brand-name,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-nav-btn,
+html[data-theme="dark"] body.learner-shell-active #learner-shell button.ls-nav-btn,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-nav-btn span,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-nav-icon,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-profile-name,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-gems-pill,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-profile,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-profile-menu button,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-section-title,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-home-hero h2,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-metric .val,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-store-card h4,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-badge,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-help-card,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-settings-card,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-settings-card label,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-enrolled-list li,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-rec-card,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-ai-box,
+html[data-theme="dark"] body.learner-shell-active #learner-shell #ls-ai-messages,
+html[data-theme="dark"] body.learner-shell-active #learner-shell h1,
+html[data-theme="dark"] body.learner-shell-active #learner-shell h2,
+html[data-theme="dark"] body.learner-shell-active #learner-shell h3,
+html[data-theme="dark"] body.learner-shell-active #learner-shell h4,
+html[data-theme="dark"] body.learner-shell-active #learner-shell p,
+html[data-theme="dark"] body.learner-shell-active #learner-shell strong,
+html[data-theme="dark"] body.learner-shell-active #learner-shell label,
+html[data-theme="dark"] body.learner-shell-active #learner-shell li,
+html[data-theme="dark"] body.learner-shell-active #learner-shell div,
+html[data-theme="dark"] body.learner-shell-active #learner-shell span,
+body.learner-shell-active #learner-shell .ls-brand-name,
+body.learner-shell-active #learner-shell .ls-nav-btn,
+body.learner-shell-active #learner-shell button.ls-nav-btn,
+body.learner-shell-active #learner-shell .ls-nav-btn span,
+body.learner-shell-active #learner-shell .ls-nav-icon,
+body.learner-shell-active #learner-shell .ls-profile-name,
+body.learner-shell-active #learner-shell .ls-gems-pill,
+body.learner-shell-active #learner-shell .ls-profile,
+body.learner-shell-active #learner-shell .ls-profile-menu button,
+body.learner-shell-active #learner-shell .ls-section-title,
+body.learner-shell-active #learner-shell .ls-home-hero h2,
+body.learner-shell-active #learner-shell .ls-metric .val,
+body.learner-shell-active #learner-shell .ls-store-card h4,
+body.learner-shell-active #learner-shell .ls-badge,
+body.learner-shell-active #learner-shell .ls-help-card,
+body.learner-shell-active #learner-shell .ls-settings-card,
+body.learner-shell-active #learner-shell .ls-settings-card label,
+body.learner-shell-active #learner-shell .ls-enrolled-list li,
+body.learner-shell-active #learner-shell .ls-rec-card,
+body.learner-shell-active #learner-shell .ls-ai-box,
+body.learner-shell-active #learner-shell #ls-ai-messages,
+body.learner-shell-active #learner-shell h1,
+body.learner-shell-active #learner-shell h2,
+body.learner-shell-active #learner-shell h3,
+body.learner-shell-active #learner-shell h4,
+body.learner-shell-active #learner-shell p,
+body.learner-shell-active #learner-shell strong,
+body.learner-shell-active #learner-shell label,
+body.learner-shell-active #learner-shell li,
+body.learner-shell-active #learner-shell div,
+body.learner-shell-active #learner-shell span {
+  color: var(--ls-text) !important;
+}
+
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-section-sub,
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-ai-hint,
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-metric .label,
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-store-card p,
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-ach-header p,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-section-sub,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-ai-hint,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-metric .label,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-store-card p,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-ach-header p,
+body.learner-shell-active #learner-shell .ls-section-sub,
+body.learner-shell-active #learner-shell .ls-ai-hint,
+body.learner-shell-active #learner-shell .ls-metric .label,
+body.learner-shell-active #learner-shell .ls-store-card p,
+body.learner-shell-active #learner-shell .ls-ach-header p {
+  color: var(--ls-muted) !important;
+}
+
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-nav-btn.active,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-nav-btn.active,
+body.learner-shell-active #learner-shell .ls-nav-btn.active {
+  color: var(--ls-active-text) !important;
+  background: var(--ls-active-bg) !important;
+}
+
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-nav-btn:hover,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-nav-btn:hover,
+body.learner-shell-active #learner-shell .ls-nav-btn:hover {
+  color: var(--ls-accent) !important;
+  background: var(--ls-accent-soft) !important;
+}
+
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-btn-primary,
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-ai-composer button,
+html[data-theme="light"] body.learner-shell-active #learner-shell #ls-feedback-send,
+html[data-theme="light"] body.learner-shell-active #learner-shell #ls-save-settings,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-btn-primary,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-ai-composer button,
+html[data-theme="dark"] body.learner-shell-active #learner-shell #ls-feedback-send,
+html[data-theme="dark"] body.learner-shell-active #learner-shell #ls-save-settings,
+body.learner-shell-active #learner-shell .ls-btn-primary,
+body.learner-shell-active #learner-shell .ls-ai-composer button,
+body.learner-shell-active #learner-shell #ls-feedback-send,
+body.learner-shell-active #learner-shell #ls-save-settings {
+  color: var(--ls-btn-text) !important;
+  background: var(--ls-btn) !important;
+}
+
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-btn-primary:hover,
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-ai-composer button:hover,
+html[data-theme="light"] body.learner-shell-active #learner-shell #ls-feedback-send:hover,
+html[data-theme="light"] body.learner-shell-active #learner-shell #ls-save-settings:hover,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-btn-primary:hover,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-ai-composer button:hover,
+html[data-theme="dark"] body.learner-shell-active #learner-shell #ls-feedback-send:hover,
+html[data-theme="dark"] body.learner-shell-active #learner-shell #ls-save-settings:hover,
+body.learner-shell-active #learner-shell .ls-btn-primary:hover,
+body.learner-shell-active #learner-shell .ls-ai-composer button:hover,
+body.learner-shell-active #learner-shell #ls-feedback-send:hover,
+body.learner-shell-active #learner-shell #ls-save-settings:hover {
+  color: var(--ls-btn-hover-text) !important;
+  background: var(--ls-btn-hover) !important;
+}
+
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-btn-soft,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-btn-soft,
+body.learner-shell-active #learner-shell .ls-btn-soft {
+  color: var(--ls-accent) !important;
+  background: var(--ls-accent-soft) !important;
+}
+
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-btn-soft:hover,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-btn-soft:hover,
+body.learner-shell-active #learner-shell .ls-btn-soft:hover {
+  color: var(--ls-btn-hover-text) !important;
+  background: var(--ls-btn-hover) !important;
+}
+
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-ai-composer textarea,
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-settings-card input,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-ai-composer textarea,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-settings-card input,
+body.learner-shell-active #learner-shell .ls-ai-composer textarea,
+body.learner-shell-active #learner-shell .ls-settings-card input {
+  color: var(--ls-text) !important;
+  background: var(--ls-input-bg) !important;
+  border-color: var(--ls-border) !important;
+}
+
+body.learner-shell-active #learner-shell .ls-flyout-action,
+body.learner-shell-active #learner-shell .ls-flyout-item,
+body.learner-shell-active #learner-shell .ls-flyout-title,
+body.learner-shell-active #learner-shell .ls-flyout-meta,
+body.learner-shell-active #learner-shell .ls-flyout-empty {
+  color: inherit;
+}
+
+body.learner-shell-active #learner-shell .ls-flyout-action {
+  color: var(--ls-active-text, var(--ls-accent)) !important;
+}
+
+body.learner-shell-active #learner-shell .ls-flyout-item {
+  color: var(--ls-text) !important;
+}
+
+body.learner-shell-active #learner-shell .ls-flyout-meta,
+body.learner-shell-active #learner-shell .ls-flyout-empty {
+  color: var(--ls-muted) !important;
+}
+
+/*
+ * theme-toggle.css forces [data-theme="light"] li { background:#fff }.
+ * That clashes with dark dashboard themes (hacker) → white cards + light text.
+ */
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-enrolled-list li,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-enrolled-list li,
+body.learner-shell-active #learner-shell .ls-enrolled-list li,
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-cert-row,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-cert-row,
+body.learner-shell-active #learner-shell .ls-cert-row {
+  background: var(--ls-card) !important;
+  background-color: var(--ls-card) !important;
+  border-color: var(--ls-border) !important;
+  color: var(--ls-text) !important;
+}
+
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-enrolled-list li strong,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-enrolled-list li strong,
+body.learner-shell-active #learner-shell .ls-enrolled-list li strong,
+html[data-theme="light"] body.learner-shell-active #learner-shell .ls-enrolled-list li div,
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-enrolled-list li div,
+body.learner-shell-active #learner-shell .ls-enrolled-list li div {
+  color: var(--ls-text) !important;
+  background: transparent !important;
+}
+
+/* ===== Course viewer: hide site navbar + apply store theme ===== */
+body.course-viewer-active > header {
+  display: none !important;
+}
+
+body.course-viewer-active {
+  --primary: var(--ls-accent, #2563eb);
+  --primary-dark: var(--ls-active-text, #1d4ed8);
+  --bg-card: var(--ls-card, #ffffff);
+  --border: var(--ls-border, #dbeafe);
+  --text-muted: var(--ls-muted, #64748b);
+  --text-light: var(--ls-text, #0f172a);
+  --k12-bg: var(--ls-bg, #f0f7ff);
+  --k12-bg-alt: var(--ls-bg, #f8fbff);
+  --k12-surface: var(--ls-card, #ffffff);
+  --k12-ink: var(--ls-text, #0f172a);
+  --k12-ink-soft: var(--ls-muted, #39546e);
+  --k12-primary: var(--ls-accent, #1f7a5a);
+  --k12-accent: var(--ls-accent, #128c6a);
+  --k12-border: var(--ls-border, #c9def4);
+  --k12-shadow: var(--ls-shadow, 0 10px 26px rgba(22, 56, 97, 0.12));
+  background: var(--ls-bg, #edf6ff) !important;
+  color: var(--ls-text) !important;
+}
+
+body.course-viewer-active::before {
+  opacity: 0.12;
+  filter: none;
+}
+
+body.course-viewer-active[data-learner-theme="hacker"]::before {
+  display: none;
+}
+
+body.course-viewer-active[data-learner-theme="warm"] {
+  --ls-bg: #FFF8F1; --ls-sidebar: #FFFFFF; --ls-text: #1A1A1A; --ls-muted: #6B7280;
+  --ls-accent: #EA580C; --ls-accent-soft: #FFEDD5; --ls-btn: #1A1A1A; --ls-btn-hover: #EA580C;
+  --ls-active-bg: #FFEDD5; --ls-active-text: #9A3412; --ls-border: #F3E8DE; --ls-card: #FFFFFF;
+  --ls-input-bg: #FFFCF8; --ls-shadow: 0 8px 24px rgba(234, 88, 12, 0.08);
+}
+body.course-viewer-active[data-learner-theme="blue"] {
+  --ls-bg: #F0F7FF; --ls-sidebar: #FFFFFF; --ls-text: #0F172A; --ls-muted: #64748B;
+  --ls-accent: #2563EB; --ls-accent-soft: #DBEAFE; --ls-btn: #0F172A; --ls-btn-hover: #2563EB;
+  --ls-active-bg: #DBEAFE; --ls-active-text: #1D4ED8; --ls-border: #DBEAFE; --ls-card: #FFFFFF;
+  --ls-input-bg: #F8FAFF; --ls-shadow: 0 8px 24px rgba(37, 99, 235, 0.08);
+}
+body.course-viewer-active[data-learner-theme="red"] {
+  --ls-bg: #FFF5F5; --ls-sidebar: #FFFFFF; --ls-text: #1A1A1A; --ls-muted: #7F1D1D;
+  --ls-accent: #DC2626; --ls-accent-soft: #FEE2E2; --ls-btn: #1A1A1A; --ls-btn-hover: #DC2626;
+  --ls-active-bg: #FEE2E2; --ls-active-text: #B91C1C; --ls-border: #FECACA; --ls-card: #FFFFFF;
+  --ls-input-bg: #FFFBFB; --ls-shadow: 0 8px 24px rgba(220, 38, 38, 0.08);
+}
+body.course-viewer-active[data-learner-theme="cool"] {
+  --ls-bg: #F0FDFA; --ls-sidebar: #FFFFFF; --ls-text: #134E4A; --ls-muted: #0F766E;
+  --ls-accent: #0D9488; --ls-accent-soft: #CCFBF1; --ls-btn: #134E4A; --ls-btn-hover: #0D9488;
+  --ls-active-bg: #CCFBF1; --ls-active-text: #0F766E; --ls-border: #99F6E4; --ls-card: #FFFFFF;
+  --ls-input-bg: #F7FFFE; --ls-shadow: 0 8px 24px rgba(13, 148, 136, 0.08);
+}
+body.course-viewer-active[data-learner-theme="happy"] {
+  --ls-bg: #FFFBEB; --ls-sidebar: #FFFFFF; --ls-text: #1A1A1A; --ls-muted: #A16207;
+  --ls-accent: #EAB308; --ls-accent-soft: #FEF9C3; --ls-btn: #1A1A1A; --ls-btn-hover: #CA8A04;
+  --ls-active-bg: #FEF9C3; --ls-active-text: #A16207; --ls-border: #FDE68A; --ls-card: #FFFFFF;
+  --ls-input-bg: #FFFDF5; --ls-shadow: 0 8px 24px rgba(234, 179, 8, 0.12);
+}
+body.course-viewer-active[data-learner-theme="hacker"] {
+  --ls-bg: #0B1220; --ls-sidebar: #0F172A; --ls-text: #F8FAFC; --ls-muted: #A7F3D0;
+  --ls-accent: #4ADE80; --ls-accent-soft: rgba(74, 222, 128, 0.18); --ls-btn: #020617;
+  --ls-btn-hover: #22C55E; --ls-active-bg: rgba(74, 222, 128, 0.22); --ls-active-text: #86EFAC;
+  --ls-border: #334155; --ls-card: #111827; --ls-input-bg: #0B1220;
+  --ls-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+body.course-viewer-active[data-learner-theme="superhero"] {
+  --ls-bg: #F5F3FF; --ls-sidebar: #FFFFFF; --ls-text: #1E1B4B; --ls-muted: #6D28D9;
+  --ls-accent: #7C3AED; --ls-accent-soft: #EDE9FE; --ls-btn: #1E1B4B; --ls-btn-hover: #EF4444;
+  --ls-active-bg: #EDE9FE; --ls-active-text: #5B21B6; --ls-border: #DDD6FE; --ls-card: #FFFFFF;
+  --ls-input-bg: #FAFAFF; --ls-shadow: 0 8px 24px rgba(124, 58, 237, 0.1);
+}
+body.course-viewer-active[data-learner-theme="midnight"] {
+  --ls-bg: #020617; --ls-sidebar: #0B1220; --ls-text: #E2E8F0; --ls-muted: #94A3B8;
+  --ls-accent: #38BDF8; --ls-accent-soft: rgba(56, 189, 248, 0.16); --ls-btn: #0F172A;
+  --ls-btn-hover: #38BDF8; --ls-active-bg: rgba(56, 189, 248, 0.18); --ls-active-text: #7DD3FC;
+  --ls-border: #1E293B; --ls-card: #0F172A; --ls-input-bg: #020617;
+  --ls-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+body.course-viewer-active[data-learner-theme="gold"] {
+  --ls-bg: #FFFBEB; --ls-sidebar: #FFFFFF; --ls-text: #422006; --ls-muted: #A16207;
+  --ls-accent: #D97706; --ls-accent-soft: #FEF3C7; --ls-btn: #78350F; --ls-btn-hover: #F59E0B;
+  --ls-active-bg: #FDE68A; --ls-active-text: #92400E; --ls-border: #FCD34D; --ls-card: #FFFFFF;
+  --ls-input-bg: #FFFBEB; --ls-shadow: 0 8px 24px rgba(217, 119, 6, 0.14);
+}
+body.course-viewer-active[data-learner-theme="galaxy"] {
+  --ls-bg: #1E1B4B; --ls-sidebar: #312E81; --ls-text: #F5F3FF; --ls-muted: #C4B5FD;
+  --ls-accent: #A78BFA; --ls-accent-soft: rgba(167, 139, 250, 0.22); --ls-btn: #4C1D95;
+  --ls-btn-hover: #EC4899; --ls-active-bg: rgba(236, 72, 153, 0.28); --ls-active-text: #F9A8D4;
+  --ls-border: #6366F1; --ls-card: #312E81; --ls-input-bg: #1E1B4B;
+  --ls-shadow: 0 8px 24px rgba(76, 29, 149, 0.45);
+}
+
+body.course-viewer-active #course-viewer-section {
+  background: transparent;
+}
+
+body.course-viewer-active .viewer-header {
+  position: static;
+  background: transparent;
+  padding-top: 8px;
+}
+
+.viewer-sticky-chrome {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: var(--ls-card, #fff);
+  padding: 8px 0 10px;
+  margin: 0 0 8px;
+}
+
+.viewer-sticky-hud {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.viewer-close-btn {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ls-accent-soft, #ffedd5);
+  color: var(--ls-text, #1a1a1a);
+}
+
+.viewer-close-btn:hover {
+  background: var(--ls-active-bg, #ffedd5);
+}
+
+body.course-viewer-active .viewer-content,
+body.course-viewer-active #viewer-regular-sidebar,
+body.course-viewer-active #unit-navigation-sidebar,
+body.course-viewer-active .related-courses {
+  background: var(--ls-card) !important;
+  border-color: var(--ls-border) !important;
+  box-shadow: var(--ls-shadow);
+  color: var(--ls-text) !important;
+}
+
+body.course-viewer-active #course-viewer-title,
+body.course-viewer-active #course-viewer-description,
+body.course-viewer-active #viewer-page-indicator {
+  color: var(--ls-text) !important;
+}
+
+body.course-viewer-active #course-viewer-content,
+body.course-viewer-active #course-viewer-content * {
+  color: var(--ls-muted) !important;
+}
+
+body.course-viewer-active #course-viewer-content h1,
+body.course-viewer-active #course-viewer-content h2,
+body.course-viewer-active #course-viewer-content h3,
+body.course-viewer-active #course-viewer-content h4,
+body.course-viewer-active #course-viewer-content strong,
+body.course-viewer-active #course-viewer-content b {
+  color: var(--ls-text) !important;
+}
+
+body.course-viewer-active #viewer-like-btn {
+  background: var(--ls-accent-soft) !important;
+  color: var(--ls-active-text, var(--ls-accent)) !important;
+}
+
+body.course-viewer-active #viewer-like-btn.course-action-like-active,
+body.course-viewer-active #viewer-like-btn[data-liked="true"] {
+  background: var(--ls-accent) !important;
+  color: #fff !important;
+}
+
+body.course-viewer-active #back-to-dashboard,
+body.course-viewer-active #viewer-prev-btn,
+body.course-viewer-active #viewer-next-btn {
+  background: var(--ls-btn, #1a1a1a) !important;
+  color: #fff !important;
+  border: none !important;
+}
+
+body.course-viewer-active #back-to-dashboard:hover,
+body.course-viewer-active #viewer-prev-btn:hover,
+body.course-viewer-active #viewer-next-btn:hover {
+  background: var(--ls-btn-hover) !important;
+}
+
+/* Study coach typing (dashboard) */
+#ls-ai-typing .ls-ai-typing-dots {
+  display: inline-flex;
+  gap: 2px;
+  align-items: center;
+  min-height: 1.25em;
+  color: var(--ls-muted);
+  font-size: 1.5rem;
+  line-height: 1;
+  padding: 4px 0;
+}
+
+#ls-ai-typing .ls-ai-typing-dots span {
+  animation: study-coach-dot 1.1s ease-in-out infinite;
+  opacity: 0.35;
+}
+
+#ls-ai-typing .ls-ai-typing-dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+#ls-ai-typing .ls-ai-typing-dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+/* WidgetSpec cards */
+.vl-widget-host {
+  margin-top: 10px;
+  display: grid;
+  gap: 12px;
+}
+
+.vl-widget-card {
+  background: var(--ls-card, rgba(255, 255, 255, 0.06));
+  border: 1px solid var(--ls-border, rgba(255, 255, 255, 0.12));
+  border-radius: 14px;
+  padding: 12px;
+  color: var(--ls-text, inherit);
+  box-shadow: var(--ls-shadow, 0 4px 16px rgba(0, 0, 0, 0.12));
+}
+
+.vl-widget-card.vl-widget-fade-in {
+  animation: lsFade 0.35s ease;
+}
+
+.vl-widget-title {
+  font-weight: 800;
+  font-size: 0.95rem;
+  margin-bottom: 4px;
+}
+
+.vl-widget-objective {
+  font-size: 0.82rem;
+  color: var(--ls-muted, #888);
+  margin-bottom: 8px;
+}
+
+.vl-widget-view {
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #0f1220;
+  min-height: 180px;
+}
+
+/* JSXGraph labels on dark boards — beat CDN jsxgraph.css defaults */
+.vl-widget-view .JXGtext,
+.vl-widget-view .vl-jxg-label,
+.vl-widget-view .JXGtext span,
+.vl-widget-view .JXGtext *,
+.vl-widget-view text,
+.vl-widget-view svg text,
+.vl-widget-view .JXGtextforeignObject,
+#jxgbox .JXGtext {
+  color: #ffffff !important;
+  fill: #ffffff !important;
+  stroke: none !important;
+  font-weight: 800 !important;
+  opacity: 1 !important;
+  text-shadow: 0 0 4px #000, 0 1px 3px #000 !important;
+}
+
+.vl-widget-controls {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.vl-widget-control-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+
+.vl-widget-control-row label {
+  min-width: 110px;
+  font-weight: 600;
+}
+
+.vl-widget-control-row input[type="range"] {
+  flex: 1;
+  min-width: 100px;
+}
+
+.vl-widget-control-row select,
+.vl-widget-control-row input[type="number"],
+.vl-widget-control-row button {
+  border: 1px solid var(--ls-border, #444);
+  border-radius: 8px;
+  padding: 6px 10px;
+  background: var(--ls-input-bg, rgba(255, 255, 255, 0.08));
+  color: inherit;
+  font: inherit;
+}
+
+.vl-widget-control-row button {
+  cursor: pointer;
+  font-weight: 700;
+  background: var(--ls-btn, #333);
+  color: var(--ls-btn-text, #fff);
+  border: none;
+}
+
+.vl-widget-val {
+  font-variant-numeric: tabular-nums;
+  min-width: 2.5em;
+  color: var(--ls-muted, #999);
+}
+
+.vl-widget-outputs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+}
+
+.vl-widget-output-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vl-widget-drawing {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 18, 32, 0.82);
+  z-index: 2;
+  color: #e8eaf0;
+  font-weight: 700;
+}
+
+.vl-widget-drawing-inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vl-widget-pen {
+  display: inline-block;
+  animation: vl-pen-draw 1s ease-in-out infinite;
+  font-size: 1.4rem;
+}
+
+@keyframes vl-pen-draw {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(-12deg);
+  }
+  50% {
+    transform: translate(6px, -4px) rotate(8deg);
+  }
+}
+
+.vl-widget-error {
+  padding: 16px;
+  color: #f5a9a9;
+  font-size: 0.9rem;
+}
+
+.study-coach-bubble .vl-widget-host,
+.ls-bubble-coach .vl-widget-host {
+  white-space: normal;
+}
+
+.study-coach-bubble .vl-widget-card {
+  max-width: 100%;
+}
+
+/* Notes → master course */
+.ls-main-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--ls-bg);
+  padding: 0 0 8px;
+  margin: 0 0 4px;
+}
+
+.ls-main-toolbar .ls-btn-primary {
+  border: none;
+  border-radius: 12px;
+  padding: 8px 12px;
+  font: inherit;
+  font-weight: 800;
+  font-size: 0.82rem;
+  line-height: 1.25;
+  cursor: pointer;
+  max-width: min(420px, 100%);
+  white-space: normal;
+  text-align: right;
+}
+
+.ls-notes-modal {
+  background: var(--ls-card);
+  color: var(--ls-text);
+  border-radius: 16px;
+  padding: 20px;
+  width: min(640px, 100%);
+  box-shadow: var(--ls-shadow);
+  max-height: min(88vh, 720px);
+  overflow-y: auto;
+}
+
+.ls-notes-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.ls-notes-head h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.3;
+  padding-right: 8px;
+  color: var(--ls-text) !important;
+}
+
+.ls-notes-x {
+  border: none;
+  background: transparent;
+  color: var(--ls-muted);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.ls-notes-sub {
+  color: var(--ls-muted);
+  font-size: 0.9rem;
+  margin: 0 0 14px;
+  line-height: 1.4;
+}
+
+.ls-notes-drop {
+  border: 1.5px dashed var(--ls-border);
+  border-radius: 16px;
+  padding: 12px;
+  background: var(--ls-input-bg);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.ls-notes-drop.is-drag {
+  border-color: var(--ls-accent);
+  background: var(--ls-accent-soft);
+}
+
+.ls-notes-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.ls-notes-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--ls-accent-soft);
+  color: var(--ls-accent);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.ls-notes-chip button {
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0;
+}
+
+.ls-notes-modal textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--ls-border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font: inherit;
+  color: var(--ls-text);
+  background: var(--ls-card);
+  resize: vertical;
+  margin-bottom: 8px;
+}
+
+.ls-notes-modal textarea:focus {
+  outline: 2px solid var(--ls-accent);
+  outline-offset: 1px;
+}
+
+.ls-notes-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ls-notes-plus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.4rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ls-notes-bar .ls-btn-primary {
+  border: none;
+  border-radius: 12px;
+  padding: 10px 16px;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.ls-notes-step {
+  font-weight: 800;
+  margin: 8px 0 4px;
+}
+
+.ls-notes-error {
+  color: #b91c1c;
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin: 10px 0 0;
+}
+
+html[data-theme="dark"] body.learner-shell-active #learner-shell .ls-notes-error,
+body.learner-shell-active #learner-shell .ls-notes-error {
+  color: #fca5a5;
+}
+

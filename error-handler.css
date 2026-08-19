@@ -1,0 +1,274 @@
+/**
+ * Veelearn Error Handler CSS
+ * User-friendly error modal styles
+ */
+
+.error-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10001;
+    backdrop-filter: blur(4px);
+}
+
+.error-modal-content {
+    background: white;
+    border-radius: 12px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: errorModalSlideIn 0.3s ease-out;
+}
+
+@keyframes errorModalSlideIn {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.error-modal-header {
+    display: flex;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid #e5e7eb;
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    border-radius: 12px 12px 0 0;
+}
+
+.error-icon {
+    font-size: 32px;
+    margin-right: 16px;
+}
+
+.error-title {
+    flex: 1;
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #991b1b;
+}
+
+.error-close-btn {
+    background: none;
+    border: none;
+    font-size: 28px;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: background-color 0.2s;
+}
+
+.error-close-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: #374151;
+}
+
+.error-modal-body {
+    padding: 24px;
+}
+
+.error-message {
+    margin: 0 0 16px 0;
+    font-size: 16px;
+    color: #374151;
+    line-height: 1.5;
+}
+
+.error-suggestion {
+    background: #f0f9ff;
+    border-left: 4px solid #0ea5e9;
+    padding: 16px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+}
+
+.error-suggestion strong {
+    color: #0369a1;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.error-suggestion p {
+    margin: 0;
+    font-size: 14px;
+    color: #0c4a6e;
+    line-height: 1.5;
+}
+
+.error-context {
+    padding: 12px;
+    background: #f9fafb;
+    border-radius: 6px;
+    margin-bottom: 12px;
+}
+
+.error-context small {
+    color: #6b7280;
+    font-size: 12px;
+}
+
+.error-code {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: #6b7280;
+    text-align: right;
+    padding-top: 12px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.error-modal-footer {
+    display: flex;
+    gap: 12px;
+    padding: 16px 24px;
+    border-top: 1px solid #e5e7eb;
+    background: #f9fafb;
+    border-radius: 0 0 12px 12px;
+}
+
+.error-btn {
+    flex: 1;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.error-btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.error-btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.error-btn-secondary {
+    background: white;
+    color: #374151;
+    border: 1px solid #d1d5db;
+}
+
+.error-btn-secondary:hover {
+    background: #f3f4f6;
+    border-color: #9ca3af;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .error-modal-content {
+        background: #1f2937;
+    }
+
+    .error-modal-header {
+        background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
+        border-bottom-color: #374151;
+    }
+
+    .error-title {
+        color: #fef2f2;
+    }
+
+    .error-close-btn {
+        color: #d1d5db;
+    }
+
+    .error-close-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+    }
+
+    .error-message {
+        color: #e5e7eb;
+    }
+
+    .error-suggestion {
+        background: #1e3a5f;
+        border-left-color: #38bdf8;
+    }
+
+    .error-suggestion strong {
+        color: #7dd3fc;
+    }
+
+    .error-suggestion p {
+        color: #bae6fd;
+    }
+
+    .error-context {
+        background: #374151;
+    }
+
+    .error-context small {
+        color: #9ca3af;
+    }
+
+    .error-code {
+        color: #9ca3af;
+        border-top-color: #374151;
+    }
+
+    .error-modal-footer {
+        background: #1f2937;
+        border-top-color: #374151;
+    }
+
+    .error-btn-secondary {
+        background: #374151;
+        color: #e5e7eb;
+        border-color: #4b5563;
+    }
+
+    .error-btn-secondary:hover {
+        background: #4b5563;
+        border-color: #6b7280;
+    }
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+    .error-modal-content {
+        width: 95%;
+        max-width: none;
+        margin: 16px;
+    }
+
+    .error-modal-header {
+        padding: 16px 20px;
+    }
+
+    .error-modal-body {
+        padding: 20px;
+    }
+
+    .error-modal-footer {
+        padding: 12px 20px;
+        flex-direction: column;
+    }
+
+    .error-btn {
+        width: 100%;
+    }
+}

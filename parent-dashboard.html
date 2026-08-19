@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parent Dashboard - Monitor Child Progress & Communicate with Teachers | Veelearn</title>
+    <meta name="description" content="Veelearn Parent Dashboard - stay connected with your child's education. Monitor progress, view assignments, communicate with teachers, and track learning milestones with real-time updates and AI-powered insights.">
+    <meta name="keywords" content="parent dashboard, child progress monitoring, teacher communication, student tracking, education portal, parent-teacher messaging, AI education insights, Veelearn">
+    <meta name="author" content="Veelearn">
+    <meta name="robots" content="index, follow">
+    <meta property="og:title" content="Parent Dashboard - Monitor Child Progress & Communicate with Teachers | Veelearn">
+    <meta property="og:description" content="Stay connected with your child's education. Monitor progress, view assignments, communicate with teachers, and track learning milestones with real-time updates and AI-powered insights.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://veelearn.org/parent-dashboard.html">
+    <meta property="og:image" content="https://veelearn.org/VEELEARN.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Parent Dashboard - Monitor Child Progress & Communicate with Teachers | Veelearn">
+    <meta name="twitter:description" content="Stay connected with your child's education. Monitor progress, view assignments, communicate with teachers, and track learning milestones with real-time updates and AI-powered insights.">
+    <meta name="twitter:image" content="https://veelearn.org/VEELEARN.png">
+    <link rel="canonical" href="https://veelearn.org/parent-dashboard.html">
+    <link rel="icon" type="image/png" href="VEELEARN.png">
+    <link rel="stylesheet" href="styles-redesign.css">
+    <link rel="stylesheet" href="luxury-editorial.css">
+    
+    <!-- AEO Schema Markup for Answer Engine Optimization -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Veelearn Parent Dashboard",
+        "description": "Stay connected with your child's education. Monitor progress, view assignments, communicate with teachers, and track learning milestones with real-time updates and AI-powered insights.",
+        "url": "https://veelearn.org/parent-dashboard.html",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Web Browser",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "featureList": [
+            "Child progress monitoring",
+            "Assignment tracking",
+            "Teacher communication",
+            "Learning milestone tracking",
+            "Real-time updates",
+            "AI-powered insights",
+            "Course enrollment",
+            "Calendar view"
+        ],
+        "provider": {
+            "@type": "Organization",
+            "name": "Veelearn",
+            "url": "https://veelearn.org"
+        }
+    }
+    </script>
+    
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": "What is the Veelearn Parent Dashboard?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "The Veelearn Parent Dashboard allows parents to stay connected with their child's education. Parents can monitor progress, view assignments, communicate with teachers, and track learning milestones with real-time updates and AI-powered insights."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "How can parents monitor their child's progress on Veelearn?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Parents can monitor their child's progress through the dashboard which shows course completion, assignment submissions, quiz scores, and overall performance metrics with detailed analytics."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Can parents communicate with teachers on Veelearn?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Yes, parents can send messages directly to teachers through the dashboard. This facilitates better communication about their child's progress, assignments, and any concerns."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "What features does the Veelearn Parent Dashboard offer?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "The dashboard offers child progress monitoring, assignment tracking, teacher communication, learning milestone tracking, real-time updates, AI-powered insights, course enrollment, and calendar view features."
+                }
+            }
+        ]
+    }
+    </script>
+    <style>
+        body {
+            background-color: #f8fafc;
+            background-image: radial-gradient(circle at 20% 50%, rgba(102, 126, 234, 0.08) 0%, transparent 50%),
+                              radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.08) 0%, transparent 50%),
+                              radial-gradient(circle at 40% 20%, rgba(16, 185, 129, 0.05) 0%, transparent 50%);
+            background-attachment: fixed;
+            color: #1f2937;
+        }
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e5e7eb;
+        }
+        .dashboard-header h1 {
+            color: #667eea;
+            margin: 0;
+        }
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .dashboard-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+        .dashboard-card h2 {
+            color: #667eea;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+        .btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #1f2937;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #374151;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 5px;
+            color: #1f2937;
+        }
+        .children-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .child-item {
+            background: #f8fafc;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #e5e7eb;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        .child-item:hover {
+            border-color: #667eea;
+        }
+        .child-item.selected {
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+        }
+        .child-item h3 {
+            color: #1f2937;
+            margin: 0 0 10px 0;
+        }
+        .child-item p {
+            color: #6b7280;
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        .progress-view {
+            display: none;
+        }
+        .progress-view.active {
+            display: block;
+        }
+        .class-list, .assignment-list, .post-list, .message-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .class-item, .assignment-item, .post-item, .message-item {
+            background: #f8fafc;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #e5e7eb;
+        }
+        .class-item h3, .assignment-item h3 {
+            color: #1f2937;
+            margin: 0 0 10px 0;
+        }
+        .class-item p, .assignment-item p {
+            color: #6b7280;
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        .post-item h4 {
+            color: #667eea;
+            margin: 0 0 10px 0;
+        }
+        .post-item p {
+            color: #6b7280;
+            margin: 5px 0;
+        }
+        .post-item .meta {
+            color: #9ca3af;
+            font-size: 12px;
+        }
+        .calendar-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .calendar-item {
+            background: #f8fafc;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #e5e7eb;
+            border-left: 3px solid #667eea;
+        }
+        .calendar-item.assignment {
+            border-left-color: #ff6b6b;
+        }
+        .calendar-item.exam {
+            border-left-color: #ffd93d;
+        }
+        .calendar-item.event {
+            border-left-color: #51cf66;
+        }
+        .calendar-item h4 {
+            color: #667eea;
+            margin: 0 0 10px 0;
+        }
+        .calendar-item .meta {
+            color: #6b7280;
+            font-size: 14px;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            background: white;
+            color: #6b7280;
+            border: 1px solid #e5e7eb;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .tab.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1>👨‍👩‍👧 Parent Dashboard</h1>
+            <button class="btn btn-secondary" onclick="logout()">Logout</button>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="dashboard-card">
+                <h2>👶 My Children</h2>
+                <div class="children-list" id="childrenList">
+                    <p class="loading">Loading children...</p>
+                </div>
+            </div>
+
+            <div class="dashboard-card">
+                <h2>🔗 Link Additional Child</h2>
+                <form id="linkChildForm">
+                    <div class="form-group">
+                        <label for="studentCode">Student's Parent Code</label>
+                        <input type="text" id="studentCode" required placeholder="Enter the code from your child's account">
+                    </div>
+                    <button type="submit" class="btn">Link Child</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="progressView" class="progress-view">
+            <div class="dashboard-card">
+                <h2 id="selectedChildName">Child's Progress</h2>
+                <div class="tabs">
+                    <button class="tab active" onclick="showChildTab('classes')">Classes</button>
+                    <button class="tab" onclick="showChildTab('assignments')">Assignments</button>
+                    <button class="tab" onclick="showChildTab('posts')">Posts</button>
+                    <button class="tab" onclick="showChildTab('messages')">Messages</button>
+                    <button class="tab" onclick="showChildTab('calendar')">Calendar</button>
+                </div>
+
+                <div id="childClassesTab" class="tab-content active">
+                    <div class="class-list" id="childClassList">
+                        <p class="loading">Select a child to view their classes</p>
+                    </div>
+                </div>
+
+                <div id="childAssignmentsTab" class="tab-content">
+                    <div class="assignment-list" id="childAssignmentList">
+                        <p class="loading">Select a child to view their assignments</p>
+                    </div>
+                </div>
+
+                <div id="childPostsTab" class="tab-content">
+                    <div class="post-list" id="childPostList">
+                        <p class="loading">Select a child to view their posts</p>
+                    </div>
+                </div>
+
+                <div id="childMessagesTab" class="tab-content">
+                    <div class="dashboard-card" style="margin-bottom: 20px;">
+                        <h2>💬 Send Message to Teacher</h2>
+                        <form id="parentMessageForm">
+                            <div class="form-group">
+                                <label for="teacherRecipient">Select Teacher</label>
+                                <select id="teacherRecipient" required>
+                                    <option value="">Loading teachers...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="parentMessageContent">Message</label>
+                                <textarea id="parentMessageContent" rows="4" required placeholder="Type your message to the teacher..."></textarea>
+                            </div>
+                            <button type="submit" class="btn">Send Message</button>
+                        </form>
+                    </div>
+                    <div class="dashboard-card">
+                        <h2>📨 Messages with Teachers</h2>
+                        <div class="message-list" id="teacherMessageList">
+                            <p class="loading">Loading messages...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="childCalendarTab" class="tab-content">
+                    <div class="calendar-list" id="childCalendarList">
+                        <p class="loading">Select a child to view their calendar</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = (() => {
+            if (window.location.hostname.includes('veelearn.org')) {
+                return 'https://api.veelearn.org';
+            }
+            if (window.location.hostname.includes('github.io')) {
+                return 'https://veelearn.onrender.com';
+            }
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                return 'http://localhost:3000';
+            }
+            return window.location.origin;
+        })();
+
+        let authToken = localStorage.getItem('token');
+        let currentUser = { id: null }; // Initialize with null id
+        let selectedChildId = null;
+
+        // Fetch current user data from API
+        async function fetchCurrentUser() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/users/me`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const data = await response.json();
+                if (response.ok && data.data) {
+                    currentUser = data.data;
+                    console.log('Current user fetched:', currentUser);
+                }
+            } catch (error) {
+                console.error('Error fetching current user:', error);
+            }
+        }
+
+        if (!authToken) {
+            window.location.href = 'index.html';
+        }
+
+        function showChildTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            document.querySelector(`.tab[onclick="showChildTab('${tabName}')"]`).classList.add('active');
+            document.getElementById(`child${tabName.charAt(0).toUpperCase() + tabName.slice(1)}Tab`).classList.add('active');
+        }
+
+        async function loadChildren() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/parent/my-children`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.data) {
+                    const children = data.data;
+                    const childrenList = document.getElementById('childrenList');
+                    
+                    childrenList.innerHTML = '';
+                    
+                    if (children.length === 0) {
+                        childrenList.innerHTML = '<p style="color: #888; text-align: center;">No children linked yet. Use the form to link your first child.</p>';
+                        return;
+                    }
+                    
+                    children.forEach(child => {
+                        const childItem = document.createElement('div');
+                        childItem.className = 'child-item';
+                        childItem.dataset.childId = child.id;
+                        childItem.innerHTML = `
+                            <h3>${child.name}</h3>
+                            <p>School: ${child.school_name || 'N/A'}</p>
+                            <p>Email: ${child.email}</p>
+                        `;
+                        childItem.onclick = () => selectChild(child);
+                        childrenList.appendChild(childItem);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading children:', error);
+            }
+        }
+
+        async function selectChild(child) {
+            selectedChildId = child.id;
+            
+            // Update UI
+            document.querySelectorAll('.child-item').forEach(item => item.classList.remove('selected'));
+            document.querySelector(`.child-item[data-child-id="${child.id}"]`).classList.add('selected');
+            
+            document.getElementById('selectedChildName').textContent = `${child.name}'s Progress`;
+            document.getElementById('progressView').classList.add('active');
+            
+            // Load child's data
+            loadChildProgress(child.id);
+        }
+
+        async function loadChildProgress(childId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/parent/child/${childId}/progress`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.data) {
+                    const { classes, assignments, posts } = data.data;
+                    
+                    // Load classes
+                    const classList = document.getElementById('childClassList');
+                    classList.innerHTML = '';
+                    
+                    if (classes.length === 0) {
+                        classList.innerHTML = '<p style="color: #888; text-align: center;">No classes enrolled.</p>';
+                    } else {
+                        classes.forEach(cls => {
+                            const classItem = document.createElement('div');
+                            classItem.className = 'class-item';
+                            classItem.innerHTML = `
+                                <h3>${cls.name}</h3>
+                                <p>Teacher: ${cls.teacher_name || 'Not assigned'}</p>
+                            `;
+                            classList.appendChild(classItem);
+                        });
+                    }
+                    
+                    // Load assignments
+                    const assignmentList = document.getElementById('childAssignmentList');
+                    assignmentList.innerHTML = '';
+                    
+                    if (assignments.length === 0) {
+                        assignmentList.innerHTML = '<p style="color: #888; text-align: center;">No assignments.</p>';
+                    } else {
+                        assignments.forEach(assignment => {
+                            const assignmentItem = document.createElement('div');
+                            assignmentItem.className = 'assignment-item';
+                            const dueDate = new Date(assignment.due_date).toLocaleString();
+                            assignmentItem.innerHTML = `
+                                <h3>${assignment.title}</h3>
+                                <p>Course: ${assignment.course_title}</p>
+                                <p>Due: ${dueDate}</p>
+                                <p>Progress: ${assignment.completion_percentage || 0}%</p>
+                                ${assignment.correct_answers !== null && assignment.total_questions !== null
+                                    ? `<p>Score: ${assignment.correct_answers}/${assignment.total_questions} (${assignment.quiz_accuracy || 0}%)</p>`
+                                    : `<p>Score: ${assignment.score || 'N/A'}</p>`
+                                }
+                            `;
+                            assignmentList.appendChild(assignmentItem);
+                        });
+                    }
+                    
+                    // Load posts
+                    const postList = document.getElementById('childPostList');
+                    postList.innerHTML = '';
+                    
+                    if (posts.length === 0) {
+                        postList.innerHTML = '<p style="color: #888; text-align: center;">No posts.</p>';
+                    } else {
+                        posts.forEach(post => {
+                            const postItem = document.createElement('div');
+                            postItem.className = 'post-item';
+                            const timestamp = new Date(post.created_at).toLocaleString();
+                            postItem.innerHTML = `
+                                <h4>${post.class_name || 'School Post'}</h4>
+                                <p>${post.content}</p>
+                                <p class="meta">${timestamp}</p>
+                            `;
+                            postList.appendChild(postItem);
+                        });
+                    }
+
+                    // Load messages for this child
+                    loadChildMessages(childId);
+
+                    // Load calendar for this child
+                    loadChildCalendar(childId);
+                }
+            } catch (error) {
+                console.error('Error loading child progress:', error);
+            }
+        }
+
+        async function loadChildCalendar(childId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/calendar`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.data) {
+                    const events = data.data;
+                    const calendarList = document.getElementById('childCalendarList');
+                    
+                    calendarList.innerHTML = '';
+                    
+                    if (events.length === 0) {
+                        calendarList.innerHTML = '<p style="color: #888; text-align: center;">No calendar events yet.</p>';
+                        return;
+                    }
+                    
+                    events.forEach(event => {
+                        const eventItem = document.createElement('div');
+                        eventItem.className = `calendar-item ${event.event_type}`;
+                        // Parse date directly to avoid timezone conversion
+                        let eventDate;
+                        if (event.event_date.includes('T')) {
+                            // Handle ISO timestamp format - extract date portion before T
+                            const dateOnly = event.event_date.split('T')[0];
+                            const dateParts = dateOnly.split('-');
+                            eventDate = `${dateParts[1]}/${dateParts[2]}/${dateParts[0]}`;
+                        } else {
+                            // Handle YYYY-MM-DD format
+                            const dateParts = event.event_date.split('-');
+                            eventDate = `${dateParts[1]}/${dateParts[2]}/${dateParts[0]}`;
+                        }
+                        eventItem.innerHTML = `
+                            <h4>${event.title}</h4>
+                            <p class="meta">Date: ${eventDate} | Type: ${event.event_type}</p>
+                        `;
+                        calendarList.appendChild(eventItem);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading child calendar:', error);
+            }
+        }
+
+        async function loadChildMessages(childId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/messages`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.data) {
+                    const messages = data.data;
+                    const messageList = document.getElementById('childMessageList');
+                    
+                    if (!messageList) {
+                        console.error('childMessageList element not found');
+                        return;
+                    }
+                    
+                    messageList.innerHTML = '';
+                    
+                    // Filter messages: parent to child, child to parent, teacher to child
+                    const childMessages = messages.filter(m => 
+                        m.sender_id === childId || 
+                        m.recipient_id === childId ||
+                        (m.sender_id === currentUser.id && m.recipient_id === childId) ||
+                        (m.sender_id === childId && m.recipient_id === currentUser.id)
+                    );
+                    
+                    if (childMessages.length === 0) {
+                        messageList.innerHTML = '<p style="color: #888; text-align: center;">No messages with this child.</p>';
+                        return;
+                    }
+                    
+                    childMessages.forEach(message => {
+                        const messageItem = document.createElement('div');
+                        const isSent = message.sender_id === currentUser.id;
+                        messageItem.className = 'message-item';
+                        const timestamp = new Date(message.created_at).toLocaleString();
+                        
+                        // Show sender role if available
+                        let senderLabel = isSent ? 'To: ' + message.recipient_name : 'From: ' + message.sender_name;
+                        if (message.sender_role === 'teacher') {
+                            senderLabel = 'From Teacher: ' + message.sender_name;
+                        }
+                        
+                        messageItem.innerHTML = `
+                            <h4>${senderLabel}</h4>
+                            <p>${message.content}</p>
+                            <p class="meta">${timestamp}</p>
+                        `;
+                        messageList.appendChild(messageItem);
+                    });
+                } else {
+                    document.getElementById('childMessageList').innerHTML = '<p style="color: #888; text-align: center;">No messages with this child.</p>';
+                }
+            } catch (error) {
+                console.error('Error loading child messages:', error);
+                document.getElementById('childMessageList').innerHTML = '<p style="color: #888; text-align: center;">Error loading messages.</p>';
+            }
+        }
+
+        // Link child form
+        document.getElementById('linkChildForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const studentCode = document.getElementById('studentCode').value;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/parent/link-student`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ student_code: studentCode.toUpperCase() })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert('Child linked successfully!');
+                    document.getElementById('studentCode').value = '';
+                    loadChildren();
+                } else {
+                    alert(data.message || 'Failed to link child');
+                }
+            } catch (error) {
+                console.error('Error linking child:', error);
+                alert('Error linking child');
+            }
+        });
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = 'index.html';
+        }
+
+        // Load teachers for messaging
+        async function loadTeachers() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/users/teachers`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.data) {
+                    const teachers = data.data;
+                    const teacherSelect = document.getElementById('teacherRecipient');
+                    
+                    teacherSelect.innerHTML = '<option value="">Select a teacher</option>';
+                    
+                    teachers.forEach(teacher => {
+                        const option = document.createElement('option');
+                        option.value = teacher.id;
+                        option.textContent = teacher.name;
+                        teacherSelect.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading teachers:', error);
+            }
+        }
+
+        // Send message to teacher
+        document.getElementById('parentMessageForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const recipientId = document.getElementById('teacherRecipient').value;
+            const content = document.getElementById('parentMessageContent').value;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/messages/send`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ recipient_id: recipientId, content })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert('Message sent successfully!');
+                    document.getElementById('parentMessageContent').value = '';
+                    loadTeacherMessages();
+                } else {
+                    alert(data.message || 'Failed to send message');
+                }
+            } catch (error) {
+                console.error('Error sending message:', error);
+                alert('Error sending message');
+            }
+        });
+
+        // Load messages with teachers
+        async function loadTeacherMessages() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/messages`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.data) {
+                    const messages = data.data;
+                    const messageList = document.getElementById('teacherMessageList');
+                    
+                    messageList.innerHTML = '';
+                    
+                    console.log('All messages:', messages);
+                    console.log('Current user ID:', currentUser.id);
+                    
+                    // Filter messages: parent sends to teacher OR teacher sends to parent
+                    const teacherMessages = messages.filter(m => {
+                        const isFromParent = m.sender_id === currentUser.id;
+                        const isToParent = m.recipient_id === currentUser.id;
+                        const isToTeacher = m.recipient_role === 'teacher';
+                        const isFromTeacher = m.sender_role === 'teacher';
+                        
+                        console.log('Message:', m, {
+                            isFromParent,
+                            isToParent,
+                            isToTeacher,
+                            isFromTeacher
+                        });
+                        
+                        // Parent sent to teacher OR teacher sent to parent
+                        return (isFromParent && isToTeacher) || (isToParent && isFromTeacher);
+                    });
+                    
+                    console.log('Filtered teacher messages:', teacherMessages);
+                    
+                    if (teacherMessages.length === 0) {
+                        messageList.innerHTML = '<p style="color: #888; text-align: center;">No messages with teachers.</p>';
+                        return;
+                    }
+                    
+                    teacherMessages.forEach(message => {
+                        const messageItem = document.createElement('div');
+                        const isSent = message.sender_id === currentUser.id;
+                        messageItem.className = 'message-item';
+                        const timestamp = new Date(message.created_at).toLocaleString();
+                        messageItem.innerHTML = `
+                            <h4>${isSent ? 'To: ' + message.recipient_name : 'From: ' + message.sender_name}</h4>
+                            <p>${message.content}</p>
+                            <p class="meta">${timestamp}</p>
+                        `;
+                        messageList.appendChild(messageItem);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading teacher messages:', error);
+            }
+        }
+
+        // Initialize
+        fetchCurrentUser().then(() => {
+            loadChildren();
+            loadTeachers();
+            loadTeacherMessages();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,999 @@
+/*
+ * Veelearn STEM polish layer
+ * Loaded last on index.html to provide one predictable visual system.
+ */
+
+:root {
+  --stem-navy: #102a43;
+  --stem-blue: #1769e0;
+  --stem-blue-dark: #0f52b8;
+  --stem-cyan: #0891b2;
+  --stem-green: #16865f;
+  --stem-amber: #d97706;
+  --stem-bg: #f4f8fc;
+  --stem-surface: #ffffff;
+  --stem-surface-soft: #eef6fc;
+  --stem-line: #d7e5f0;
+  --stem-text: #17324d;
+  --stem-muted: #587188;
+  --stem-shadow: 0 16px 40px rgba(31, 73, 109, 0.12);
+  --stem-shadow-soft: 0 8px 24px rgba(31, 73, 109, 0.09);
+}
+
+html,
+body {
+  background-color: var(--stem-bg) !important;
+}
+
+body {
+  color: var(--stem-text) !important;
+  background-image:
+    linear-gradient(rgba(244, 248, 252, 0.91), rgba(244, 248, 252, 0.96)),
+    url("assets/brand/veelearn-stem-pattern.webp") !important;
+  background-size: auto, 1024px auto !important;
+  background-attachment: fixed !important;
+}
+
+body::before {
+  display: none !important;
+}
+
+body,
+button,
+input,
+textarea,
+select {
+  font-family: "Nunito", "Segoe UI", system-ui, sans-serif !important;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+header h1 {
+  color: var(--stem-navy) !important;
+}
+
+p,
+li,
+label,
+small,
+.subtext {
+  color: var(--stem-muted) !important;
+}
+
+/* Navigation shell */
+body > header {
+  min-height: 70px;
+  padding: 12px clamp(20px, 4vw, 56px) !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: 0 !important;
+  border-bottom: 1px solid rgba(180, 207, 226, 0.78) !important;
+  border-radius: 0 !important;
+  box-shadow: 0 8px 30px rgba(31, 73, 109, 0.08) !important;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+body > header h1 {
+  font-family: "Nunito", "Segoe UI", sans-serif !important;
+  font-size: 1.45rem !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.035em !important;
+  color: var(--stem-navy) !important;
+}
+
+body > header h1::first-letter {
+  color: var(--stem-blue) !important;
+}
+
+body > header nav {
+  gap: 8px !important;
+}
+
+body > header nav a,
+body > header nav button {
+  padding: 9px 13px !important;
+  border: 1px solid transparent !important;
+  border-radius: 9px !important;
+  color: #36546e !important;
+  background: transparent !important;
+  font-size: 0.86rem !important;
+  font-weight: 700 !important;
+  text-decoration: none !important;
+}
+
+body > header nav a:hover,
+body > header nav button:hover {
+  color: var(--stem-blue) !important;
+  background: #edf5ff !important;
+  border-color: #cfe2f5 !important;
+  box-shadow: none !important;
+}
+
+body > header #global-search-btn {
+  color: var(--stem-navy) !important;
+  background: #eef7fc !important;
+  border-color: #cfe3ef !important;
+}
+
+body > header #logout-button {
+  color: #b42318 !important;
+  background: #fff1f0 !important;
+  border-color: #ffd3cf !important;
+}
+
+main {
+  max-width: 1240px !important;
+  padding: clamp(20px, 3vw, 40px) !important;
+}
+
+/* Homepage hero */
+#landing-page {
+  min-height: auto !important;
+  padding: 0 !important;
+  background:
+    radial-gradient(940px 460px at 12% 14%, rgba(47, 170, 237, 0.22), transparent 58%),
+    radial-gradient(860px 460px at 88% 88%, rgba(80, 205, 146, 0.24), transparent 56%),
+    linear-gradient(160deg, #f4f8fc 0%, #fcf6f0 100%) !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+#landing-page .hero {
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  width: 100% !important;
+  min-height: clamp(440px, 52vw, 570px);
+  margin: 0 auto 32px;
+  padding: clamp(36px, 7vw, 82px) !important;
+  overflow: hidden;
+  border: 1px solid rgba(188, 213, 229, 0.9) !important;
+  border-radius: 28px !important;
+  background:
+    linear-gradient(90deg, rgba(250, 253, 255, 0.98) 0%, rgba(250, 253, 255, 0.94) 38%, rgba(250, 253, 255, 0.58) 62%, rgba(250, 253, 255, 0.1) 100%),
+    url("assets/brand/veelearn-stem-hero.webp") center / cover no-repeat !important;
+  box-shadow: 0 24px 60px rgba(31, 73, 109, 0.16) !important;
+}
+
+#landing-page .hero::before {
+  display: none !important;
+}
+
+#landing-page .hero::after {
+  content: "INTERACTIVE • FREE • BUILT FOR CURIOSITY";
+  position: absolute;
+  top: clamp(28px, 5vw, 52px);
+  left: clamp(36px, 7vw, 82px);
+  color: var(--stem-blue);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  z-index: -1;
+}
+
+#landing-page .hero h1 {
+  max-width: 14ch !important;
+  margin: 22px 0 18px !important;
+  font-size: clamp(2.5rem, 5vw, 4.65rem) !important;
+  font-weight: 900 !important;
+  line-height: 0.98 !important;
+  letter-spacing: -0.055em !important;
+  text-align: left !important;
+  text-wrap: balance;
+}
+
+#landing-page .hero p {
+  max-width: 58ch !important;
+  margin: 0 0 28px !important;
+  color: #47657d !important;
+  font-size: clamp(1rem, 1.4vw, 1.12rem) !important;
+  line-height: 1.75 !important;
+  text-align: left !important;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.hero-actions .primary-btn,
+.hero-actions .secondary-btn {
+  min-height: 46px;
+  padding: 0 20px !important;
+  border-radius: 11px !important;
+  font-size: 0.9rem !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+.hero-actions .primary-btn {
+  background: linear-gradient(135deg, var(--stem-blue), var(--stem-blue-dark)) !important;
+  box-shadow: 0 9px 20px rgba(23, 105, 224, 0.24) !important;
+}
+
+.hero-actions .secondary-btn {
+  color: var(--stem-navy) !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid #c9ddea !important;
+}
+
+/* Feature and process cards */
+.features-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 16px !important;
+  margin: 0 0 44px !important;
+}
+
+#landing-page .feature-card {
+  min-height: 230px;
+  padding: 26px 22px !important;
+  text-align: left !important;
+  background: rgba(255, 255, 255, 0.94) !important;
+  border: 1px solid var(--stem-line) !important;
+  border-radius: 18px !important;
+  box-shadow: var(--stem-shadow-soft) !important;
+}
+
+#landing-page .feature-card:hover {
+  transform: translateY(-5px);
+  border-color: #a9cbe3 !important;
+  box-shadow: var(--stem-shadow) !important;
+}
+
+#landing-page .feature-card::after {
+  display: none !important;
+}
+
+#landing-page .feature-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 22px !important;
+  border-radius: 13px !important;
+  color: var(--stem-blue) !important;
+  background: #eaf4ff;
+  font-size: 1.55rem !important;
+}
+
+#landing-page .feature-card:nth-child(2n) .feature-icon {
+  color: var(--stem-cyan) !important;
+  background: #e8f9fc;
+}
+
+#landing-page .feature-card:nth-child(3n) .feature-icon {
+  color: var(--stem-green) !important;
+  background: #eaf8f2;
+}
+
+#landing-page .feature-card h3 {
+  margin: 0 0 10px !important;
+  font-family: "Nunito", "Segoe UI", sans-serif !important;
+  font-size: 1.08rem !important;
+  font-weight: 900 !important;
+  line-height: 1.25 !important;
+}
+
+#landing-page .feature-card p {
+  margin: 0 !important;
+  font-size: 0.9rem !important;
+  line-height: 1.65 !important;
+}
+
+#landing-page .how-it-works {
+  padding: clamp(32px, 5vw, 56px) !important;
+  background: linear-gradient(135deg, #102f4b, #16517a) !important;
+  border: 0 !important;
+  border-radius: 24px !important;
+  box-shadow: var(--stem-shadow) !important;
+}
+
+#landing-page .how-it-works h2 {
+  color: #ffffff !important;
+  text-align: center;
+  border: 0 !important;
+}
+
+#landing-page .steps-grid {
+  gap: 16px !important;
+}
+
+#landing-page .step {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  border-radius: 16px !important;
+  box-shadow: none !important;
+  backdrop-filter: blur(8px);
+}
+
+#landing-page .step h4,
+#landing-page .step p {
+  color: #ffffff !important;
+}
+
+#landing-page .step p {
+  opacity: 0.78;
+}
+
+#landing-page .step-num {
+  color: #0f4165 !important;
+  background: #8ee7f1 !important;
+}
+
+/* Auth and dashboard composition */
+#auth-section,
+#dashboard-section {
+  width: min(1120px, 100%);
+  margin: 0 auto 32px !important;
+  background: rgba(255, 255, 255, 0.94) !important;
+  border: 1px solid var(--stem-line) !important;
+  border-radius: 24px !important;
+  box-shadow: var(--stem-shadow) !important;
+}
+
+#auth-section {
+  padding: clamp(32px, 6vw, 68px) !important;
+}
+
+#auth-section > h2 {
+  margin: 0 auto 26px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  color: var(--stem-navy) !important;
+  font-size: clamp(2rem, 4vw, 3rem) !important;
+  font-weight: 900 !important;
+  text-align: center !important;
+}
+
+#auth-section > h2::after {
+  content: "Sign in to continue exploring, building, and learning.";
+  display: block;
+  margin-top: 8px;
+  color: var(--stem-muted);
+  font-family: "Nunito", "Segoe UI", sans-serif;
+  font-size: 0.96rem;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+#auth-section > div[style*="255, 193, 7"] {
+  max-width: 560px !important;
+  margin: 0 auto 22px !important;
+  background: #fff8e7 !important;
+  border-color: #f3d08b !important;
+  border-radius: 12px !important;
+}
+
+#auth-section > div[style*="255, 193, 7"] span {
+  color: #9a5b00 !important;
+}
+
+#auth-section > div[style*="255, 193, 7"] p {
+  color: #74572e !important;
+}
+
+.auth-form {
+  max-width: 440px !important;
+  padding: 34px !important;
+  background: #ffffff !important;
+  border: 1px solid var(--stem-line) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 14px 36px rgba(31, 73, 109, 0.11) !important;
+}
+
+.auth-form h3 {
+  color: var(--stem-navy) !important;
+  font-size: 1.35rem !important;
+}
+
+.auth-form input {
+  min-height: 48px;
+  color: var(--stem-text) !important;
+  background: #f8fbfd !important;
+  border: 1px solid #ccdeea !important;
+  border-radius: 10px !important;
+}
+
+.auth-form input:focus {
+  background: #ffffff !important;
+  border-color: var(--stem-blue) !important;
+  box-shadow: 0 0 0 4px rgba(23, 105, 224, 0.12) !important;
+}
+
+.auth-form form button {
+  min-height: 48px;
+  color: #ffffff !important;
+  background: linear-gradient(135deg, var(--stem-blue), var(--stem-blue-dark)) !important;
+  border-radius: 10px !important;
+}
+
+#dashboard-section {
+  padding: clamp(28px, 4vw, 48px) !important;
+}
+
+#dashboard-section .dashboard-header {
+  display: block !important;
+  margin: -1px -1px 36px !important;
+  padding: clamp(30px, 5vw, 54px) !important;
+  text-align: center !important;
+  background:
+    linear-gradient(120deg, rgba(16, 47, 75, 0.97), rgba(23, 105, 224, 0.88)),
+    url("assets/brand/veelearn-stem-pattern.webp") center / cover !important;
+  border: 0 !important;
+  border-radius: 22px !important;
+  box-shadow: none !important;
+}
+
+#dashboard-section .dashboard-header h1 {
+  margin: 0 !important;
+  color: #ffffff !important;
+  font-size: clamp(2rem, 4vw, 3rem) !important;
+  font-weight: 900 !important;
+}
+
+#dashboard-section .dashboard-header .subtext,
+#dashboard-section .dashboard-header .subtext span {
+  margin: 8px 0 0 !important;
+  color: #dceeff !important;
+  text-align: center !important;
+}
+
+/* Study Coach */
+#study-coach-root {
+  --sc-text: var(--stem-text) !important;
+  --sc-text-soft: var(--stem-muted) !important;
+  --sc-bg: #ffffff !important;
+  --sc-border: #d7e5f0 !important;
+  --sc-input-bg: #f7fafc !important;
+  color: var(--stem-text) !important;
+}
+
+#study-coach-root #study-coach-panel {
+  width: min(430px, calc(100vw - 32px)) !important;
+  max-height: min(700px, 78vh) !important;
+  background: #ffffff !important;
+  border: 1px solid #cfe0ec !important;
+  border-radius: 20px !important;
+  box-shadow: 0 24px 70px rgba(20, 57, 87, 0.22) !important;
+}
+
+#study-coach-panel > div:first-child {
+  min-height: 64px;
+  padding: 15px 18px !important;
+  background: linear-gradient(135deg, #eaf5ff, #f0fbfc) !important;
+  border-bottom: 1px solid #d8e8f2 !important;
+}
+
+#study-coach-root .study-coach-header-title {
+  color: var(--stem-navy) !important;
+  font-size: 1.02rem;
+  font-weight: 900;
+}
+
+#study-coach-root .study-coach-header-title::before {
+  content: "✦";
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin-right: 9px;
+  border-radius: 9px;
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--stem-blue), var(--stem-cyan));
+  vertical-align: middle;
+}
+
+#study-coach-root #study-coach-close {
+  color: #668097 !important;
+}
+
+#study-coach-root .study-coach-disclaimer {
+  margin: 0 !important;
+  padding: 10px 18px !important;
+  color: #60788d !important;
+  background: #f8fbfd;
+  border-bottom: 1px solid #e3edf4;
+}
+
+#study-coach-root #study-coach-messages {
+  padding: 16px 18px !important;
+  min-height: 220px !important;
+  background: #ffffff !important;
+  scrollbar-color: #b8ccda transparent;
+}
+
+#study-coach-root #study-coach-messages .study-coach-bubble {
+  max-width: 88%;
+  padding: 11px 13px !important;
+  border: 1px solid transparent;
+  border-radius: 14px !important;
+  box-shadow: 0 3px 10px rgba(31, 73, 109, 0.06);
+}
+
+#study-coach-root #study-coach-messages .study-coach-user {
+  margin-left: auto !important;
+  margin-right: 0 !important;
+  background: #e5f0ff !important;
+  border-color: #c6dcfa !important;
+}
+
+#study-coach-root #study-coach-messages .study-coach-coach {
+  margin-left: 0 !important;
+  margin-right: auto !important;
+  background: #f1f8f6 !important;
+  border-color: #d2e9e0 !important;
+}
+
+#study-coach-root #study-coach-messages .study-coach-bubble,
+#study-coach-root #study-coach-messages .study-coach-bubble div {
+  color: #294760 !important;
+}
+
+#study-coach-root #study-coach-messages .study-coach-bubble strong {
+  color: var(--stem-blue) !important;
+  font-size: 0.68rem !important;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+#study-coach-root #study-coach-messages .study-coach-coach strong {
+  color: var(--stem-green) !important;
+}
+
+#study-coach-root #study-coach-recs {
+  color: var(--stem-muted) !important;
+  background: #ffffff;
+}
+
+#study-coach-root #study-coach-recs button {
+  color: var(--stem-blue) !important;
+}
+
+#study-coach-panel > div:last-child {
+  padding: 14px 16px !important;
+  background: #f8fbfd;
+  border-top: 1px solid #dde9f1 !important;
+}
+
+#study-coach-root #study-coach-input {
+  min-height: 46px;
+  padding: 11px 13px !important;
+  color: var(--stem-text) !important;
+  background: #ffffff !important;
+  border: 1px solid #c7d9e6 !important;
+  border-radius: 11px !important;
+  font-style: normal !important;
+}
+
+#study-coach-root #study-coach-input:focus {
+  outline: none !important;
+  border-color: var(--stem-blue) !important;
+  box-shadow: 0 0 0 4px rgba(23, 105, 224, 0.11) !important;
+}
+
+#study-coach-root #study-coach-input::placeholder {
+  color: #8195a6 !important;
+  font-style: normal !important;
+}
+
+#study-coach-root #study-coach-send {
+  min-height: 46px;
+  padding: 0 18px !important;
+  color: #ffffff !important;
+  background: linear-gradient(135deg, var(--stem-blue), var(--stem-blue-dark)) !important;
+  border: 0 !important;
+  border-radius: 11px !important;
+}
+
+#study-coach-root #study-coach-fab {
+  width: 58px !important;
+  height: 58px !important;
+  color: #ffffff !important;
+  background: linear-gradient(135deg, var(--stem-blue), var(--stem-cyan)) !important;
+  box-shadow: 0 12px 28px rgba(23, 105, 224, 0.3) !important;
+}
+
+@media (max-width: 980px) {
+  .features-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  #landing-page .hero {
+    background:
+      linear-gradient(90deg, rgba(250, 253, 255, 0.98) 0%, rgba(250, 253, 255, 0.9) 58%, rgba(250, 253, 255, 0.55) 100%),
+      url("assets/brand/veelearn-stem-hero.webp") 62% center / cover no-repeat !important;
+  }
+}
+
+@media (max-width: 700px) {
+  body > header {
+    align-items: flex-start !important;
+  }
+
+  body > header nav {
+    width: 100%;
+    overflow-x: auto;
+    flex-wrap: nowrap !important;
+    padding-bottom: 4px;
+  }
+
+  main {
+    padding: 14px !important;
+  }
+
+  #landing-page .hero {
+    min-height: 570px;
+    justify-content: flex-end;
+    padding: 32px 24px !important;
+    background:
+      linear-gradient(0deg, rgba(250, 253, 255, 0.99) 0%, rgba(250, 253, 255, 0.96) 52%, rgba(250, 253, 255, 0.3) 100%),
+      url("assets/brand/veelearn-stem-hero.webp") 70% center / cover no-repeat !important;
+  }
+
+  #landing-page .hero::after {
+    top: 28px;
+    left: 24px;
+  }
+
+  #landing-page .hero h1 {
+    font-size: clamp(2.25rem, 12vw, 3.4rem) !important;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  #study-coach-root {
+    right: 16px !important;
+    bottom: 16px !important;
+  }
+
+  #study-coach-root #study-coach-panel {
+    right: 0 !important;
+    bottom: 68px !important;
+    max-height: 76vh !important;
+  }
+}
+
+/* Complete dark mode: deep scientific navy, never low-contrast black-on-black. */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --stem-navy: #f2f8fc;
+  --stem-blue: #63adff;
+  --stem-blue-dark: #3288ea;
+  --stem-cyan: #42cfde;
+  --stem-green: #4cd6a0;
+  --stem-amber: #f7b955;
+  --stem-bg: #071521;
+  --stem-surface: #0e2233;
+  --stem-surface-soft: #132b3e;
+  --stem-line: #27455a;
+  --stem-text: #eaf4fb;
+  --stem-muted: #a9becd;
+  --stem-shadow: 0 18px 48px rgba(0, 7, 14, 0.42);
+  --stem-shadow-soft: 0 9px 28px rgba(0, 7, 14, 0.3);
+}
+
+[data-theme="dark"],
+[data-theme="dark"] body {
+  background-color: var(--stem-bg) !important;
+}
+
+[data-theme="dark"] body {
+  color: var(--stem-text) !important;
+  background-image:
+    linear-gradient(rgba(7, 21, 33, 0.94), rgba(7, 21, 33, 0.97)),
+    url("assets/brand/veelearn-stem-pattern.webp") !important;
+}
+
+[data-theme="dark"] body > header {
+  background: rgba(9, 27, 41, 0.92) !important;
+  border-bottom-color: #234156 !important;
+  box-shadow: 0 8px 30px rgba(0, 8, 16, 0.34) !important;
+}
+
+[data-theme="dark"] body > header h1 {
+  color: #f2f8fc !important;
+}
+
+[data-theme="dark"] body > header nav a,
+[data-theme="dark"] body > header nav button {
+  color: #b9ccda !important;
+}
+
+[data-theme="dark"] body > header nav a:hover,
+[data-theme="dark"] body > header nav button:hover {
+  color: #ffffff !important;
+  background: #16344b !important;
+  border-color: #2b536d !important;
+}
+
+[data-theme="dark"] body > header #global-search-btn {
+  color: #dcecf7 !important;
+  background: #102d42 !important;
+  border-color: #28506a !important;
+}
+
+[data-theme="dark"] body > header #logout-button {
+  color: #ffb4ae !important;
+  background: #421f25 !important;
+  border-color: #72333d !important;
+}
+
+[data-theme="dark"] .theme-toggle {
+  color: #dcefff !important;
+  background: #102d42 !important;
+  border-color: #315e7a !important;
+  box-shadow: 0 8px 22px rgba(0, 7, 14, 0.4) !important;
+}
+
+[data-theme="dark"] #landing-page {
+  background: transparent !important;
+}
+
+[data-theme="dark"] #landing-page .hero {
+  border-color: #294b61 !important;
+  background:
+    linear-gradient(90deg, rgba(7, 25, 39, 0.99) 0%, rgba(7, 25, 39, 0.95) 39%, rgba(7, 25, 39, 0.72) 62%, rgba(7, 25, 39, 0.18) 100%),
+    url("assets/brand/veelearn-stem-hero.webp") center / cover no-repeat !important;
+  box-shadow: 0 28px 68px rgba(0, 7, 14, 0.45) !important;
+}
+
+[data-theme="dark"] #landing-page .hero h1 {
+  color: #f5faff !important;
+}
+
+[data-theme="dark"] #landing-page .hero p {
+  color: #bbcfdd !important;
+}
+
+[data-theme="dark"] #landing-page .hero::after {
+  color: #70b8ff !important;
+}
+
+[data-theme="dark"] .hero-actions .secondary-btn {
+  color: #e6f2fa !important;
+  background: rgba(14, 34, 51, 0.9) !important;
+  border-color: #365d75 !important;
+}
+
+[data-theme="dark"] #landing-page .feature-card {
+  color: var(--stem-text) !important;
+  background: rgba(14, 34, 51, 0.96) !important;
+  border-color: var(--stem-line) !important;
+  box-shadow: var(--stem-shadow-soft) !important;
+}
+
+[data-theme="dark"] #landing-page .feature-card:hover {
+  border-color: #407493 !important;
+  background: #112a3e !important;
+  box-shadow: var(--stem-shadow) !important;
+}
+
+[data-theme="dark"] #landing-page .feature-card h3 {
+  color: #eff8ff !important;
+}
+
+[data-theme="dark"] #landing-page .feature-card p {
+  color: #a9becd !important;
+}
+
+[data-theme="dark"] #landing-page .feature-icon {
+  color: #70b8ff !important;
+  background: #153752 !important;
+}
+
+[data-theme="dark"] #landing-page .feature-card:nth-child(2n) .feature-icon {
+  color: #5cdae5 !important;
+  background: #123a45 !important;
+}
+
+[data-theme="dark"] #landing-page .feature-card:nth-child(3n) .feature-icon {
+  color: #63dfa9 !important;
+  background: #133c35 !important;
+}
+
+[data-theme="dark"] #landing-page .how-it-works {
+  background: linear-gradient(135deg, #0c2940, #123f5d) !important;
+  border: 1px solid #2b5067 !important;
+}
+
+[data-theme="dark"] #landing-page .step {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(151, 204, 234, 0.18) !important;
+}
+
+[data-theme="dark"] #auth-section,
+[data-theme="dark"] #dashboard-section {
+  color: var(--stem-text) !important;
+  background: rgba(14, 34, 51, 0.97) !important;
+  border-color: var(--stem-line) !important;
+  box-shadow: var(--stem-shadow) !important;
+}
+
+[data-theme="dark"] #auth-section > h2,
+[data-theme="dark"] .auth-form h3 {
+  color: #f2f8fc !important;
+}
+
+[data-theme="dark"] #auth-section > h2::after {
+  color: #a9becd !important;
+}
+
+[data-theme="dark"] #auth-section > div[style*="255, 193, 7"] {
+  background: #3a301b !important;
+  border-color: #755f2d !important;
+}
+
+[data-theme="dark"] #auth-section > div[style*="255, 193, 7"] span {
+  color: #ffd27a !important;
+}
+
+[data-theme="dark"] #auth-section > div[style*="255, 193, 7"] p {
+  color: #e7d3a8 !important;
+}
+
+[data-theme="dark"] .auth-form {
+  color: var(--stem-text) !important;
+  background: #10283b !important;
+  border-color: #294b61 !important;
+  box-shadow: 0 16px 38px rgba(0, 7, 14, 0.34) !important;
+}
+
+[data-theme="dark"] .auth-form p,
+[data-theme="dark"] .auth-form label {
+  color: #afc3d1 !important;
+}
+
+[data-theme="dark"] .auth-form a {
+  color: #75baff !important;
+}
+
+[data-theme="dark"] .auth-form input {
+  color: #edf7fd !important;
+  background: #091c2a !important;
+  border-color: #31526a !important;
+}
+
+[data-theme="dark"] .auth-form input::placeholder {
+  color: #7891a3 !important;
+}
+
+[data-theme="dark"] .auth-form input:focus {
+  background: #0b2132 !important;
+  border-color: #63adff !important;
+  box-shadow: 0 0 0 4px rgba(99, 173, 255, 0.14) !important;
+}
+
+[data-theme="dark"] #dashboard-section .dashboard-header {
+  background:
+    linear-gradient(120deg, rgba(8, 35, 55, 0.98), rgba(17, 82, 128, 0.92)),
+    url("assets/brand/veelearn-stem-pattern.webp") center / cover !important;
+  border: 1px solid #31566d !important;
+}
+
+[data-theme="dark"] #dashboard-section h2,
+[data-theme="dark"] #dashboard-section h3,
+[data-theme="dark"] #dashboard-section h4,
+[data-theme="dark"] #dashboard-section h5 {
+  color: #eef8ff !important;
+}
+
+[data-theme="dark"] #dashboard-section p,
+[data-theme="dark"] #dashboard-section li,
+[data-theme="dark"] #dashboard-section label,
+[data-theme="dark"] #dashboard-section span {
+  color: #acc1d0 !important;
+}
+
+[data-theme="dark"] #dashboard-section input,
+[data-theme="dark"] #dashboard-section textarea,
+[data-theme="dark"] #dashboard-section select {
+  color: #edf7fd !important;
+  background: #091c2a !important;
+  border-color: #31526a !important;
+}
+
+[data-theme="dark"] #study-coach-root {
+  --sc-text: #eaf4fb !important;
+  --sc-text-soft: #a9becd !important;
+  --sc-bg: #0e2233 !important;
+  --sc-border: #294b61 !important;
+  --sc-input-bg: #091c2a !important;
+  color: #eaf4fb !important;
+}
+
+[data-theme="dark"] #study-coach-root #study-coach-panel {
+  background: #0e2233 !important;
+  border-color: #31546b !important;
+  box-shadow: 0 28px 76px rgba(0, 5, 11, 0.6) !important;
+}
+
+[data-theme="dark"] #study-coach-panel > div:first-child {
+  background: linear-gradient(135deg, #12334c, #103c49) !important;
+  border-bottom-color: #31546b !important;
+}
+
+[data-theme="dark"] #study-coach-root .study-coach-header-title {
+  color: #f2f8fc !important;
+}
+
+[data-theme="dark"] #study-coach-root #study-coach-close {
+  color: #b3c8d6 !important;
+}
+
+[data-theme="dark"] #study-coach-root .study-coach-disclaimer {
+  color: #a9becd !important;
+  background: #10283b !important;
+  border-bottom-color: #294b61 !important;
+}
+
+[data-theme="dark"] #study-coach-root #study-coach-messages {
+  background: #0e2233 !important;
+}
+
+[data-theme="dark"] #study-coach-root #study-coach-messages .study-coach-user {
+  background: #173f67 !important;
+  border-color: #2e6497 !important;
+}
+
+[data-theme="dark"] #study-coach-root #study-coach-messages .study-coach-coach {
+  background: #14382f !important;
+  border-color: #286151 !important;
+}
+
+[data-theme="dark"] #study-coach-root #study-coach-messages .study-coach-bubble,
+[data-theme="dark"] #study-coach-root #study-coach-messages .study-coach-bubble div {
+  color: #e7f2f9 !important;
+}
+
+[data-theme="dark"] #study-coach-root #study-coach-messages .study-coach-bubble strong {
+  color: #8bc5ff !important;
+}
+
+[data-theme="dark"] #study-coach-root #study-coach-messages .study-coach-coach strong {
+  color: #70e0ad !important;
+}
+
+[data-theme="dark"] #study-coach-root #study-coach-recs {
+  color: #a9becd !important;
+  background: #0e2233 !important;
+}
+
+[data-theme="dark"] #study-coach-panel > div:last-child {
+  background: #10283b !important;
+  border-top-color: #294b61 !important;
+}
+
+[data-theme="dark"] #study-coach-root #study-coach-input {
+  color: #edf7fd !important;
+  background: #091c2a !important;
+  border-color: #31546b !important;
+}
+
+[data-theme="dark"] #study-coach-root #study-coach-input::placeholder {
+  color: #7891a3 !important;
+}
+
+@media (max-width: 980px) {
+  [data-theme="dark"] #landing-page .hero {
+    background:
+      linear-gradient(90deg, rgba(7, 25, 39, 0.99) 0%, rgba(7, 25, 39, 0.93) 58%, rgba(7, 25, 39, 0.6) 100%),
+      url("assets/brand/veelearn-stem-hero.webp") 62% center / cover no-repeat !important;
+  }
+}
+
+@media (max-width: 700px) {
+  [data-theme="dark"] #landing-page .hero {
+    background:
+      linear-gradient(0deg, rgba(7, 25, 39, 0.99) 0%, rgba(7, 25, 39, 0.96) 52%, rgba(7, 25, 39, 0.38) 100%),
+      url("assets/brand/veelearn-stem-hero.webp") 70% center / cover no-repeat !important;
+  }
+}

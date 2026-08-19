@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Viewer - Veelearn</title>
+    <link rel="icon" type="image/png" href="VEELEARN.png">
+    <link rel="stylesheet" href="styles-redesign.css">
+    <link rel="stylesheet" href="luxury-editorial.css">
+    <style>
+        body {
+            background-color: #f8fafc;
+            background-image: radial-gradient(circle at 20% 50%, rgba(102, 126, 234, 0.08) 0%, transparent 50%),
+                              radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.08) 0%, transparent 50%),
+                              radial-gradient(circle at 40% 20%, rgba(16, 185, 129, 0.05) 0%, transparent 50%);
+            background-attachment: fixed;
+            color: #1f2937;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e5e7eb;
+        }
+        .header h1 {
+            color: #667eea;
+            margin: 0;
+        }
+        .btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .course-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+        .course-title {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        .course-description {
+            color: #6b7280;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        .content-section {
+            margin-bottom: 30px;
+        }
+        .content-section h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        .content-section p {
+            color: #374151;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        .quiz-section {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 30px;
+            border: 1px solid #e5e7eb;
+        }
+        .quiz-section h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        .quiz-question {
+            margin-bottom: 20px;
+        }
+        .quiz-question p {
+            color: #1f2937;
+            margin-bottom: 10px;
+        }
+        .quiz-options button {
+            display: block;
+            width: 100%;
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            background: white;
+            color: #1f2937;
+            border: 1px solid #e5e7eb;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: left;
+        }
+        .quiz-options button:hover {
+            background: #f8fafc;
+            border-color: #667eea;
+        }
+        .quiz-options button.correct {
+            background: #51cf66 !important;
+            color: white;
+        }
+        .quiz-options button.incorrect {
+            background: #ff6b6b !important;
+            color: white;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 Course Viewer</h1>
+            <a href="student-dashboard.html" class="btn">Back to Dashboard</a>
+        </div>
+        <div id="courseContent" class="course-content">
+            <p class="loading">Loading course...</p>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = (() => {
+            if (window.location.hostname.includes('veelearn.org')) {
+                return 'https://api.veelearn.org';
+            }
+            if (window.location.hostname.includes('github.io')) {
+                return 'https://veelearn.onrender.com';
+            }
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                return 'http://localhost:3000';
+            }
+            return window.location.origin;
+        })();
+
+        const authToken = localStorage.getItem('token');
+        const urlParams = new URLSearchParams(window.location.search);
+        const courseId = urlParams.get('courseId');
+        const assignmentId = urlParams.get('assignmentId');
+
+        if (!authToken) {
+            window.location.href = 'index.html';
+        }
+
+        if (!courseId) {
+            document.getElementById('courseContent').innerHTML = '<p class="loading">No course specified.</p>';
+        }
+
+        let courseQuestions = [];
+        let currentViewerPageIndex = 0;
+        let viewerPages = [];
+        let quizScore = { correct: 0, incorrect: 0, total: 0 };
+
+        async function loadCourse() {
+            try {
+                // Load course questions first
+                await loadCourseQuestions(courseId);
+                
+                const response = await fetch(`${API_BASE_URL}/api/courses/${courseId}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.data) {
+                    const course = data.data;
+                    
+                    // Split content into pages for viewer
+                    const rawContent = course.content || "";
+                    if (rawContent.includes('<hr class="page-break">')) {
+                        viewerPages = rawContent.split('<hr class="page-break">');
+                    } else {
+                        viewerPages = [rawContent];
+                    }
+                    
+                    currentViewerPageIndex = 0;
+                    renderViewerPage(0);
+                } else {
+                    document.getElementById('courseContent').innerHTML = '<p class="loading">Failed to load course.</p>';
+                }
+            } catch (error) {
+                console.error('Error loading course:', error);
+                document.getElementById('courseContent').innerHTML = '<p class="loading">Error loading course.</p>';
+            }
+        }
+
+        async function loadCourseQuestions(courseId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/courses/${courseId}/questions`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const data = await response.json();
+                if (response.ok && data.data) {
+                    courseQuestions = data.data;
+                    console.log(`Loaded ${courseQuestions.length} questions for course ${courseId}`);
+                }
+            } catch (error) {
+                console.error('Error loading course questions:', error);
+            }
+        }
+
+        function renderViewerPage(index) {
+            const courseContent = document.getElementById('courseContent');
+            courseContent.innerHTML = `
+                <h2 class="course-title">Course Content</h2>
+                <div id="quiz-score-display" style="margin: 10px 0; padding: 15px; background: #16213e; border-radius: 8px; border: 1px solid #0f3460; display: none;">
+                    <h4 style="color: #667eea; margin: 0 0 10px 0;">Quiz Score</h4>
+                    <div style="display: flex; gap: 20px; color: #eee;">
+                        <span>Correct: <strong id="correct-count" style="color: #51cf66;">0</strong></span>
+                        <span>Incorrect: <strong id="incorrect-count" style="color: #ff6b6b;">0</strong></span>
+                        <span>Total: <strong id="total-count">0</strong></span>
+                    </div>
+                </div>
+                <div id="course-content-display" style="margin: 20px 0; position: relative; min-height: 400px;">
+                    ${viewerPages[index] || "No content"}
+                </div>
+                <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: space-between; align-items: center;">
+                    <button onclick="showDashboard()" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">Back to Dashboard</button>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <span id="viewer-page-indicator">Page ${index + 1} of ${viewerPages.length}</span>
+                        <button id="viewer-prev-btn" onclick="changeViewerPage(-1)" ${index === 0 ? 'disabled' : ''} style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">Previous</button>
+                        <button id="viewer-next-btn" onclick="changeViewerPage(1)" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">${index === viewerPages.length - 1 ? 'Finish' : 'Next'}</button>
+                    </div>
+                </div>
+            `;
+            
+            // Hydrate quiz placeholders
+            hydrateQuizPlaceholders();
+        }
+
+        function changeViewerPage(delta) {
+            const newIndex = currentViewerPageIndex + delta;
+            if (newIndex >= 0 && newIndex < viewerPages.length) {
+                currentViewerPageIndex = newIndex;
+                renderViewerPage(newIndex);
+            }
+        }
+
+        function hydrateQuizPlaceholders() {
+            const contentDisplay = document.getElementById('course-content-display');
+            if (!contentDisplay) return;
+            
+            const placeholders = contentDisplay.querySelectorAll('.quiz-question-placeholder');
+            if (placeholders.length === 0) return;
+            
+            console.log(`Hydrating ${placeholders.length} quiz placeholders, courseQuestions: ${courseQuestions.length}`);
+            
+            let questionCounter = 0;
+            placeholders.forEach(placeholder => {
+                const questionId = parseInt(placeholder.dataset.questionId);
+                if (!questionId || isNaN(questionId)) return;
+                
+                const question = courseQuestions.find(q => q.id === questionId);
+                if (question) {
+                    const questionEl = createQuizQuestionElement(question, questionCounter);
+                    questionCounter++;
+                    questionEl.style.border = '2px solid #667eea';
+                    questionEl.style.background = 'rgba(102, 126, 234, 0.1)';
+                    questionEl.style.cursor = 'default';
+                    placeholder.replaceWith(questionEl);
+                }
+            });
+        }
+
+        function createQuizQuestionElement(question, index) {
+            const div = document.createElement('div');
+            div.className = 'quiz-question';
+            div.style.margin = '20px 0';
+            div.style.padding = '20px';
+            div.style.borderRadius = '8px';
+            div.style.background = '#16213e';
+            
+            let questionText = question.question || question.text || question.question_text || '';
+            let options = question.options || question.choices || [];
+            let correctIndex = question.correct || question.answer || question.correct_answer;
+            
+            console.log('Creating quiz question:', question);
+            console.log('Question text:', questionText);
+            console.log('Options:', options);
+            console.log('Correct index:', correctIndex);
+            
+            div.innerHTML = `
+                <p style="font-size: 18px; margin-bottom: 15px; color: #1f2937;"><strong>Question ${index + 1}:</strong> ${escapeHtml(questionText)}</p>
+                <div class="quiz-options" style="display: flex; flex-direction: column; gap: 10px;">
+                </div>
+            `;
+            
+            const optionsContainer = div.querySelector('.quiz-options');
+            options.forEach((opt, optIndex) => {
+                const isCorrect = optIndex === correctIndex || opt === correctIndex;
+                const btn = document.createElement('button');
+                btn.textContent = opt;
+                btn.style.padding = '10px 15px';
+                btn.style.background = '#0f3460';
+                btn.style.color = '#eee';
+                btn.style.border = '1px solid #1a1a2e';
+                btn.style.borderRadius = '5px';
+                btn.style.cursor = 'pointer';
+                btn.style.textAlign = 'left';
+                btn.onclick = () => checkAnswer(btn, isCorrect);
+                optionsContainer.appendChild(btn);
+            });
+            
+            return div;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function checkAnswer(button, isCorrect) {
+            const options = button.parentElement.querySelectorAll('button');
+            options.forEach(opt => {
+                opt.disabled = true;
+                opt.style.cursor = 'not-allowed';
+                opt.style.pointerEvents = 'none';
+            });
+            
+            // Update score
+            quizScore.total++;
+            if (isCorrect) {
+                quizScore.correct++;
+                button.classList.add('correct');
+                button.style.background = '#51cf66';
+            } else {
+                quizScore.incorrect++;
+                button.classList.add('incorrect');
+                button.style.background = '#ff6b6b';
+            }
+            
+            // Update score display
+            const scoreDisplay = document.getElementById('quiz-score-display');
+            if (scoreDisplay) {
+                scoreDisplay.style.display = 'block';
+                document.getElementById('correct-count').textContent = quizScore.correct;
+                document.getElementById('incorrect-count').textContent = quizScore.incorrect;
+                document.getElementById('total-count').textContent = quizScore.total;
+            }
+            
+            // Save score to assignment if assignmentId is provided
+            if (assignmentId) {
+                saveQuizScoreToAssignment();
+            }
+        }
+
+        async function saveQuizScoreToAssignment() {
+            if (!assignmentId) {
+                console.log('[Quiz Score] No assignment ID provided, skipping save');
+                return;
+            }
+            
+            if (quizScore.total === 0) {
+                console.log('[Quiz Score] No questions answered yet, skipping save');
+                return;
+            }
+            
+            try {
+                // Calculate accuracy based on total questions in the course, not just answered
+                const totalCourseQuestions = courseQuestions.length || 1;
+                const quizAccuracy = totalCourseQuestions > 0 ? (quizScore.correct / totalCourseQuestions) * 100 : 0;
+                // Use the total questions answered for completion percentage
+                const completionPercentage = quizAccuracy;
+                
+                console.log('[Quiz Score] Saving to assignment:', {
+                    assignmentId: parseInt(assignmentId),
+                    completionPercentage: completionPercentage,
+                    correctAnswers: quizScore.correct,
+                    totalQuestions: quizScore.total,
+                    totalCourseQuestions: totalCourseQuestions,
+                    quizAccuracy: quizAccuracy
+                });
+                
+                const response = await fetch(`${API_BASE_URL}/api/student/submit-assignment`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        assignmentId: parseInt(assignmentId),
+                        completionPercentage: completionPercentage,
+                        correctAnswers: quizScore.correct,
+                        totalQuestions: totalCourseQuestions,
+                        quizAccuracy: quizAccuracy
+                    })
+                });
+                
+                const data = await response.json();
+                console.log('[Quiz Score] API response:', data);
+                if (response.ok) {
+                    console.log('[Quiz Score] Successfully saved to assignment:', data);
+                } else {
+                    console.error('[Quiz Score] Failed to save quiz score:', data);
+                }
+            } catch (error) {
+                console.error('[Quiz Score] Error saving quiz score:', error);
+            }
+        }
+
+        if (courseId) {
+            loadCourse();
+        }
+    </script>
+</body>
+</html>

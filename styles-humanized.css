@@ -1,0 +1,666 @@
+/* VEELEARN Humanized Visual Layer - Light K-12 STEM Theme */
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap');
+
+:root {
+  --k12-bg: #edf6ff;
+  --k12-bg-alt: #f8fbff;
+  --k12-surface: #ffffff;
+  --k12-ink: #1a2a3b;
+  --k12-ink-soft: #39546e;
+  --k12-primary: #1f7a5a;
+  --k12-secondary: #f59e0b;
+  --k12-accent: #128c6a;
+  --k12-danger: #d93f58;
+  --k12-danger: #d93f58;
+  --k12-border: #c9def4;
+  --k12-shadow: 0 10px 26px rgba(22, 56, 97, 0.12);
+  --k12-header-gradient: linear-gradient(120deg, rgba(255, 255, 255, 0.96), rgba(235, 245, 255, 0.96));
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Nunito', 'Segoe UI', Tahoma, sans-serif !important;
+  color: var(--k12-ink) !important;
+  background:
+    radial-gradient(1000px 560px at 8% 8%, rgba(52, 152, 219, 0.18), transparent 56%),
+    radial-gradient(920px 520px at 94% 92%, rgba(46, 204, 113, 0.18), transparent 54%),
+    linear-gradient(180deg, var(--k12-bg) 0%, var(--k12-bg-alt) 100%) !important;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  right: -40px;
+  bottom: -40px;
+  width: 280px;
+  height: 280px;
+  background: url('assets/brand/veelearn-logo.png') center/contain no-repeat;
+  opacity: 0.08;
+  pointer-events: none;
+  z-index: 0;
+}
+
+h1, h2, h3, h4, h5, h6, .brand, header h1 {
+  font-family: 'Baloo 2', 'Nunito', sans-serif !important;
+  color: var(--k12-ink) !important;
+  letter-spacing: 0.01em;
+}
+
+p, span, small, li, td, th, label, .subtext {
+  color: var(--k12-ink-soft) !important;
+}
+
+a {
+  color: var(--k12-primary);
+}
+
+main,
+section,
+.dashboard-container,
+.detail-container,
+.execute-container,
+.studio-main,
+.container,
+.sidebar,
+.main-content,
+.main-area,
+.workspace,
+.canvas-area,
+.info-panel,
+.controls-panel,
+.right-panel {
+  position: relative;
+  z-index: 1;
+}
+
+header,
+.studio-toolbar,
+.header,
+.header-bar,
+.dashboard-header,
+.detail-header,
+.toolbar {
+  background:
+    var(--k12-header-gradient),
+    url('assets/brand/stem-workshop.png') center/cover no-repeat !important;
+  border: 1px solid var(--k12-border) !important;
+  box-shadow: var(--k12-shadow) !important;
+}
+
+header h1,
+.studio-toolbar .brand,
+.header h1,
+.header-bar h1,
+.dashboard-header h1,
+.detail-header h1 {
+  color: var(--k12-ink) !important;
+}
+
+header nav a,
+header nav button {
+  color: var(--k12-ink) !important;
+  border-color: var(--k12-border) !important;
+}
+
+header nav a:hover,
+header nav button:hover {
+  background: var(--k12-border) !important;
+  color: var(--k12-ink) !important;
+}
+
+section,
+.feature-card,
+.step,
+.action-card,
+.stat-box,
+.stat-card,
+.simulator-item,
+.course-card,
+.assignment-item,
+.class-card,
+.inspector-item,
+.preview-card,
+.panel,
+.info-panel,
+.controls-panel,
+.canvas-container,
+.editor-sidebar,
+.editor-main,
+.editor-inspector {
+  background: var(--k12-surface) !important;
+  border: 1px solid var(--k12-border) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--k12-shadow) !important;
+}
+
+/* Buttons with high contrast */
+button,
+.btn,
+.primary-btn,
+.secondary-btn,
+.action-btn,
+.create-btn,
+.control-button,
+.back-button,
+.tb-primary,
+.tb-success,
+.tb-danger,
+.tb-secondary,
+.tb-warning {
+  border-radius: 12px !important;
+  font-weight: 800 !important;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+button:hover,
+.btn:hover,
+.primary-btn:hover,
+.secondary-btn:hover,
+.action-btn:hover,
+.create-btn:hover,
+.control-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(28, 70, 120, 0.2);
+}
+
+.primary-btn,
+.btn-primary,
+.tb-primary,
+.editor-actions .btn-publish,
+.control-button.play {
+  background: linear-gradient(135deg, #2ca36d, #1f7a5a) !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+.secondary-btn,
+.tb-secondary,
+.control-button.reset {
+  background: linear-gradient(135deg, #ffd37a, #f3b638) !important;
+  color: #2f2b16 !important;
+  border: none !important;
+}
+
+.tb-success,
+.create-btn {
+  background: linear-gradient(135deg, #25cb87, #0fa56a) !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+.tb-danger,
+.control-button.stop,
+.back-button {
+  background: linear-gradient(135deg, #ef5a74, #d93f58) !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+input,
+textarea,
+select,
+.pb-input,
+.sidebar-search input {
+  background: var(--k12-surface) !important;
+  color: var(--k12-ink) !important;
+  border: 1px solid var(--k12-border) !important;
+  border-radius: 10px !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--k12-ink-soft) !important;
+}
+
+/* Landing page: bright, playful STEM feel */
+#landing-page {
+  background:
+    radial-gradient(940px 460px at 12% 14%, rgba(47, 170, 237, 0.22), transparent 58%),
+    radial-gradient(860px 460px at 88% 88%, rgba(80, 205, 146, 0.24), transparent 56%),
+    linear-gradient(160deg, var(--k12-bg) 0%, var(--k12-bg-alt) 100%) !important;
+}
+
+#landing-page .hero {
+  position: relative;
+  width: min(1120px, 96%);
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid #cce2f5;
+  box-shadow: 0 20px 44px rgba(31, 84, 146, 0.16);
+}
+
+#landing-page .hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(110deg, rgba(255, 255, 255, 0.95) 4%, rgba(255, 255, 255, 0.72) 58%, rgba(255, 255, 255, 0.5) 100%),
+    url('assets/brand/stem-students-lab.jpg') center/cover no-repeat;
+  z-index: -2;
+}
+
+
+
+#landing-page .hero h1 {
+  color: var(--k12-ink) !important;
+  font-size: clamp(2rem, 4.8vw, 3.5rem) !important;
+  line-height: 1.12;
+  max-width: 18ch;
+}
+
+#landing-page .hero p {
+  color: var(--k12-ink-soft) !important;
+  max-width: 64ch;
+}
+
+#landing-page .feature-card {
+  position: relative;
+  overflow: hidden;
+  background: var(--k12-surface) !important;
+}
+
+#landing-page .feature-card h3 {
+  color: var(--k12-ink) !important;
+}
+
+#landing-page .feature-card p {
+  color: var(--k12-ink-soft) !important;
+}
+
+#landing-page .feature-card:nth-child(1)::after {
+  content: "";
+  position: absolute;
+  width: 132px;
+  height: 70px;
+  right: 8px;
+  bottom: 8px;
+  background: url('assets/brand/stem-logo.png') center/contain no-repeat;
+  opacity: 0.25;
+}
+
+#landing-page .how-it-works {
+  background:
+    var(--k12-header-gradient),
+    url('assets/brand/stem-workshop.png') center/cover no-repeat !important;
+  border: 1px solid var(--k12-border);
+}
+
+#landing-page .how-it-works h2,
+#landing-page .how-it-works h4 {
+  color: var(--k12-ink) !important;
+}
+
+#landing-page .how-it-works p {
+  color: var(--k12-ink-soft) !important;
+}
+
+/* Simulator and dashboard pages forced to light surfaces */
+.sidebar,
+.controls-panel,
+.info-panel,
+.right-panel,
+.editor-sidebar,
+.editor-main,
+.editor-inspector,
+.simulator-card,
+.simulator-item,
+.canvas-container,
+.workspace-container,
+.palette-category-header,
+.preview-header,
+.console-header {
+  color: var(--k12-ink) !important;
+  background: var(--k12-surface) !important;
+}
+
+.sidebar h2,
+.sidebar h3,
+.controls-panel h2,
+.controls-panel h3,
+.info-panel h2,
+.info-panel h3,
+.preview-header h3,
+.console-header h4 {
+  color: var(--k12-ink) !important;
+}
+
+.stat-number,
+.icon,
+.step-num,
+.feature-icon {
+  color: #1e63d0 !important;
+}
+
+.workspace,
+.canvas-area,
+.canvas-wrap {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(39, 151, 225, 0.12), transparent 38%),
+    radial-gradient(circle at 84% 72%, rgba(32, 193, 124, 0.1), transparent 42%),
+    #eef6ff !important;
+}
+
+.console-output,
+.code-editor-panel textarea {
+  background: var(--bg-dark) !important;
+  color: var(--text-light) !important;
+  border: 1px solid var(--k12-border);
+}
+
+.placed-block {
+  background: #ffffff !important;
+  border: 1px solid #b9d2eb !important;
+  color: #1f4265 !important;
+}
+
+.pb-header {
+  background: linear-gradient(135deg, #7eb7ff, #4c94ef) !important;
+}
+
+.pb-title {
+  color: #ffffff !important;
+}
+
+.pb-input-label {
+  color: #335f8d !important;
+}
+
+.header-nav a,
+.header-nav button,
+.nav-tab {
+  color: #1d4d7f !important;
+}
+
+.nav-tab.active {
+  background: rgba(30, 99, 208, 0.12) !important;
+  border-bottom-color: #1e63d0 !important;
+  color: #14497f !important;
+}
+
+/* Course list actions + pagination */
+.course-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 15px;
+  flex-wrap: wrap;
+}
+
+.course-action-btn {
+  flex: 1 1 120px;
+  border-radius: 8px !important;
+  padding: 9px 10px !important;
+  border: none !important;
+  cursor: pointer;
+  color: #fff !important;
+  font-weight: 700 !important;
+}
+
+.course-action-primary {
+  background: linear-gradient(135deg, #2ca36d, #1f7a5a) !important;
+}
+
+.course-action-secondary {
+  background: linear-gradient(135deg, #64748b, #475569) !important;
+}
+
+.course-action-danger {
+  background: linear-gradient(135deg, #ef5a74, #d93f58) !important;
+}
+
+.course-action-like {
+  background: linear-gradient(135deg, #64748b, #475569) !important;
+}
+
+.course-action-like-active {
+  background: linear-gradient(135deg, #25cb87, #0fa56a) !important;
+}
+
+/* Hard override for old inline dark/blue dashboard + creator styles */
+#dashboard-section [style*="background: #222"],
+#dashboard-section [style*="background:#222"],
+#dashboard-section [style*="background: #1e293b"],
+#dashboard-section [style*="background:#1e293b"],
+#dashboard-section [style*="background: rgba(102, 126, 234"],
+#dashboard-section [style*="background:rgba(102, 126, 234"],
+#dashboard-section [style*="background: rgba(0,0,0,0.3)"] {
+  background: var(--k12-surface) !important;
+  color: var(--k12-ink) !important;
+  border-color: var(--k12-border) !important;
+}
+
+#dashboard-section [style*="color: #fff"],
+#dashboard-section [style*="color:#fff"],
+#dashboard-section [style*="color: white"],
+#dashboard-section [style*="color:white"],
+#dashboard-section [style*="color: #ccc"],
+#dashboard-section [style*="color:#ccc"] {
+  color: var(--k12-ink) !important;
+}
+
+#dashboard-section [style*="#667eea"],
+#dashboard-section [style*="#555"] {
+  border-color: #c9def4 !important;
+}
+
+/* Course creator/editor should always be light and readable */
+#course-editor-section,
+#course-editor-section .editor-sidebar,
+#course-editor-section .editor-main,
+#course-editor-section .editor-inspector,
+#course-editor-section .editor-header,
+#course-editor-section .editor-toolbar,
+#course-content-editor,
+#unit-management-section,
+#unit-management-section > div {
+  background: var(--k12-surface) !important;
+  color: var(--k12-ink) !important;
+  border-color: var(--k12-border) !important;
+}
+
+#course-content-editor {
+  min-height: 460px;
+}
+
+#course-editor-section .btn-save,
+#course-editor-section .btn-publish {
+  color: #ffffff !important;
+}
+
+#course-editor-section h1,
+#course-editor-section h2,
+#course-editor-section h3,
+#course-editor-section h4,
+#course-editor-section label,
+#course-editor-section .info-text {
+  color: var(--k12-ink) !important;
+}
+
+#course-editor-section input,
+#course-editor-section textarea,
+#course-editor-section select {
+  background: var(--k12-surface) !important;
+  color: var(--k12-ink) !important;
+  border: 1px solid var(--k12-border) !important;
+}
+
+/* Modal cleanup: remove old dark inline styles */
+#search-modal .modal-content,
+#animation-pref-modal .modal-content,
+#search-modal input,
+#animation-pref-modal .animation-mode-btn {
+  background: var(--k12-surface) !important;
+  color: var(--k12-ink) !important;
+  border-color: var(--k12-border) !important;
+}
+
+#search-modal .sim-sort-btn {
+  background: transparent !important;
+  color: var(--k12-ink) !important;
+  border-color: var(--k12-border) !important;
+}
+
+#search-modal .sim-sort-btn.active {
+  background: #0d9488 !important;
+  border-color: #0d9488 !important;
+  color: #fff !important;
+}
+
+#global-search-btn {
+  color: var(--k12-ink) !important;
+  background: var(--k12-surface) !important;
+  border: 1px solid var(--k12-border) !important;
+}
+
+.course-pagination {
+  margin: 10px 0 26px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.course-pagination-info {
+  color: #355a80 !important;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.course-pagination-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.course-pagination-buttons button {
+  border: 1px solid var(--k12-border) !important;
+  background: var(--k12-surface) !important;
+  color: var(--k12-ink) !important;
+  border-radius: 8px !important;
+  padding: 7px 12px !important;
+  font-weight: 700 !important;
+}
+
+.course-pagination-buttons button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Force course viewer into light palette (fixes dark blue cards/content) */
+.viewer-content,
+#viewer-regular-sidebar,
+#unit-navigation-sidebar,
+.related-courses {
+  background: var(--k12-surface) !important;
+  border-color: var(--k12-border) !important;
+}
+
+#course-viewer-title,
+#course-viewer-description,
+#viewer-page-indicator {
+  color: var(--k12-ink) !important;
+}
+
+#course-viewer-content,
+#course-viewer-content * {
+  color: var(--k12-ink-soft) !important;
+}
+
+#course-viewer-content h1,
+#course-viewer-content h2,
+#course-viewer-content h3,
+#course-viewer-content h4,
+#course-viewer-content h5,
+#course-viewer-content h6,
+#course-viewer-content strong,
+#course-viewer-content b {
+  color: var(--k12-ink) !important;
+}
+
+#course-viewer-content div[style*="background"],
+#course-viewer-content p[style*="background"],
+#course-viewer-content table[style*="background"] {
+  background: var(--k12-surface) !important;
+  border-color: var(--k12-border) !important;
+}
+
+#course-viewer-content table,
+#course-viewer-content th,
+#course-viewer-content td {
+  background: var(--k12-surface) !important;
+  border-color: var(--k12-border) !important;
+  color: var(--k12-ink) !important;
+}
+
+#course-viewer-content button,
+#course-viewer-content .quiz-submit-btn,
+#course-viewer-content .sim-run-btn {
+  color: #ffffff !important;
+}
+
+/* Keep math rendering untouched and stable */
+.MathJax,
+.latex-equation,
+#latex-preview,
+.math-display,
+.math-inline {
+  font-family: inherit;
+  color: inherit !important;
+}
+
+@media (max-width: 980px) {
+  body::before {
+    width: 200px;
+    height: 200px;
+  }
+
+
+
+  .viewer-layout {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+    padding: 10px !important;
+  }
+
+  .viewer-content {
+    padding: 18px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  #dashboard-section {
+    padding: 18px !important;
+  }
+
+  header nav {
+    gap: 8px !important;
+    justify-content: center !important;
+  }
+
+  header nav a,
+  header nav button {
+    font-size: 0.84rem !important;
+    padding: 8px 10px !important;
+  }
+
+  #my-courses-list-user,
+  #my-courses-list-admin,
+  #my-courses-list-superadmin,
+  #available-courses-list-user,
+  #available-courses-list-admin,
+  #available-courses-list-superadmin {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+
+  .course-card-actions {
+    flex-direction: column;
+  }
+
+  .course-action-btn {
+    width: 100%;
+    flex: 1 1 auto;
+  }
+}

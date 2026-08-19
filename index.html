@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="Veelearn — free AI-assisted STEM learning with high-quality interactive courses, 120+ simulations, and volunteer hours for creating educational content. Physics, chemistry, math, and biology for K-12 and college." />
+  <link rel="icon" type="image/png" href="/VEELEARN.png" loading="lazy">
+  <link rel="shortcut icon" href="/VEELEARN.png" loading="lazy">
+  <title>Veelearn — AI-Assisted STEM Learning | Free Courses, Simulations & Volunteer Hours</title>
+  <!-- Resource Hints for Performance -->
+  <link rel="preload" href="styles.css" as="style">
+  <link rel="preload" href="script.js?v=34" as="script">
+  <!-- Heavy marketing pages are loaded on demand (no prefetch storm) -->
+  <link rel="stylesheet" href="styles.css?v=10" />
+  <link rel="stylesheet" href="styles-redesign.css?v=2" />
+  <link rel="stylesheet" href="styles-humanized.css" />
+  <link rel="stylesheet" href="styles-learner-shell.css?v=17" />
+  <link rel="stylesheet" href="stem-polish.css?v=2" />
+  <link rel="stylesheet" href="loading-states.css" media="print" onload="this.media='all'" />
+  <link rel="stylesheet" href="error-handler.css" media="print" onload="this.media='all'" />
+  <link rel="stylesheet" href="validation.css" media="print" onload="this.media='all'" />
+  <link rel="stylesheet" href="keyboard-shortcuts.css" media="print" onload="this.media='all'" />
+  <link rel="stylesheet" href="auto-save.css" media="print" onload="this.media='all'" />
+  <link rel="stylesheet" href="search-enhancements.css" media="print" onload="this.media='all'" />
+  <link rel="stylesheet" href="mobile-responsive.css" media="print" onload="this.media='all'" />
+  <link rel="stylesheet" href="lazy-loading.css" media="print" onload="this.media='all'" />
+  <link rel="stylesheet" href="focus-indicators.css?v=2" media="print" onload="this.media='all'" />
+  <noscript>
+    <link rel="stylesheet" href="loading-states.css" />
+    <link rel="stylesheet" href="mobile-responsive.css" />
+  </noscript>
+  <meta name="keywords" content="AI-assisted learning, high quality free STEM courses, earn volunteer hours, STEM learning, interactive physics simulations, chemistry education, math learning, biology simulations, free education, K-12 learning, college STEM, PhET simulations, block-based programming, online learning" />
+  <meta name="author" content="Veelearn by Virat" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://veelearn.org/" />
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://veelearn.org/" />
+  <meta property="og:title" content="Veelearn — AI-Assisted STEM Learning | Free Courses & Volunteer Hours" />
+  <meta property="og:description" content="Free AI-assisted STEM learning with high-quality interactive courses, simulations, and volunteer hours for creating educational content." />
+  <meta property="og:image" content="https://veelearn.org/VEELEARN.png" />
+  <meta property="og:site_name" content="Veelearn" />
+  <meta property="og:locale" content="en_US" />
+  
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:url" content="https://veelearn.org/" />
+  <meta name="twitter:title" content="Veelearn - Free Interactive STEM Learning | Physics, Chemistry, Math Simulations" />
+  <meta name="twitter:description" content="Free interactive STEM learning platform for K-12 and college students. Master physics, chemistry, math, and biology with 120+ PhET simulations, block-based programming, and community courses." />
+  <meta name="twitter:image" content="https://veelearn.org/VEELEARN.png" />
+  
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "EducationalOrganization",
+  "name": "Veelearn",
+  "url": "https://veelearn.org",
+  "logo": "https://veelearn.org/VEELEARN.png",
+  "description": "Free interactive STEM learning platform for K-12 and college students with 120+ PhET simulations, block-based programming, and community courses.",
+  "sameAs": [
+    "https://www.hackclub.com",
+    "https://github.com/ViratS-best/Veelearn",
+    "https://twitter.com/veelearn",
+    "https://www.linkedin.com/company/veelearn"
+  ],
+  "founder": {
+    "@type": "Person",
+    "name": "Virat Sisodiya",
+    "jobTitle": "Founder & Developer"
+  },
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "contactType": "customer support",
+    "email": "viratsuper@veelearn.org",
+    "areaServed": "Worldwide",
+    "availableLanguage": "English"
+  },
+  "parentOrganization": {
+    "@type": "NonprofitOrganization",
+    "name": "The Hack Foundation",
+    "taxID": "81-2908499",
+    "url": "https://hackclub.com"
+  },
+  "offers": {
+    "@type": "Offer",
+    "category": "Educational",
+    "price": "0",
+    "priceCurrency": "USD",
+    "description": "100% free STEM education platform"
+  },
+  "audience": {
+    "@type": "EducationalAudience",
+    "educationalRole": "Student",
+    "educationalLevel": ["K-12", "College"]
+  },
+  "address": {
+    "@type": "PostalAddress",
+    "addressCountry": "US"
+  },
+  "foundingDate": "2024",
+  "numberOfEmployees": {
+    "@type": "QuantitativeValue",
+    "value": "5"
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://veelearn.org/index.html"
+    }
+  ]
+}
+</script>
+</head>
+
+<body>
+  <header>
+    <h1>Veelearn</h1>
+    <nav>
+      <a href="index.html" id="home-link">Home</a>
+      <a href="blog.html" id="blog-link">Blog</a>
+      <a href="#" id="dashboard-link" style="display: none">Dashboard</a>
+      <button id="logout-button" style="display: none">Logout</button>
+      <a href="scratch-studio.html" id="simulator-link">Simulator Studio</a>
+      <a href="simulator-marketplace.html" id="marketplace-link">Marketplace</a>
+      <a href="#" id="login-link">Login</a>
+      <a href="#" id="register-link">Register</a>
+      <button id="global-search-btn" title="Search Veelearn"
+        style="background: transparent; border: 1px solid #667eea; padding: 5px 10px; color: white; border-radius: 4px; cursor: pointer;">🔍
+        Search</button>
+      <button id="animation-pref-btn" title="Toggle animation mode (Short/Long with epic battle scenes!)">⚙️
+        Animations</button>
+    </nav>
+  </header>
+
+  <!-- ANIMATION PREFERENCE MODAL (outside sticky header for correct overlay) -->
+  <div id="animation-pref-modal" class="modal" style="display: none;" aria-hidden="true">
+    <div class="modal-content" style="max-width: 500px;">
+      <span class="close-modal" onclick="closeAnimationPrefModal()">&times;</span>
+      <h2>Animation Preference</h2>
+      <div
+        style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(6, 182, 212, 0.15)); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 12px 16px; margin: 15px 0;">
+        <p style="margin: 0; font-size: 0.9em; color: var(--text-muted, #64748b);">
+          <strong>⚠️ WARNING - Long Animations:</strong> Contains flashing lights, can get annoying, bright colors,
+          and rapid visual
+          effects. May trigger photosensitive epilepsy or cause discomfort. If you have concerns, use Short
+          Animations.
+        </p>
+      </div>
+      <div style="margin: 20px 0; display: flex; gap: 10px;">
+        <button onclick="setAnimationMode('short')" class="animation-mode-btn" id="short-anim-btn"
+          style="flex: 1; padding: 12px; border: 2px solid transparent; border-radius: 6px; cursor: pointer; font-weight: 600;">
+          ⚡ Short Animations
+        </button>
+        <button onclick="setAnimationMode('long')" class="animation-mode-btn" id="long-anim-btn"
+          style="flex: 1; padding: 12px; border: 2px solid transparent; border-radius: 6px; cursor: pointer; font-weight: 600;">
+          🎬 Long Animations (Epic!)
+        </button>
+      </div>
+      <p style="text-align: center; color: var(--text-muted, #64748b); font-size: 0.85em; margin-top: 15px;">
+        Every page transition will feature a unique story. Some animations are common, some are extremely rare!
+      </p>
+    </div>
+  </div>
+
+  <!-- GLOBAL SEARCH MODAL (outside sticky header for correct overlay) -->
+  <div id="search-modal" class="modal search-modal" style="display: none;" aria-hidden="true">
+    <div class="modal-content search-modal-content">
+      <button type="button" class="close-modal" id="close-search-modal" aria-label="Close search">&times;</button>
+      <h2>Search Veelearn</h2>
+      <div class="search-modal-form">
+        <input type="text" id="global-search-input" placeholder="Search courses, units, and simulators..."
+          autocomplete="off" maxlength="200" />
+        <button type="button" id="execute-search-btn" class="primary-btn search-modal-submit">Search</button>
+      </div>
+
+      <div id="search-results-container" class="search-results-container">
+        <p id="search-empty-hint" class="search-empty-hint">Type a query and press Search or Enter.</p>
+        <h3 id="search-courses-header" class="search-section-title" style="display: none;">Courses</h3>
+        <div id="search-courses-list" class="search-results-list"></div>
+
+        <div id="search-simulators-section" style="display: none;">
+          <h3 class="search-section-title">Simulators</h3>
+          <div id="simulator-sort-btns" class="sim-sort-btns">
+            <button type="button" class="sim-sort-btn active" data-sort="relevance">Relevance</button>
+            <button type="button" class="sim-sort-btn" data-sort="most_liked">Most Liked</button>
+            <button type="button" class="sim-sort-btn" data-sort="most_viewed">Most Viewed</button>
+            <button type="button" class="sim-sort-btn" data-sort="newest">Newest</button>
+          </div>
+          <div id="search-simulators-list" class="search-results-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <main>
+    <!-- LANDING PAGE SECTION -->
+    <section id="landing-page">
+      <div class="hero">
+        <h1>Free Interactive STEM Learning Platform for K-12 & College Students</h1>
+        <p>Master physics, chemistry, math, and biology through 120+ interactive PhET simulations, block-based programming, and community-created courses. Veelearn brings science education to life with hands-on learning experiences. Join thousands of students worldwide and earn volunteer hours by creating educational content.</p>
+        <div class="hero-actions">
+          <button id="get-started-btn" class="primary-btn">Get Started for Free</button>
+          <button id="view-courses-btn" class="secondary-btn">Browse Courses</button>
+          <a href="https://hcb.hackclub.com/donations/start/veelearn" target="_blank" rel="noopener noreferrer"
+            class="primary-btn"
+            style="background: linear-gradient(135deg, #f59e0b, #ef4444); text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+            💛 Donate
+          </a>
+        </div>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">⚛️</div>
+          <h3>120+ Physics & Chemistry Simulations</h3>
+          <p>Access over 120+ high-quality PhET HTML5 simulations covering physics, chemistry, biology, and math. Fully integrated into courses for hands-on STEM learning.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">∑</div>
+          <h3>Advanced LaTeX Math Support</h3>
+          <p>Professional mathematical notation for complex equations. Perfect for calculus, algebra, physics formulas, and advanced STEM coursework.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🏗️</div>
+          <h3>Block-Based Programming Engine</h3>
+          <p>Build custom physics simulations with our visual drag-and-drop editor. No coding required - perfect for students and educators to create interactive experiments.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🌍</div>
+          <h3>Community Simulator Marketplace</h3>
+          <p>Discover, fork, and remix thousands of simulations created by educators worldwide. Share your creations and earn volunteer hours for contributing to STEM education.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📝</div>
+          <h3>Create & Publish Educational Content</h3>
+          <p>Design and publish your own STEM courses with embedded simulations, quizzes, and assessments. Share your knowledge with the global community and earn volunteer hours for every published course.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🏫</div>
+          <h3>School Admin & Teacher Accounts</h3>
+          <p>Schools can create admin accounts to manage teachers, students, and classrooms. Teachers can assign courses, track progress, and provide personalized feedback. Complete classroom management in one platform.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🎯</div>
+          <h3>Drag-and-Drop Student Organization</h3>
+          <p>School admins can quickly organize students by dragging and dropping names into different classes or groups. Intuitive interface for efficient classroom management and student assignment.</p>
+        </div>
+      </div>
+
+      <div class="how-it-works">
+        <h2>How Veelearn Transforms STEM Education</h2>
+        <div class="steps-grid">
+          <div class="step">
+            <span class="step-num">1</span>
+            <h4>Create Your Free Account</h4>
+            <p>Sign up in seconds as a student or educator. No credit card required. Join a global community of learners passionate about science, technology, engineering, and mathematics.</p>
+          </div>
+          <div class="step">
+            <span class="step-num">2</span>
+            <h4>Explore Interactive STEM Courses</h4>
+            <p>Browse our extensive library of K-12 and college-level courses in physics, chemistry, biology, and mathematics. Each course includes embedded PhET simulations and interactive exercises.</p>
+          </div>
+          <div class="step">
+            <span class="step-num">3</span>
+            <h4>Learn Through Hands-On Practice</h4>
+            <p>Master complex concepts by interacting with simulations, solving real-world problems, and testing your knowledge with quizzes. Track your progress and earn certificates.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- AUTH SECTION -->
+    <section id="auth-section" style="display: none">
+      <h2>Welcome to Veelearn</h2>
+      <div
+        style="background: linear-gradient(135deg, rgba(255, 193, 7, 0.15), rgba(255, 152, 0, 0.15)); border: 1px solid rgba(255, 193, 7, 0.5); border-radius: 8px; padding: 14px 20px; margin: 15px auto; max-width: 500px; text-align: center;">
+        <span style="color: #ffc107; font-weight: bold; font-size: 1.05em;">⚠️ WARNING</span>
+        <p style="color: #ccc; margin: 6px 0 0 0; font-size: 0.9em; line-height: 1.4;">Running on free servers that auto
+          shut every 15 minutes... Login might take 1-2 minutes if server has shut down due to inactivity recently.</p>
+      </div>
+      <div id="login-form" class="auth-form">
+        <h3>Login</h3>
+        <div id="login-error-message" style="color: red; margin-bottom: 10px;"></div>
+        <form autocomplete="on">
+          <input type="email" id="login-email" placeholder="Email" autocomplete="email" required />
+          <input type="password" id="login-password" placeholder="Password" autocomplete="current-password" required />
+          <button type="submit">Login</button>
+        </form>
+        <p>
+          <a href="#" id="show-forgot-password" style="color: var(--accent); font-size: 0.9em;">Forgot Password?</a>
+        </p>
+        <p>
+          Don't have an account?
+          <a href="#" id="show-register">Register here</a>
+        </p>
+      </div>
+
+      <!-- FORGOT PASSWORD FORM -->
+      <div id="forgot-password-form" class="auth-form" style="display: none">
+        <h3>Reset Password</h3>
+        <div id="forgot-error-message" style="color: red; margin-bottom: 10px;"></div>
+        <div id="forgot-success-message" style="color: #4caf50; margin-bottom: 10px;"></div>
+
+        <!-- Step 1: Enter email -->
+        <div id="forgot-step-1">
+          <p style="color: #ccc; font-size: 0.9em; margin-bottom: 1em;">Enter your email address and we'll send you a
+            6-digit code to reset your password.</p>
+          <form id="forgot-email-form" autocomplete="on">
+            <input type="email" id="forgot-email" placeholder="Email" autocomplete="email" required />
+            <button type="submit">Send Reset Code</button>
+          </form>
+        </div>
+
+        <!-- Step 2: Enter code + new password -->
+        <div id="forgot-step-2" style="display: none">
+          <p style="color: #ccc; font-size: 0.9em; margin-bottom: 1em;">Enter the 6-digit code sent to your email and
+            choose a new password.</p>
+          <form id="forgot-reset-form" autocomplete="on">
+            <input type="text" id="reset-code" placeholder="6-digit code" maxlength="6" pattern="[0-9]{6}" required
+              style="text-align: center; font-size: 1.3em; letter-spacing: 6px; font-weight: bold;" />
+            <input type="password" id="reset-new-password"
+              placeholder="New password (min 8 chars, uppercase, lowercase, number)" autocomplete="new-password"
+              minlength="8" required />
+            <button type="submit">Reset Password</button>
+          </form>
+        </div>
+
+        <p>
+          <a href="#" id="show-login-from-forgot">Back to Login</a>
+        </p>
+      </div>
+
+      <div id="register-form" class="auth-form" style="display: none">
+        <h3>Register</h3>
+        <div id="register-error-message" style="color: red; margin-bottom: 10px;"></div>
+        <form autocomplete="on">
+          <input type="email" id="register-email" placeholder="Email" autocomplete="email" required />
+          <input type="password" id="register-password"
+            placeholder="Password (min 8 chars, uppercase, lowercase, number)" autocomplete="new-password" minlength="8"
+            required />
+          <button type="submit">Register</button>
+        </form>
+        <p>
+          <strong>Register as:</strong>
+        </p>
+        <p style="font-size: 0.9em;">
+          <a href="school-admin-signup.html" style="color: var(--accent);">🏫 School Admin</a> | 
+          <a href="teacher-signup.html" style="color: var(--accent);">👨‍🏫 Teacher</a> | 
+          <a href="student-signup.html" style="color: var(--accent);">🎓 Student</a> | 
+          <a href="parent-signup.html" style="color: var(--accent);">👨‍👩‍👧 Parent</a>
+        </p>
+        <p>
+          Already have an account? <a href="#" id="show-login">Login here</a>
+        </p>
+      </div>
+    </section>
+
+    <!-- DASHBOARD SECTION -->
+    <section id="dashboard-section" style="display: none; padding: 40px;">
+      <div class="dashboard-header">
+        <div>
+          <h1>Your Dashboard</h1>
+          <p class="subtext" style="font-size: 16px;">Welcome to Veelearn, <span id="user-email"
+              style="font-weight: 600; color: var(--primary);"></span>! 👋</p>
+        </div>
+      </div>
+      <!-- SUPERADMIN DASHBOARD -->
+      <div id="superadmin-dashboard" style="display: none">
+        <h3>Superadmin Panel</h3>
+
+        <h4>Manage Users</h4>
+        <ul id="user-list"></ul>
+
+        <h4>Pending Schools for Approval</h4>
+        <ul id="superadmin-pending-schools-list"></ul>
+
+        <h4>Pending Teachers for Approval</h4>
+        <ul id="superadmin-pending-teachers-list"></ul>
+
+        <h4>All Schools</h4>
+        <ul id="superadmin-all-schools-list"></ul>
+
+        <h4>Pending Courses for Approval</h4>
+        <ul id="superadmin-pending-courses-list"></ul>
+
+        <h4>My Courses</h4>
+        <button id="create-course-button-superadmin" class="create-course-btn">
+          Create New Course
+        </button>
+        <ul id="my-courses-list-superadmin"></ul>
+
+        <h4>Available Courses</h4>
+        <ul id="available-courses-list-superadmin"></ul>
+      </div>
+
+      <!-- ADMIN DASHBOARD -->
+      <div id="admin-dashboard" style="display: none">
+        <h3>Admin Panel</h3>
+
+        <h4>Manage Users</h4>
+        <ul id="user-list-admin"></ul>
+
+        <h4>Pending Courses for Approval</h4>
+        <ul id="admin-pending-courses-list"></ul>
+
+        <h4>My Courses</h4>
+        <button id="create-course-button-admin" onclick="document.getElementById('create-course-button').click()">
+          Create New Course
+        </button>
+        <ul id="my-courses-list-admin"></ul>
+
+        <h4>Available Courses</h4>
+        <ul id="available-courses-list-admin"></ul>
+      </div>
+
+      <!-- USER DASHBOARD -->
+      <div id="user-dashboard" style="display: none">
+        <h3>User Panel</h3>
+
+        <div id="role-management-section"
+          style="background: rgba(102, 126, 234, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+          <h4>Role Management</h4>
+          <button id="become-teacher-btn" class="create-course-btn"
+            style="background: var(--warning); margin-bottom: 10px; color: #1e293b !important;">
+            👨‍🏫 Become a Teacher
+          </button>
+          <p id="teacher-status" style="color: #ccc; font-size: 0.9em;"></p>
+        </div>
+
+        <div id="student-enrollment"
+          style="background: rgba(102, 126, 234, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+          <h4>Join a Class</h4>
+          <input type="text" id="class-code-input" placeholder="Enter class code from your teacher" maxlength="20"
+            style="padding: 10px; border: 1px solid #555; border-radius: 4px; width: 100%; margin-bottom: 10px; background: #222; color: #fff;" />
+          <button id="enroll-class-btn" class="primary-btn" style="width: 100%; color: #1e293b !important;">📚 Join Class</button>
+          <div id="enrolled-classes" style="margin-top: 15px;"></div>
+        </div>
+
+        <div id="teacher-panel"
+          style="display: none; background: rgba(76, 175, 80, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+          <h4>Teacher Dashboard</h4>
+          <div id="class-code-display"
+            style="background: #222; padding: 10px; border-radius: 4px; margin-bottom: 10px; font-family: monospace; color: #4ade80; font-weight: bold;">
+            Class Code: <span id="my-class-code">Loading...</span>
+          </div>
+          <div id="teacher-approval-status"
+            style="padding: 10px; margin-bottom: 15px; border-radius: 4px; background: rgba(0,0,0,0.3); text-align: center;">
+          </div>
+          <h5>My Classes</h5>
+          <div id="my-classes-list"></div>
+          <h5>Create Assignment</h5>
+          <input type="text" id="assignmentCourseSearch" placeholder="🔍 Search courses..."
+            style="width: 100%; padding: 10px; margin-bottom: 10px; background: #222; color: #fff; border: 1px solid #667eea; border-radius: 4px;" />
+          <select id="assignment-course-select"
+            style="width: 100%; padding: 10px; margin-bottom: 10px; background: #222; color: #fff; border: 1px solid #555; border-radius: 4px;">
+            <option value="">Select a course...</option>
+          </select>
+          <input type="date" id="assignment-due-date"
+            style="width: 100%; padding: 10px; margin-bottom: 10px; background: #222; color: #fff; border: 1px solid #555; border-radius: 4px;" />
+          <button id="create-assignment-btn" class="success-btn" style="width: 100%; color: #1e293b !important;">📋 Assign Course</button>
+        </div>
+
+        <button id="create-course-button-user" class="create-course-btn" style="color: #1e293b !important;">
+          Create New Course
+        </button>
+
+        <h4>My Courses</h4>
+        <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
+          <input type="text" id="myCoursesSearch" placeholder="Search your courses..."
+            style="flex: 1; padding: 10px; border: 1px solid #555; border-radius: 4px; background: #222; color: #fff;" />
+          <button type="button" id="clearMyCoursesSearch" class="secondary-btn" style="padding: 8px 12px; color: #1e293b !important;">✕</button>
+        </div>
+        <ul id="my-courses-list-user"></ul>
+
+        <div id="student-assignments" style="display: none;">
+          <h4>📚 Assignments for Me</h4>
+          <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
+            <input type="text" id="enrolledCoursesSearch" placeholder="Search enrolled courses..."
+              style="flex: 1; padding: 10px; border: 1px solid #555; border-radius: 4px; background: #222; color: #fff;" />
+            <button type="button" id="clearEnrolledCoursesSearch" class="secondary-btn"
+              style="padding: 8px 12px; color: #1e293b !important;">✕</button>
+          </div>
+          <div id="assignments-list"></div>
+        </div>
+
+        <div id="enrolled-courses-section" style="display: none;">
+          <h4>📈 Enrolled Courses (with Progress)</h4>
+          <div id="enrolled-courses-list"></div>
+        </div>
+
+        <h4>🎓 Master Courses</h4>
+        <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px; flex-wrap: wrap;">
+          <input type="text" id="availableCoursesSearch" class="dashboard-course-search" placeholder="Search all courses (master courses & units)..." />
+          <select id="courseSortDropdown" class="dashboard-course-sort">
+            <option value="newest">📅 Newest</option>
+            <option value="most_liked">❤️ Most Liked</option>
+            <option value="trending">🔥 Trending</option>
+            <option value="popular">⭐ Popular</option>
+          </select>
+          <button type="button" id="clearAvailableCoursesSearch" class="secondary-btn"
+            style="padding: 8px 12px; color: #1e293b !important;">✕</button>
+        </div>
+        <ul id="available-courses-list-user"></ul>
+
+        <div id="single-courses-section" style="display: none; margin-top: 30px;">
+          <h4>📄 Units / Single Courses</h4>
+          <ul id="single-courses-list-user"></ul>
+        </div>
+      </div>
+
+      <div id="simulator-marketplace-section" style="margin-top: 30px;"></div>
+
+      <!-- TEACHER CLASS MANAGEMENT -->
+      <section id="class-management-section" style="display: none">
+        <h2>Class Management</h2>
+        <div id="class-submissions"></div>
+      </section>
+    </section>
+
+    <!-- COURSE EDITOR -->
+    <section id="course-editor-section" style="display: none; padding: 0;">
+      <form id="course-form" class="course-editor-layout">
+
+        <!-- LEFT SIDEBAR -->
+        <div class="editor-sidebar" id="editor-sidebar">
+          <button type="button" class="sidebar-collapse-btn" id="toggle-editor-sidebar" title="Collapse sidebar" aria-label="Collapse course details">«</button>
+          <div class="sidebar-collapse-rail" id="editor-sidebar-rail" hidden>
+            <button type="button" class="sidebar-expand-btn" id="expand-editor-sidebar" title="Show course details">Details</button>
+          </div>
+          <div class="sidebar-panel-body" id="editor-sidebar-body">
+          <h3>Course Details</h3>
+          <input type="text" id="course-title" placeholder="Course Title" maxlength="255" required />
+          <textarea id="course-description" placeholder="Course Description (optional)" rows="3"></textarea>
+
+          <h3>Target Audience</h3>
+          <select id="course-grade-level">
+            <option value="">Select Grade Level</option>
+            <option value="1">1st Grade</option>
+            <option value="2">2nd Grade</option>
+            <option value="3">3rd Grade</option>
+            <option value="4">4th Grade</option>
+            <option value="5">5th Grade</option>
+            <option value="6">6th Grade</option>
+            <option value="7">7th Grade</option>
+            <option value="8">8th Grade</option>
+            <option value="9">9th Grade</option>
+            <option value="10">10th Grade</option>
+            <option value="11">11th Grade</option>
+            <option value="12">12th Grade</option>
+            <option value="13">College</option>
+          </select>
+
+          <h3>Course Video (Optional)</h3>
+          <p class="info-text" style="font-size: 11px; margin-bottom: 8px;">Add a YouTube link for your course
+            intro/walkthrough.</p>
+          <input type="url" id="course-video-url" placeholder="e.g. https://www.youtube.com/watch?v=..." />
+
+          <h3 style="margin-top: 20px;">Course Structure</h3>
+          <div class="course-type-toggle" style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+              <input type="radio" name="course_type" value="single" checked />
+              <span>Single Module</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+              <input type="radio" name="course_type" value="master" />
+              <span>Master Course</span>
+            </label>
+          </div>
+          <h3 style="margin-top: 16px;">Practice mode</h3>
+          <label class="vl-editor-check">
+            <input type="checkbox" id="course-boss-battle" />
+            Boss Battle Mode (stage-gated quiz)
+          </label>
+          <label class="vl-editor-check">
+            <input type="checkbox" id="course-hearts-mode" />
+            Enable 3-HP Hearts Mode with Hints
+          </label>
+          <p class="info-text" style="font-size: 11px; color: var(--text-muted);">
+            Master Courses can contain multiple units.
+          </p>
+          <button type="button" id="manage-units-btn" class="secondary-btn" 
+            style="display: none; width: 100%; margin-top: 10px; padding: 10px;">
+            📚 Manage Units
+          </button>
+
+          <div id="course-timer-display"
+            style="display: flex; align-items: center; gap: 10px; padding: 12px; background: rgba(102, 126, 234, 0.15); border-radius: 8px; margin-top: 20px; font-family: monospace;">
+            <span style="color: var(--text-muted); font-weight: bold; font-size: 11px; text-transform: uppercase;">⏱️
+              Active Time</span>
+            <span id="course-timer-value"
+              style="color: #4ade80; font-size: 1.1em; font-weight: bold; margin-left: auto;">00:00:00</span>
+            <span id="course-timer-status" style="display: none;"></span>
+          </div>
+          </div>
+        </div>
+
+        <!-- CENTER EDITOR -->
+        <div class="editor-main">
+          <div class="editor-header">
+            <div>
+              <h1 style="margin: 0; font-size: 24px;">Content Editor</h1>
+              <p class="info-text" style="color: var(--text-muted); font-size: 13px; margin: 5px 0 0 0;">
+                <span id="editor-autosave-status">Drafts auto-save every 30s</span>
+              </p>
+            </div>
+            <div class="editor-actions form-actions" style="margin: 0;">
+              <button type="button" id="editor-undo-btn" class="secondary-btn" title="Undo (Ctrl+Z)" style="padding: 8px 12px; border-radius: 8px;">Undo</button>
+              <button type="button" id="editor-redo-btn" class="secondary-btn" title="Redo (Ctrl+Y)" style="padding: 8px 12px; border-radius: 8px;">Redo</button>
+              <button type="submit" id="save-draft-btn" class="btn-save" data-action="draft" style="color: #1e293b !important;">💾 Draft</button>
+              <button type="submit" id="submit-approval-btn" class="btn-publish" data-action="pending" style="color: #1e293b !important;">✅ Submit</button>
+              <button type="button" id="cancel-course-edit" class="secondary-btn"
+                style="padding: 8px 16px; border-radius: 8px; color: #1e293b !important;">Cancel</button>
+            </div>
+          </div>
+
+          <div class="editor-toolbar">
+            <button type="button" data-command="bold" title="Bold"><i class="fas fa-bold"></i> B</button>
+            <button type="button" data-command="italic" title="Italic"><i class="fas fa-italic"></i> I</button>
+            <button type="button" data-command="underline" title="Underline"><i class="fas fa-underline"></i> U</button>
+            <button type="button" data-command="insertUnorderedList" title="Bullet List">• List</button>
+            <button type="button" data-command="insertOrderedList" title="Numbered List">1. List</button>
+            <button type="button" id="insert-phet-simulator" title="Add PhET Simulator">⚛️ PhET</button>
+            <button type="button" id="insert-block-simulator" title="Add Interactive Simulator">🎮 Interactive</button>
+            <button type="button" id="insert-quiz-question" title="Add Quiz Question">❓ Question</button>
+            <button type="button" id="insert-latex" title="Insert LaTeX Equation">∑ LaTeX</button>
+            <div class="editor-toolbar-dropdown" id="add-block-menu">
+              <button type="button" id="insert-add-block" title="Add interactive block">+ Add Block</button>
+              <div class="editor-toolbar-dropdown-panel" id="add-block-panel" hidden>
+                <button type="button" data-vl-block="graph">Dynamic Graph (Desmos)</button>
+                <button type="button" data-vl-block="steps">Interactive Step Reveal</button>
+                <button type="button" data-vl-block="matching">Matching Game</button>
+                <button type="button" data-vl-block="callout">Callout Box</button>
+              </div>
+            </div>
+          </div>
+          <p id="vl-word-tip" class="vl-word-tip" hidden></p>
+
+          <div class="pagination-controls"
+            style="display: flex; gap: 10px; align-items: center; margin-bottom: 20px; padding: 10px; background: rgba(102, 126, 234, 0.05); border: 1px solid var(--border); border-radius: 8px;">
+            <button type="button" id="prev-page-btn" style="padding: 6px 12px; border-radius: 6px; color: #1e293b !important;"
+              disabled>Previous</button>
+            <span id="page-indicator" style="font-weight: 600; font-size: 14px; color: #1e293b !important;">Page 1 /
+              1</span>
+            <button type="button" id="next-page-btn" style="padding: 6px 12px; border-radius: 6px; color: #1e293b !important;"
+              disabled>Next</button>
+            <button type="button" id="add-page-btn"
+              style="margin-left: auto; background: var(--success); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">+
+              Add Page</button>
+            <button type="button" id="delete-page-btn"
+              style="background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">Delete</button>
+          </div>
+
+          <div id="page-strip" class="page-strip" aria-label="Page order"></div>
+
+          <div id="course-content-editor" contenteditable="true"
+            placeholder="Start typing your course content here... Use the toolbar above to format text and add simulators."
+            class="editor-content" spellcheck="true"></div>
+        </div>
+
+        <!-- RIGHT SIDEBAR (Inspector Prototype) -->
+        <div class="editor-inspector" id="editor-inspector">
+          <button type="button" class="sidebar-collapse-btn" id="toggle-editor-inspector" title="Collapse inspector" aria-label="Collapse inspector">»</button>
+          <div class="sidebar-collapse-rail" id="editor-inspector-rail" hidden>
+            <button type="button" class="sidebar-expand-btn" id="expand-editor-inspector" title="Show inspector">AI / Hints</button>
+          </div>
+          <div class="sidebar-panel-body" id="editor-inspector-body">
+          <h4>Editor Hints</h4>
+
+          <button type="button" id="ai-help-toggle" class="ai-help-toggle-btn" aria-expanded="false">
+            AI Help
+          </button>
+
+          <div id="ai-help-panel" class="ai-help-panel" hidden>
+            <div id="ai-help-modes" class="ai-help-modes" hidden>
+              <button type="button" class="ai-help-mode-chip" data-mode="expand">Expand</button>
+              <button type="button" class="ai-help-mode-chip" data-mode="simplify">Simplify</button>
+              <button type="button" class="ai-help-mode-chip" data-mode="check_question">Add check question</button>
+            </div>
+            <div class="ai-help-toolbar">
+              <button type="button" id="ai-help-validate" class="ai-help-secondary-btn">Validate page</button>
+            </div>
+            <div id="ai-help-messages" class="ai-help-messages" aria-live="polite"></div>
+            <div id="ai-help-suggestions" class="ai-help-suggestions"></div>
+            <div class="ai-help-input-row">
+              <textarea id="ai-help-input" rows="2" maxlength="8000"
+                placeholder="Ask AI to add questions, PhET sims, LaTeX, or a full lesson…"></textarea>
+              <button type="button" id="ai-help-send" class="ai-help-send-btn">Send</button>
+            </div>
+          </div>
+
+          <div id="editor-hints-static">
+            <div class="inspector-item">
+              <strong style="font-size: 13px;">Text Formatting</strong>
+              <small>Highlight text and use the toolbar to make it bold, italic, or a list.</small>
+            </div>
+            <div class="inspector-item">
+              <strong style="font-size: 13px;">Simulators</strong>
+              <small>Click a toolbar button, then click between paragraphs to place. Sims sit in the document flow.</small>
+            </div>
+            <div class="inspector-item">
+              <strong style="font-size: 13px;">Shortcuts</strong>
+              <small>Ctrl+S save · Alt+←/→ pages · Ctrl+Z/Y undo · Esc cancel placement</small>
+            </div>
+            <div class="inspector-item">
+              <strong style="font-size: 13px;">LaTeX Support</strong>
+              <small>Click ∑ to see equations cheat sheet. MathJax processes them instantly.</small>
+            </div>
+          </div>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <!-- UNIT MANAGEMENT PANEL -->
+    <section id="unit-management-section" style="display: none; padding: 40px 20px;">
+      <div style="max-width: 900px; margin: 0 auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+          <div>
+            <button type="button" id="back-to-course-editor" class="secondary-btn" style="margin-bottom: 15px;">
+              ← Back to Course Editor
+            </button>
+            <h2 id="unit-management-title" style="margin: 0;">Manage Units</h2>
+            <p style="color: var(--text-muted); margin: 5px 0 0 0;">Add and organize units in your Master Course</p>
+          </div>
+          <button type="button" id="add-unit-btn" class="btn-publish" style="padding: 12px 24px;">
+            + Add Unit
+          </button>
+        </div>
+
+        <div id="units-list" style="display: flex; flex-direction: column; gap: 15px;">
+          <!-- Units will be rendered here -->
+        </div>
+
+        <div id="no-units-message" style="text-align: center; padding: 60px 20px; color: var(--text-muted); display: none;">
+          <p style="font-size: 18px;">No units added yet</p>
+          <p>Click "Add Unit" to start building your Master Course</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- COURSE VIEWER -->
+    <section id="course-viewer-section" style="display: none; padding: 40px 0;">
+      <div class="viewer-layout">
+        <!-- MAIN CONTENT -->
+        <div class="viewer-content">
+          <div id="viewer-sticky-chrome" class="viewer-sticky-chrome">
+            <button type="button" id="viewer-close-btn" class="viewer-close-btn" aria-label="Back to dashboard">×</button>
+            <div id="viewer-sticky-hud" class="viewer-sticky-hud"></div>
+          </div>
+          <div class="viewer-header">
+            <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+              <div style="flex:1; min-width:200px;">
+                <h2 id="course-viewer-title" style="margin: 0 0 16px 0; font-size: 32px; font-weight: 700;"></h2>
+                <p id="course-viewer-description" class="course-description description"
+                  style="color: var(--text-muted); font-size: 16px; line-height: 1.6;"></p>
+              </div>
+              <button type="button" id="viewer-like-btn" class="course-action-btn course-action-like"
+                data-course-id="" data-liked="false" style="flex-shrink:0; padding:10px 16px; border-radius:12px; font-weight:800; cursor:pointer; border:none;">
+                🤍 Like
+              </button>
+            </div>
+          </div>
+          <div class="content-body" id="course-viewer-content"></div>
+
+          <div id="viewer-pagination-controls" class="viewer-footer" style="margin-top: 40px;">
+            <div class="pagination-buttons">
+              <button type="button" id="viewer-prev-btn" disabled style="color: #1e293b !important;">← Previous Page</button>
+              <button type="button" id="viewer-next-btn" style="color: #1e293b !important;">Next Page →</button>
+            </div>
+            <span id="viewer-page-indicator" style="font-weight: bold; color: #1e293b !important;">Page 1 of 1</span>
+          </div>
+
+          <!-- Simulators Section -->
+          <div id="course-simulators-section" style="display: none; margin-top: 3em;">
+            <h3 style="margin-bottom: 20px;">📊 Course Simulators</h3>
+            <div id="course-simulators-list"
+              style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1em;"></div>
+          </div>
+
+          <div class="form-actions" style="margin-top: 30px;">
+            <button type="button" id="back-to-dashboard" class="secondary-btn">Back to Dashboard</button>
+          </div>
+        </div>
+
+        <!-- UNIT NAVIGATION SIDEBAR (for Master Courses) -->
+        <div id="unit-navigation-sidebar" class="related-courses" style="display: none;">
+          <h3>📚 Units</h3>
+          <div id="unit-progress-overview" style="margin-bottom: 20px; padding: 15px; background: var(--bg-card); border-radius: 10px; border: 1px solid var(--border);">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+              <span style="color: var(--text-muted);">Progress</span>
+              <span id="unit-progress-percent" style="font-weight: bold; color: var(--primary);">0%</span>
+            </div>
+            <div style="background: var(--bg-dark); border-radius: 5px; height: 8px; overflow: hidden;">
+              <div id="unit-progress-bar" style="background: var(--primary); height: 100%; width: 0%; transition: width 0.3s;"></div>
+            </div>
+            <p id="unit-progress-text" style="margin: 8px 0 0 0; font-size: 12px; color: var(--text-muted);">0 of 0 completed</p>
+          </div>
+          <div id="unit-list-container" style="display: flex; flex-direction: column; gap: 8px;">
+            <!-- Unit items will be rendered here -->
+          </div>
+        </div>
+
+        <!-- REGULAR SIDEBAR -->
+        <div id="viewer-regular-sidebar" class="related-courses">
+          <h3>✨ Course Video</h3>
+          <div id="viewer-video-container" style="display: none; margin-bottom: 20px;">
+            <div
+              style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px; background: var(--bg-card); border: 1px solid var(--border);">
+              <iframe id="viewer-video-iframe" src=""
+                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen></iframe>
+              <video id="viewer-video-file" controls playsinline preload="metadata"
+                style="display:none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background:#000;"></video>
+            </div>
+            <a id="viewer-video-link" href="#" target="_blank"
+              style="display: block; margin-top: 10px; color: var(--primary); font-size: 14px; text-decoration: none; font-weight: 600;">📺
+              View on YouTube</a>
+          </div>
+          <div id="viewer-no-video"
+            style="padding: 20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; text-align: center; color: var(--text-muted);">
+            <p style="margin: 0; font-size: 14px;">No walkthrough video available for this course.</p>
+          </div>
+
+          <h3 style="margin-top: 30px;">✨ Platform Info</h3>
+          <div class="related-item">
+            <h4 style="color: var(--primary);">VEELEARN</h4>
+            <h4>Hyper-Personalized Learning</h4>
+            <p>Veelearn leverages AI to tailor your educational journey.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; Veelearn is a fiscally sponsored project of The Hack Foundation, a 501(c)(3) nonprofit. EIN: 81-2908499.
+      All donations are tax-deductible to the full extent of the law.</p>
+  </footer>
+
+  <!-- QUIZ QUESTION MODAL -->
+  <div id="quiz-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <span class="close-modal" id="close-quiz-modal">&times;</span>
+      <h2 id="quiz-modal-title">Add Quiz Question</h2>
+
+      <form id="quiz-question-form">
+        <label for="quiz-question-text">Question Text *</label>
+        <textarea id="quiz-question-text" placeholder="Enter your question here..." rows="3" required></textarea>
+
+        <label for="quiz-question-type">Question Type *</label>
+        <select id="quiz-question-type" required>
+          <option value="multiple_choice">Multiple Choice</option>
+          <option value="true_false">True/False</option>
+          <option value="short_answer">Short Answer</option>
+          <option value="fill_in_blank_with_image">Fill-in-the-Blank with Image</option>
+        </select>
+        
+        <div id="quiz-image-upload-container" style="display: none; margin-bottom: 15px;">
+          <label>Problem Image (Optional)</label>
+          <input type="file" id="quiz-image-upload" accept="image/*" />
+          <div id="quiz-image-preview" style="margin-top: 10px; max-width: 100%; max-height: 200px; display: none;">
+             <img src="" style="max-width: 100%; max-height: 200px; border-radius: 4px; border: 1px solid var(--primary);" />
+             <button type="button" id="remove-quiz-image" style="display: block; margin-top: 5px; background: #e53e3e; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 0.8em;">Remove Image</button>
+          </div>
+        </div>
+
+        <div id="quiz-options-container">
+          <label>Answer Options (for Multiple Choice)</label>
+          <div id="quiz-options-list">
+            <input type="text" class="quiz-option-input" placeholder="Option 1" />
+            <input type="text" class="quiz-option-input" placeholder="Option 2" />
+            <input type="text" class="quiz-option-input" placeholder="Option 3" />
+            <input type="text" class="quiz-option-input" placeholder="Option 4" />
+          </div>
+          <button type="button" id="add-quiz-option" class="secondary-btn">+ Add Option</button>
+        </div>
+        
+        <div id="quiz-parts-container" style="display: none;">
+          <label>Question Parts (for Fill-in-the-Blank)</label>
+          <div id="quiz-parts-list">
+             <div class="quiz-part-item" style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <input type="text" class="quiz-part-label" placeholder="Part Label (e.g. part a)" style="flex: 1;" />
+                <input type="text" class="quiz-part-answer" placeholder="Correct Answer" style="flex: 1;" />
+                <input type="text" class="quiz-part-unit" placeholder="Unit (e.g. ft/min)" style="flex: 1;" />
+             </div>
+          </div>
+          <button type="button" id="add-quiz-part" class="secondary-btn">+ Add Part</button>
+        </div>
+
+        <div id="quiz-correct-answer-container">
+          <label for="quiz-correct-answer">Correct Answer *</label>
+          <input type="text" id="quiz-correct-answer" placeholder="Enter the correct answer exactly as it should be" />
+        </div>
+
+        <textarea id="quiz-explanation" placeholder="Explain why the answer is correct (shown after submission)"
+          rows="2"></textarea>
+
+        <label for="quiz-points">Points *</label>
+        <input type="number" id="quiz-points" value="10" required />
+
+        <label for="quiz-difficulty">Difficulty</label>
+        <select id="quiz-difficulty">
+          <option value="easy">Easy</option>
+          <option value="medium">Medium</option>
+          <option value="hard">Hard</option>
+          <option value="stretch">Hard / SAT Stretch</option>
+        </select>
+
+        <div class="modal-actions">
+          <button type="submit">Save Question</button>
+          <button type="button" id="delete-quiz-question"
+            style="display: none; background-color: #e53e3e;">Delete</button>
+          <button type="button" id="cancel-quiz-modal">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- LATEX HELP MODAL -->
+  <div id="latex-help-modal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 600px;">
+      <span class="close-modal" id="close-latex-help" style="cursor: pointer;">&times;</span>
+      <h2>LaTeX Equation Help</h2>
+      <p>Use LaTeX to write mathematical equations in your courses.</p>
+
+      <h3>Inline Equations (in text)</h3>
+      <p>Surround with single dollar signs: <code>$E = mc^2$</code></p>
+      <p>Result: $E = mc^2$</p>
+
+      <h3>Display Equations (on separate line)</h3>
+      <p>Surround with double dollar signs: <code>$$E = mc^2$$</code></p>
+      <p>Result: $$E = mc^2$$</p>
+
+      <h3>Common Examples</h3>
+      <ul>
+        <li><code>$E = hf$</code> → Einstein's photoelectric equation</li>
+        <li><code>$\lambda = \frac{h}{p}$</code> → de Broglie wavelength</li>
+        <li><code>$\Delta x \cdot \Delta p \geq \frac{h}{4\pi}$</code> → Uncertainty principle</li>
+        <li><code>$$\int_0^\infty e^{-x} dx = 1$$</code> → Integral example</li>
+        <li><code>$x = \frac{-b \pm \sqrt{b^2-4ac}}{2a}$</code> → Quadratic formula</li>
+      </ul>
+
+      <h3>Useful Symbols</h3>
+      <ul>
+        <li><code>\alpha, \beta, \gamma</code> → Greek letters</li>
+        <li><code>\frac{a}{b}</code> → Fractions</li>
+        <li><code>^{2}</code> → Superscript (exponents)</li>
+        <li><code>_{i}</code> → Subscript</li>
+        <li><code>\sqrt{x}</code> → Square root</li>
+        <li><code>\sum, \int, \prod</code> → Math symbols</li>
+      </ul>
+
+      <p><strong>Tip:</strong> Test your LaTeX at <a href="https://www.latex4technics.com/"
+          target="_blank">latex4technics.com</a></p>
+
+      <button type="button" id="close-latex-help-btn"
+        style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">Close</button>
+    </div>
+  </div>
+
+  <!-- PHET SIMULATOR MODAL -->
+  <div id="phet-modal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 800px; max-height: 80vh; display: flex; flex-direction: column;">
+      <span class="close-modal" id="close-phet-modal">&times;</span>
+      <h2>Select PhET Simulator</h2>
+      <p>Choose a simulation to embed in your course.</p>
+
+      <input type="text" id="phet-search" placeholder="Search simulations..."
+        style="margin-bottom: 15px; padding: 8px; width: 100%; border: 1px solid #ddd; border-radius: 4px;">
+
+      <div id="phet-list"
+        style="flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
+        <!-- PhET sims will be populated here -->
+      </div>
+
+      <div class="modal-actions" style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
+        <button type="button" id="cancel-phet-modal">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Unit Selection Modal -->
+  <div id="unit-selection-modal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 700px; max-height: 80vh; display: flex; flex-direction: column;">
+      <span class="close-modal" id="close-unit-selection-modal" style="cursor: pointer;">&times;</span>
+      <h2>Add Unit to Master Course</h2>
+      <p style="color: var(--text-muted); margin-bottom: 20px;">Select a course to add as a unit</p>
+      
+      <div style="margin-bottom: 15px;">
+        <input type="text" id="unit-search-input" placeholder="Search courses..." 
+          style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px;" />
+      </div>
+
+      <div id="unit-selection-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; max-height: 400px;">
+        <!-- Course options will be rendered here -->
+      </div>
+
+      <div class="modal-actions" style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
+        <button type="button" id="cancel-unit-selection">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation Modal for Type Conversion -->
+  <div id="course-type-confirm-modal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 450px;">
+      <span class="close-modal" id="close-course-type-modal" style="cursor: pointer;">&times;</span>
+      <h2 style="color: var(--warning);">⚠️ Warning</h2>
+      <p id="course-type-warning-text">Converting to Single Module will detach all existing units.</p>
+      <p style="color: var(--text-muted); font-size: 14px;">Your units will become standalone courses again, but student progress will be preserved.</p>
+      <div class="modal-actions" style="margin-top: 20px; gap: 10px;">
+        <button type="button" id="confirm-course-type-convert" class="btn-publish">Yes, Convert</button>
+        <button type="button" id="cancel-course-type-convert" class="secondary-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MathJax Configuration - MUST come FIRST before anything else -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true
+      },
+      svg: {
+        fontCache: 'global',
+        displayAlign: 'center',
+        displayIndent: '0em'
+      },
+      chtml: {
+        displayAlign: 'center',
+        displayIndent: '0em'
+      },
+      startup: {
+        ready() {
+          MathJax.startup.defaultReady();
+          const orig = MathJax.typesetPromise.bind(MathJax);
+          const toTexDelims = (raw) => {
+            const t = String(raw || "").trim();
+            if (t.startsWith("$$") && t.endsWith("$$") && t.length >= 4) {
+              return "\\[" + t.slice(2, -2) + "\\]";
+            }
+            if (t.startsWith("$") && t.endsWith("$") && t.length >= 2) {
+              return "\\(" + t.slice(1, -1) + "\\)";
+            }
+            return raw;
+          };
+          const rewrite = (root) => {
+            if (!root || !root.querySelectorAll) return;
+            root.querySelectorAll(".latex-equation").forEach((node) => {
+              const t = node.textContent || "";
+              if (t.includes("$")) node.textContent = toTexDelims(t);
+            });
+            // Also normalize bare $...$ in lesson HTML so older content still renders
+            // when delimiters are mixed with \\( \\).
+          };
+          MathJax.typesetPromise = (nodes) => {
+            const list = nodes && nodes.length ? nodes : [document.body];
+            list.forEach(rewrite);
+            return orig(nodes);
+          };
+        },
+        pageReady: () => {
+          console.log("✅ MathJax: Ready and configured");
+          return window.MathJax.typesetPromise();
+        }
+      }
+    };
+  </script>
+  <script id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <!-- REDESIGN SECTIONS - Lumina Academy, EduFlow, EduMaster Styles -->
+  <div id="redesign-container"></div>
+
+  <style>
+    /* Study coach typing animation; visual styling lives in stem-polish.css. */
+    #study-coach-typing .study-coach-typing-dots {
+      display: inline-flex;
+      gap: 2px;
+      align-items: center;
+      min-height: 1.25em;
+      color: var(--stem-muted) !important;
+      font-size: 1.5rem;
+      line-height: 1;
+      padding: 4px 0;
+    }
+
+    #study-coach-typing .study-coach-typing-dots span {
+      animation: study-coach-dot 1.1s ease-in-out infinite;
+      opacity: 0.35;
+    }
+
+    #study-coach-typing .study-coach-typing-dots span:nth-child(2) {
+      animation-delay: 0.15s;
+    }
+
+    #study-coach-typing .study-coach-typing-dots span:nth-child(3) {
+      animation-delay: 0.3s;
+    }
+
+    @keyframes study-coach-dot {
+
+      0%,
+      80%,
+      100% {
+        opacity: 0.25;
+        transform: translateY(0);
+      }
+
+      40% {
+        opacity: 1;
+        transform: translateY(-2px);
+      }
+    }
+  </style>
+  <!-- Study coach (Socratic tutor via backend OpenRouter) -->
+  <div id="study-coach-root"
+    style="display:none; position:fixed; bottom:24px; right:24px; z-index:9998;">
+    <div id="study-coach-panel"
+      style="display:none; position:absolute; bottom:60px; right:0; width:min(380px, calc(100vw - 48px)); max-height:72vh; border-radius:12px; box-shadow:0 8px 32px rgba(0,0,0,.45); flex-direction:column; overflow:hidden;">
+      <div
+        style="padding:12px 14px; border-bottom:1px solid var(--sc-border, #3b3d52); display:flex; justify-content:space-between; align-items:center; gap:8px;">
+        <strong class="study-coach-header-title">Study coach</strong>
+        <button type="button" id="study-coach-close"
+          style="background:none;border:none;color:#b4b8c8;cursor:pointer;font-size:22px;line-height:1;padding:0 4px;"
+          aria-label="Close">&times;</button>
+      </div>
+      <p class="study-coach-disclaimer" style="margin:0 14px 8px; font-size:12px;">Next steps and hints only — not direct
+        answers.</p>
+      <div id="study-coach-messages"
+        style="flex:1; overflow-y:auto; padding:8px 14px; min-height:180px; max-height:42vh; font-size:14px; line-height:1.45;">
+      </div>
+      <div id="study-coach-recs" style="padding:0 14px 8px; font-size:13px;"></div>
+      <div
+        style="padding:10px 14px; border-top:1px solid var(--sc-border, #3b3d52); display:flex; gap:8px; align-items:center;">
+        <input type="text" id="study-coach-input" placeholder="How do I start this problem?"
+          style="flex:1; padding:10px; border-radius:8px; border:1px solid #3b3d52; font-size:14px;"
+          maxlength="8000" autocomplete="off" />
+        <button type="button" id="study-coach-send" class="primary-btn" style="padding:10px 14px; white-space:nowrap;">Send</button>
+      </div>
+    </div>
+    <button type="button" id="study-coach-fab" title="Study coach"
+      style="width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;font-size:14px;font-weight:800;box-shadow:0 4px 16px rgba(102,126,234,.5);">AI</button>
+  </div>
+
+  <script src="logger.js" defer></script>
+  <script src="loading-states.js" defer></script>
+  <script src="error-handler.js" defer></script>
+  <script src="debounce-throttle.js" defer></script>
+  <script src="validation.js" defer></script>
+  <script src="keyboard-shortcuts.js" defer></script>
+  <script src="auto-save.js" defer></script>
+  <script src="search-enhancements.js" defer></script>
+  <script src="mobile-responsive.js" defer></script>
+  <script src="lazy-loading.js" defer></script>
+  <script src="api-cache.js" defer></script>
+  <script src="image-optimization.js" defer></script>
+  <script src="accessibility.js" defer></script>
+  <script src="ai-typewriter.js?v=1" defer></script>
+  <script src="learner-shell.js?v=9" defer></script>
+  <script src="learner-gamification.js?v=13" defer></script>
+  <script src="notes-master-course.js?v=2" defer></script>
+  <script src="course-interactive-blocks.js?v=5" defer></script>
+  <script src="course-boss-battle.js?v=6" defer></script>
+  <script src="course-progress.js?v=5" defer></script>
+  <script src="script.js?v=34" defer></script>
+  <script src="course-editor-ux.js?v=1" defer></script>
+  <script>
+    function loadScriptOnce(src) {
+      if (document.querySelector('script[data-lazy="' + src + '"]') || document.querySelector('script[src="' + src + '"]')) {
+        return Promise.resolve();
+      }
+      return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = src;
+        s.async = true;
+        s.dataset.lazy = src;
+        s.onload = resolve;
+        s.onerror = reject;
+        document.body.appendChild(s);
+      });
+    }
+    window.__veelearnLoadHeavy = async function (kind) {
+      if (kind === 'battle' || kind === 'all') await loadScriptOnce('anime-battle-system.js');
+      if (kind === 'blocks' || kind === 'all') await loadScriptOnce('block-templates-unified.js');
+      if (kind === 'editor' || kind === 'all') {
+        await loadScriptOnce('ai-editor-help.js?v=14');
+        if (typeof setupAiEditorHelp === 'function') setupAiEditorHelp();
+      }
+      if (kind === 'server' || kind === 'all') await loadScriptOnce('server-loading.js');
+      if (kind === 'widgets' || kind === 'all') await loadScriptOnce('widget-engine.js?v=11');
+    };
+    // Idle-load server status + AI editor help after first paint
+    const idleLoad = () => {
+      window.__veelearnLoadHeavy('server');
+      window.__veelearnLoadHeavy('editor');
+    };
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(idleLoad, { timeout: 5000 });
+    } else {
+      setTimeout(idleLoad, 3000);
+    }
+    // Marketing redesign sections only when landing is visible
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        if (document.body.classList.contains('learner-shell-active')) return;
+        const box = document.getElementById('redesign-container');
+        if (!box || box.dataset.loaded === '1') return;
+        const landing = document.getElementById('landing-page');
+        if (landing && landing.style.display === 'none') return;
+        box.dataset.loaded = '1';
+        fetch('redesign-sections.html')
+          .then(r => r.text())
+          .then(html => { box.innerHTML = html; })
+          .catch(() => {});
+      }, 1800);
+    });
+  </script>
+</body>
+
+</html>
