@@ -1657,11 +1657,30 @@ body.course-viewer-active #course-viewer-section {
 }
 
 body.course-viewer-active .viewer-header {
+  position: static;
+  background: transparent;
+  padding-top: 8px;
+}
+
+.viewer-sticky-chrome {
   position: sticky;
   top: 0;
-  z-index: 20;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
   background: var(--ls-card, #fff);
-  padding-top: 8px;
+  padding: 8px 0 10px;
+  margin: 0 0 8px;
+}
+
+.viewer-sticky-hud {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
 }
 
 .viewer-close-btn {
