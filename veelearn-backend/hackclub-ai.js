@@ -2,7 +2,7 @@ const axios = require('axios');
 
 const HACKCLUB_URL = 'https://ai.hackclub.com/proxy/v1/chat/completions';
 const DEFAULT_MODEL = 'dots-studio/dots-3-note-preview:free';
-const DEFAULT_JSON_MODEL = 'qwen/qwen3-32b';
+const DEFAULT_JSON_MODEL = DEFAULT_MODEL;
 const DEFAULT_TIMEOUT_MS = 180000;
 
 const JSON_MUST =
@@ -17,7 +17,8 @@ function getHackClubModel() {
 }
 
 function getHackClubJsonModel() {
-    return String(process.env.HACKCLUBAI_JSON_MODEL || DEFAULT_JSON_MODEL).trim() || DEFAULT_JSON_MODEL;
+    const override = String(process.env.HACKCLUBAI_JSON_MODEL || '').trim();
+    return override || getHackClubModel();
 }
 
 function isReasoningPart(part) {
@@ -235,11 +236,11 @@ async function hackClubChatCompletion(messages, opts = {}) {
         : toHackClubMessages(messages);
     const hcMessages = packed.messages;
     const hasFiles = messagesHaveFiles(hcMessages) && !opts.fileContext?.annotations;
-    const maxTokens = opts.max_tokens ?? 8192;
+    const maxTokens = opts.max_tokens ?? 32768;
     const timeoutMs = opts.timeoutMs ?? (hasFiles ? 240000 : DEFAULT_TIMEOUT_MS);
 
     const engines = hasFiles
-        ? [opts.pdfEngine || 'native', 'pdf-text', 'mistral-ocr']
+        ? [opts.pdfEngine || 'pdf-text', 'mistral-ocr', 'native']
         : [null];
     const seen = new Set();
     const engineList = engines.filter((e) => {

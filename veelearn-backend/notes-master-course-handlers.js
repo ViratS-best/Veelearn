@@ -198,6 +198,10 @@ function looksLikeJson(text) {
 
 function salvageTruncatedJson(text) {
     const s0 = stripModelNoise(text);
+    const lesson = extractPartialLesson(s0);
+    if (lesson) return lesson;
+    const homework = extractPartialHomework(s0);
+    if (homework) return homework;
     const start = s0.indexOf('{');
     if (start < 0) return null;
     const s = s0.slice(start);
@@ -235,7 +239,71 @@ function salvageTruncatedJson(text) {
     rebuilt = rebuilt.replace(/:\s*$/, ': null');
     while (stack.length) rebuilt += stack.pop();
     const parsed = asJsonObject(tryParseJson(rebuilt)) || asJsonObject(tryParseJson(repairJsonText(rebuilt)));
-    return parsed ? cleanupSalvaged(parsed) : null;
+    if (parsed) return cleanupSalvaged(parsed);
+    return extractPartialLesson(s0) || extractPartialHomework(s0);
+}
+
+function unescapeJsonString(s) {
+    let out = '';
+    for (let i = 0; i < s.length; i++) {
+        if (s[i] === '\\' && i + 1 < s.length) {
+            const n = s[i + 1];
+            if (n === 'n') out += '\n';
+            else if (n === 't') out += '\t';
+            else if (n === 'r') out += '\r';
+            else if (n === '"') out += '"';
+            else if (n === '\\') out += '\\';
+            else if (n === '/') out += '/';
+            else out += n;
+            i++;
+            continue;
+        }
+        if (s[i] === '\\' && i === s.length - 1) break;
+        out += s[i];
+    }
+    return out;
+}
+
+function extractPartialLesson(text) {
+    const s = stripModelNoise(text);
+    const marker = s.match(/"content_html"\s*:\s*"/);
+    if (!marker) return null;
+    const titleMatch = s.match(/"title"\s*:\s*"((?:\\.|[^"\\])*)"/);
+    let rawHtml = s.slice(marker.index + marker[0].length);
+    rawHtml = rawHtml.replace(/"\s*,\s*"[a-zA-Z_]+"[\s\S]*$/, '').replace(/"\s*}\s*$/, '');
+    const html = unescapeJsonString(rawHtml).trim();
+    if (html.length < 40) return null;
+    return {
+        title: titleMatch ? unescapeJsonString(titleMatch[1]) : 'Unit',
+        content_html: html
+    };
+}
+
+function extractPartialHomework(text) {
+    const s = stripModelNoise(text);
+    if (!/"homework"\s*:/.test(s)) return null;
+    const homework = [];
+    const re = /"question_text"\s*:\s*"((?:\\.|[^"\\])*)"/g;
+    let m;
+    while ((m = re.exec(s))) {
+        const question_text = unescapeJsonString(m[1]).trim();
+        if (question_text.length < 8) continue;
+        const slice = s.slice(m.index, m.index + 1200);
+        const typeMatch = slice.match(/"question_type"\s*:\s*"((?:\\.|[^"\\])*)"/);
+        const answerMatch = slice.match(/"correct_answer"\s*:\s*"((?:\\.|[^"\\])*)"/);
+        const optionsMatch = slice.match(/"options"\s*:\s*\[([\s\S]*?)\]/);
+        let options = null;
+        if (optionsMatch) {
+            options = [...optionsMatch[1].matchAll(/"((?:\\.|[^"\\])*)"/g)].map((x) => unescapeJsonString(x[1]));
+        }
+        homework.push({
+            question_text,
+            question_type: typeMatch ? unescapeJsonString(typeMatch[1]) : 'multiple_choice',
+            options: options && options.length ? options : undefined,
+            correct_answer: answerMatch ? unescapeJsonString(answerMatch[1]) : ''
+        });
+    }
+    return homework.length ? { homework } : null;
 }
 
 function cleanupSalvaged(obj) {
@@ -269,7 +337,7 @@ async function continueTruncatedJson(partial, opts = {}) {
         {
             model: opts.model || getHackClubJsonModel(),
             temperature: 0,
-            max_tokens: Math.max(opts.max_tokens || 8192, 8192)
+            max_tokens: Math.max(opts.max_tokens || 32768, 16384)
         }
     );
     const tail = result?.content || '';
@@ -283,7 +351,7 @@ async function continueTruncatedJson(partial, opts = {}) {
 }
 
 async function askJson(messages, opts = {}) {
-    const maxTokens = opts.max_tokens ?? 16384;
+    const maxTokens = opts.max_tokens ?? 32768;
     const session = opts.session;
     const schemaHint = opts.schemaHint || '{"key":"value"}';
     const expect = opts.expect || '';
@@ -363,7 +431,7 @@ async function askJson(messages, opts = {}) {
             {
                 model: getHackClubJsonModel(),
                 temperature: 0.05,
-                max_tokens: Math.max(maxTokens, 16384)
+                max_tokens: Math.max(maxTokens, 32768)
             }
         );
         const convertedRaw = converted?.content || '';
@@ -371,7 +439,7 @@ async function askJson(messages, opts = {}) {
         if (accept(parsed)) return parsed;
         if (converted.finishReason === 'length' && looksLikeJson(convertedRaw)) {
             try {
-                parsed = await continueTruncatedJson(convertedRaw, { max_tokens: 16384 });
+                parsed = await continueTruncatedJson(convertedRaw, { max_tokens: 32768 });
                 if (accept(parsed)) return parsed;
             } catch (e) {
                 console.warn('[notes-course] JSON convert continue failed:', e.message);
@@ -598,7 +666,7 @@ Hard rules:
 - Use $...$ or $$...$$ for math. No script tags. No iframes.
 - Structure HTML as: <h1>unit title</h1>, <h2>What you will learn in this unit</h2> + ol, then <hr class="page-break"> between concepts, each concept as <h2>, explanations, optional <div class="vl-callout vl-callout-strategy"><div class="vl-callout-body">...</div></div>, then worked examples.
 - Do not include homework questions in content_html.
-- Keep content_html complete but compact (several short sections, not a novel). The JSON object MUST finish — do not write so much HTML that the reply is cut off.
+- Keep content_html complete but compact (several short sections, not a novel). The JSON object MUST finish — do not write so much HTML that the reply is cut off. Target under 2500 words of HTML.
 Required JSON shape:
 {"title":"unit title","content_html":"<h1>...</h1>..."}`;
 
@@ -708,7 +776,7 @@ function createNotesMasterCourseHandlers({ query, apiResponse }) {
             ],
             {
                 temperature: 0.2,
-                max_tokens: 8192,
+                max_tokens: 16384,
                 session: ingest.session,
                 timeoutMs: 240000,
                 fallbackSource: ingest.extractedText,
@@ -764,7 +832,7 @@ function createNotesMasterCourseHandlers({ query, apiResponse }) {
             `Other units: ${plan.units.map((u) => u.title).join(' | ')}`,
             prompt ? `STUDENT_PROMPT:\n${clip(prompt, 2500)}` : '',
             struggles ? `STRUGGLES:\n${clip(struggles, 2000)}` : '',
-            ingest.extractedText ? `EXTRACTED_NOTES:\n${clip(ingest.extractedText, 18000)}` : '',
+            ingest.extractedText ? `EXTRACTED_NOTES:\n${clip(ingest.extractedText, 8000)}` : '',
             'Reply with one JSON object only. First character { last character }. No markdown fences.'
         ].filter(Boolean).join('\n\n');
     }
@@ -779,7 +847,7 @@ function createNotesMasterCourseHandlers({ query, apiResponse }) {
             ],
             {
                 temperature: 0.2,
-                max_tokens: 16384,
+                max_tokens: 32768,
                 session: ingest.session,
                 fallbackSource: notes,
                 expect: 'lesson',
@@ -810,7 +878,7 @@ function createNotesMasterCourseHandlers({ query, apiResponse }) {
                 ],
                 {
                     temperature: 0.25,
-                    max_tokens: 8192,
+                    max_tokens: 16384,
                     session: ingest.session,
                     fallbackSource: ingest.extractedText,
                     expect: 'homework',
