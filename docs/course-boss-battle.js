@@ -106,10 +106,13 @@
     hud = document.createElement('div');
     hud.id = 'vl-boss-hud';
     hud.className = 'vl-boss-hud';
+    const chromeHud = document.getElementById('viewer-sticky-hud');
     const content =
       document.getElementById('course-viewer-content') || document.querySelector('.viewer-content');
     const viewer = document.getElementById('course-viewer-section');
-    if (content && content.parentNode) {
+    if (chromeHud) {
+      chromeHud.prepend(hud);
+    } else if (content && content.parentNode) {
       content.parentNode.insertBefore(hud, content);
     } else if (viewer) {
       viewer.prepend(hud);

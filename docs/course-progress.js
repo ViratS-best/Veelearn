@@ -9,6 +9,7 @@
   let awardedPages = new Set();
   let lastContentScrollY = 0;
   let scrollTimer = null;
+  let pendingScrollY = 0;
   let resumeMasterId = null;
   let resumePageIndex = 0;
 
@@ -86,19 +87,22 @@
 
   function ensureRing() {
     let el = document.getElementById('vl-progress-ring');
-    if (el) return el;
     const viewer = document.getElementById('course-viewer-section');
+    const chromeHud = document.getElementById('viewer-sticky-hud');
     const header = viewer && viewer.querySelector('.viewer-header');
-    el = document.createElement('div');
-    el.id = 'vl-progress-ring';
-    el.className = 'vl-progress-ring-wrap';
-    el.innerHTML = `<svg viewBox="0 0 36 36" class="vl-progress-ring" aria-label="Course progress">
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'vl-progress-ring';
+      el.className = 'vl-progress-ring-wrap';
+      el.innerHTML = `<svg viewBox="0 0 36 36" class="vl-progress-ring" aria-label="Course progress">
       <path class="vl-ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
       <path class="vl-ring-fg" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
       <text x="18" y="21" class="vl-ring-text">0%</text>
     </svg>`;
-    if (header) header.appendChild(el);
-    else if (viewer) viewer.prepend(el);
+    }
+    if (chromeHud && el.parentNode !== chromeHud) chromeHud.appendChild(el);
+    else if (!el.parentNode && header) header.appendChild(el);
+    else if (!el.parentNode && viewer) viewer.prepend(el);
     return el;
   }
 
@@ -176,6 +180,17 @@
     return Math.max(0, Math.min(y, cap));
   }
 
+  function inExitZone() {
+    const markers = [
+      document.getElementById('back-to-dashboard'),
+      document.getElementById('viewer-pagination-controls')
+    ].filter(Boolean);
+    for (const el of markers) {
+      if (el.getBoundingClientRect().top < window.innerHeight - 24) return true;
+    }
+    return false;
+  }
+
   function persistLocal() {
     const id = resumeMasterId || courseId;
     if (id == null) return;
@@ -206,18 +221,26 @@
   }
 
   function captureScroll() {
-    lastContentScrollY = contentScrollY();
+    if (!inExitZone()) lastContentScrollY = contentScrollY();
     persistLocal();
   }
 
   function onScroll() {
-    lastContentScrollY = contentScrollY();
-    if (scrollTimer) return;
+    if (inExitZone()) {
+      if (scrollTimer) {
+        clearTimeout(scrollTimer);
+        scrollTimer = null;
+      }
+      return;
+    }
+    pendingScrollY = contentScrollY();
+    if (scrollTimer) clearTimeout(scrollTimer);
     scrollTimer = setTimeout(() => {
       scrollTimer = null;
+      lastContentScrollY = pendingScrollY;
       persistLocal();
       flushServer({ keepalive: true });
-    }, 2000);
+    }, 1200);
   }
 
   function bindScroll() {
