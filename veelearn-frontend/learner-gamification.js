@@ -737,9 +737,6 @@
         <label for="ls-display-name">Display name</label>
         <input id="ls-display-name" maxlength="80" value="${esc(name)}" />
         <button type="button" id="ls-save-settings" class="ls-btn-primary">Save</button>
-        <hr style="border:none;border-top:1px solid var(--ls-border);margin:18px 0;" />
-        <p style="margin:0 0 8px;font-weight:700;color:var(--ls-text);">Appearance</p>
-        <button type="button" class="ls-btn-soft" id="ls-toggle-dark" style="margin-top:0;">Toggle light / dark mode</button>
       </div>`;
     document.getElementById('ls-save-settings')?.addEventListener('click', async () => {
       const displayName = document.getElementById('ls-display-name')?.value?.trim();
@@ -753,12 +750,6 @@
       } else {
         alert(res.message || 'Could not save');
       }
-    });
-    document.getElementById('ls-toggle-dark')?.addEventListener('click', () => {
-      const html = document.documentElement;
-      const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-      html.setAttribute('data-theme', next);
-      localStorage.setItem('veelearn-theme', next);
     });
   }
 

@@ -2236,6 +2236,10 @@ function setupCourseEditorListeners() {
     if (backBtn) {
         backBtn.addEventListener("click", showDashboard);
     }
+    const viewerCloseBtn = document.getElementById("viewer-close-btn");
+    if (viewerCloseBtn) {
+        viewerCloseBtn.addEventListener("click", showDashboard);
+    }
 
     // Rich text editor toolbar
     setupRichTextEditor();
@@ -3106,6 +3110,7 @@ function showAuthSection(type = "login") {
 }
 
 function showDashboard() {
+    if (window.CourseProgress?.endSession) window.CourseProgress.endSession();
     stopCourseTimer();
     currentViewingCourseId = null;
     exitCourseViewerMode();
@@ -4654,6 +4659,16 @@ async function viewCourse(courseId, assignmentId = null, forceRegular = false) {
             if (local != null && local !== '') saved = Math.max(0, parseInt(local, 10) || 0);
         } catch (_) { /* ignore */ }
         try {
+            const raw = localStorage.getItem(`vl:resume:${course.id}`);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                pendingUnitScrollY = Math.max(pendingUnitScrollY, Number(parsed.scrollY) || 0);
+                if (Number.isFinite(Number(parsed.pageIndex))) {
+                    saved = Math.max(saved, Number(parsed.pageIndex) || 0);
+                }
+            }
+        } catch (_) { /* ignore */ }
+        try {
             const res = await fetch(`${API_BASE_URL}/api/courses/${course.id}/progress`, {
                 headers: { Authorization: `Bearer ${authToken}` },
                 credentials: 'include'
@@ -4664,6 +4679,10 @@ async function viewCourse(courseId, assignmentId = null, forceRegular = false) {
                 if (Number.isFinite(serverPage) && serverPage >= 0) {
                     saved = Math.max(saved, serverPage);
                 }
+                pendingUnitScrollY = Math.max(
+                    pendingUnitScrollY,
+                    Number(json.data.last_scroll_y) || 0
+                );
             }
         } catch (_) { /* ignore */ }
         return Math.min(saved, Math.max(0, viewerPages.length - 1));
@@ -4726,10 +4745,20 @@ async function viewCourse(courseId, assignmentId = null, forceRegular = false) {
                 window.CourseBossBattle.init(course, courseQuestions, { parent: currentMasterCourse });
             }
             if (window.CourseProgress?.onPageShown) {
-                window.CourseProgress.setContext({ courseId: course.id, unitId: null });
+                window.CourseProgress.startSession({
+                    courseId: course.id,
+                    unitId: null,
+                    masterId: null,
+                    pageIndex: index
+                });
+                window.CourseProgress.setContext({ courseId: course.id, unitId: null, pageIndex: index });
                 window.CourseProgress.onPageShown(index, viewerPages.length, { courseId: course.id, unitId: null });
                 if (window.CourseProgress.onUnitQuizzesProgress) {
                     window.CourseProgress.onUnitQuizzesProgress();
+                }
+                if (pendingUnitScrollY > 0) {
+                    window.CourseProgress.restoreScroll(pendingUnitScrollY);
+                    pendingUnitScrollY = 0;
                 }
             }
 
@@ -6478,6 +6507,7 @@ async function loadEnhancedEnrollments() {
 let currentMasterCourse = null;
 let courseUnits = [];
 let currentUnitIndex = 0;
+let pendingUnitScrollY = 0;
 
 // View course with unit navigation
 async function viewCourseWithNavigation(courseId) {
@@ -6633,12 +6663,41 @@ async function loadMasterCourseView(courseId) {
         
         if (progressResult.success) {
             courseUnits = progressResult.data?.units || [];
+            window.courseUnits = courseUnits;
             
             // Show unit navigation sidebar
             showUnitNavigationSidebar(course, progressResult.data);
             
-            // Find first accessible unit
-            currentUnitIndex = courseUnits.findIndex(u => u.is_unlocked) || 0;
+            let resume = { unitId: null, scrollY: 0 };
+            if (window.CourseProgress?.loadResume) {
+                try {
+                    resume = await window.CourseProgress.loadResume(courseId);
+                } catch (_) { /* ignore */ }
+            }
+
+            currentUnitIndex = courseUnits.findIndex(u => u.is_unlocked);
+            if (currentUnitIndex < 0) currentUnitIndex = 0;
+
+            if (resume.unitId != null) {
+                const ri = courseUnits.findIndex(
+                    (u) => String(u.unit_id) === String(resume.unitId) && u.is_unlocked
+                );
+                if (ri >= 0) currentUnitIndex = ri;
+            } else {
+                let best = -1;
+                let bestT = 0;
+                courseUnits.forEach((u, i) => {
+                    if (!u.is_unlocked || !u.last_accessed) return;
+                    const t = new Date(u.last_accessed).getTime();
+                    if (Number.isFinite(t) && t >= bestT) {
+                        bestT = t;
+                        best = i;
+                    }
+                });
+                if (best >= 0) currentUnitIndex = best;
+            }
+
+            pendingUnitScrollY = Number(resume.scrollY) || 0;
             
             if (currentUnitIndex >= 0 && courseUnits[currentUnitIndex]) {
                 await loadUnitContent(courseUnits[currentUnitIndex]);
@@ -6673,10 +6732,15 @@ function showUnitNavigationSidebar(course, progressData) {
     const progressPercent = document.getElementById("unit-progress-percent");
     const progressBar = document.getElementById("unit-progress-bar");
     const progressText = document.getElementById("unit-progress-text");
-    
-    if (progressPercent) progressPercent.textContent = `${progressData?.overall_progress || 0}%`;
-    if (progressBar) progressBar.style.width = `${progressData?.overall_progress || 0}%`;
+    const overall = Number.isFinite(Number(progressData?.overall_progress))
+        ? Math.round(Number(progressData.overall_progress))
+        : (window.CourseProgress?.masterOverallProgress
+            ? window.CourseProgress.masterOverallProgress(courseUnits)
+            : 0);
+    if (progressPercent) progressPercent.textContent = `${overall}%`;
+    if (progressBar) progressBar.style.width = `${overall}%`;
     if (progressText) progressText.textContent = `${progressData?.completed_units || 0} of ${progressData?.total_units || 0} completed`;
+    if (window.CourseProgress?.syncOverallRing) window.CourseProgress.syncOverallRing();
     
     // Update course title
     const titleEl = document.getElementById("course-viewer-title");
@@ -6722,12 +6786,16 @@ function showUnitNavigationSidebar(course, progressData) {
 async function loadUnitByIndex(index) {
     if (index < 0 || index >= courseUnits.length) return;
     
+    if (window.CourseProgress?.flush) window.CourseProgress.flush();
     currentUnitIndex = index;
+    pendingUnitScrollY = 0;
     await loadUnitContent(courseUnits[index]);
     
-    // Update sidebar highlighting
+    const overall = window.CourseProgress?.masterOverallProgress
+        ? window.CourseProgress.masterOverallProgress(courseUnits)
+        : Math.round((courseUnits.filter(u => u.completed).length / Math.max(1, courseUnits.length)) * 100);
     showUnitNavigationSidebar(currentMasterCourse, { 
-        overall_progress: Math.round((courseUnits.filter(u => u.completed).length / courseUnits.length) * 100),
+        overall_progress: overall,
         completed_units: courseUnits.filter(u => u.completed).length,
         total_units: courseUnits.length
     });
@@ -6748,6 +6816,7 @@ async function loadUnitContent(unit) {
         if (result.success) {
             const unitCourse = result.data;
             currentViewingCourseId = unit.child_course_id;
+            window.courseUnits = courseUnits;
 
             // CRITICAL: Load quiz questions for this unit's course BEFORE hydrating
             await loadCourseQuestions(unit.child_course_id);
@@ -6772,37 +6841,25 @@ async function loadUnitContent(unit) {
                     window.CourseBossBattle.init(unitCourse, courseQuestions, { parent: currentMasterCourse });
                 }
                 if (window.CourseProgress) {
-                    window.CourseProgress.setContext({ courseId: unit.child_course_id, unitId: unit.unit_id });
-                    const saved = Number(unit.progress_percentage);
-                    if (Number.isFinite(saved) && saved > 0) window.CourseProgress.setRing(saved);
+                    window.CourseProgress.startSession({
+                        courseId: unit.child_course_id,
+                        unitId: unit.unit_id,
+                        masterId: currentMasterCourse?.id
+                    });
+                    window.CourseProgress.setContext({
+                        courseId: unit.child_course_id,
+                        unitId: unit.unit_id,
+                        masterId: currentMasterCourse?.id
+                    });
+                    window.CourseProgress.syncOverallRing();
                     window.CourseProgress.onUnitQuizzesProgress();
+                    if (typeof updateUnitProgress === 'function') {
+                        updateUnitProgress(unit.unit_id, Number(unit.progress_percentage) || 0);
+                    }
+                    const restoreY = pendingUnitScrollY;
+                    pendingUnitScrollY = 0;
+                    if (restoreY > 0) window.CourseProgress.restoreScroll(restoreY);
                 }
-
-                // Restore scroll position within this unit
-                const scrollKey = `vl:courseScroll:${unit.child_course_id}`;
-                const restoreScroll = () => {
-                    try {
-                        const y = parseInt(localStorage.getItem(scrollKey) || '0', 10);
-                        if (y > 0) {
-                            const target = document.getElementById('course-viewer-section') || window;
-                            if (target === window) window.scrollTo(0, y);
-                            else target.scrollTop = y;
-                        }
-                    } catch (_) { /* ignore */ }
-                };
-                setTimeout(restoreScroll, 150);
-                const scrollSave = () => {
-                    try {
-                        const section = document.getElementById('course-viewer-section');
-                        const y = section ? section.scrollTop : (window.scrollY || 0);
-                        localStorage.setItem(scrollKey, String(y));
-                    } catch (_) { /* ignore */ }
-                };
-                window.addEventListener('scroll', scrollSave, { passive: true });
-                if (contentEl._vlScrollSave) {
-                    window.removeEventListener('scroll', contentEl._vlScrollSave);
-                }
-                contentEl._vlScrollSave = scrollSave;
                 
                 // MathJax render
                 setTimeout(async () => {
@@ -6891,7 +6948,10 @@ async function completeCurrentUnit() {
                 
                 if (progressResult.success) {
                     courseUnits = progressResult.data?.units || [];
+                    window.courseUnits = courseUnits;
                     showUnitNavigationSidebar(currentMasterCourse, progressResult.data);
+                    if (window.CourseProgress?.syncOverallRing) window.CourseProgress.syncOverallRing();
+                    if (window.CourseProgress?.refreshEnrolledDisplays) window.CourseProgress.refreshEnrolledDisplays();
                 }
             }
         }
@@ -6912,6 +6972,21 @@ async function updateUnitProgress(unitId, percentage) {
             credentials: 'include',
             body: JSON.stringify({ progress_percentage: percentage })
         });
+        const unit = courseUnits.find((u) => String(u.unit_id) === String(unitId));
+        if (unit) {
+            unit.progress_percentage = Math.max(Number(unit.progress_percentage) || 0, Number(percentage) || 0);
+            window.courseUnits = courseUnits;
+        }
+        if (currentMasterCourse) {
+            const overall = window.CourseProgress?.masterOverallProgress
+                ? window.CourseProgress.masterOverallProgress(courseUnits)
+                : 0;
+            showUnitNavigationSidebar(currentMasterCourse, {
+                overall_progress: overall,
+                completed_units: courseUnits.filter((u) => u.completed).length,
+                total_units: courseUnits.length
+            });
+        }
     } catch (err) {
         console.error("Error updating unit progress:", err);
     }

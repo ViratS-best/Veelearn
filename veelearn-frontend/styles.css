@@ -183,7 +183,7 @@ section p {
 
 /* ===== LANDING PAGE ===== */
 #landing-page {
-  background: linear-gradient(135deg, var(--bg-dark) 0%, #1a365d 100%);
+  background: linear-gradient(160deg, #fcf6f0 0%, #f4f8fc 100%);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -203,7 +203,7 @@ section p {
 
 #landing-page h1 {
   font-size: 3rem;
-  color: var(--text-light);
+  color: #17324d;
   margin-bottom: var(--spacing-lg);
   text-align: center;
 }
@@ -214,7 +214,7 @@ section p {
 
 #landing-page p {
   font-size: 1.2rem;
-  color: var(--text-muted);
+  color: #587188;
   text-align: center;
   margin-bottom: var(--spacing-xl);
   max-width: 600px;
@@ -253,7 +253,7 @@ section p {
 
 .landing-buttons .secondary-btn {
   background-color: transparent;
-  color: var(--text-light);
+  color: #17324d;
   border: 2px solid var(--primary);
 }
 

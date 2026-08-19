@@ -440,6 +440,8 @@ const initializeDatabase = async () => {
         await addColumn('course_questions', 'difficulty', 'VARCHAR(16) NULL');
         await addColumn('course_views', 'progress_percentage', 'DECIMAL(5,2) DEFAULT 0');
         await addColumn('course_views', 'last_page_index', 'INT DEFAULT 0');
+        await addColumn('course_views', 'last_scroll_y', 'INT DEFAULT 0');
+        await addColumn('course_views', 'last_unit_id', 'INT NULL');
         info('✓ XP / difficulty / gamification columns ready');
 
         await query(`
@@ -3809,9 +3811,11 @@ app.put('/api/courses/units/:unitId/progress', authenticateToken, (req, res) => 
             }
 
             db.query(`
-                INSERT INTO course_enrollment_progress (user_id, course_id, unit_id, progress_percentage)
-                VALUES (?, ?, ?, ?)
-                ON DUPLICATE KEY UPDATE progress_percentage = GREATEST(COALESCE(progress_percentage, 0), VALUES(progress_percentage))
+                INSERT INTO course_enrollment_progress (user_id, course_id, unit_id, progress_percentage, last_accessed)
+                VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+                ON DUPLICATE KEY UPDATE
+                    progress_percentage = GREATEST(COALESCE(progress_percentage, 0), VALUES(progress_percentage)),
+                    last_accessed = CURRENT_TIMESTAMP
             `, [userId, unit.parent_course_id, unitId, Math.max(0, Math.min(100, Number(progress_percentage) || 0))], 
             (err) => {
                 if (err) {
@@ -3858,29 +3862,47 @@ function syncCourseQuizProgress(userId, courseId, extra = {}, cb) {
             if (Number.isFinite(Number(extra.progress_percentage)) && extra.force_percentage) {
                 pct = Math.max(0, Math.min(100, Math.round(Number(extra.progress_percentage))));
             }
-            const setPage = pageIdx != null;
-            const sql = setPage
-                ? `INSERT INTO course_views (user_id, course_id, progress_percentage, last_page_index, last_viewed)
-                   VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-                   ON DUPLICATE KEY UPDATE
-                     progress_percentage = VALUES(progress_percentage),
-                     last_page_index = VALUES(last_page_index),
-                     last_viewed = CURRENT_TIMESTAMP`
-                : `INSERT INTO course_views (user_id, course_id, progress_percentage, last_viewed)
-                   VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-                   ON DUPLICATE KEY UPDATE
-                     progress_percentage = VALUES(progress_percentage),
-                     last_viewed = CURRENT_TIMESTAMP`;
-            const params = setPage
-                ? [userId, courseId, pct, pageIdx]
-                : [userId, courseId, pct];
+            const scrollY = Number.isFinite(Number(extra.last_scroll_y))
+                ? Math.max(0, Math.floor(Number(extra.last_scroll_y)))
+                : null;
+            const lastUnitId = Number.isFinite(Number(extra.last_unit_id))
+                ? Math.floor(Number(extra.last_unit_id))
+                : null;
+
+            const setCols = ['progress_percentage = VALUES(progress_percentage)', 'last_viewed = CURRENT_TIMESTAMP'];
+            const insertCols = ['user_id', 'course_id', 'progress_percentage', 'last_viewed'];
+            const insertVals = ['?', '?', '?', 'CURRENT_TIMESTAMP'];
+            const params = [userId, courseId, pct];
+            if (pageIdx != null) {
+                insertCols.push('last_page_index');
+                insertVals.push('?');
+                params.push(pageIdx);
+                setCols.push('last_page_index = VALUES(last_page_index)');
+            }
+            if (scrollY != null) {
+                insertCols.push('last_scroll_y');
+                insertVals.push('?');
+                params.push(scrollY);
+                setCols.push('last_scroll_y = VALUES(last_scroll_y)');
+            }
+            if (lastUnitId != null) {
+                insertCols.push('last_unit_id');
+                insertVals.push('?');
+                params.push(lastUnitId);
+                setCols.push('last_unit_id = VALUES(last_unit_id)');
+            }
+            const sql = `INSERT INTO course_views (${insertCols.join(', ')})
+                   VALUES (${insertVals.join(', ')})
+                   ON DUPLICATE KEY UPDATE ${setCols.join(', ')}`;
             db.query(sql, params, (err2) => {
                 if (typeof cb === 'function') {
                     cb(err2, {
                         progress_percentage: pct,
                         correct_answers: correctQ,
                         total_questions: totalQ,
-                        last_page_index: pageIdx
+                        last_page_index: pageIdx,
+                        last_scroll_y: scrollY,
+                        last_unit_id: lastUnitId
                     });
                 }
             });
@@ -3893,7 +3915,7 @@ app.get('/api/courses/:courseId/progress', authenticateToken, (req, res) => {
     const courseId = req.params.courseId;
     const userId = req.user.id;
     db.query(
-        `SELECT progress_percentage, last_page_index, completed, last_viewed
+        `SELECT progress_percentage, last_page_index, last_scroll_y, last_unit_id, completed, last_viewed
          FROM course_views WHERE user_id = ? AND course_id = ?`,
         [userId, courseId],
         (err, rows) => {
@@ -3921,6 +3943,8 @@ app.get('/api/courses/:courseId/progress', authenticateToken, (req, res) => {
                     apiResponse(res, 200, 'Progress fetched', {
                         progress_percentage,
                         last_page_index: Number(row.last_page_index) || 0,
+                        last_scroll_y: Number(row.last_scroll_y) || 0,
+                        last_unit_id: row.last_unit_id != null ? Number(row.last_unit_id) : null,
                         completed: !!row.completed,
                         last_viewed: row.last_viewed || null,
                         correct_answers: correctQ,
@@ -3941,11 +3965,17 @@ app.put('/api/courses/:courseId/progress', authenticateToken, (req, res) => {
     const lastPage = Number.isFinite(Number(body.last_page_index))
         ? Math.max(0, Math.floor(Number(body.last_page_index)))
         : null;
+    const lastScroll = Number.isFinite(Number(body.last_scroll_y))
+        ? Math.max(0, Math.floor(Number(body.last_scroll_y)))
+        : null;
+    const lastUnitId = Number.isFinite(Number(body.last_unit_id))
+        ? Math.floor(Number(body.last_unit_id))
+        : null;
 
     syncCourseQuizProgress(
         userId,
         courseId,
-        { page_percentage: pagePct, last_page_index: lastPage },
+        { page_percentage: pagePct, last_page_index: lastPage, last_scroll_y: lastScroll, last_unit_id: lastUnitId },
         (err, data) => {
             if (err) {
                 console.error('Error updating course progress:', err);
@@ -4146,7 +4176,7 @@ app.get('/api/users/enrollments/:courseId/progress', authenticateToken, (req, re
         const query = `
             SELECT cu.id as unit_id, cu.order_index, cu.child_course_id,
                    c.title as unit_title,
-                   cep.completed, cep.completed_at, cep.progress_percentage,
+                   cep.completed, cep.completed_at, cep.progress_percentage, cep.last_accessed,
                    cu.prerequisite_unit_id,
                    CASE WHEN cep.completed = TRUE THEN TRUE 
                         WHEN cu.prerequisite_unit_id IS NULL THEN TRUE
@@ -4261,17 +4291,19 @@ app.get('/api/users/enrollments/enhanced', authenticateToken, (req, res) => {
                          ON cep.unit_id = cu.id AND cep.user_id = e.user_id
                        WHERE cu.parent_course_id = c.id AND cu.is_draft = FALSE
                    )
-                   ELSE COALESCE(
-                       cv.progress_percentage,
-                       (
-                           SELECT ROUND(100 * SUM(CASE WHEN uqa.is_correct = 1 THEN 1 ELSE 0 END)
-                                        / NULLIF(COUNT(*), 0))
-                           FROM course_questions cq
-                           LEFT JOIN user_quiz_attempts uqa
-                             ON uqa.question_id = cq.id AND uqa.user_id = e.user_id
-                           WHERE cq.course_id = c.id
-                       ),
-                       0
+                   ELSE GREATEST(
+                       COALESCE(cv.progress_percentage, 0),
+                       COALESCE(
+                           (
+                               SELECT ROUND(100 * SUM(CASE WHEN uqa.is_correct = 1 THEN 1 ELSE 0 END)
+                                            / NULLIF(COUNT(*), 0))
+                               FROM course_questions cq
+                               LEFT JOIN user_quiz_attempts uqa
+                                 ON uqa.question_id = cq.id AND uqa.user_id = e.user_id
+                               WHERE cq.course_id = c.id
+                           ),
+                           0
+                       )
                    )
                END as progress_percentage
         FROM enrollments e
@@ -5447,7 +5479,7 @@ app.get('/api/users/enrollments/:courseId/progress', authenticateToken, (req, re
         const query = `
             SELECT cu.id as unit_id, cu.order_index, cu.child_course_id,
                    c.title as unit_title,
-                   cep.completed, cep.completed_at, cep.progress_percentage,
+                   cep.completed, cep.completed_at, cep.progress_percentage, cep.last_accessed,
                    cu.prerequisite_unit_id,
                    CASE WHEN cep.completed = TRUE THEN TRUE 
                         WHEN cu.prerequisite_unit_id IS NULL THEN TRUE
@@ -5684,17 +5716,19 @@ app.get('/api/users/enrollments/enhanced', authenticateToken, (req, res) => {
                          ON cep.unit_id = cu.id AND cep.user_id = e.user_id
                        WHERE cu.parent_course_id = c.id AND cu.is_draft = FALSE
                    )
-                   ELSE COALESCE(
-                       cv.progress_percentage,
-                       (
-                           SELECT ROUND(100 * SUM(CASE WHEN uqa.is_correct = 1 THEN 1 ELSE 0 END)
-                                        / NULLIF(COUNT(*), 0))
-                           FROM course_questions cq
-                           LEFT JOIN user_quiz_attempts uqa
-                             ON uqa.question_id = cq.id AND uqa.user_id = e.user_id
-                           WHERE cq.course_id = c.id
-                       ),
-                       0
+                   ELSE GREATEST(
+                       COALESCE(cv.progress_percentage, 0),
+                       COALESCE(
+                           (
+                               SELECT ROUND(100 * SUM(CASE WHEN uqa.is_correct = 1 THEN 1 ELSE 0 END)
+                                            / NULLIF(COUNT(*), 0))
+                               FROM course_questions cq
+                               LEFT JOIN user_quiz_attempts uqa
+                                 ON uqa.question_id = cq.id AND uqa.user_id = e.user_id
+                               WHERE cq.course_id = c.id
+                           ),
+                           0
+                       )
                    )
                END as progress_percentage
         FROM enrollments e
@@ -7575,8 +7609,21 @@ app.get('/api/student/enrolled-courses', authenticateToken, (req, res) => {
             c.status,
             u.email as creator_email,
             e.enrolled_at,
-            COALESCE(cv.progress_percentage, 0) as view_progress,
             COALESCE(cv.last_page_index, 0) as last_page_index,
+            CASE
+                WHEN c.course_type = 'master' THEN (
+                    SELECT ROUND(AVG(
+                        CASE WHEN cep.completed = TRUE THEN 100
+                             ELSE LEAST(100, GREATEST(0, COALESCE(cep.progress_percentage, 0)))
+                        END
+                    ))
+                    FROM course_units cu
+                    LEFT JOIN course_enrollment_progress cep
+                      ON cep.unit_id = cu.id AND cep.user_id = e.user_id
+                    WHERE cu.parent_course_id = c.id AND cu.is_draft = FALSE
+                )
+                ELSE COALESCE(cv.progress_percentage, 0)
+            END as view_progress,
             (
                 SELECT COUNT(*) FROM course_questions cq WHERE cq.course_id = c.id
             ) as total_questions,
@@ -7620,7 +7667,8 @@ app.get('/api/student/enrolled-courses', authenticateToken, (req, res) => {
             const totalQ = Number(row.total_questions) || 0;
             const correctQ = Number(row.correct_answers) || 0;
             const viewPct = Math.round(Number(row.view_progress) || 0);
-            const quizPct = totalQ > 0 ? Math.round((100 * correctQ) / totalQ) : null;
+            const isMaster = (row.course_type || 'single') === 'master';
+            const quizPct = !isMaster && totalQ > 0 ? Math.round((100 * correctQ) / totalQ) : null;
             const progress_percentage = quizPct != null ? Math.max(quizPct, viewPct) : viewPct;
             return {
                 course_id: row.course_id,
