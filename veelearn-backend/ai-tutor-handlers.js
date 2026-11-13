@@ -96,9 +96,10 @@ VEELEARN_RECOMMEND_JSON:
 followed by a single JSON array like [{"courseId":123,"title":"Exact title from list","reason":"one short sentence"}].
 - Use only courseIds from AVAILABLE_COURSES. If nothing fits, omit VEELEARN_RECOMMEND_JSON and say nothing in the catalog matches yet.
 
-Interactive visualizations (required when relevant):
-- When the learner asks to visualize, graph, plot, draw, simulate, make an interactive tool, or pastes geometry / AMC / Mathcounts / algebra problems where a figure helps, you MUST emit one or more widgetSpecs.
-- Prefer widgets over saying you cannot draw. Do not invent fake course names instead of a figure.
+Interactive visualizations (your judgment):
+- Include a widgetSpec when a visual genuinely helps the learner understand this specific problem — a figure, graph, or simulation that shows the relationship. Not every answer needs one; a clean text explanation is the right answer when a picture would not add anything.
+- If the learner explicitly asks to visualize, graph, plot, draw, or simulate something, that is a good place for a widget.
+- Never invent fake course names instead of a figure when a figure is what they asked for.
 - After your coaching text, emit exactly:
 VEELEARN_WIDGET_JSON:
 followed by a JSON array of widgetSpec objects.
@@ -1136,18 +1137,11 @@ function createAiTutorHandlers({ query, openRouterChatCompletion, apiResponse })
                 });
             }
 
-            const historyBlob = historyRows
-                .slice(-8)
-                .map((r) => String(r.content || '').slice(0, 1200))
-                .join('\n');
-            const forceViz = wantsVisualization(message, historyBlob);
             const messages = [
                 { role: 'system', content: SOCRATIC_SYSTEM },
                 {
                     role: 'system',
-                    content: forceViz
-                        ? `${contextBlock}\n\nIMPORTANT: The learner needs a visualization NOW. You MUST include VEELEARN_WIDGET_JSON with at least one valid widgetSpec for the CURRENT user message only (ignore unrelated earlier problems). Geometry → geometry_board with params.elements whose points have numeric x,y for THIS problem. Graphs → desmos_graph/function_plot. Cube → spinning_box. Fusion → fusion_dt. Wave → wave_1d. Do not only describe a diagram in words.`
-                        : `Personalization context:\n${contextBlock}`
+                    content: `Personalization context:\n${contextBlock}`
                 },
                 ...historyMessages,
                 { role: 'user', content: message }
@@ -1156,7 +1150,7 @@ function createAiTutorHandlers({ query, openRouterChatCompletion, apiResponse })
             let rawReply;
             try {
                 rawReply = await openRouterChatCompletion(messages, {
-                    max_tokens: forceViz ? 2200 : 1400,
+                    max_tokens: 1800,
                     temperature: 0.35
                 });
             } catch (e) {
@@ -1186,104 +1180,15 @@ function createAiTutorHandlers({ query, openRouterChatCompletion, apiResponse })
             let recommendations = validateRecommendations(rawRecs, catalog);
             let widgets = validateWidgetSpecs(rawWidgets);
 
-            // One JSON-only retry when visualization is required but missing
-            if (forceViz && !widgets.length) {
-                try {
-                    const retryReply = await openRouterChatCompletion(
-                        [
-                            { role: 'system', content: SOCRATIC_SYSTEM },
-                            {
-                                role: 'system',
-                                content:
-                                    'Emit ONLY VEELEARN_WIDGET_JSON: then a JSON array of 1 widgetSpec. No prose. Draw the CURRENT problem only — never reuse an earlier unrelated figure. Geometry → geometry_board with numeric x,y on every point and segments/circles for this construction. Graphs → desmos_graph or function_plot. Cube → spinning_box. Fusion → fusion_dt. Wave → wave_1d.'
-                            },
-                            {
-                                role: 'user',
-                                content: `CURRENT problem to visualize (ignore earlier different problems):\n${message}`
-                            }
-                        ],
-                        { max_tokens: 2200, temperature: 0.1 }
-                    );
-                    const retryParts = splitReplyAndPayloads(
-                        /VEELEARN_WIDGET_JSON:/i.test(retryReply)
-                            ? retryReply
-                            : `VEELEARN_WIDGET_JSON:\n${retryReply}`
-                    );
-                    const retryWidgets = validateWidgetSpecs(retryParts.rawWidgets);
-                    if (retryWidgets.length) {
-                        widgets = retryWidgets;
-                        if (!safeReply) {
-                            safeReply =
-                                "Here's an interactive figure for this — try the controls and tell me what you notice.";
-                        }
-                    }
-                } catch (retryErr) {
-                    console.warn('Widget retry skipped:', retryErr.message);
-                }
-            }
-
-            if (forceViz && !widgets.length) {
-                widgets = autoFallbackWidgets(message, `${safeReply}\n${message}`);
-                if (widgets.length && !/interactive|simulator|figure|graph|slider|diagram/i.test(safeReply)) {
-                    safeReply =
-                        `${safeReply}\n\nUse the interactive below — try the controls and tell me what you notice.`.trim();
-                }
-            }
-
-            // Model often describes a diagram in prose without JSON — still force a widget
-            const claimsDiagram =
-                /\b(diagram|coordinate plane|i('ve| have) (set up|drawn|created|plotted)|see the (diagram|figure)|segments?\s+[A-Z]{2})\b/i.test(
-                    safeReply
-                );
-            if (!widgets.length && (forceViz || claimsDiagram)) {
-                widgets = autoFallbackWidgets(message, `${safeReply}\n${message}`);
-            }
-
-            // Geometry: prefer a dedicated model redraw for THIS problem; never inject a canned figure
+            // Geometry: never inject a canned figure the model did not choose
             if (isGeometryIntent(message)) {
                 // Drop leftover AE=3/DF=2 template when the user asked something else
                 if (!messageIsLegacyAmcRectProblem(message)) {
                     widgets = widgets.filter((w) => !isLegacyAmcRectWidget(w));
                 }
-                if (!hasGoodGeometryWidget(widgets)) {
-                    try {
-                        const geoRetryReply = await openRouterChatCompletion(
-                            [
-                                {
-                                    role: 'system',
-                                    content:
-                                        'You output ONLY widget JSON for one geometry_board that matches the given problem. No coaching text. Choose coordinates yourself. Every point needs numeric x and y. Include the key construction lines for THIS problem (square/rectangle sides, midpoints, crease, fold, intersections, incircle, etc. as relevant). fixed:true on diagram points. Ignore any other problems.'
-                                },
-                                {
-                                    role: 'user',
-                                    content: `Emit VEELEARN_WIDGET_JSON: then a JSON array with one geometry_board widgetSpec for ONLY this problem:\n\n${message}`
-                                }
-                            ],
-                            { max_tokens: 2200, temperature: 0.1 }
-                        );
-                        const geoParts = splitReplyAndPayloads(
-                            /VEELEARN_WIDGET_JSON:/i.test(geoRetryReply)
-                                ? geoRetryReply
-                                : `VEELEARN_WIDGET_JSON:\n${geoRetryReply}`
-                        );
-                        const geoWidgets = validateWidgetSpecs(geoParts.rawWidgets).filter(
-                            (w) => messageIsLegacyAmcRectProblem(message) || !isLegacyAmcRectWidget(w)
-                        );
-                        if (hasGoodGeometryWidget(geoWidgets)) {
-                            widgets = geoWidgets;
-                        }
-                    } catch (geoErr) {
-                        console.warn('Geometry widget retry skipped:', geoErr.message);
-                    }
-                    if (!hasGoodGeometryWidget(widgets)) {
-                        const fromCoords = buildGeometryFromExplicitCoords(`${safeReply}\n${message}`);
-                        if (fromCoords.length) widgets = fromCoords;
-                        else if (!widgets.length) widgets = blankCoordinatePlane(message);
-                    }
-                }
             }
 
-            if (catalog.length && wantsCourseRecommendation(message) && !forceViz) {
+            if (catalog.length && wantsCourseRecommendation(message)) {
                 const ranked = fallbackRecommendations(message, catalog, 3);
                 recommendations = ranked;
                 if (recommendations.length && !/veelearn course|recommended course|here are (a few )?courses|most liked/i.test(safeReply)) {

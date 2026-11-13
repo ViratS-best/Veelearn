@@ -10,6 +10,8 @@ const DEFAULT_TIMEOUT_MS = 45000;
 
 /** Last-resort router that picks any available free model. */
 const FREE_ROUTER = 'openrouter/free';
+/** Default model: OpenRouter's free router. Env-specified models stay as fallbacks. */
+const DEFAULT_MODEL = FREE_ROUTER;
 
 function sanitizeModelId(m) {
     if (typeof m !== 'string') return '';
@@ -28,7 +30,10 @@ function getOpenRouterKeys() {
         const k = process.env[`OPENROUTER_KEY_${i}`];
         if (k && String(k).trim()) keys.push(String(k).trim());
     }
-    return keys;
+    if (keys.length) return keys;
+    // Single-key deployments use the fallback env name.
+    const fallback = String(process.env.OPENROUTER_API_KEY || '').trim();
+    return fallback ? [fallback] : [];
 }
 
 function getModelCandidates(opts = {}) {
@@ -38,16 +43,13 @@ function getModelCandidates(opts = {}) {
         if (v && !list.includes(v)) list.push(v);
     };
 
+    // OpenRouter's free router is the default; only the env fallbacks come after it.
     push(opts.model);
-    push(process.env.OPENROUTER_MODEL || 'google/gemma-4-31b-it:free');
+    push(DEFAULT_MODEL);
+    push(process.env.OPENROUTER_MODEL);
 
     const fallbacks = (process.env.OPENROUTER_FALLBACK_MODELS || '').split(',');
     for (const m of fallbacks) push(m);
-
-    push('google/gemma-4-31b-it:free');
-    push('google/gemma-4-26b-a4b-it:free');
-    push('openai/gpt-oss-20b:free');
-    push(FREE_ROUTER);
 
     return list;
 }
