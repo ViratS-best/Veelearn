@@ -3347,6 +3347,51 @@ app.put('/api/superadmin/users/:id/role', authenticateToken, authorize('superadm
     });
 });
 
+// Units are separate courses linked through course_units, so submitting a Master Course
+// for review used to leave every unit in draft and out of the review queue.
+// This moves the master's own unpublished units into the pending review queue too.
+function submitMasterUnitsForReview(masterCourseId, creatorId, callback) {
+    const done = typeof callback === 'function' ? callback : () => {};
+
+    db.query(
+        `SELECT cu.child_course_id
+         FROM course_units cu
+         JOIN courses c ON c.id = cu.child_course_id
+         WHERE cu.parent_course_id = ? AND c.creator_id = ?`,
+        [masterCourseId, creatorId],
+        (err, rows) => {
+            if (err) {
+                console.error('Error loading master course units:', err.message);
+                return done(0);
+            }
+
+            const unitIds = (rows || []).map((r) => r.child_course_id).filter(Boolean);
+            if (unitIds.length === 0) {
+                return done(0);
+            }
+
+            // Approved units stay published; drafts and rejected units need a fresh review.
+            const placeholders = unitIds.map(() => '?').join(', ');
+            db.query(
+                `UPDATE courses SET status = 'pending', feedback = NULL
+                 WHERE id IN (${placeholders}) AND status IN ('draft', 'rejected')`,
+                unitIds,
+                (updateErr, result) => {
+                    if (updateErr) {
+                        console.error('Error submitting master course units for review:', updateErr.message);
+                        return done(0);
+                    }
+                    const submitted = (result && result.affectedRows) || 0;
+                    if (submitted > 0) {
+                        debug(`✓ Submitted ${submitted} unit course(s) of master course ${masterCourseId} for review`);
+                    }
+                    done(submitted);
+                }
+            );
+        }
+    );
+}
+
 // ===== COURSE ROUTES =====
 app.post('/api/courses', authenticateToken, writeLimiter, (req, res) => {
     const { title, description, content, blocks, status, creation_time, grade_level, video_url, course_type, gamification_json } = req.body;
@@ -3582,7 +3627,7 @@ app.post('/api/courses/:id/units', authenticateToken, (req, res) => {
     const { child_course_id, order_index, is_draft, prerequisite_unit_id } = req.body;
     const userId = req.user.id;
 
-    db.query('SELECT creator_id, course_type FROM courses WHERE id = ?', [parentCourseId], (err, results) => {
+    db.query('SELECT creator_id, course_type, status FROM courses WHERE id = ?', [parentCourseId], (err, results) => {
         if (err || results.length === 0) {
             return apiResponse(res, 404, 'Parent course not found');
         }
@@ -3660,10 +3705,27 @@ app.post('/api/courses/:id/units', authenticateToken, (req, res) => {
                                 }
                             }
 
-                            apiResponse(res, 201, 'Unit added successfully', { 
+                            const respondUnitAdded = () => apiResponse(res, 201, 'Unit added successfully', {
                                 unit_id: unitId,
                                 child_course: childResults[0]
                             });
+
+                            // A unit attached to an already-submitted master course must join the review queue too.
+                            if (parentCourse.status === 'pending') {
+                                db.query(
+                                    `UPDATE courses SET status = 'pending', feedback = NULL
+                                     WHERE id = ? AND status IN ('draft', 'rejected')`,
+                                    [child_course_id],
+                                    (unitStatusErr) => {
+                                        if (unitStatusErr) {
+                                            console.error('Error submitting new unit for review:', unitStatusErr.message);
+                                        }
+                                        respondUnitAdded();
+                                    }
+                                );
+                            } else {
+                                respondUnitAdded();
+                            }
                         });
                     });
                 });
@@ -4517,7 +4579,24 @@ app.put('/api/courses/:id', authenticateToken, writeLimiter, (req, res) => {
                 }
             }
 
-            apiResponse(res, 200, 'Course updated successfully');
+            const finishUpdate = (unitsSubmitted = 0) => {
+                if (unitsSubmitted > 0) {
+                    return apiResponse(
+                        res,
+                        200,
+                        `Course submitted for approval with ${unitsSubmitted} unit course(s)`,
+                        { units_submitted: unitsSubmitted }
+                    );
+                }
+                apiResponse(res, 200, 'Course updated successfully');
+            };
+
+            const effectiveCourseType = course_type !== undefined ? course_type : (course.course_type || 'single');
+            if (status === 'pending' && effectiveCourseType === 'master') {
+                submitMasterUnitsForReview(courseId, userId, finishUpdate);
+            } else {
+                finishUpdate(0);
+            }
         });
     });
 });
@@ -4776,7 +4855,16 @@ function parseCourseBlocks(results) {
 
 // ===== ADMIN ROUTES =====
 app.get('/api/admin/courses/pending', authenticateToken, authorize('admin', 'superadmin'), (req, res) => {
-    const query = "SELECT c.id, c.title, c.description, c.content, c.blocks, c.creator_id, u.email as creator_email, c.created_at, c.grade_level, c.video_url FROM courses c JOIN users u ON c.creator_id = u.id WHERE c.status = 'pending'";
+    const query = `
+        SELECT c.id, c.title, c.description, c.content, c.blocks, c.creator_id, u.email as creator_email,
+               c.created_at, c.grade_level, c.video_url, c.course_type,
+               (SELECT p.title FROM course_units cu JOIN courses p ON p.id = cu.parent_course_id
+                WHERE cu.child_course_id = c.id ORDER BY cu.id ASC LIMIT 1) AS parent_master_title
+        FROM courses c
+        JOIN users u ON c.creator_id = u.id
+        WHERE c.status = 'pending'
+        ORDER BY c.created_at DESC
+    `;
 
     db.query(query, (err, results) => {
         if (err) {
@@ -4883,7 +4971,7 @@ app.put('/api/courses/:id/resubmit', authenticateToken, (req, res) => {
         return apiResponse(res, 400, 'Course title and content are required for resubmission');
     }
 
-    db.query('SELECT creator_id, status FROM courses WHERE id = ?', [courseId], (err, results) => {
+    db.query('SELECT creator_id, status, course_type FROM courses WHERE id = ?', [courseId], (err, results) => {
         if (err) {
             console.error('Error fetching course for resubmission:', err);
             return apiResponse(res, 500, 'Server error');
@@ -4907,6 +4995,11 @@ app.put('/api/courses/:id/resubmit', authenticateToken, (req, res) => {
             if (err) {
                 console.error('Error resubmitting course:', err);
                 return apiResponse(res, 500, 'Server error resubmitting course');
+            }
+            if (course.course_type === 'master') {
+                return submitMasterUnitsForReview(courseId, userId, () => {
+                    apiResponse(res, 200, 'Course resubmitted successfully and is awaiting admin approval');
+                });
             }
             apiResponse(res, 200, 'Course resubmitted successfully and is awaiting admin approval');
         });

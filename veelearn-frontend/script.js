@@ -3579,6 +3579,11 @@ function renderPendingCourses(courses) {
             (course) => `
         <li>
             <strong>${escapeHtml(course.title)}</strong>
+            <p>${course.course_type === "master"
+                ? "🎓 Master Course"
+                : course.parent_master_title
+                    ? `📄 Unit of ${escapeHtml(course.parent_master_title)}`
+                    : "📄 Single Course"}</p>
             <p>${escapeHtml(course.description || "No description")}</p>
             <button onclick="previewCourse(${course.id})">Preview</button>
             <button onclick="approveCourse(${course.id})">Approve</button>
@@ -4463,9 +4468,12 @@ function saveCourse(action = "draft", options = {}) {
                 }
 
                 if (!quiet) {
+                    const unitsSubmitted = Number(data.data?.units_submitted) || 0;
                     const message =
                         action === "pending"
-                            ? "Course submitted for approval!"
+                            ? unitsSubmitted > 0
+                                ? `Course and ${unitsSubmitted} unit course${unitsSubmitted === 1 ? "" : "s"} submitted for approval!`
+                                : "Course submitted for approval!"
                             : "Course saved as draft!";
                     alert(message);
                 } else if (typeof window.setEditorAutosaveStatus === 'function') {
