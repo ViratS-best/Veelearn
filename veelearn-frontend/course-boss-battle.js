@@ -225,6 +225,7 @@
   }
 
   async function init(course, questions, extras) {
+    const disabled = Boolean(extras && extras.disabled);
     const qs = questions || window.courseQuestions || [];
     const parent = (extras && extras.parent) || null;
     const settings = parseSettings(course, qs.length, parent);
@@ -236,9 +237,18 @@
     state.courseId = nextId;
     state.questions = qs;
     // Stage gates only make sense on a full finale (10+ questions)
-    state.bossEnabled = !!settings.bossBattle && quizCount >= 10;
-    state.heartsEnabled = !!settings.hearts;
+    state.bossEnabled = !disabled && !!settings.bossBattle && quizCount >= 10;
+    state.heartsEnabled = !disabled && !!settings.hearts;
     state.hearts = keepHearts;
+
+    // A course front page has no questions of its own, so it must never inherit
+    // a unit's hearts/stage gates.
+    if (disabled) {
+      state.unlocked = { easy: true, medium: false, hard: false };
+      const hud = document.getElementById('vl-boss-hud');
+      if (hud) hud.hidden = true;
+      return;
+    }
     if (!sameCourse) {
       state.unlocked = { easy: true, medium: false, hard: false };
     }

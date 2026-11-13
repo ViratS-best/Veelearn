@@ -4750,7 +4750,11 @@ async function viewCourse(courseId, assignmentId = null, forceRegular = false) {
                 window.CourseInteractiveBlocks.hydrateViewer(document.getElementById('course-content-display') || viewerContent);
             }
             if (window.CourseBossBattle?.init) {
-                window.CourseBossBattle.init(course, courseQuestions, { parent: currentMasterCourse });
+                // A Master Course's own front page has no questions, so never gate it on a unit's quiz.
+                window.CourseBossBattle.init(course, courseQuestions, {
+                    parent: currentMasterCourse,
+                    disabled: course.course_type === 'master'
+                });
             }
             if (window.CourseProgress?.onPageShown) {
                 window.CourseProgress.startSession({
@@ -6683,14 +6687,12 @@ async function loadMasterCourseView(courseId) {
                 } catch (_) { /* ignore */ }
             }
 
-            currentUnitIndex = courseUnits.findIndex(u => u.is_unlocked);
-            if (currentUnitIndex < 0) currentUnitIndex = 0;
-
+            // Always open the course front page first; the last unit stays one click away.
+            let resumeIndex = -1;
             if (resume.unitId != null) {
-                const ri = courseUnits.findIndex(
+                resumeIndex = courseUnits.findIndex(
                     (u) => String(u.unit_id) === String(resume.unitId) && u.is_unlocked
                 );
-                if (ri >= 0) currentUnitIndex = ri;
             } else {
                 let best = -1;
                 let bestT = 0;
@@ -6702,16 +6704,16 @@ async function loadMasterCourseView(courseId) {
                         best = i;
                     }
                 });
-                if (best >= 0) currentUnitIndex = best;
+                resumeIndex = best;
             }
 
             pendingUnitScrollY = Number(resume.scrollY) || 0;
-            
-            if (currentUnitIndex >= 0 && courseUnits[currentUnitIndex]) {
-                await loadUnitContent(courseUnits[currentUnitIndex]);
+
+            if (courseUnits.length > 0) {
+                renderMasterCourseOverview(course, resumeIndex);
+                showUnitNavigationSidebar(course, progressResult.data);
             } else {
-                // No units available
-                document.getElementById("course-viewer-content").innerHTML = 
+                document.getElementById("course-viewer-content").innerHTML =
                     '<p style="text-align: center; padding: 40px;">No units available yet.</p>';
             }
         }
@@ -6764,7 +6766,26 @@ function showUnitNavigationSidebar(course, progressData) {
     // Render unit list
     const unitList = document.getElementById("unit-list-container");
     if (unitList && courseUnits.length > 0) {
-        unitList.innerHTML = courseUnits.map((unit, index) => `
+        // The course front page sits above the units and is never gated by a unit's questions.
+        const overviewItem = `
+            <div class="unit-nav-item ${currentUnitIndex < 0 ? 'active' : ''}"
+                onclick="showMasterCourseOverview()"
+                style="
+                    padding: 12px; border-radius: 8px; cursor: pointer;
+                    background: ${currentUnitIndex < 0 ? 'rgba(102,126,234,0.15)' : 'var(--bg-card)'};
+                    border: 1px solid ${currentUnitIndex < 0 ? 'var(--primary)' : 'var(--border)'};
+                    display: flex; align-items: center; gap: 10px;
+                ">
+                <span style="
+                    width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+                    background: var(--bg-dark); color: var(--text-muted); font-size: 12px;
+                ">🏠</span>
+                <div style="flex: 1;">
+                    <strong style="font-size: 13px;">Course overview</strong>
+                </div>
+            </div>
+        `;
+        unitList.innerHTML = overviewItem + courseUnits.map((unit, index) => `
             <div class="unit-nav-item ${index === currentUnitIndex ? 'active' : ''} ${!unit.is_unlocked ? 'locked' : ''}" 
                 onclick="${unit.is_unlocked ? `loadUnitByIndex(${index})` : ''}"
                 style="
@@ -6788,6 +6809,76 @@ function showUnitNavigationSidebar(course, progressData) {
             </div>
         `).join('');
     }
+}
+
+// Master course front page: overview only, never gated by unit 1's quiz state
+function renderMasterCourseOverview(course, resumeIndex = -1) {
+    if (!course) return;
+    currentUnitIndex = -1;
+    courseQuestions = [];
+    window.courseQuestions = [];
+
+    if (window.CourseBossBattle?.init) {
+        window.CourseBossBattle.init(course, [], { disabled: true });
+    }
+    const hud = document.getElementById('vl-boss-hud');
+    if (hud) hud.hidden = true;
+
+    const contentEl = document.getElementById('course-viewer-content');
+    if (contentEl) {
+        contentEl.innerHTML = `
+            <h1>${escapeHtml(course.title || '')}</h1>
+            <p><strong>Description:</strong> ${escapeHtml(course.description || 'No description')}</p>
+            ${course.content || ''}
+        `;
+        if (window.CourseInteractiveBlocks?.hydrateViewer) {
+            window.CourseInteractiveBlocks.hydrateViewer(contentEl);
+        }
+        setTimeout(async () => {
+            if (window.MathJax?.typesetPromise) {
+                try {
+                    await window.MathJax.typesetPromise([contentEl]);
+                } catch (_) { /* ignore */ }
+            }
+        }, 100);
+    }
+
+    const firstUnitIndex = courseUnits.findIndex((u) => u.is_unlocked);
+    const continueIndex = resumeIndex >= 0 ? resumeIndex : firstUnitIndex;
+    const prevBtn = document.getElementById('viewer-prev-btn');
+    if (prevBtn) {
+        prevBtn.textContent = '← Previous Page';
+        prevBtn.disabled = true;
+        prevBtn.onclick = null;
+    }
+    const nextBtn = document.getElementById('viewer-next-btn');
+    if (nextBtn) {
+        nextBtn.textContent =
+            continueIndex < 0
+                ? 'No units yet'
+                : resumeIndex >= 0
+                  ? 'Continue learning →'
+                  : 'Start learning →';
+        nextBtn.disabled = continueIndex < 0;
+        nextBtn.onclick = continueIndex >= 0 ? () => loadUnitByIndex(continueIndex) : null;
+    }
+    const indicator = document.getElementById('viewer-page-indicator');
+    if (indicator) indicator.textContent = 'Course overview';
+}
+
+function showMasterCourseOverview() {
+    if (!currentMasterCourse) return;
+    if (window.CourseProgress?.flush) window.CourseProgress.flush();
+    pendingUnitScrollY = 0;
+    renderMasterCourseOverview(currentMasterCourse);
+    const overall = window.CourseProgress?.masterOverallProgress
+        ? window.CourseProgress.masterOverallProgress(courseUnits)
+        : 0;
+    showUnitNavigationSidebar(currentMasterCourse, {
+        overall_progress: overall,
+        completed_units: courseUnits.filter((u) => u.completed).length,
+        total_units: courseUnits.length
+    });
 }
 
 // Load unit by index
@@ -6899,6 +6990,11 @@ function updateViewerNavigation() {
         prevBtn.onclick = () => loadUnitByIndex(currentUnitIndex - 1);
     }
     
+    const indicator = document.getElementById("viewer-page-indicator");
+    if (indicator && currentUnitIndex >= 0 && courseUnits.length > 0) {
+        indicator.textContent = `Unit ${currentUnitIndex + 1} of ${courseUnits.length}`;
+    }
+
     if (nextBtn) {
         const hasNext = currentUnitIndex < courseUnits.length - 1;
         if (hasNext) {
