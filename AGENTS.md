@@ -3955,7 +3955,8 @@ Rate limits were also made configurable for testing: `AUTH_RATE_MAX` (default 5,
 
 ## ✅ SESSION 41 - INTERACTIVE UNIT SIMULATIONS (AP COURSES) 🎛️🧪
 
-**Status**: Engine + all 8 AP Calculus AB units done; BC / Bio / Chem / Physics pending.
+**Status**: Engine + **all 56 AP unit courses** wired (AB, BC, Biology, Chemistry,
+Physics 1, Physics C Mechanics, Physics C E&M) — one bespoke sim per unit.
 
 **Rule for this work**: simulations are authored **per unit**, not reused across units.
 Each spec answers the question that unit's sections actually ask, even when two units
@@ -3972,9 +3973,24 @@ separate builds). Do not fall back to a generic "physics/calculus playground".
   `CourseSims.util` (plot, curve, arrow, dot, label, fmt).
 - `veelearn-frontend/course-sims.css` — card styling; matches the `vl-stage` lesson cards
   (cream, rust accent, dashed readout divider).
-- `veelearn-frontend/course-sims-apcalcab.js` — 8 bespoke AB sims:
-  `apcalcab-u1-limits`, `u2-derivative`, `u3-related-rates`, `u4-concavity`,
-  `u5-riemann`, `u6-disks`, `u7-slope-field`, `u8-capstone`.
+- `veelearn-frontend/course-sims-apcalcab.js` — 8 AB sims (`apcalcab-u1-limits` … `u8-capstone`).
+- `veelearn-frontend/course-sims-apcalcbc.js` — 8 BC sims: cycloid parametric derivative,
+  p-test improper integrals, arc-length chords, geometric partial sums, power-series radius,
+  Taylor degree, polar rose area, logistic DE.
+- `veelearn-frontend/course-sims-apbio.js` — 8 Biology sims: hydrogen-bond lattice, membrane
+  transport/tonicity, enzyme saturation + denaturation, mitosis phases, Punnett squares,
+  transcription/translation, selection on allele frequencies, logistic populations.
+- `veelearn-frontend/course-sims-apchem.js` — 8 Chemistry sims: electron filling, ΔEN bonding,
+  IMF/boiling point, limiting reactant, rate order, energy profile + catalyst, Le Châtelier,
+  weak-acid titration.
+- `veelearn-frontend/course-sims-apphy1.js` — 8 Physics 1 sims: x/v/a graphs, free body +
+  friction, ramp energy, collisions, torque balance, conserved angular momentum, SHM,
+  pressure + buoyancy.
+- `veelearn-frontend/course-sims-apphyscm.js` — 8 C Mechanics sims: integrate a(t), linear drag,
+  work integral, centre of mass, τ = r × F + inertia, Atwood with massive pulley, physical
+  pendulum, orbits/escape speed.
+- `veelearn-frontend/course-sims-apphyscem.js` — 8 E&M sims: Coulomb, Gauss flux, capacitor,
+  series/parallel, RC, magnetic force + circular path, Faraday/Lenz, LC energy exchange.
 - `inject_unit_sims.js` — inserts each sim (plus a one-sentence "Try it yourself" lead)
   into the target section of the target course, immediately before the `3 ·` stage card.
   Idempotent: strips a previous insert for that key and re-positions it, so re-running is safe.
@@ -4008,13 +4024,18 @@ reader should notice (e.g. the ladder's dy/dt blowing up as the top nears the fl
 subject library. `.vl-sim` was added to the editor's embed-flow and block selectors in
 `script.js` so editing a course does not orphan the card.
 
-**Verification done**: all eight sims render in a local harness with no console errors;
-slider values drive the readouts (e.g. U7 Euler y(1) = 2.441 vs exact 2.718 at h = 0.25);
-U1 inserted into course 718 renders between the "Picture it" stage and "3 · Build the rule".
+**Verification done**: harness mounting every registry key reports **56 mounted, 0 draw
+errors**; sparse-pixel flags were re-checked at full resolution (all draw real content).
+Spot-checked values: Euler 2.441 vs exact 2.718; orbit v_c 6.31 / escape 8.93 km/s and
+E = −11.7 MJ/kg at r = 10⁴ km; Aa × Aa → 75% dominant; capacitor 44.27 pF at 100 cm²/2 mm.
+U1 also verified inside real course 718 between the "Picture it" stage and "3 · Build the rule".
 
-**To continue**: add `course-sims-apbio.js`, `course-sims-apchem.js`,
-`course-sims-apphysics.js`, `course-sims-apcalcbc.js` with unique keys per unit, insert with
-`inject_unit_sims.js` (extend its `UNITS` map), then publish through `publish-frontend.ps1`.
+**Status of insertion**: `inject_unit_sims.js` covers all 56 ids (718–725, 727–734, 736–743,
+745–752, 754–761, 763–770, 781–788) and is idempotent. It only rewrites `courses.content`.
+
+**To continue**: other grade levels / honours courses can follow the same pattern — one spec
+per unit, insert with an `UNITS` entry, bump the `?v=` on the library tag, publish via
+`publish-frontend.ps1`.
 
 ---
 
