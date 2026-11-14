@@ -1006,6 +1006,12 @@
     try {
       const body = { minutes: requestedMinutes };
       if (requestedTrack) body.track = requestedTrack;
+      // ?course=<id> is how a course opens a session (§15.2). Without this the
+      // server had no course to plan from and fell back to the learner's track.
+      if (requestedCourse) {
+        const id = parseInt(requestedCourse, 10);
+        if (id) body.courseId = id;
+      }
       const sessionState = await api('/api/session/start', body);
       applyState(sessionState);
       initVisual();

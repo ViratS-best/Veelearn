@@ -1,12 +1,13 @@
 :root {
-  --sx-bg: #fff8f1;
-  --sx-card: #ffffff;
-  --sx-ink: #1a1a1a;
-  --sx-muted: #6b7280;
-  --sx-border: #f3e8de;
-  --sx-accent: #ea580c;
-  --sx-accent-soft: #ffedd5;
-  --sx-accent-ink: #9a3412;
+  /* Warm is the default gem-store palette; an equipped theme overrides --ls-*. */
+  --sx-bg: var(--ls-bg, #fff8f1);
+  --sx-card: var(--ls-card, #ffffff);
+  --sx-ink: var(--ls-text, #1a1a1a);
+  --sx-muted: var(--ls-muted, #6b7280);
+  --sx-border: var(--ls-border, #f3e8de);
+  --sx-accent: var(--ls-accent, #ea580c);
+  --sx-accent-soft: var(--ls-accent-soft, #ffedd5);
+  --sx-accent-ink: var(--ls-active-text, #9a3412);
   --sx-good: #0f7b52;
   --sx-good-soft: #e6f6ef;
   --sx-bad: #b42318;
@@ -753,23 +754,4 @@
 .sx-digest { border-top: 1px solid var(--sx-border); padding-top: 12px; }
 .sx-digest h3 { font-size: 15px; margin: 0 0 4px; }
 .sx-check { display: flex; gap: 8px; align-items: center; font-size: 13px; margin: 10px 0; }
-
-/* Dark parity: the page is standalone, so it follows the OS preference. */
-@media (prefers-color-scheme: dark) {
-  .sx-body {
-    --sx-bg: #12100e;
-    --sx-card: #1c1917;
-    --sx-ink: #f5f5f4;
-    --sx-muted: #a8a29e;
-    --sx-border: #2f2a26;
-    --sx-accent: #fb923c;
-    --sx-accent-soft: #3a2416;
-    --sx-accent-ink: #fed7aa;
-    --sx-good: #4ade80;
-    --sx-good-soft: #14281c;
-    --sx-bad: #f87171;
-    --sx-bad-soft: #2a1414;
-    --sx-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
-  }
-}
 

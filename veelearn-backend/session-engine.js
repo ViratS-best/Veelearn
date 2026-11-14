@@ -431,7 +431,9 @@ function createSessionEngine({ query, qbank, log } = {}) {
 
         for (let i = 0; i < plan.length; i += 1) {
             const p = plan[i];
-            const q = await qbank.pick({ skillId: p.skillId, tier: p.startTier || 1, userId });
+            // A course unit can arrive with its creator's questions already chosen.
+            const seeded = Array.isArray(p.questionIds) ? p.questionIds.filter(Boolean) : [];
+            const q = seeded.length ? null : await qbank.pick({ skillId: p.skillId, tier: p.startTier || 1, userId });
             await query(
                 `INSERT INTO session_focus_items
                     (session_id, skill_id, ord, is_review, target_dots, status, correct_count, attempts, question_ids)
@@ -442,7 +444,7 @@ function createSessionEngine({ query, qbank, log } = {}) {
                     i,
                     p.isReview ? 1 : 0,
                     p.targetDots,
-                    JSON.stringify(q ? [Number(q.id)] : [])
+                    JSON.stringify(seeded.length ? seeded.map(Number) : q ? [Number(q.id)] : [])
                 ]
             );
         }

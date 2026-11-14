@@ -7,7 +7,18 @@
     <meta name="description" content="A short, focused Veelearn practice session: a few skills, one question at a time, and a mastery dot for every gap you close.">
     <meta name="robots" content="noindex, nofollow">
     <link rel="icon" type="image/png" href="VEELEARN.png">
-    <link rel="stylesheet" href="session.css">
+    <link rel="stylesheet" href="styles-learner-shell.css?v=18">
+    <link rel="stylesheet" href="session.css?v=2">
+    <script>
+      // Match the dashboard theme the learner bought in the gem store.
+      (function () {
+        try {
+          document.documentElement.setAttribute('data-learner-theme', localStorage.getItem('learnerDashboardTheme') || 'warm');
+        } catch (_) {
+          document.documentElement.setAttribute('data-learner-theme', 'warm');
+        }
+      })();
+    </script>
 </head>
 <body class="sx-body">
     <div class="sx-app" id="sx-app" aria-busy="true">
@@ -87,6 +98,6 @@
     <script src="annotate.js"></script>
     <script src="board.js"></script>
     <script src="celebrate.js"></script>
-    <script src="session/session-app.js"></script>
+    <script src="session/session-app.js?v=2"></script>
 </body>
 </html>

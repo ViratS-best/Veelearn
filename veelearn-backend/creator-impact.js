@@ -170,7 +170,7 @@ function createCreatorImpact({ query, log } = {}) {
 
     async function loadCourse(courseId) {
         const rows = await query(
-            `SELECT id, title, description, content, creator_id, status, readiness_score, sessions_taught
+            `SELECT id, title, description, content, creator_id, status, readiness_score, sessions_taught, grade_level
              FROM courses WHERE id = ? LIMIT 1`,
             [courseId]
         );
@@ -345,6 +345,137 @@ function createCreatorImpact({ query, log } = {}) {
         };
     }
 
+    const LETTERS = 'ABCDEFGH';
+
+    function optionKey(options, correct) {
+        const want = String(correct || '').replace(/\s+/g, ' ').trim().toLowerCase();
+        if (!want) return null;
+        for (const opt of options) {
+            if (opt.t.replace(/\s+/g, ' ').trim().toLowerCase() === want) return opt.k;
+        }
+        // Already a key letter?
+        if (want.length === 1 && LETTERS.toLowerCase().includes(want)) {
+            const key = want.toUpperCase();
+            return options.some((o) => o.k === key) ? key : null;
+        }
+        return null;
+    }
+
+    /**
+     * A course whose subject is not in the shared skill bank (AP Calculus, for
+     * example) still has its creator's quiz questions. Those are real graded
+     * items with answer keys, so they become the practice bank for this course:
+     * one synthetic skill per unit, questions ingested into qbank_items once
+     * (stem_hash makes it idempotent), and one focus item per unit that carries
+     * all of that unit's questions.
+     */
+    async function ingestCourseQuestions(course, units) {
+        let rows;
+        try {
+            rows = await query(
+                `SELECT id, question_text, question_type, options, correct_answer, explanation, difficulty
+                 FROM course_questions WHERE course_id = ? ORDER BY order_index, id`,
+                [course.id]
+            );
+        } catch (err) {
+            log(`[creator-impact] course_questions unavailable: ${err.message}`);
+            return [];
+        }
+        if (!rows || !rows.length) return [];
+
+        const list = units && units.length ? units : [{ ord: 0, title: course.title, text: '' }];
+        const buckets = list.map(() => []);
+        const parsed = [];
+        rows.forEach((q, i) => {
+            let rawOptions = q.options;
+            if (typeof rawOptions === 'string') {
+                try {
+                    rawOptions = JSON.parse(rawOptions);
+                } catch (_) {
+                    rawOptions = [];
+                }
+            }
+            const options = Array.isArray(rawOptions)
+                ? rawOptions.map((o, k) => ({ k: LETTERS[k], t: String(o == null ? '' : o).trim(), why: '' }))
+                : [];
+            const answer = optionKey(options, q.correct_answer);
+            if (!answer) return; // no comparable key: never ship an ungradeable item
+            const tier = String(q.difficulty || '').toLowerCase() === 'hard' ? 3
+                : String(q.difficulty || '').toLowerCase() === 'medium' ? 2 : 1;
+            const stem = String(q.question_text || '').trim();
+            if (!stem) return;
+            const unitIndex = Math.min(list.length - 1, Math.floor((i * list.length) / rows.length));
+            parsed.push({ q, options, answer, tier, stem, unitIndex, explanation: q.explanation || null });
+        });
+        if (!parsed.length) return [];
+
+        // One synthetic skill per unit so mastery and the focus list stay readable.
+        for (const unit of list) {
+            const code = `course.${course.id}.u${unit.ord}`;
+            await query(
+                `INSERT IGNORE INTO skills (code, track, name, grade_band, order_index, dot_target, intro_md, misconceptions)
+                 VALUES (?, 'course', ?, ?, ?, 2, ?, '[]')`,
+                [
+                    code,
+                    String(unit.title || course.title).slice(0, 160),
+                    course.grade_level != null ? Number(course.grade_level) : null,
+                    unit.ord,
+                    String(unit.text || '').slice(0, FRAME_CHARS) || null
+                ]
+            );
+        }
+        const skillRows = await query(
+            `SELECT id, code FROM skills WHERE code LIKE ?`,
+            [`course.${course.id}.u%`]
+        );
+        const skillByCode = new Map(skillRows.map((r) => [r.code, Number(r.id)]));
+
+        const crypto = require('crypto');
+        for (const item of parsed) {
+            const skillId = skillByCode.get(`course.${course.id}.u${item.unitIndex}`);
+            if (!skillId) continue;
+            const stemHash = crypto.createHash('sha256').update(item.stem).digest('hex');
+            await query(
+                `INSERT IGNORE INTO qbank_items
+                    (skill_id, tier, qtype, stem, stem_hash, options, answer, hints, solution_steps, source, course_id, live)
+                 VALUES (?, ?, 'mcq', ?, ?, ?, ?, NULL, ?, 'course', ?, 1)`,
+                [
+                    skillId,
+                    item.tier,
+                    item.stem,
+                    stemHash,
+                    JSON.stringify(item.options),
+                    item.answer,
+                    JSON.stringify(item.explanation ? [item.explanation] : []),
+                    Number(course.id)
+                ]
+            );
+            const idRow = await query('SELECT id FROM qbank_items WHERE stem_hash = ? LIMIT 1', [stemHash]);
+            const questionId = idRow && idRow[0] ? Number(idRow[0].id) : null;
+            if (questionId) buckets[item.unitIndex].push({ questionId, tier: item.tier });
+        }
+
+        const items = [];
+        buckets.forEach((bucket, unitIndex) => {
+            if (!bucket.length) return;
+            const unit = list[unitIndex];
+            items.push({
+                ord: items.length,
+                skillId: skillByCode.get(`course.${course.id}.u${unit.ord}`),
+                skillName: String(unit.title || course.title),
+                isReview: 0,
+                targetDots: 2,
+                startTier: Math.min(...bucket.map((b) => b.tier)),
+                unitIndex: unit.ord,
+                frame: frameFor(unit),
+                // Seed only the first card: the engine serves the last id in the
+                // array, then picks the next unseen question for this skill itself.
+                questionIds: [bucket[0].questionId]
+            });
+        });
+        return items;
+    }
+
     /**
      * Course plan (§15.2): unit order first, then the weakest skills inside a
      * unit, capped by the time budget the learner picked.
@@ -393,7 +524,7 @@ function createCreatorImpact({ query, log } = {}) {
             .filter((row) => !hitIsMastered(row))
             .sort((a, b) => (a.unitOrd - b.unitOrd) || (a.p - b.p));
 
-        const items = ordered.slice(0, count).map((row, i) => ({
+        let items = ordered.slice(0, count).map((row, i) => ({
             ord: i,
             skillId: row.skill.id,
             skillName: row.skill.name,
@@ -403,6 +534,12 @@ function createCreatorImpact({ query, log } = {}) {
             unitIndex: row.unit ? row.unit.ord : 0,
             frame: frameFor(row.unit)
         }));
+
+        // The shared bank has no skills for this subject (AP Calculus, say), but
+        // the creator's own graded questions still make a real session.
+        if (!items.length) {
+            items = (await ingestCourseQuestions(course, units)).slice(0, count);
+        }
 
         return { course, report, items };
     }
