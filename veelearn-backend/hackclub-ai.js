@@ -1,7 +1,11 @@
 const axios = require('axios');
 
 const HACKCLUB_URL = 'https://ai.hackclub.com/proxy/v1/chat/completions';
-const DEFAULT_MODEL = 'dots-studio/dots-3-note-preview:free';
+/**
+ * The one model the product uses: free, fast on Hack Club, and good at both
+ * structured JSON (notes → course, session scripts) and short prose (tutor).
+ */
+const DEFAULT_MODEL = 'google/gemma-4-26b-a4b-it:free';
 const DEFAULT_JSON_MODEL = DEFAULT_MODEL;
 const DEFAULT_TIMEOUT_MS = 180000;
 
@@ -231,9 +235,12 @@ async function hackClubChatCompletion(messages, opts = {}) {
     }
 
     const model = opts.model || getHackClubModel();
+    // The notes pipeline and the session scripts need JSON; the tutor needs prose.
+    // `jsonMust: false` keeps the prompt untouched for chat-style callers.
+    const jsonMust = opts.jsonMust !== false;
     const packed = opts.fileContext?.annotations
         ? withFileContext(messages, opts.fileContext)
-        : toHackClubMessages(messages);
+        : toHackClubMessages(messages, { jsonMust });
     const hcMessages = packed.messages;
     const hasFiles = messagesHaveFiles(hcMessages) && !opts.fileContext?.annotations;
     const maxTokens = opts.max_tokens ?? 32768;

@@ -16,7 +16,7 @@ const util = require('util');
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const axios = require('axios');
-const { openRouterChatCompletion, openRouterChatCompletionStream, getOpenRouterKeys } = require('./openrouter');
+const { aiChatCompletion, aiChatCompletionStream, getAiKeys } = require('./ai-chat');
 const { createNotesMasterCourseHandlers } = require('./notes-master-course-handlers');
 const { debug, info, warn, error } = require('./logger');
 // path is already required above
@@ -1271,24 +1271,24 @@ const aiNotesCoursePollLimiter = rateLimit({
 });
 
 const createAiTutorHandlers = require('./ai-tutor-handlers');
-const aiTutorHandlers = createAiTutorHandlers({ query, openRouterChatCompletion, apiResponse });
+const aiTutorHandlers = createAiTutorHandlers({ query, aiChatCompletion, apiResponse });
 const createSessionRoutes = require('./session-routes');
 const sessionRoutes = createSessionRoutes({ query, apiResponse, log: { info } });
 
 const createAiEditorHelpHandlers = require('./ai-editor-help-handlers');
 const aiEditorHelpHandlers = createAiEditorHelpHandlers({
     query,
-    openRouterChatCompletion,
+    aiChatCompletion,
     apiResponse,
-    getOpenRouterKeys
+    getAiKeys
 });
 
 const createAiSimulatorHelpHandlers = require('./ai-simulator-help-handlers');
 const aiSimulatorHelpHandlers = createAiSimulatorHelpHandlers({
-    openRouterChatCompletion,
-    openRouterChatCompletionStream,
+    aiChatCompletion,
+    aiChatCompletionStream,
     apiResponse,
-    getOpenRouterKeys
+    getAiKeys
 });
 
 const notesMasterCourse = createNotesMasterCourseHandlers({ query, apiResponse });
@@ -8289,9 +8289,9 @@ Sitemap: https://veelearn.org/sitemap.xml
 
 async function parsePostForCalendarEvents(postId, content, classId, authorId) {
     try {
-        const openRouterKeys = getOpenRouterKeys();
-        if (!openRouterKeys.length) {
-            console.warn('No OpenRouter keys for calendar parsing');
+        const aiKeys = getAiKeys();
+        if (!aiKeys.length) {
+            console.warn('No Hack Club AI key for calendar parsing');
             return;
         }
 
@@ -8319,11 +8319,10 @@ Post: ${content}
 
 If no dates are found, return {"events": []}.`;
 
-        // Try multiple models as fallbacks (openRouterChatCompletion also has built-in fallbacks)
+        // Try multiple models as fallbacks (the client also has built-in fallbacks)
         const models = [
-            process.env.OPENROUTER_MODEL || 'google/gemma-4-31b-it:free',
-            'google/gemma-4-26b-a4b-it:free',
-            'openrouter/free'
+            process.env.HACKCLUBAI_MODEL || 'google/gemma-4-26b-a4b-it:free',
+            'google/gemma-4-26b-a4b-it:free'
         ];
 
         let response = null;
@@ -8332,7 +8331,7 @@ If no dates are found, return {"events": []}.`;
         for (const model of models) {
             try {
                 console.log(`[Calendar AI] Trying model: ${model}`);
-                response = await openRouterChatCompletion([{ role: 'user', content: prompt }], { max_tokens: 500, model });
+                response = await aiChatCompletion([{ role: 'user', content: prompt }], { max_tokens: 500, model });
                 if (response) {
                     console.log(`[Calendar AI] Successfully got response from model: ${model}`);
                     break;
@@ -8413,10 +8412,10 @@ const PORT = process.env.PORT || 3000;
 const server = app.listen(PORT, () => {
     info(`Server running on port ${PORT} `);
     info(`Environment: ${process.env.NODE_ENV || 'development'} `);
-    if (getOpenRouterKeys().length) {
-        debug('✓ OpenRouter API keys loaded for study coach');
+    if (getAiKeys().length) {
+        debug('✓ Hack Club AI key loaded (google/gemma-4-26b-a4b-it:free)');
     } else {
-        console.warn('ℹ️ No OPENROUTER_API_KEYS — study coach disabled until keys are set (see .env.example)');
+        console.warn('ℹ️ No HACKCLUBAI_KEY — AI features disabled until the key is set (see .env.example)');
     }
 });
 

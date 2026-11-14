@@ -536,7 +536,7 @@ async function enrichSuggestSims(actions, queryFn) {
     return enriched;
 }
 
-module.exports = function createAiEditorHelpHandlers({ query, openRouterChatCompletion, apiResponse, getOpenRouterKeys }) {
+module.exports = function createAiEditorHelpHandlers({ query, aiChatCompletion, apiResponse, getAiKeys }) {
     async function loadHistoryMessages(userId, courseId, limit = 20) {
         if (!userId || !courseId) return [];
         try {
@@ -613,7 +613,7 @@ module.exports = function createAiEditorHelpHandlers({ query, openRouterChatComp
         },
 
         async help(req, res) {
-            const keys = typeof getOpenRouterKeys === 'function' ? getOpenRouterKeys() : [];
+            const keys = typeof getAiKeys === 'function' ? getAiKeys() : [];
             if (!keys.length) {
                 return apiResponse(res, 503, 'AI Help is not configured (missing OpenRouter keys)');
             }
@@ -673,30 +673,30 @@ module.exports = function createAiEditorHelpHandlers({ query, openRouterChatComp
             const isSection = mode === 'section';
             let raw;
             try {
-                raw = await openRouterChatCompletion(messages, {
+                raw = await aiChatCompletion(messages, {
                     temperature: 0.2,
                     max_tokens: isSection ? 5000 : 2200,
                     budgetMs: isSection ? 60000 : 40000
                 });
             } catch (e) {
-                if (e.code === 'OPENROUTER_NOT_CONFIGURED') {
+                if (e.code === 'AI_NOT_CONFIGURED') {
                     return apiResponse(res, 503, 'AI Help is not configured (missing OpenRouter keys)');
                 }
-                if (e.code === 'OPENROUTER_RATE_LIMITED' || e.status === 429) {
+                if (e.code === 'AI_RATE_LIMITED' || e.status === 429) {
                     return apiResponse(
                         res,
                         429,
                         'AI is temporarily rate-limited. Please wait about a minute and try again.'
                     );
                 }
-                if (e.code === 'OPENROUTER_MODEL_UNAVAILABLE' || e.status === 404) {
+                if (e.code === 'AI_MODEL_UNAVAILABLE' || e.status === 404) {
                     return apiResponse(
                         res,
                         503,
                         'AI model is temporarily unavailable on OpenRouter. Please try again shortly.'
                     );
                 }
-                if (e.code === 'OPENROUTER_TIMEOUT') {
+                if (e.code === 'AI_TIMEOUT') {
                     return apiResponse(res, 504, 'AI Help timed out. Please try a shorter request.');
                 }
                 console.error('AI editor help OpenRouter error:', e.message);
@@ -723,7 +723,7 @@ module.exports = function createAiEditorHelpHandlers({ query, openRouterChatComp
                             ].join('\n')
                         }
                     ];
-                    const retryRaw = await openRouterChatCompletion(retryMessages, {
+                    const retryRaw = await aiChatCompletion(retryMessages, {
                         temperature: 0.1,
                         max_tokens: 3500,
                         budgetMs: 45000

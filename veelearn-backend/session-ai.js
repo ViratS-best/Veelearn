@@ -264,8 +264,8 @@ function createSessionAI({ query, qbank, chat, log } = {}) {
 
     if (typeof chat !== 'function') {
         // Lazily resolve the shared multi-key client so tests never need one.
-        const openrouter = require('./openrouter');
-        chat = (messages, opts) => openrouter.openRouterChatCompletion(messages, opts);
+        const client = require('./ai-chat');
+        chat = (messages, opts) => client.aiChatCompletion(messages, opts);
     }
     if (typeof qbank !== 'function' && (!qbank || !qbank.getRaw)) {
         qbank = require('./qbank')({ query });
@@ -462,8 +462,13 @@ function createSessionAI({ query, qbank, chat, log } = {}) {
                                   content: 'Your previous reply was not valid JSON. Reply with ONE JSON object only, no prose, no code fence.'
                               }
                           ]);
-                const text = await chat(nudge, { max_tokens: CAPS.maxTokens, temperature: 0.4, budgetMs: CAPS.budgetMs });
-                usedModel = 'openrouter';
+                const text = await chat(nudge, {
+                    max_tokens: CAPS.maxTokens,
+                    temperature: 0.4,
+                    budgetMs: CAPS.budgetMs,
+                    jsonMust: true
+                });
+                usedModel = 'hackclub';
                 const parsed = parseJsonLoose(text);
                 if (!parsed) {
                     failure = 'parse';
@@ -480,11 +485,11 @@ function createSessionAI({ query, qbank, chat, log } = {}) {
                 const code = e && e.code;
                 const text = String((e && e.message) || '');
                 failure =
-                    code === 'OPENROUTER_RATE_LIMITED' || e.status === 429
+                    code === 'AI_RATE_LIMITED' || e.status === 429
                         ? 'rate'
-                        : code === 'OPENROUTER_NOT_CONFIGURED'
+                        : code === 'AI_NOT_CONFIGURED'
                           ? 'unconfigured'
-                          : code === 'OPENROUTER_TIMEOUT' || /budget|timeout|ECONNABORTED|ETIMEDOUT/i.test(text)
+                          : code === 'AI_TIMEOUT' || /budget|timeout|ECONNABORTED|ETIMEDOUT/i.test(text)
                             ? 'timeout'
                             : 'error';
                 info(`[session.ai] ${failure}: ${e && e.message}`);
@@ -587,7 +592,8 @@ function createSessionAI({ query, qbank, chat, log } = {}) {
             const text = await chat(messages, {
                 max_tokens: 160,
                 temperature: 0.4,
-                budgetMs: Number(payload.budgetMs) || CAPS.summaryBudgetMs
+                budgetMs: Number(payload.budgetMs) || CAPS.summaryBudgetMs,
+                jsonMust: true
             });
             const parsed = parseJsonLoose(text);
             const line = prompts.clampText(parsed && parsed.say ? parsed.say : text, 320);
@@ -601,7 +607,7 @@ function createSessionAI({ query, qbank, chat, log } = {}) {
                 line: template,
                 fallback: true,
                 cached: false,
-                bankMode: e && (e.code === 'OPENROUTER_RATE_LIMITED' || e.status === 429),
+                bankMode: e && (e.code === 'AI_RATE_LIMITED' || e.status === 429),
                 aiCalls: callCount
             };
         }

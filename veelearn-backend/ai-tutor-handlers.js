@@ -995,7 +995,7 @@ function parseWidgetsJsonColumn(raw) {
     }
 }
 
-function createAiTutorHandlers({ query, openRouterChatCompletion, apiResponse }) {
+function createAiTutorHandlers({ query, aiChatCompletion, apiResponse }) {
     async function maybeRefreshLearningProfile(userId) {
         const rows = await query(
             'SELECT COUNT(*) AS cnt FROM ai_tutor_messages WHERE user_id = ? AND role = ?',
@@ -1023,7 +1023,7 @@ function createAiTutorHandlers({ query, openRouterChatCompletion, apiResponse })
         ];
 
         try {
-            const s = await openRouterChatCompletion(summaryMessages, { max_tokens: 300, temperature: 0.25 });
+            const s = await aiChatCompletion(summaryMessages, { max_tokens: 300, temperature: 0.25 });
             await query(
                 `INSERT INTO user_learning_profile (user_id, summary_text) VALUES (?, ?)
                  ON DUPLICATE KEY UPDATE summary_text = VALUES(summary_text)`,
@@ -1163,23 +1163,23 @@ function createAiTutorHandlers({ query, openRouterChatCompletion, apiResponse })
 
             let rawReply;
             try {
-                rawReply = await openRouterChatCompletion(messages, {
+                rawReply = await aiChatCompletion(messages, {
                     max_tokens: 1800,
                     temperature: 0.35
                 });
             } catch (e) {
                 console.error('OpenRouter tutor error:', e.message);
-                if (e.code === 'OPENROUTER_NOT_CONFIGURED') {
+                if (e.code === 'AI_NOT_CONFIGURED') {
                     return apiResponse(res, 503, 'Study coach is not configured on this server');
                 }
-                if (e.code === 'OPENROUTER_RATE_LIMITED' || e.status === 429) {
+                if (e.code === 'AI_RATE_LIMITED' || e.status === 429) {
                     return apiResponse(
                         res,
                         429,
                         'Study coach is temporarily rate-limited. Please wait a minute and try again.'
                     );
                 }
-                if (e.code === 'OPENROUTER_MODEL_UNAVAILABLE' || e.status === 404) {
+                if (e.code === 'AI_MODEL_UNAVAILABLE' || e.status === 404) {
                     return apiResponse(
                         res,
                         503,

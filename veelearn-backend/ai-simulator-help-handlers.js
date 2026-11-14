@@ -886,12 +886,12 @@ function finalizeSimResult(raw, message, opts) {
     };
 }
 
-function openRouterErrorResponse(apiResponse, res, e) {
-    console.error('ai simulator help openrouter:', e.message);
-    if (e.code === 'OPENROUTER_NOT_CONFIGURED') {
+function aiErrorResponse(apiResponse, res, e) {
+    console.error('ai simulator help:', e.message);
+    if (e.code === 'AI_NOT_CONFIGURED') {
         return apiResponse(res, 503, 'AI is not configured (missing OpenRouter keys).');
     }
-    if (e.code === 'OPENROUTER_RATE_LIMITED' || e.status === 429) {
+    if (e.code === 'AI_RATE_LIMITED' || e.status === 429) {
         return apiResponse(
             res,
             429,
@@ -912,17 +912,17 @@ function sseWrite(res, event, data) {
 }
 
 module.exports = function createAiSimulatorHelpHandlers({
-    openRouterChatCompletion,
-    openRouterChatCompletionStream,
+    aiChatCompletion,
+    aiChatCompletionStream,
     apiResponse,
-    getOpenRouterKeys
+    getAiKeys
 }) {
     return {
         async help(req, res) {
             const userId = req.user?.id;
             if (!userId) return apiResponse(res, 401, 'Authentication required');
 
-            const keys = typeof getOpenRouterKeys === 'function' ? getOpenRouterKeys() : [];
+            const keys = typeof getAiKeys === 'function' ? getAiKeys() : [];
             if (!keys.length) {
                 return apiResponse(res, 503, 'AI is not configured (missing OpenRouter keys).');
             }
@@ -937,14 +937,14 @@ module.exports = function createAiSimulatorHelpHandlers({
 
             let raw = '';
             try {
-                raw = await openRouterChatCompletion(messages, {
+                raw = await aiChatCompletion(messages, {
                     temperature: 0.25,
                     max_tokens: complex ? 7000 : 5000,
                     budgetMs: 40000,
                     timeoutMs: 45000
                 });
             } catch (e) {
-                return openRouterErrorResponse(apiResponse, res, e);
+                return aiErrorResponse(apiResponse, res, e);
             }
 
             let actions = validateActions(extractActionsAndReply(raw).actions);
@@ -952,7 +952,7 @@ module.exports = function createAiSimulatorHelpHandlers({
             if (!actions.length) {
                 console.warn('[sim-ai] zero actions on first pass; short retry. preview:', String(raw).slice(0, 240));
                 try {
-                    raw = await openRouterChatCompletion(
+                    raw = await aiChatCompletion(
                         [
                             { role: 'system', content: SIM_SYSTEM },
                             {
@@ -982,14 +982,14 @@ module.exports = function createAiSimulatorHelpHandlers({
                 return apiResponse(res, 401, 'Authentication required');
             }
 
-            const keys = typeof getOpenRouterKeys === 'function' ? getOpenRouterKeys() : [];
+            const keys = typeof getAiKeys === 'function' ? getAiKeys() : [];
             if (!keys.length) {
                 return apiResponse(res, 503, 'AI is not configured (missing OpenRouter keys).');
             }
 
             const streamFn =
-                typeof openRouterChatCompletionStream === 'function'
-                    ? openRouterChatCompletionStream
+                typeof aiChatCompletionStream === 'function'
+                    ? aiChatCompletionStream
                     : null;
             if (!streamFn) {
                 return apiResponse(res, 501, 'Streaming not available on this server build.');
@@ -1149,9 +1149,9 @@ module.exports = function createAiSimulatorHelpHandlers({
             } catch (e) {
                 console.error('ai simulator help stream:', e.message);
                 const code =
-                    e.code === 'OPENROUTER_NOT_CONFIGURED'
+                    e.code === 'AI_NOT_CONFIGURED'
                         ? 503
-                        : e.code === 'OPENROUTER_RATE_LIMITED' || e.status === 429
+                        : e.code === 'AI_RATE_LIMITED' || e.status === 429
                           ? 429
                           : 502;
                 sseWrite(res, 'error', {

@@ -29,25 +29,44 @@ function ok(name, cond, detail) {
     failures.push(detail ? `${name} — ${detail}` : name);
 }
 
-// ------------------------------------------------------- key rotation setup
-// The deploy sets OPENROUTER_API_KEYS to a comma-separated list; a 429 moves to
-// the next key before it ever retries the same one.
-const openrouter = require('./openrouter');
-const savedKeys = process.env.OPENROUTER_API_KEYS;
-process.env.OPENROUTER_API_KEYS = ' key-one , key-two,key-three ';
-const parsedKeys = openrouter.getOpenRouterKeys();
-ok('every rotated key is read from OPENROUTER_API_KEYS', JSON.stringify(parsedKeys) === JSON.stringify(['key-one', 'key-two', 'key-three']), JSON.stringify(parsedKeys));
-if (savedKeys === undefined) delete process.env.OPENROUTER_API_KEYS;
-else process.env.OPENROUTER_API_KEYS = savedKeys;
-ok('the default model is the free router', openrouter.getModelCandidates()[0] === 'openrouter/free', openrouter.getModelCandidates()[0]);
-ok('an env model is still tried first when set', (() => {
-    const before = process.env.OPENROUTER_MODEL;
-    process.env.OPENROUTER_MODEL = 'meta/llama-free';
-    const list = openrouter.getModelCandidates({ model: 'custom/model' });
-    if (before === undefined) delete process.env.OPENROUTER_MODEL;
-    else process.env.OPENROUTER_MODEL = before;
-    return list[0] === 'custom/model' && list.includes('meta/llama-free');
+// --------------------------------------------------------- the one provider
+// OpenRouter is retired: every AI call goes through Hack Club AI with gemma.
+const chatClient = require('./ai-chat');
+const hackclub = require('./hackclub-ai');
+
+ok('the shared model is gemma on Hack Club', chatClient.DEFAULT_MODEL === 'google/gemma-4-26b-a4b-it:free', chatClient.DEFAULT_MODEL);
+ok('the Hack Club client defaults to the same model', hackclub.DEFAULT_MODEL === 'google/gemma-4-26b-a4b-it:free', hackclub.DEFAULT_MODEL);
+ok('the endpoint is Hack Club, not OpenRouter', /ai\.hackclub\.com/.test(fs.readFileSync(path.join(__dirname, 'hackclub-ai.js'), 'utf8')));
+ok('no backend file still calls the OpenRouter API', !/openrouter\.ai/i.test(fs.readFileSync(path.join(__dirname, 'ai-chat.js'), 'utf8').replace(/^\s*\*.*$/gm, '')));
+
+const savedHcKey = process.env.HACKCLUBAI_KEY;
+process.env.HACKCLUBAI_KEY = ' hc-test-key ';
+ok('the Hack Club key is read for the config checks', JSON.stringify(chatClient.getAiKeys()) === JSON.stringify(['hc-test-key']), JSON.stringify(chatClient.getAiKeys()));
+if (savedHcKey === undefined) delete process.env.HACKCLUBAI_KEY;
+else process.env.HACKCLUBAI_KEY = savedHcKey;
+
+ok('no key means an empty list', (() => {
+    const before = process.env.HACKCLUBAI_KEY;
+    delete process.env.HACKCLUBAI_KEY;
+    const list = chatClient.getAiKeys();
+    if (before !== undefined) process.env.HACKCLUBAI_KEY = before;
+    return list.length === 0;
 })());
+
+const savedModel = process.env.HACKCLUBAI_MODEL;
+process.env.HACKCLUBAI_MODEL = 'google/other-model:free';
+const candidateList = chatClient.getModelCandidates({ model: 'explicit/model' });
+ok('an explicit model is tried first', candidateList[0] === 'explicit/model', candidateList.join(','));
+ok('the env model and gemma are both candidates', candidateList.includes('google/other-model:free') && candidateList.includes('google/gemma-4-26b-a4b-it:free'));
+if (savedModel === undefined) delete process.env.HACKCLUBAI_MODEL;
+else process.env.HACKCLUBAI_MODEL = savedModel;
+
+// Prose callers must not be told to answer in JSON; the session scripts must.
+const prosePacking = hackclub.toHackClubMessages([{ role: 'system', content: 'You are a tutor.' }, { role: 'user', content: 'help' }], { jsonMust: false });
+const jsonPacking = hackclub.toHackClubMessages([{ role: 'user', content: 'give me a script' }], { jsonMust: true });
+ok('prose mode does not force JSON', !/MUST use JSON/i.test(JSON.stringify(prosePacking.messages)));
+ok('json mode does force JSON', /MUST use JSON/i.test(JSON.stringify(jsonPacking.messages)));
+ok('system text survives as instructions', /INSTRUCTIONS/.test(JSON.stringify(prosePacking.messages)));
 
 // ------------------------------------------------------------ frontend parity
 const annotateSrc = fs.readFileSync(path.join(FRONTEND, 'annotate.js'), 'utf8');
@@ -329,7 +348,7 @@ ok('a finished item advances even if the model asks to stay', createSessionAI.de
     ok('a different misconception is not served from cache', other.cached === false && chatCalls === 2);
 
     // ---- 429 storm: bank mode, still playable
-    const rate = Object.assign(new Error('rate limited'), { code: 'OPENROUTER_RATE_LIMITED', status: 429 });
+    const rate = Object.assign(new Error('rate limited'), { code: 'AI_RATE_LIMITED', status: 429 });
     const storm = aiWith(scriptedChat([rate]));
     const degraded = await storm.ai.turn({ userId: 3, sessionId: 91, kind: 'reteach', questionId: 501, distractor: 'B', attempts: 2 });
     ok('a 429 still answers', degraded.ok === true);
@@ -346,7 +365,7 @@ ok('a finished item advances even if the model asks to stay', createSessionAI.de
     ok('a cached fallback still looks the same', degradedAgain.say === degraded.say);
 
     // ---- a budget overrun is reported as a timeout, not an unknown error
-    const slow = Object.assign(new Error('OpenRouter request budget exceeded'), { code: 'OPENROUTER_TIMEOUT', status: 504 });
+    const slow = Object.assign(new Error('OpenRouter request budget exceeded'), { code: 'AI_TIMEOUT', status: 504 });
     const timedOut = aiWith(scriptedChat([slow]));
     const timeoutTurn = await timedOut.ai.turn({ userId: 3, sessionId: 103, kind: 'reteach', questionId: 501, distractor: 'D', attempts: 2 });
     ok('a slow model is a timeout', timeoutTurn.fallback === true && timeoutTurn.reason === 'timeout', timeoutTurn.reason);
@@ -355,7 +374,7 @@ ok('a finished item advances even if the model asks to stay', createSessionAI.de
     ok('a timeout reports the call it spent', timeoutTurn.aiCalls === 1, String(timeoutTurn.aiCalls));
 
     // ---- no key at all
-    const noKey = aiWith(scriptedChat([Object.assign(new Error('nope'), { code: 'OPENROUTER_NOT_CONFIGURED' })]));
+    const noKey = aiWith(scriptedChat([Object.assign(new Error('nope'), { code: 'AI_NOT_CONFIGURED' })]));
     const unconfigured = await noKey.ai.turn({ userId: 3, sessionId: 92, kind: 'reteach', questionId: 501, distractor: 'B' });
     ok('a missing key is bank mode, not an error', unconfigured.ok === true && unconfigured.bankMode === true);
 
