@@ -149,6 +149,26 @@ function createQBank({ query }) {
         return rows[0]?.c || 0;
     }
 
+    /**
+     * The next card for a skill that has not been served in this session yet.
+     * Course-seeded units can be small, and qbank.pick can legitimately hand
+     * back the card that was just answered; this keeps the learner moving.
+     */
+    async function pickUnserved({ skillId, exclude }) {
+        const ids = (exclude || []).map(Number).filter((n) => n > 0);
+        const notIn = ids.length ? `AND q.id NOT IN (${ids.map(() => '?').join(',')})` : '';
+        const rows = await query(
+            `SELECT q.id, q.skill_id, q.tier, q.qtype, q.stem, q.options, q.answer,
+                    q.hints, q.solution_steps, q.visual
+             FROM qbank_items q
+             WHERE q.skill_id = ? AND q.live = TRUE ${notIn}
+             ORDER BY q.tier ASC, q.calibration_p DESC, q.id ASC
+             LIMIT 1`,
+            [skillId, ...ids]
+        );
+        return rows[0] || null;
+    }
+
     return {
         countForSkill,
         getRaw,
@@ -156,6 +176,7 @@ function createQBank({ query }) {
         getSkillByCode,
         listSkills,
         pick,
+        pickUnserved,
         solutionFor,
         toCard,
         tracks,

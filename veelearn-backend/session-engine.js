@@ -610,7 +610,7 @@ function createSessionEngine({ query, qbank, log } = {}) {
         const need = mastery.correctsNeeded(Number(item.target_dots || 2));
         const correctCount = Number(item.correct_count || 0) + (correct ? 1 : 0);
         const attempts = Number(item.attempts || 0) + 1;
-        const itemDone = correct && correctCount >= need;
+        let itemDone = correct && correctCount >= need;
 
         let next = 'retry';
         let nextQuestion = null;
@@ -622,6 +622,18 @@ function createSessionEngine({ query, qbank, log } = {}) {
                 next = 'more';
                 const tier = Math.min(4, Number(raw.tier) + 1);
                 nextQuestion = await qbank.pick({ skillId: raw.skill_id, tier, userId });
+                if (!nextQuestion || parseJson(item.question_ids, []).map(Number).includes(Number(nextQuestion.id))) {
+                    nextQuestion = await qbank.pickUnserved({
+                        skillId: raw.skill_id,
+                        exclude: parseJson(item.question_ids, [])
+                    });
+                    // Nothing new in this skill: the unit is finished, don't loop the
+                    // same card at the learner.
+                    if (!nextQuestion) {
+                        itemDone = true;
+                        next = 'advance';
+                    }
+                }
             }
         } else if (attempts >= 2) {
             // Taught once already — hand back a variant one tier easier.
