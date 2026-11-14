@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Veelearn study buddy">
+  <!--
+    The brain mascot as a rig, not a picture. Every part has an id so mascot.js can
+    target pupils, brows, mouth, arms and pencil directly instead of swapping files.
+    Units are rig units (the dock displays it around 112 px, so 1 unit ≈ 0.88 px).
+  -->
+  <defs>
+    <linearGradient id="rigGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFB86B"/>
+      <stop offset="100%" stop-color="#F97316"/>
+    </linearGradient>
+    <linearGradient id="rigGradDark" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FB923C"/>
+      <stop offset="100%" stop-color="#EA580C"/>
+    </linearGradient>
+    <filter id="rigSoft" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2.2" flood-color="#9A3412" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+
+  <g id="m-root">
+    <ellipse id="m-shadow" cx="64" cy="119" rx="26" ry="4.6" fill="#1a1a1a" opacity="0.09"/>
+
+    <g id="m-body">
+      <!-- arms (rotate around the shoulder) -->
+      <g id="m-arm-l"><path d="M31 86 q-13 5 -15 17" stroke="#F97316" stroke-width="7.5" stroke-linecap="round" fill="none"/></g>
+      <g id="m-arm-r"><path d="M97 86 q13 5 15 17" stroke="#F97316" stroke-width="7.5" stroke-linecap="round" fill="none"/></g>
+
+      <!-- pencil held by the right hand -->
+      <g id="m-pencil">
+        <rect x="106" y="99" width="4.4" height="19" rx="1.8" fill="#FBBF24"/>
+        <path d="M106 118 h4.4 l-2.2 4.4z" fill="#1f2937"/>
+        <rect x="106" y="99" width="4.4" height="3" rx="1.4" fill="#F59E0B"/>
+      </g>
+
+      <!-- torso -->
+      <ellipse id="m-torso" cx="64" cy="81" rx="33" ry="29" fill="url(#rigGradDark)" filter="url(#rigSoft)"/>
+
+      <!-- head -->
+      <rect id="m-head" x="30" y="19" width="68" height="55" rx="26" fill="url(#rigGrad)"/>
+      <path d="M46 29 q7 6 0 12 M62 27 q8 8 0 13 M78 29 q7 6 0 12"
+            stroke="#ffffff" stroke-opacity="0.32" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+
+      <!-- eyes: white, then a smile arc used when happy -->
+      <ellipse id="m-eye-l" cx="49.5" cy="48" rx="9" ry="9.2" fill="#ffffff"/>
+      <ellipse id="m-eye-r" cx="78.5" cy="48" rx="9" ry="9.2" fill="#ffffff"/>
+      <path id="m-smile-l" class="rig-smile" d="M42 49 q7.5 -7 15 0" fill="none" stroke="#1f2937" stroke-width="3" stroke-linecap="round"/>
+      <path id="m-smile-r" class="rig-smile" d="M71 49 q7.5 -7 15 0" fill="none" stroke="#1f2937" stroke-width="3" stroke-linecap="round"/>
+
+      <!-- pupils: translated each frame by mascot.js -->
+      <circle id="m-pupil-l" class="rig-pupil" cx="49.5" cy="48" r="4.3" fill="#1f2937"/>
+      <circle id="m-pupil-r" class="rig-pupil" cx="78.5" cy="48" r="4.3" fill="#1f2937"/>
+
+      <!-- brows -->
+      <path id="m-brow-l" d="M41.5 35.5 q7.5 -4 15 0" fill="none" stroke="#9A3412" stroke-width="2.6" stroke-linecap="round"/>
+      <path id="m-brow-r" d="M71.5 35.5 q7.5 -4 15 0" fill="none" stroke="#9A3412" stroke-width="2.6" stroke-linecap="round"/>
+
+      <!-- mouth: path swappped by mood -->
+      <path id="m-mouth" d="M54 61.5 Q64 68 74 61.5" fill="none" stroke="#1f2937" stroke-width="3" stroke-linecap="round"/>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,261 @@
+/**
+ * Veelearn Auto-Save CSS
+ * Styles for auto-save indicator and notifications
+ */
+
+.auto-save-indicator {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 9998;
+    transition: all 0.3s ease;
+}
+
+.save-status {
+    font-weight: 600;
+    color: #6b7280;
+}
+
+.save-status.saved {
+    color: #10b981;
+}
+
+.save-status.saving {
+    color: #667eea;
+}
+
+.save-status.save-failed {
+    color: #ef4444;
+}
+
+.save-status.unsaved-changes {
+    color: #f59e0b;
+}
+
+.save-timestamp {
+    color: #9ca3af;
+    font-size: 12px;
+}
+
+.save-notification {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    background: #10b981;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 9999;
+    animation: notificationSlideIn 0.3s ease-out;
+}
+
+.save-notification.fade-out {
+    opacity: 0;
+    transform: translateX(20px);
+    transition: all 0.3s ease;
+}
+
+@keyframes notificationSlideIn {
+    from {
+        transform: translateX(100px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Conflict modal */
+.conflict-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10003;
+    backdrop-filter: blur(4px);
+}
+
+.conflict-content {
+    background: white;
+    border-radius: 12px;
+    max-width: 500px;
+    width: 90%;
+    padding: 24px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: conflictModalSlideIn 0.3s ease-out;
+}
+
+@keyframes conflictModalSlideIn {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.conflict-content h2 {
+    margin: 0 0 12px 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #991b1b;
+}
+
+.conflict-content p {
+    margin: 0 0 20px 0;
+    color: #6b7280;
+    line-height: 1.5;
+}
+
+.conflict-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.conflict-btn {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.conflict-btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.conflict-btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.conflict-btn-secondary {
+    background: white;
+    color: #374151;
+    border: 1px solid #d1d5db;
+}
+
+.conflict-btn-secondary:hover {
+    background: #f3f4f6;
+    border-color: #9ca3af;
+}
+
+.conflict-btn-tertiary {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.conflict-btn-tertiary:hover {
+    background: #e5e7eb;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .auto-save-indicator {
+        background: #1f2937;
+        border-color: #4b5563;
+    }
+
+    .save-status {
+        color: #9ca3af;
+    }
+
+    .save-status.saved {
+        color: #34d399;
+    }
+
+    .save-status.saving {
+        color: #818cf8;
+    }
+
+    .save-status.save-failed {
+        color: #f87171;
+    }
+
+    .save-status.unsaved-changes {
+        color: #fbbf24;
+    }
+
+    .save-timestamp {
+        color: #6b7280;
+    }
+
+    .conflict-content {
+        background: #1f2937;
+    }
+
+    .conflict-content h2 {
+        color: #fecaca;
+    }
+
+    .conflict-content p {
+        color: #9ca3af;
+    }
+
+    .conflict-btn-secondary {
+        background: #374151;
+        color: #e5e7eb;
+        border-color: #4b5563;
+    }
+
+    .conflict-btn-secondary:hover {
+        background: #4b5563;
+        border-color: #6b7280;
+    }
+
+    .conflict-btn-tertiary {
+        background: #374151;
+        color: #e5e7eb;
+    }
+
+    .conflict-btn-tertiary:hover {
+        background: #4b5563;
+    }
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+    .auto-save-indicator {
+        bottom: 16px;
+        right: 16px;
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+
+    .save-notification {
+        top: 70px;
+        right: 16px;
+        padding: 10px 16px;
+        font-size: 13px;
+    }
+
+    .conflict-content {
+        width: 95%;
+        margin: 16px;
+        padding: 20px;
+    }
+}

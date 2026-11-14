@@ -1,0 +1,913 @@
+/**
+ * Learner gamification: gems, streaks, store, avatar, AI dashboard home, celebrations.
+ */
+(function () {
+  let profileCache = null;
+  let aiHistoryLoaded = false;
+  /** @type {Array|null} Cached enhanced enrollments for instant Enrolled pane */
+  let enrollmentsCache = null;
+  /** @type {Promise<Array>|null} In-flight prefetch so renderEnrolled can await it */
+  let enrollmentsPrefetch = null;
+
+  function apiBase() {
+    return typeof window.API_BASE_URL === 'string' ? window.API_BASE_URL : '';
+  }
+
+  function token() {
+    return localStorage.getItem('token') || (typeof window.authToken === 'string' ? window.authToken : '');
+  }
+
+  async function api(path, opts = {}) {
+    const headers = Object.assign(
+      { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
+      opts.headers || {}
+    );
+    const res = await fetch(`${apiBase()}${path}`, {
+      ...opts,
+      headers,
+      credentials: 'include'
+    });
+    const data = await res.json().catch(() => ({}));
+    return data;
+  }
+
+  /**
+   * Fetch enrollments once and cache. Falls back to basic list only when enhanced fails
+   * (not when enhanced legitimately returns an empty array).
+   * @param {{ force?: boolean }} [opts]
+   * @returns {Promise<Array>}
+   */
+  async function fetchEnrollments(opts = {}) {
+    if (!opts.force && enrollmentsCache) return enrollmentsCache;
+    if (!opts.force && enrollmentsPrefetch) return enrollmentsPrefetch;
+
+    enrollmentsPrefetch = (async () => {
+      try {
+        const data = await api('/api/users/enrollments/enhanced');
+        if (data.success) {
+          enrollmentsCache = data.data || [];
+          return enrollmentsCache;
+        }
+        // Enhanced failed — try basic list once
+        const fallback = await api('/api/users/enrollments');
+        if (fallback.success) {
+          enrollmentsCache = fallback.data || [];
+          return enrollmentsCache;
+        }
+        enrollmentsCache = [];
+        return enrollmentsCache;
+      } catch (_) {
+        enrollmentsCache = enrollmentsCache || [];
+        return enrollmentsCache;
+      } finally {
+        enrollmentsPrefetch = null;
+      }
+    })();
+
+    return enrollmentsPrefetch;
+  }
+
+  function paintEnrolledList(courses) {
+    const list = document.getElementById('ls-enrolled-ul');
+    if (!list) return;
+    if (!courses.length) {
+      list.innerHTML = '<li>No enrollments yet — ask the Dashboard coach to suggest a course!</li>';
+      return;
+    }
+    list.innerHTML = courses
+      .map((c) => {
+        const title = c.title || c.course_title || 'Course';
+        const id = c.course_id || c.id;
+        const total = c.total_units;
+        const done = c.completed_units;
+        let pct = null;
+        if (c.progress_percentage != null && c.progress_percentage !== '') {
+          pct = Math.round(Number(c.progress_percentage));
+        } else if (total) {
+          pct = Math.round((Number(done || 0) / Number(total)) * 100);
+        }
+        if (pct != null && !Number.isFinite(pct)) pct = null;
+        const prog = pct != null
+          ? `<div class="ls-enroll-prog"><span>${pct}%</span><div class="ls-enroll-track"><div class="ls-enroll-fill" style="width:${pct}%"></div></div></div>`
+          : '';
+        return `<li><div><strong>${esc(title)}</strong>${prog}</div>
+          <button type="button" class="ls-btn-primary" data-open="${id}">Open</button></li>`;
+      })
+      .join('');
+    list.querySelectorAll('[data-open]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = parseInt(btn.getAttribute('data-open'), 10);
+        window.LearnerShell?.hideLearnerShell?.();
+        try {
+          const detail = await api(`/api/courses/${id}`);
+          if (detail.success && detail.data && typeof window.__veelearnPushCourse === 'function') {
+            window.__veelearnPushCourse(detail.data);
+          }
+        } catch (_) { /* ignore */ }
+        if (typeof window.viewCourse === 'function') window.viewCourse(id);
+      });
+    });
+  }
+
+  function asset(key) {
+    const base = window.LearnerShell?.ASSET || 'assets/learner';
+    return `${base}/${key}.svg`;
+  }
+
+  function itemAsset(itemId) {
+    const map = {
+      hat_blue: 'hat-blue',
+      hat_crown: 'hat-crown',
+      hat_gold: 'hat-gold',
+      hat_wizard: 'hat-wizard',
+      glasses_round: 'glasses-round',
+      glasses_gold: 'glasses-gold',
+      glasses_star: 'glasses-star',
+      shirt_green: 'shirt-green',
+      shirt_hero: 'shirt-hero',
+      shirt_royal: 'shirt-royal',
+      shirt_armor: 'shirt-armor',
+      cape_red: 'cape-red',
+      cape_shadow: 'cape-shadow',
+      cape_galaxy: 'cape-galaxy',
+      acc_star: 'acc-star',
+      acc_diamond: 'acc-diamond',
+      acc_wings: 'acc-wings',
+      theme_warm: 'gem',
+      theme_blue: 'gem',
+      theme_red: 'gem',
+      theme_cool: 'gem',
+      theme_happy: 'gem',
+      theme_hacker: 'gem',
+      theme_superhero: 'gem',
+      theme_midnight: 'gem',
+      theme_gold: 'gem',
+      theme_galaxy: 'gem'
+    };
+    return asset(map[itemId] || 'gem');
+  }
+
+  function esc(s) {
+    return window.LearnerShell?.esc ? window.LearnerShell.esc(s) : String(s ?? '');
+  }
+
+  function renderAvatarInto(container, cfg) {
+    if (!container) return;
+    const c = cfg || {};
+    const layers = ['cape', 'base', 'shirt', 'hat', 'glasses', 'accessory'];
+    const html = [];
+    layers.forEach((slot) => {
+      if (slot === 'base') {
+        html.push(`<img src="${asset('avatar-base')}" alt="" />`);
+        return;
+      }
+      const id = c[slot];
+      if (!id) return;
+      html.push(`<img src="${itemAsset(id)}" alt="" />`);
+    });
+    container.innerHTML = html.join('');
+  }
+
+  async function refreshProfile() {
+    const data = await api('/api/learner/profile');
+    if (data.success) {
+      profileCache = data.data;
+      window.LearnerShell?.updateProfileUI?.(profileCache);
+    }
+    return profileCache;
+  }
+
+  async function checkin() {
+    const data = await api('/api/learner/checkin', { method: 'POST', body: '{}' });
+    if (data.success && data.data) {
+      applyAward(data.data);
+      await refreshProfile();
+    }
+    return data;
+  }
+
+  function showGemToast(amount, label) {
+    document.querySelectorAll('.ls-gem-toast').forEach((el) => el.remove());
+    const toast = document.createElement('div');
+    toast.className = 'ls-gem-toast';
+    toast.innerHTML = `<img src="${asset('gem')}" alt="" /><span>+${amount} gems${label ? ` — ${esc(label)}` : ''}</span>`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2800);
+  }
+
+  function showXpToast(amount, label) {
+    const toast = document.createElement('div');
+    toast.className = 'ls-gem-toast ls-xp-toast';
+    toast.innerHTML = `<span>+${amount} XP${label ? ` — ${esc(label)}` : ''}</span>`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2600);
+  }
+
+  function showBadgeToast(badge) {
+    const toast = document.createElement('div');
+    toast.className = 'ls-gem-toast';
+    const label = typeof badge === 'string' ? badge : badge.label || badge.id;
+    toast.innerHTML = `<span>Badge unlocked: ${esc(label)}</span>`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3200);
+  }
+
+  function applyAward(data) {
+    if (!data) return;
+    if (profileCache) {
+      if (typeof data.gems === 'number') profileCache.gems = data.gems;
+      if (typeof data.xp === 'number') profileCache.xp = data.xp;
+      if (typeof data.level === 'number') profileCache.level = data.level;
+      if (typeof data.lifetimeGems === 'number') profileCache.lifetimeGems = data.lifetimeGems;
+    }
+    window.LearnerShell?.updateProfileUI?.(profileCache);
+    if (data.xpAwarded > 0) showXpToast(data.xpAwarded);
+    if (data.gemsAwarded > 0) showGemToast(data.gemsAwarded);
+    (data.newBadges || []).forEach(showBadgeToast);
+  }
+
+  function celebrateCorrect() {
+    let root = document.getElementById('ls-celebrate');
+    if (!root) {
+      root = document.createElement('div');
+      root.id = 'ls-celebrate';
+      document.body.appendChild(root);
+    }
+    root.innerHTML = '';
+    const emojis = ['🎉', '✨', '😄', '🌟', '💛', '🥳', '🔥', '👏', '🌈', '⭐'];
+    for (let i = 0; i < 28; i++) {
+      const span = document.createElement('span');
+      span.className = 'ls-emoji-particle';
+      span.textContent = emojis[i % emojis.length];
+      const angle = (Math.PI * 2 * i) / 28;
+      const dist = 90 + Math.random() * 160;
+      span.style.setProperty('--dx', `${Math.cos(angle) * dist}px`);
+      span.style.setProperty('--dy', `${Math.sin(angle) * dist}px`);
+      span.style.animationDelay = `${0.05 + Math.random() * 0.45}s`;
+      root.appendChild(span);
+    }
+    setTimeout(() => {
+      if (root) root.innerHTML = '';
+    }, 3600);
+  }
+
+  async function onQuizCorrect(questionId, serverData) {
+    celebrateCorrect();
+    if (serverData && (serverData.xpAwarded || serverData.gemsAwarded)) {
+      applyAward(serverData);
+      return;
+    }
+    try {
+      const data = await api('/api/learner/reward-quiz', {
+        method: 'POST',
+        body: JSON.stringify({ questionId })
+      });
+      if (data.success && data.data) applyAward(data.data);
+    } catch (e) {
+      console.error('reward-quiz', e);
+    }
+  }
+
+  function typesetCoachBubble(el) {
+    if (!el) return;
+    const eng = window.VeelearnWidgetEngine;
+    if (eng && typeof eng.typesetMath === 'function') {
+      eng.typesetMath(el);
+      return;
+    }
+    if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
+      window.MathJax.typesetPromise([el]).catch(() => {});
+    }
+  }
+
+  async function ensureWidgetEngine() {
+    if (window.VeelearnWidgetEngine) return window.VeelearnWidgetEngine;
+    if (typeof window.__veelearnLoadHeavy === 'function') {
+      await window.__veelearnLoadHeavy('widgets');
+    }
+    return window.VeelearnWidgetEngine;
+  }
+
+  async function mountCoachWidgets(host, widgets, opts) {
+    if (!host || !widgets || !widgets.length) return;
+    const eng = await ensureWidgetEngine();
+    if (!eng || typeof eng.mountWidgets !== 'function') return;
+    await eng.mountWidgets(host, widgets, opts || {});
+  }
+
+  function showDashboardTyping() {
+    const box = document.getElementById('ls-ai-messages');
+    if (!box) return;
+    removeDashboardTyping();
+    const wrap = document.createElement('div');
+    wrap.id = 'ls-ai-typing';
+    wrap.classList.add('ls-bubble-coach');
+    wrap.style.marginBottom = '10px';
+    wrap.style.padding = '10px 12px';
+    wrap.style.borderRadius = '12px';
+    wrap.style.marginRight = '24px';
+    wrap.setAttribute('aria-busy', 'true');
+    wrap.innerHTML =
+      '<strong>Coach</strong><div class="ls-ai-typing-dots" aria-hidden="true"><span>.</span><span>.</span><span>.</span></div>';
+    box.appendChild(wrap);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function removeDashboardTyping() {
+    document.getElementById('ls-ai-typing')?.remove();
+  }
+
+  async function appendAiBubble(role, text, widgets, mountOpts) {
+    const box = document.getElementById('ls-ai-messages');
+    if (!box) return null;
+    const opts = mountOpts || {};
+    const instant = !!opts.instant || role === 'user';
+    const wrap = document.createElement('div');
+    wrap.style.marginBottom = '10px';
+    wrap.style.padding = '10px 12px';
+    wrap.style.borderRadius = '12px';
+    wrap.style.whiteSpace = 'pre-wrap';
+    const body = document.createElement('div');
+    body.className = 'ls-bubble-body';
+    if (role === 'user') {
+      wrap.classList.add('ls-bubble-user');
+      wrap.style.marginLeft = '24px';
+      wrap.innerHTML = '<strong>You</strong>';
+    } else {
+      wrap.classList.add('ls-bubble-coach');
+      wrap.style.marginRight = '24px';
+      wrap.innerHTML = '<strong>Coach</strong>';
+    }
+    wrap.appendChild(body);
+    const widgetHost = document.createElement('div');
+    widgetHost.className = 'vl-widget-host';
+    wrap.appendChild(widgetHost);
+    box.appendChild(wrap);
+    box.scrollTop = box.scrollHeight;
+
+    if (instant || !window.VeelearnTypewriter) {
+      body.textContent = text == null ? '' : String(text);
+    } else {
+      await window.VeelearnTypewriter.typeIntoElement(body, text, {
+        scrollParent: box,
+        msPerChar: window.VeelearnTypewriter.DEFAULT_MS_PER_CHAR
+      });
+    }
+
+    typesetCoachBubble(body);
+    if (role !== 'user' && widgets && widgets.length) {
+      await mountCoachWidgets(widgetHost, widgets, opts);
+      box.scrollTop = box.scrollHeight;
+    }
+    return wrap;
+  }
+
+  function renderRecs(recs) {
+    const el = document.getElementById('ls-ai-recs');
+    if (!el) return;
+    if (!recs || !recs.length) {
+      el.innerHTML = '';
+      return;
+    }
+    el.innerHTML = recs
+      .map((r) => {
+        const meta = [
+          r.courseType ? String(r.courseType) : null,
+          r.gradeLevel != null ? `Grade ${r.gradeLevel}` : null,
+          typeof r.likeCount === 'number' ? `${r.likeCount} likes` : null
+        ]
+          .filter(Boolean)
+          .join(' · ');
+        return `
+      <div class="ls-rec-card">
+        <strong>${esc(r.title)}</strong>
+        ${meta ? `<div style="color:var(--ls-muted);font-size:0.8rem;margin-top:2px;">${esc(meta)}</div>` : ''}
+        <div style="color:var(--ls-muted);font-size:0.9rem;">${esc(r.reason || '')}</div>
+        <div class="ls-rec-actions">
+          <button type="button" class="ls-btn-primary" data-enroll="${r.courseId}">View / Enroll</button>
+          <button type="button" class="ls-btn-soft" data-like="${r.courseId}">Like this course</button>
+        </div>
+      </div>`;
+      })
+      .join('');
+
+    el.querySelectorAll('[data-enroll]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = parseInt(btn.getAttribute('data-enroll'), 10);
+        try {
+          // Prefer enroll then open; fall back to view if already enrolled
+          const enrollRes = await api(`/api/courses/${id}/enroll`, { method: 'POST', body: '{}' });
+          if (!enrollRes.success && !(enrollRes.message || '').toLowerCase().includes('already')) {
+            // Try master enroll
+            await api(`/api/courses/${id}/enroll-master`, { method: 'POST', body: '{}' });
+          }
+        } catch (_) { /* ignore */ }
+        window.LearnerShell?.hideLearnerShell?.();
+        if (typeof window.viewCourse === 'function') {
+          try {
+            const detail = await api(`/api/courses/${id}`);
+            if (detail.success && detail.data && typeof window.__veelearnPushCourse === 'function') {
+              window.__veelearnPushCourse(detail.data);
+            }
+          } catch (_) { /* ignore */ }
+          window.viewCourse(id);
+        }
+      });
+    });
+    el.querySelectorAll('[data-like]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = parseInt(btn.getAttribute('data-like'), 10);
+        try {
+          await api(`/api/courses/${id}/like`, { method: 'POST', body: '{}' });
+          btn.textContent = 'Liked!';
+          btn.disabled = true;
+        } catch (_) {
+          /* ignore */
+        }
+      });
+    });
+  }
+
+  async function loadDashboardAi() {
+    const box = document.getElementById('ls-ai-messages');
+    if (!box) return;
+    if (aiHistoryLoaded && box.childElementCount) return;
+    box.innerHTML = '';
+    try {
+      const data = await api('/api/ai/tutor/history?limit=30');
+      if (data.success && Array.isArray(data.data)) {
+        for (const m of data.data) {
+          await appendAiBubble(
+            m.role === 'user' ? 'user' : 'assistant',
+            m.content,
+            m.widgets || [],
+            { skipDrawing: true, instant: true }
+          );
+        }
+      }
+      if (!box.childElementCount) {
+        await appendAiBubble(
+          'assistant',
+          "Hi! Tell me what you want to learn, or ask a question — I'll help and can suggest great courses (I'll pick top liked ones when there are a few that fit).",
+          null,
+          { instant: true }
+        );
+      }
+      aiHistoryLoaded = true;
+    } catch (e) {
+      await appendAiBubble('assistant', 'Welcome! Ask me anything about what you want to study.', null, {
+        instant: true
+      });
+    }
+  }
+
+  async function sendDashboardAi() {
+    const input = document.getElementById('ls-ai-input');
+    const sendBtn = document.getElementById('ls-ai-send');
+    if (!input) return;
+    const message = input.value.trim();
+    if (!message) return;
+    input.value = '';
+    appendAiBubble('user', message);
+    if (sendBtn) sendBtn.disabled = true;
+    showDashboardTyping();
+    try {
+      const data = await api('/api/ai/tutor/chat', {
+        method: 'POST',
+        body: JSON.stringify({ message })
+      });
+      removeDashboardTyping();
+      if (data.success) {
+        await appendAiBubble('assistant', data.data.reply || '…', data.data.widgets || []);
+        renderRecs(data.data.recommendations || []);
+      } else {
+        await appendAiBubble('assistant', data.message || 'Sorry, I could not reply just now.');
+      }
+    } catch (e) {
+      removeDashboardTyping();
+      await appendAiBubble('assistant', 'Network error — please try again.');
+    } finally {
+      if (sendBtn) sendBtn.disabled = false;
+    }
+  }
+
+  const BADGE_HOW = {
+    first: 'Answer any quiz question correctly once.',
+    streak3: 'Check in on 3 different days in a row (the streak counter on your dashboard).',
+    streak7: 'Keep a 7-day check-in streak. Longest streak counts even if you break later.',
+    streak30: 'Keep a 30-day check-in streak.',
+    streak100: 'Check in on 100 days in a row.',
+    quiz20: 'Get 20 quiz questions correct in total (not in a row).',
+    quiz100: 'Get 100 quiz questions correct.',
+    quiz500: 'Get 500 quiz questions correct.',
+    quiz1000: 'Get 1,000 quiz questions correct.',
+    quiz10000: 'Get 10,000 quiz questions correct.',
+    gems100: 'Earn 100 gems over your lifetime (spending them does not reset this).',
+    gems500: 'Earn 500 gems over your lifetime.',
+    gems1000: 'Earn 1,000 gems over your lifetime.',
+    gems5000: 'Earn 5,000 gems over your lifetime.',
+    domain_master: 'Finish any unit in a Master Course.',
+    units5: 'Complete 5 units in Master Courses.',
+    units25: 'Complete 25 units in Master Courses.',
+    masters3: 'Finish 3 entire Master Courses.',
+    zero_error: 'Get 5 quiz questions correct in a row without a miss.',
+    quiz_row_10: 'Get 10 quiz questions correct in a row.',
+    quiz_row_25: 'Get 25 quiz questions correct in a row.',
+    quiz_row_50: 'Get 50 quiz questions correct in a row.',
+    stretch_champion: 'Answer 3 Stretch (SAT / Honors) questions correctly.',
+    stretch10: 'Answer 10 Stretch questions correctly.',
+    stretch50: 'Answer 50 Stretch questions correctly.',
+    level5: 'Reach XP level 5.',
+    level10: 'Reach XP level 10.',
+    level25: 'Reach XP level 25.',
+    inventory10: 'Own 10 items from the gem shop.',
+    inventory20: 'Own 20 items from the gem shop.',
+    transformation_virtuoso: 'Complete a functions / transformations unit, or finish your first unit.'
+  };
+
+  function renderAchievements() {
+    const pane = document.getElementById('ls-pane-achievements');
+    if (!pane || !profileCache) {
+      refreshProfile().then(() => renderAchievements());
+      return;
+    }
+    const p = profileCache;
+    const badges = Array.isArray(p.badges) && p.badges.length
+      ? p.badges
+      : [
+          { id: 'first', label: 'First spark', earned: (p.quizCorrect || 0) >= 1, current: p.quizCorrect || 0, goal: 1 },
+          { id: 'streak3', label: '3-day streak', earned: (p.currentStreak || 0) >= 3 || (p.longestStreak || 0) >= 3, current: Math.max(p.currentStreak || 0, p.longestStreak || 0), goal: 3 },
+          { id: 'streak7', label: 'Week warrior', earned: (p.longestStreak || 0) >= 7, current: p.longestStreak || 0, goal: 7 },
+          { id: 'quiz20', label: '20 correct', earned: (p.quizCorrect || 0) >= 20, current: p.quizCorrect || 0, goal: 20 },
+          { id: 'gems100', label: '100 gems earned', earned: (p.lifetimeGems || p.gems || 0) >= 100, current: p.lifetimeGems || p.gems || 0, goal: 100 }
+        ];
+    const unlocked = badges.filter((b) => b.earned || b.ok).length;
+    pane.innerHTML = `
+      <div class="ls-ach-header">
+        <div>
+          <h2>Achievements</h2>
+          <p>${unlocked} of ${badges.length} unlocked</p>
+        </div>
+        <img src="${asset('achievements-hero')}" alt="" />
+      </div>
+      <div class="ls-metrics">
+        <div class="ls-metric">
+          <img src="${asset('streak-flame')}" alt="" />
+          <div class="val">${p.currentStreak || 0} days</div>
+          <div class="label">Current streak</div>
+        </div>
+        <div class="ls-metric">
+          <img src="${asset('stopwatch')}" alt="" />
+          <div class="val">${p.longestStreak || 0} days</div>
+          <div class="label">Longest streak</div>
+        </div>
+        <div class="ls-metric">
+          <img src="${asset('crown')}" alt="" />
+          <div class="val">${p.quizCorrect || 0}</div>
+          <div class="label">Correct answers</div>
+        </div>
+        <div class="ls-metric">
+          <img src="${asset('gem')}" alt="" />
+          <div class="val">${p.xp || 0}</div>
+          <div class="label">XP · Lv ${p.level || 1}</div>
+        </div>
+        <div class="ls-metric">
+          <img src="${asset('gem')}" alt="" />
+          <div class="val">${p.gems || 0}</div>
+          <div class="label">Gems · ${p.streakMultiplier || 1}x quiz bonus</div>
+        </div>
+      </div>
+      <div class="ls-badges">
+        ${badges
+          .map((b) => {
+            const earned = b.earned || b.ok;
+            const how = b.how || BADGE_HOW[b.id] || 'Keep learning to unlock this.';
+            const goal = Number(b.goal) || 0;
+            const current = Number(b.current) || 0;
+            const pct = b.percent != null
+              ? Math.max(0, Math.min(100, Math.round(Number(b.percent))))
+              : (goal > 0 ? Math.min(100, Math.round((current / goal) * 100)) : (earned ? 100 : 0));
+            const progressLabel = earned
+              ? 'Unlocked'
+              : (goal > 0 ? `${current.toLocaleString()} / ${goal.toLocaleString()} (${pct}%)` : how);
+            const bar = goal > 0
+              ? `<div class="ls-badge-track" aria-hidden="true"><div class="ls-badge-fill" style="width:${pct}%"></div></div>`
+              : '';
+            return `<span class="ls-badge ${earned ? '' : 'locked'}">
+              <strong>${esc(b.label)}</strong>
+              ${bar}
+              <span class="ls-badge-how">${esc(progressLabel)}</span>
+              ${earned ? '' : `<span class="ls-badge-how">${esc(how)}</span>`}
+            </span>`;
+          })
+          .join('')}
+      </div>
+    `;
+  }
+
+  async function renderEnrolled() {
+    const pane = document.getElementById('ls-pane-enrolled');
+    if (!pane) return;
+    const hasCache = Array.isArray(enrollmentsCache);
+    pane.innerHTML = `<h2 class="ls-section-title">Enrolled Courses</h2><p class="ls-section-sub">Jump back into what you're learning.</p><ul class="ls-enrolled-list" id="ls-enrolled-ul">${hasCache ? '' : '<li>Loading…</li>'}</ul>`;
+    if (hasCache) {
+      paintEnrolledList(enrollmentsCache);
+    }
+    try {
+      // Use in-flight prefetch if shell already started one; otherwise fetch (refresh in background when cached)
+      const courses = await fetchEnrollments({ force: hasCache });
+      paintEnrolledList(courses);
+    } catch (e) {
+      const list = document.getElementById('ls-enrolled-ul');
+      if (list && !hasCache) list.innerHTML = '<li>Could not load enrollments.</li>';
+    }
+  }
+
+  async function renderStore() {
+    const pane = document.getElementById('ls-pane-store');
+    if (!pane) return;
+    pane.innerHTML = `<h2 class="ls-section-title">Gem Store</h2><p class="ls-section-sub">Customize your avatar and dashboard with gems.</p><div class="ls-store-grid" id="ls-store-grid">Loading…</div>
+      <h3 style="margin-top:28px;">Equip avatar</h3>
+      <div id="ls-equip-area" style="margin-top:12px;"></div>`;
+    const data = await api('/api/learner/store');
+    const grid = document.getElementById('ls-store-grid');
+    if (!data.success) {
+      grid.textContent = 'Store unavailable.';
+      return;
+    }
+    if (typeof data.data.gems === 'number') {
+      const el = document.getElementById('ls-gems-count');
+      if (el) el.textContent = String(data.data.gems);
+    }
+    grid.innerHTML = (data.data.items || [])
+      .map((it) => {
+        const owned = it.owned;
+        const isTheme = it.item_type === 'theme';
+        return `<div class="ls-store-card">
+          <img src="${itemAsset(it.item_id)}" alt="" />
+          <h4>${esc(it.name)}</h4>
+          <p>${esc(it.description || '')}</p>
+          <p><strong>${it.gem_cost || 0}</strong> gems · ${esc(it.item_type)}</p>
+          ${
+            owned
+              ? `<button type="button" class="ls-btn-soft" data-equip="${it.item_id}" data-type="${it.item_type}">${isTheme ? 'Use theme' : 'Equip'}</button>`
+              : `<button type="button" class="ls-btn-primary" data-buy="${it.item_id}">Buy</button>`
+          }
+        </div>`;
+      })
+      .join('');
+
+    grid.querySelectorAll('[data-buy]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-buy');
+        const res = await api('/api/learner/store/purchase', {
+          method: 'POST',
+          body: JSON.stringify({ itemId: id })
+        });
+        if (res.success) {
+          showGemToast(1, 'Item unlocked!');
+          await refreshProfile();
+          renderStore();
+        } else {
+          alert(res.message || 'Purchase failed');
+        }
+      });
+    });
+
+    grid.querySelectorAll('[data-equip]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-equip');
+        const type = btn.getAttribute('data-type');
+        let body;
+        if (type === 'theme') {
+          const theme = id.replace(/^theme_/, '');
+          body = { theme };
+        } else {
+          const slot =
+            type === 'hat'
+              ? 'hat'
+              : type === 'glasses'
+                ? 'glasses'
+                : type === 'shirt'
+                  ? 'shirt'
+                  : type === 'cape'
+                    ? 'cape'
+                    : 'accessory';
+          body = { slot, itemId: id };
+        }
+        const res = await api('/api/learner/equip', {
+          method: 'POST',
+          body: JSON.stringify(body)
+        });
+        if (res.success) {
+          await refreshProfile();
+          renderStore();
+        } else {
+          alert(res.message || 'Could not equip');
+        }
+      });
+    });
+
+    const equip = document.getElementById('ls-equip-area');
+    if (equip && profileCache) {
+      equip.innerHTML = `<div class="ls-avatar-stack" style="width:96px;height:120px;position:relative;" id="ls-store-avatar-preview"></div>
+        <button type="button" class="ls-btn-soft" id="ls-unequip-all" style="margin-top:10px;">Clear accessories</button>`;
+      renderAvatarInto(document.getElementById('ls-store-avatar-preview'), profileCache.avatarConfig);
+      document.getElementById('ls-unequip-all')?.addEventListener('click', async () => {
+        for (const slot of ['hat', 'glasses', 'shirt', 'cape', 'accessory']) {
+          await api('/api/learner/equip', {
+            method: 'POST',
+            body: JSON.stringify({ slot, itemId: null })
+          });
+        }
+        await refreshProfile();
+        renderStore();
+      });
+    }
+  }
+
+  function renderSettings() {
+    const pane = document.getElementById('ls-pane-settings');
+    if (!pane) return;
+    const name = profileCache?.displayName || '';
+    pane.innerHTML = `
+      <h2 class="ls-section-title">Settings</h2>
+      <p class="ls-section-sub">Your display name shows instead of your email.</p>
+      <div class="ls-settings-card">
+        <label for="ls-display-name">Display name</label>
+        <input id="ls-display-name" maxlength="80" value="${esc(name)}" />
+        <button type="button" id="ls-save-settings" class="ls-btn-primary">Save</button>
+      </div>`;
+    document.getElementById('ls-save-settings')?.addEventListener('click', async () => {
+      const displayName = document.getElementById('ls-display-name')?.value?.trim();
+      const res = await api('/api/learner/settings', {
+        method: 'PUT',
+        body: JSON.stringify({ displayName })
+      });
+      if (res.success) {
+        await refreshProfile();
+        alert('Saved!');
+      } else {
+        alert(res.message || 'Could not save');
+      }
+    });
+  }
+
+  function openFeedbackModal() {
+    document.getElementById('ls-feedback-backdrop')?.remove();
+    const backdrop = document.createElement('div');
+    backdrop.className = 'ls-modal-backdrop';
+    backdrop.id = 'ls-feedback-backdrop';
+    backdrop.innerHTML = `
+      <div class="ls-feedback-modal" role="dialog" aria-labelledby="ls-fb-title">
+        <h3 id="ls-fb-title">Leave feedback</h3>
+        <p style="color:var(--ls-muted);font-size:0.9rem;">Sent to the Veelearn team (superadmin).</p>
+        <textarea id="ls-feedback-text" rows="5" maxlength="4000" placeholder="What should we improve?"></textarea>
+        <div style="display:flex;gap:8px;">
+          <button type="button" id="ls-feedback-send" class="ls-btn-primary">Send</button>
+          <button type="button" class="ls-btn-soft" id="ls-feedback-cancel">Cancel</button>
+        </div>
+      </div>`;
+    document.body.appendChild(backdrop);
+    document.getElementById('ls-feedback-cancel')?.addEventListener('click', () => backdrop.remove());
+    backdrop.addEventListener('click', (e) => {
+      if (e.target === backdrop) backdrop.remove();
+    });
+    document.getElementById('ls-feedback-send')?.addEventListener('click', async () => {
+      const message = document.getElementById('ls-feedback-text')?.value?.trim();
+      const res = await api('/api/learner/feedback', {
+        method: 'POST',
+        body: JSON.stringify({ message })
+      });
+      if (res.success) {
+        alert(res.message || 'Thanks!');
+        backdrop.remove();
+      } else {
+        alert(res.message || 'Could not send');
+      }
+    });
+  }
+
+  async function renderVolunteer() {
+    const pane = document.getElementById('ls-pane-volunteer');
+    if (!pane) return;
+    pane.innerHTML = `
+      <h2 class="ls-section-title">Volunteer Hours</h2>
+      <p class="ls-section-sub">Hours earned creating courses, plus certificates you can download.</p>
+      <div class="ls-volunteer-stats"><p class="ls-section-sub">Loading…</p></div>
+    `;
+    try {
+      const result = await api('/api/users/volunteer-stats');
+      const container = pane.querySelector('.ls-volunteer-stats');
+      if (!container) return;
+      if (!result.success || !result.data) {
+        container.innerHTML = `<p class="ls-section-sub">${esc(result.message || 'Could not load volunteer hours.')}</p>`;
+        return;
+      }
+
+      const data = result.data;
+      const hours = Number(data.total_volunteer_hours) || 0;
+      const verified = !!data.is_verified_creator;
+      const certs = Array.isArray(data.certificates) ? data.certificates : [];
+      const nextMilestone = getNextVolunteerMilestone(hours);
+      const base = apiBase();
+
+      let certsHtml = '';
+      if (certs.length > 0) {
+        certsHtml = `
+          <div class="ls-cert-list">
+            <h3 class="ls-volunteer-certs-title">Your certificates</h3>
+            ${certs
+              .map((cert) => {
+                const code = esc(cert.verification_code || '');
+                const issued = cert.issued_at ? new Date(cert.issued_at).toLocaleDateString() : '';
+                const hrs = Number(cert.hours_certified) || 0;
+                return `
+                  <div class="ls-cert-row">
+                    <div class="ls-cert-info">
+                      <strong>${hrs} Hours Volunteer Certificate</strong>
+                      <span class="ls-cert-meta">Issued: ${esc(issued)}</span>
+                    </div>
+                    <div class="ls-cert-actions">
+                      <a class="ls-btn-primary" href="${base}/api/certificates/verify/${code}?format=pdf" target="_blank" rel="noopener">Download PDF</a>
+                      <a class="ls-btn-soft" href="${base}/api/certificates/verify/${code}" target="_blank" rel="noopener">Verify</a>
+                    </div>
+                  </div>`;
+              })
+              .join('')}
+          </div>`;
+      } else if (hours > 0) {
+        certsHtml = `
+          <div class="ls-cert-list">
+            <p class="ls-section-sub">Certificates unlock every 5 hours. Refresh this page if a new milestone should appear.</p>
+          </div>`;
+      } else {
+        certsHtml = `
+          <div class="ls-cert-list">
+            <p class="ls-section-sub">No hours yet. Time spent actively creating courses counts toward volunteer hours and certificates.</p>
+          </div>`;
+      }
+
+      container.innerHTML = `
+        <div class="ls-metrics ls-volunteer-metrics">
+          <div class="ls-metric ls-volunteer-metric">
+            <div class="val">${hours.toFixed(1)}h</div>
+            <div class="label">Total hours</div>
+          </div>
+          <div class="ls-metric ls-volunteer-metric">
+            <div class="val">${verified ? 'Verified Creator' : 'Not yet verified'}</div>
+            <div class="label">${verified ? 'Status' : 'Need 20h for verification'}</div>
+          </div>
+          <div class="ls-metric ls-volunteer-metric">
+            <div class="val">${esc(String(nextMilestone))}${nextMilestone === 'All achieved!' ? '' : 'h'}</div>
+            <div class="label">Next milestone</div>
+          </div>
+        </div>
+        ${certsHtml}
+      `;
+    } catch (e) {
+      const container = pane.querySelector('.ls-volunteer-stats');
+      if (container) container.innerHTML = '<p class="ls-section-sub">Could not load volunteer hours.</p>';
+    }
+  }
+
+  function getNextVolunteerMilestone(currentHours) {
+    const milestones = [5, 10, 20, 50, 100];
+    for (const m of milestones) {
+      if (currentHours < m) return m;
+    }
+    return 'All achieved!';
+  }
+
+  async function onShellShown() {
+    aiHistoryLoaded = false;
+    // Prefetch enrollments in parallel with profile/checkin so Enrolled pane is instant
+    const enrollmentsReady = fetchEnrollments({ force: true });
+    await Promise.all([refreshProfile(), checkin(), enrollmentsReady]);
+  }
+
+  window.LearnerGamification = {
+    refreshProfile,
+    checkin,
+    onQuizCorrect,
+    celebrateCorrect,
+    showGemToast,
+    showXpToast,
+    showBadgeToast,
+    applyAward,
+    loadDashboardAi,
+    sendDashboardAi,
+    renderAchievements,
+    renderEnrolled,
+    renderStore,
+    renderVolunteer,
+    renderSettings,
+    openFeedbackModal,
+    renderAvatarInto,
+    onShellShown,
+    getProfile: () => profileCache,
+    prefetchEnrollments: () => fetchEnrollments({ force: true }),
+    fetchEnrollments,
+    getEnrolledIds: () => (Array.isArray(enrollmentsCache) ? enrollmentsCache.map((c) => c.course_id || c.id) : [])
+  };
+})();

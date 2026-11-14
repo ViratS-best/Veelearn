@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Practice session | Veelearn</title>
+    <meta name="description" content="A short, focused Veelearn practice session: a few skills, one question at a time, and a mastery dot for every gap you close.">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" type="image/png" href="VEELEARN.png">
+    <link rel="stylesheet" href="session.css">
+</head>
+<body class="sx-body">
+    <div class="sx-app" id="sx-app" aria-busy="true">
+        <header class="sx-top">
+            <a class="sx-back" id="sx-back" href="student-dashboard.html">← Dashboard</a>
+            <div class="sx-goal">
+                <span class="sx-goal-label" id="sx-goal-label">Getting your session ready…</span>
+                <span class="sx-track" id="sx-track"></span>
+            </div>
+            <div class="sx-top-right">
+                <div class="sx-timer" id="sx-timer" role="timer" aria-label="Time left">--:--</div>
+                <div class="sx-xp" id="sx-xp">0 XP</div>
+            </div>
+        </header>
+
+        <main class="sx-main">
+            <aside class="sx-rail" aria-label="This session's focus">
+                <h2 class="sx-rail-title">Today's focus</h2>
+                <ol class="sx-focus" id="sx-focus"></ol>
+                <div class="sx-rail-actions">
+                    <button type="button" class="sx-ghost" id="sx-map-toggle" aria-expanded="false" aria-controls="sx-map">Where I am</button>
+                    <button type="button" class="sx-ghost" id="sx-end-btn">End session</button>
+                </div>
+            </aside>
+
+            <section class="sx-stage" id="sx-stage" aria-live="polite">
+                <div class="sx-loading" id="sx-loading">Loading your session…</div>
+
+                <article class="sx-card" id="sx-intro" hidden>
+                    <p class="sx-kicker" id="sx-intro-kicker">New skill</p>
+                    <h2 class="sx-skill" id="sx-intro-skill"></h2>
+                    <p class="sx-intro" id="sx-intro-text"></p>
+                    <button type="button" class="sx-btn sx-primary" id="sx-intro-start">Let's go</button>
+                </article>
+
+                <article class="sx-card" id="sx-question-card" hidden>
+                    <p class="sx-kicker"><span id="sx-q-skill"></span> · <span id="sx-q-tier"></span></p>
+                    <h2 class="sx-stem" id="sx-stem"></h2>
+                    <div class="sx-options" id="sx-options" role="group" aria-label="Answer choices"></div>
+                    <div class="sx-q-actions">
+                        <button type="button" class="sx-ghost" id="sx-hint-btn">Need a hint</button>
+                        <button type="button" class="sx-ghost" id="sx-skip-btn">Skip for now</button>
+                    </div>
+                    <div class="sx-hintbox" id="sx-hintbox" hidden></div>
+                    <div class="sx-feedback" id="sx-feedback" hidden></div>
+                </article>
+
+                <article class="sx-card sx-done" id="sx-summary" hidden>
+                    <p class="sx-kicker">Session saved</p>
+                    <h2 class="sx-skill" id="sx-summary-title">Nice work.</h2>
+                    <p class="sx-intro" id="sx-summary-text"></p>
+                    <p class="sx-next" id="sx-summary-next"></p>
+                    <div class="sx-rewards" id="sx-summary-rewards"></div>
+                    <a class="sx-btn sx-primary" href="student-dashboard.html">Back to dashboard</a>
+                </article>
+
+                <div class="sx-error" id="sx-error" hidden></div>
+                <div class="sx-mascot-host" id="sx-mascot-host"></div>
+            </section>
+
+            <aside class="sx-map" id="sx-map" hidden aria-label="Where you are"></aside>
+        </main>
+    </div>
+
+    <script src="session/learning-map.js"></script>
+    <script src="mascot.js"></script>
+    <script src="annotate.js"></script>
+    <script src="board.js"></script>
+    <script src="celebrate.js"></script>
+    <script src="session/session-app.js"></script>
+</body>
+</html>

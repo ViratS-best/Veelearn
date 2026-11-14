@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/png" href="/VEELEARN.png" loading="lazy">
+  <link rel="shortcut icon" href="/VEELEARN.png" loading="lazy">
+  <meta name="description"
+    content="Explore 120+ interactive STEM simulations including physics, chemistry, biology, and math experiments. Build custom simulations with block-based programming. Fork, remix, and share with the community." />
+  <title>Interactive STEM Simulations | Physics, Chemistry, Math Experiments | Build & Share</title>
+  <!-- Resource Hints for Performance -->
+  <link rel="preload" href="styles.css" as="style">
+  <link rel="preload" href="styles-redesign.css" as="style">
+  <link rel="preload" href="styles-humanized.css" as="style">
+  <link rel="preload" href="script.js" as="script">
+  <link rel="prefetch" href="physics.html">
+  <link rel="prefetch" href="chemistry.html">
+  <link rel="prefetch" href="math.html">
+  <link rel="prefetch" href="blog.html">
+  <link rel="prefetch" href="index.html">
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles-redesign.css" />
+  <link rel="stylesheet" href="styles-humanized.css" />
+  <link rel="stylesheet" href="loading-states.css" />
+  <link rel="stylesheet" href="error-handler.css" />
+  <link rel="stylesheet" href="validation.css" />
+  <link rel="stylesheet" href="keyboard-shortcuts.css" />
+  <link rel="stylesheet" href="luxury-editorial.css" />
+  <meta name="keywords" content="STEM simulations, interactive science experiments, physics simulations, chemistry lab, math simulations, block-based programming, educational simulations, PhET simulations, virtual lab, science experiments" />
+  <meta name="author" content="Veelearn by Virat" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://veelearn.org/simulators.html" />
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://veelearn.org/simulators.html" />
+  <meta property="og:title" content="Interactive STEM Simulations | Physics, Chemistry, Math Experiments" />
+  <meta property="og:description" content="Explore 120+ interactive STEM simulations including physics, chemistry, biology, and math experiments. Build custom simulations with block-based programming." />
+  <meta property="og:image" content="https://veelearn.org/VEELEARN.png" />
+  <meta property="og:site_name" content="Veelearn" />
+  <meta property="og:locale" content="en_US" />
+  
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:url" content="https://veelearn.org/simulators.html" />
+  <meta name="twitter:title" content="Interactive STEM Simulations" />
+  <meta name="twitter:description" content="Explore 120+ interactive STEM simulations including physics, chemistry, biology, and math experiments. Build custom simulations with block-based programming." />
+  <meta name="twitter:image" content="https://veelearn.org/VEELEARN.png" />
+  
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": "Interactive STEM Simulations",
+  "description": "Explore 120+ interactive STEM simulations including physics, chemistry, biology, and math experiments with block-based programming",
+  "url": "https://veelearn.org/simulators.html",
+  "publisher": {
+    "@type": "Organization",
+    "name": "Veelearn",
+    "logo": "https://veelearn.org/VEELEARN.png"
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://veelearn.org/index.html"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Simulators",
+      "item": "https://veelearn.org/simulators.html"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What are PhET simulations and why are they effective?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "PhET Interactive Simulations, developed by the University of Colorado Boulder, are research-based interactive simulations that make abstract STEM concepts visible and manipulable. Research shows that students learn more effectively when they can actively explore concepts by manipulating variables, observing cause-and-effect relationships, and conducting virtual experiments. These simulations are designed based on educational research to support conceptual understanding and scientific reasoning skills."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I use the block-based programming simulator builder?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Our block-based programming engine makes building custom physics simulations accessible to everyone without writing code. Simply drag and drop blocks to define objects, set initial conditions, add forces, and specify behaviors. You can create experiments with gravity, friction, collisions, and more. The intuitive interface is similar to Scratch but specifically designed for physics simulations. Once created, you can save, share, and even let others fork and remix your work."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I use simulations in my courses and assignments?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, teachers can embed any PhET simulation directly into their courses alongside text, images, and quizzes. When students complete the simulation activity, their progress and quiz results are tracked automatically. You can assign specific simulations as homework, in-class activities, or lab exercises. The integration allows you to monitor student engagement and understanding, providing valuable data to inform your teaching strategies."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What subjects and topics are covered by the simulations?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Veelearn offers 120+ PhET simulations covering physics (mechanics, electricity, magnetism, waves, optics, quantum mechanics, thermodynamics), chemistry (atoms, molecules, reactions, acids and bases, periodic table), biology (genetics, natural selection, cell biology, ecosystems), and mathematics (graphing, arithmetic, algebra, calculus). Each simulation is designed to align with K-12 and college curriculum standards, making them suitable for classroom use at all levels."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How does forking and remixing simulations work?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "When you find a simulation you like in the community marketplace, you can click \"Fork\" to create your own copy. You can then modify any aspect of the simulation—change parameters, add new elements, adjust the physics model—to create a custom version that meets your needs. When you publish your remix, it links back to the original simulation, giving credit to the creator. This collaborative approach allows the community to build upon each other's work and create increasingly sophisticated simulations."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Are the simulations accessible on mobile devices?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, PhET simulations are designed to work on desktop computers, tablets, and mobile phones. The touch-optimized interface allows students to interact with simulations using touch gestures on tablets and smartphones. This flexibility means students can learn anywhere—on the bus, at home, or in the classroom—without being tied to a specific device. The responsive design ensures that simulations remain usable and educational across all screen sizes."
+      }
+    }
+  ]
+}
+</script>
+</head>
+
+<body>
+  <header>
+    <h1>Veelearn</h1>
+    <nav>
+      <a href="index.html" id="home-link">Home</a>
+      <a href="blog.html" id="blog-link">Blog</a>
+      <a href="simulators.html" id="simulators-link" style="color: var(--primary);">Simulators</a>
+      <a href="scratch-studio.html" id="simulator-link">Simulator Studio</a>
+      <a href="simulator-marketplace.html" id="marketplace-link">Marketplace</a>
+    </nav>
+  </header>
+
+  <main>
+    <section id="simulators-hub" style="padding: 40px 20px;">
+      <div style="max-width: 1200px; margin: 0 auto;">
+        <div style="text-align: center; margin-bottom: 50px;">
+          <h1 style="font-size: 48px; margin-bottom: 16px;">🎮 Interactive STEM Simulations</h1>
+          <p style="color: var(--text-muted); font-size: 18px; max-width: 800px; margin: 0 auto; line-height: 1.6;">
+            Explore 120+ interactive simulations covering physics, chemistry, biology, and mathematics. Build custom experiments with our block-based programming engine, or discover and remix community creations.
+          </p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 25px; margin-bottom: 50px;">
+          <div class="sim-card" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 30px;">
+            <div style="font-size: 48px; margin-bottom: 16px;">⚛️</div>
+            <h3 style="margin: 0 0 12px 0; font-size: 22px;">PhET Physics Sims</h3>
+            <p style="color: var(--text-muted); font-size: 14px; line-height: 1.6;">50+ physics simulations from PhET Interactive Simulations covering mechanics, electricity, waves, optics, and quantum mechanics.</p>
+          </div>
+          
+          <div class="sim-card" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 30px;">
+            <div style="font-size: 48px; margin-bottom: 16px;">🧪</div>
+            <h3 style="margin: 0 0 12px 0; font-size: 22px;">Virtual Chemistry Lab</h3>
+            <p style="color: var(--text-muted); font-size: 14px; line-height: 1.6;">30+ chemistry experiments including reactions, acids and bases, states of matter, and atomic structure simulations.</p>
+          </div>
+          
+          <div class="sim-card" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 30px;">
+            <div style="font-size: 48px; margin-bottom: 16px;">🧬</div>
+            <h3 style="margin: 0 0 12px 0; font-size: 22px;">Biology Experiments</h3>
+            <p style="color: var(--text-muted); font-size: 14px; line-height: 1.6;">20+ biology simulations covering natural selection, genetics, cell division, ecosystems, and molecular biology.</p>
+          </div>
+          
+          <div class="sim-card" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 30px;">
+            <div style="font-size: 48px; margin-bottom: 16px;">📊</div>
+            <h3 style="margin: 0 0 12px 0; font-size: 22px;">Math Visualizations</h3>
+            <p style="color: var(--text-muted); font-size: 14px; line-height: 1.6;">20+ math simulations for graphing, geometry, statistics, calculus, and algebra with interactive visual feedback.</p>
+          </div>
+          
+          <div class="sim-card" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 30px;">
+            <div style="font-size: 48px; margin-bottom: 16px;">🏗️</div>
+            <h3 style="margin: 0 0 12px 0; font-size: 22px;">Block-Based Builder</h3>
+            <p style="color: var(--text-muted); font-size: 14px; line-height: 1.6;">Create custom physics simulations using our visual drag-and-drop programming engine. No coding required.</p>
+          </div>
+          
+          <div class="sim-card" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 30px;">
+            <div style="font-size: 48px; margin-bottom: 16px;">🌍</div>
+            <h3 style="margin: 0 0 12px 0; font-size: 22px;">Community Marketplace</h3>
+            <p style="color: var(--text-muted); font-size: 14px; line-height: 1.6;">Discover, fork, and remix thousands of simulations created by educators and students worldwide.</p>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin-bottom: 50px;">
+          <div style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(6, 182, 212, 0.1)); border: 1px solid var(--border); border-radius: 12px; padding: 30px;">
+            <h3 style="margin: 0 0 16px 0;">🎨 Build Your Own</h3>
+            <p style="color: var(--text-muted); font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
+              Use our block-based programming engine to create custom physics simulations. Define objects, forces, and behaviors without writing code.
+            </p>
+            <a href="scratch-studio.html" class="primary-btn" style="display: inline-block; padding: 10px 24px; text-decoration: none;">Open Studio</a>
+          </div>
+          
+          <div style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(6, 182, 212, 0.1)); border: 1px solid var(--border); border-radius: 12px; padding: 30px;">
+            <h3 style="margin: 0 0 16px 0;">🔍 Explore Community</h3>
+            <p style="color: var(--text-muted); font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
+              Browse thousands of user-created simulations. Fork and remix existing projects to create your own variations.
+            </p>
+            <a href="simulator-marketplace.html" class="primary-btn" style="display: inline-block; padding: 10px 24px; text-decoration: none;">Visit Marketplace</a>
+          </div>
+        </div>
+
+        <div style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(6, 182, 212, 0.1)); border: 1px solid var(--border); border-radius: 12px; padding: 40px; text-align: center;">
+          <h2 style="margin: 0 0 16px 0;">Start Experimenting Today</h2>
+          <p style="color: var(--text-muted); margin: 0 0 24px 0; max-width: 600px; margin-left: auto; margin-right: auto;">
+            Join thousands of students and educators using interactive simulations to master STEM concepts. Create your free account and start exploring.
+          </p>
+          <a href="index.html" class="primary-btn" style="display: inline-block; padding: 12px 32px; text-decoration: none;">Get Started Free</a>
+        </div>
+
+        <!-- FAQ Section -->
+        <div style="margin-bottom: 50px;">
+          <h2 style="margin-bottom: 30px; text-align: center;">Frequently Asked Questions About Simulations</h2>
+          <div style="display: grid; gap: 20px;">
+            <div class="faq-item" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+              <h3 style="margin: 0 0 12px 0; font-size: 18px;">What are PhET simulations and why are they effective?</h3>
+              <p style="color: var(--text-muted); margin: 0; line-height: 1.7;">PhET Interactive Simulations, developed by the University of Colorado Boulder, are research-based interactive simulations that make abstract STEM concepts visible and manipulable. Research shows that students learn more effectively when they can actively explore concepts by manipulating variables, observing cause-and-effect relationships, and conducting virtual experiments. These simulations are designed based on educational research to support conceptual understanding and scientific reasoning skills.</p>
+            </div>
+            
+            <div class="faq-item" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+              <h3 style="margin: 0 0 12px 0; font-size: 18px;">How do I use the block-based programming simulator builder?</h3>
+              <p style="color: var(--text-muted); margin: 0; line-height: 1.7;">Our block-based programming engine makes building custom physics simulations accessible to everyone without writing code. Simply drag and drop blocks to define objects, set initial conditions, add forces, and specify behaviors. You can create experiments with gravity, friction, collisions, and more. The intuitive interface is similar to Scratch but specifically designed for physics simulations. Once created, you can save, share, and even let others fork and remix your work.</p>
+            </div>
+            
+            <div class="faq-item" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+              <h3 style="margin: 0 0 12px 0; font-size: 18px;">Can I use simulations in my courses and assignments?</h3>
+              <p style="color: var(--text-muted); margin: 0; line-height: 1.7;">Yes, teachers can embed any PhET simulation directly into their courses alongside text, images, and quizzes. When students complete the simulation activity, their progress and quiz results are tracked automatically. You can assign specific simulations as homework, in-class activities, or lab exercises. The integration allows you to monitor student engagement and understanding, providing valuable data to inform your teaching strategies.</p>
+            </div>
+            
+            <div class="faq-item" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+              <h3 style="margin: 0 0 12px 0; font-size: 18px;">What subjects and topics are covered by the simulations?</h3>
+              <p style="color: var(--text-muted); margin: 0; line-height: 1.7;">Veelearn offers 120+ PhET simulations covering physics (mechanics, electricity, magnetism, waves, optics, quantum mechanics, thermodynamics), chemistry (atoms, molecules, reactions, acids and bases, periodic table), biology (genetics, natural selection, cell biology, ecosystems), and mathematics (graphing, arithmetic, algebra, calculus). Each simulation is designed to align with K-12 and college curriculum standards, making them suitable for classroom use at all levels.</p>
+            </div>
+            
+            <div class="faq-item" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+              <h3 style="margin: 0 0 12px 0; font-size: 18px;">How does forking and remixing simulations work?</h3>
+              <p style="color: var(--text-muted); margin: 0; line-height: 1.7;">When you find a simulation you like in the community marketplace, you can click "Fork" to create your own copy. You can then modify any aspect of the simulation—change parameters, add new elements, adjust the physics model—to create a custom version that meets your needs. When you publish your remix, it links back to the original simulation, giving credit to the creator. This collaborative approach allows the community to build upon each other's work and create increasingly sophisticated simulations.</p>
+            </div>
+            
+            <div class="faq-item" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+              <h3 style="margin: 0 0 12px 0; font-size: 18px;">Are the simulations accessible on mobile devices?</h3>
+              <p style="color: var(--text-muted); margin: 0; line-height: 1.7;">Yes, PhET simulations are designed to work on desktop computers, tablets, and mobile phones. The touch-optimized interface allows students to interact with simulations using touch gestures on tablets and smartphones. This flexibility means students can learn anywhere—on the bus, at home, or in the classroom—without being tied to a specific device. The responsive design ensures that simulations remain usable and educational across all screen sizes.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 Veelearn. A Hack Foundation Project.</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
