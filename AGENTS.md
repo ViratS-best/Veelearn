@@ -3953,6 +3953,71 @@ Rate limits were also made configurable for testing: `AUTH_RATE_MAX` (default 5,
 
 ---
 
+## ✅ SESSION 41 - INTERACTIVE UNIT SIMULATIONS (AP COURSES) 🎛️🧪
+
+**Status**: Engine + all 8 AP Calculus AB units done; BC / Bio / Chem / Physics pending.
+
+**Rule for this work**: simulations are authored **per unit**, not reused across units.
+Each spec answers the question that unit's sections actually ask, even when two units
+share a topic (e.g. AB U2 difference quotient vs BC U1 parametric derivatives are
+separate builds). Do not fall back to a generic "physics/calculus playground".
+
+**Files**
+
+- `veelearn-frontend/course-sims-core.js` — mounting engine. Turns
+  `<div class="vl-sim" data-sim="KEY" data-title="..."></div>` into a canvas +
+  sliders/selects + live readout. Animates only while on screen (IntersectionObserver),
+  re-hydrates on DOM mutation, canvas is DPR-aware and never forces a card scrollbar.
+  Exposes `CourseSims.register(key, spec)`, `CourseSims.hydrate(root)` and
+  `CourseSims.util` (plot, curve, arrow, dot, label, fmt).
+- `veelearn-frontend/course-sims.css` — card styling; matches the `vl-stage` lesson cards
+  (cream, rust accent, dashed readout divider).
+- `veelearn-frontend/course-sims-apcalcab.js` — 8 bespoke AB sims:
+  `apcalcab-u1-limits`, `u2-derivative`, `u3-related-rates`, `u4-concavity`,
+  `u5-riemann`, `u6-disks`, `u7-slope-field`, `u8-capstone`.
+- `inject_unit_sims.js` — inserts each sim (plus a one-sentence "Try it yourself" lead)
+  into the target section of the target course, immediately before the `3 ·` stage card.
+  Idempotent: strips a previous insert for that key and re-positions it, so re-running is safe.
+  Reads `PGHOST/PGPORT/PGUSER/PGPASSWORD/PG_DATABASE` from the environment only.
+
+**Sim spec shape** (all optional except title/draw)
+
+```js
+{ title, blurb, height, params: [{ k, label, min, max, step, val, decimals }],
+  draw(ctx, state, box, t), readout(state), note(state) }
+```
+
+A `param` with `type: 'select'` renders a dropdown; `val` is a string. `note(state)` may
+return different coaching text depending on the state — use it to point at the thing the
+reader should notice (e.g. the ladder's dy/dt blowing up as the top nears the floor).
+
+**Insertion points used for AB**
+
+| Course | Section | Sim |
+|---|---|---|
+| 718 U1 | 1. Limit from a graph and table | `apcalcab-u1-limits` |
+| 719 U2 | 1. Definition as limit of difference quotient | `apcalcab-u2-derivative` |
+| 720 U3 | 2. Related rates | `apcalcab-u3-related-rates` |
+| 721 U4 | 1. Concavity and the second derivative | `apcalcab-u4-concavity` |
+| 722 U5 | 2. Riemann sums | `apcalcab-u5-riemann` |
+| 723 U6 | 2. Volumes by disks and washers | `apcalcab-u6-disks` |
+| 724 U7 | 1. Slope fields | `apcalcab-u7-slope-field` |
+| 725 U8 | 6. Justifying with theorems | `apcalcab-u8-capstone` |
+
+**Wiring**: `index.html` and `course-viewer.html` load `course-sims-core.js` then the
+subject library. `.vl-sim` was added to the editor's embed-flow and block selectors in
+`script.js` so editing a course does not orphan the card.
+
+**Verification done**: all eight sims render in a local harness with no console errors;
+slider values drive the readouts (e.g. U7 Euler y(1) = 2.441 vs exact 2.718 at h = 0.25);
+U1 inserted into course 718 renders between the "Picture it" stage and "3 · Build the rule".
+
+**To continue**: add `course-sims-apbio.js`, `course-sims-apchem.js`,
+`course-sims-apphysics.js`, `course-sims-apcalcbc.js` with unique keys per unit, insert with
+`inject_unit_sims.js` (extend its `UNITS` map), then publish through `publish-frontend.ps1`.
+
+---
+
 _Developed by: Veelearn Team_
-_Last Update: November 14, 2026 - Session 40 (POSTGRESQL MIGRATION + POOLING)_
+_Last Update: November 14, 2026 - Session 41 (INTERACTIVE UNIT SIMULATIONS)_
 _For detailed implementation plan, see DEVELOPMENT_ROADMAP.md_
