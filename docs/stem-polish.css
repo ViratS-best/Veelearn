@@ -997,3 +997,159 @@ main {
       url("assets/brand/veelearn-stem-hero.webp") 70% center / cover no-repeat !important;
   }
 }
+
+/* ===== Warm welcome/login page (matches the learner dashboard theme) ===== */
+body.auth-warm-page,
+body.auth-warm-page html {
+  background-color: var(--ls-bg, #FFF8F1) !important;
+}
+
+body.auth-warm-page {
+  color: var(--ls-text, #1A1A1A) !important;
+  background-image:
+    radial-gradient(900px 460px at 12% 8%, rgba(234, 88, 12, 0.1), transparent 60%),
+    radial-gradient(760px 420px at 88% 92%, rgba(255, 237, 213, 0.85), transparent 58%),
+    linear-gradient(160deg, var(--ls-bg, #FFF8F1) 0%, var(--ls-user-bubble, #FFF1E6) 100%) !important;
+  background-size: auto !important;
+  background-attachment: fixed !important;
+}
+
+body.auth-warm-page h1,
+body.auth-warm-page h2,
+body.auth-warm-page h3,
+body.auth-warm-page h4,
+body.auth-warm-page header h1 {
+  color: var(--ls-text, #1A1A1A) !important;
+}
+
+body.auth-warm-page p,
+body.auth-warm-page li,
+body.auth-warm-page label,
+body.auth-warm-page small {
+  color: var(--ls-muted, #6B7280) !important;
+}
+
+body.auth-warm-page > header {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border-bottom: 1px solid var(--ls-border, #F3E8DE) !important;
+  box-shadow: 0 8px 24px rgba(234, 88, 12, 0.06) !important;
+}
+
+body.auth-warm-page > header h1::first-letter {
+  color: var(--ls-accent, #EA580C) !important;
+}
+
+body.auth-warm-page > header nav a,
+body.auth-warm-page > header nav button {
+  color: #57534E !important;
+}
+
+body.auth-warm-page > header nav a:hover,
+body.auth-warm-page > header nav button:hover {
+  color: var(--ls-active-text, #9A3412) !important;
+  background: var(--ls-accent-soft, #FFEDD5) !important;
+  border-color: #FED7AA !important;
+}
+
+body.auth-warm-page > header #global-search-btn {
+  color: var(--ls-active-text, #9A3412) !important;
+  background: var(--ls-accent-soft, #FFEDD5) !important;
+  border-color: #FED7AA !important;
+}
+
+body.auth-warm-page #auth-section {
+  background: var(--ls-bg, #FFF8F1) !important;
+  border: 1px solid var(--ls-border, #F3E8DE) !important;
+  border-radius: 24px !important;
+  box-shadow: var(--ls-shadow, 0 8px 24px rgba(234, 88, 12, 0.08)) !important;
+}
+
+body.auth-warm-page #auth-section > h2 {
+  color: var(--ls-text, #1A1A1A) !important;
+}
+
+body.auth-warm-page #auth-section > h2::after {
+  color: var(--ls-muted, #6B7280) !important;
+}
+
+body.auth-warm-page #auth-section > div[style*="255, 193, 7"] {
+  background: var(--ls-accent-soft, #FFEDD5) !important;
+  border-color: #FDBA74 !important;
+}
+
+body.auth-warm-page #auth-section > div[style*="255, 193, 7"] span {
+  color: var(--ls-active-text, #9A3412) !important;
+}
+
+body.auth-warm-page #auth-section > div[style*="255, 193, 7"] p {
+  color: #7C2D12 !important;
+}
+
+body.auth-warm-page .auth-form {
+  background: var(--ls-card, #FFFFFF) !important;
+  border: 1px solid var(--ls-border, #F3E8DE) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 14px 36px rgba(234, 88, 12, 0.1) !important;
+}
+
+body.auth-warm-page .auth-form h3 {
+  color: var(--ls-text, #1A1A1A) !important;
+}
+
+body.auth-warm-page .auth-form p,
+body.auth-warm-page .auth-form p span {
+  color: var(--ls-muted, #6B7280) !important;
+}
+
+body.auth-warm-page .auth-form input {
+  min-height: 48px;
+  color: var(--ls-text, #1A1A1A) !important;
+  background: var(--ls-input-bg, #FFFCF8) !important;
+  border: 1px solid var(--ls-border, #F3E8DE) !important;
+  border-radius: 12px !important;
+}
+
+body.auth-warm-page .auth-form input::placeholder {
+  color: #A8A29E !important;
+}
+
+body.auth-warm-page .auth-form input:focus {
+  background: #ffffff !important;
+  border-color: var(--ls-accent, #EA580C) !important;
+  box-shadow: 0 0 0 4px rgba(234, 88, 12, 0.14) !important;
+}
+
+body.auth-warm-page .auth-form form button {
+  min-height: 48px;
+  color: var(--ls-btn-text, #FFFFFF) !important;
+  background: var(--ls-btn, #1A1A1A) !important;
+  border-radius: 12px !important;
+  font-weight: 800 !important;
+}
+
+body.auth-warm-page .auth-form form button:hover {
+  background: var(--ls-btn-hover, #EA580C) !important;
+  color: var(--ls-btn-hover-text, #FFFFFF) !important;
+}
+
+body.auth-warm-page .auth-form a,
+body.auth-warm-page #auth-section a {
+  color: var(--ls-accent, #EA580C) !important;
+  font-weight: 700 !important;
+}
+
+body.auth-warm-page .auth-form a:hover,
+body.auth-warm-page #auth-section a:hover {
+  color: var(--ls-active-text, #9A3412) !important;
+}
+
+body.auth-warm-page #login-error-message,
+body.auth-warm-page #register-error-message,
+body.auth-warm-page #forgot-error-message {
+  color: #B91C1C !important;
+}
+
+body.auth-warm-page #forgot-success-message,
+body.auth-warm-page #register-success-message {
+  color: #15803D !important;
+}
