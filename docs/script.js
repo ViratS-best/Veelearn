@@ -4546,6 +4546,12 @@ async function viewCourse(courseId, assignmentId = null, forceRegular = false) {
     currentAssignmentId = assignmentId;
     const idNum = parseInt(courseId, 10);
 
+    // P4: a course is a syllabus the tutor can follow, so the viewer offers a session.
+    try {
+        document.dispatchEvent(new CustomEvent("vee:course-view", { detail: { courseId: idNum } }));
+    } catch (_) {}
+
+
     let course =
         myCourses.find((c) => Number(c.id) === idNum) ||
         availableCourses.find((c) => Number(c.id) === idNum) ||

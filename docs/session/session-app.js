@@ -23,6 +23,8 @@
   const params = new URLSearchParams(window.location.search);
   const requestedMinutes = Math.min(45, Math.max(5, parseInt(params.get('minutes') || '10', 10) || 10));
   const requestedTrack = params.get('track') || '';
+  const requestedMode = params.get('mode') || '';
+  const requestedCourse = params.get('course') || '';
 
   const esc = (window.SessionMap && window.SessionMap.esc) || String;
   const dotsHtml = (window.SessionMap && window.SessionMap.dotsHtml) || (() => '');
@@ -771,6 +773,231 @@
           Mascot.mood('idle');
         })
         .catch(() => {});
+    }
+  }
+
+
+  // ------------------------------------------------- read aloud (QoL 11)
+  /** Browser speech only: no API, no key, works offline, stops on mute. */
+  function speak(text) {
+    if (!state.readAloud || !text || !window.speechSynthesis) return;
+    try {
+      window.speechSynthesis.cancel();
+      const line = new SpeechSynthesisUtterance(String(text).slice(0, 400));
+      line.rate = 0.95;
+      window.speechSynthesis.speak(line);
+    } catch (_) {
+      /* speech is a bonus, never a failure */
+    }
+  }
+
+  function paintReadButton() {
+    const btn = el('sx-read-btn');
+    if (!btn) return;
+    btn.textContent = state.readAloud ? 'Read aloud: on' : 'Read aloud: off';
+    btn.setAttribute('aria-pressed', String(state.readAloud));
+  }
+
+  function toggleReadAloud() {
+    state.readAloud = !state.readAloud;
+    localStorage.setItem('veelearnReadAloud', state.readAloud ? '1' : '0');
+    if (!state.readAloud && window.speechSynthesis) {
+      try {
+        window.speechSynthesis.cancel();
+      } catch (_) {}
+    }
+    paintReadButton();
+  }
+
+  // ---------------------------------------------------------------- modal
+  function openModal(title, html) {
+    el('sx-modal-title').textContent = title;
+    el('sx-modal-body').innerHTML = html;
+    el('sx-modal').hidden = false;
+  }
+  function closeModal() {
+    el('sx-modal').hidden = true;
+    el('sx-modal-body').innerHTML = '';
+  }
+
+  function flash(message) {
+    const box = el('sx-summary-next');
+    if (box) box.textContent = message;
+  }
+
+  // ------------------------------------------------------------- rating
+  async function rateSession(stars) {
+    if (!state.id) return;
+    try {
+      await api(`/api/session/${state.id}/rate`, { rating: Number(stars) });
+      state.rated = Number(stars);
+      el('sx-stars').querySelectorAll('.sx-star').forEach((btn) => {
+        btn.classList.toggle('is-on', Number(btn.dataset.stars) <= Number(stars));
+      });
+    } catch (err) {
+      flash(err.message);
+    }
+  }
+
+  // -------------------------------------------------------- transcript
+  async function downloadTranscript() {
+    if (!state.id) return;
+    try {
+      const out = await api(`/api/session/${state.id}/transcript`);
+      const blob = new Blob([out.markdown || ''], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = out.filename || `veelearn-session-${state.id}.md`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    } catch (err) {
+      flash(err.message);
+    }
+  }
+
+  // --------------------------------------------------------- flashcards
+  async function makeCards() {
+    if (!state.id) return;
+    try {
+      const out = await api(`/api/session/${state.id}/flashcards`, {});
+      const total = Array.isArray(out.cards) ? out.cards.length : 0;
+      flash(
+        out.created
+          ? `${out.created} card${out.created === 1 ? '' : 's'} saved. ${total} waiting in your deck.`
+          : `No new cards — your deck already has these (${total} card${total === 1 ? '' : 's'}).`
+      );
+    } catch (err) {
+      flash(err.message);
+    }
+  }
+
+  async function saveNote() {
+    if (!state.id) return;
+    try {
+      await api(`/api/session/${state.id}/note`, {});
+      flash('Saved to your notes — searchable from this button any time.');
+    } catch (err) {
+      flash(err.message);
+    }
+  }
+
+  // ---------------------------------------------------- history + digest
+  async function openHistory() {
+    openModal('My sessions', '<p class="sx-modal-note">Loading…</p>');
+    let history = { sessions: [] };
+    let digest = null;
+    try {
+      history = await api('/api/session/history?limit=20');
+      digest = await api('/api/profile/digest').catch(() => null);
+    } catch (err) {
+      el('sx-modal-body').innerHTML = `<p class="sx-modal-note">${esc(err.message)}</p>`;
+      return;
+    }
+
+    const rows = (history.sessions || [])
+      .map(
+        (row) => `
+      <li class="sx-hist-row">
+        <div>
+          <strong>${esc((row.startedAt || '').slice(0, 10))}</strong>
+          <span class="sx-hist-meta">${row.minutes || 0} min · ${esc(row.mode || 'focus')}${
+            row.rating ? ` · ${row.rating}★` : ''
+          }</span>
+          <p class="sx-hist-summary">${esc(row.summary || 'No summary saved.')}</p>
+        </div>
+      </li>`
+      )
+      .join('');
+
+    el('sx-modal-body').innerHTML = `
+      <label class="sx-modal-label" for="sx-hist-search">Search by skill or summary</label>
+      <input type="text" id="sx-hist-search" class="sx-modal-input" placeholder="exponents, fractions, energy…" />
+      <ul class="sx-hist" id="sx-hist-list">${rows || '<li class="sx-modal-note">No finished sessions yet.</li>'}</ul>
+
+      <div class="sx-digest">
+        <h3>Weekly digest for a parent</h3>
+        <p class="sx-modal-note">${
+          digest && digest.sent
+            ? 'Last digest sent to ' + esc(digest.emailedTo || 'your parent') + '.'
+            : 'One email a week: sessions, minutes, skills. Opt in whenever you like.'
+        }</p>
+        <input type="email" id="sx-parent-email" class="sx-modal-input" placeholder="parent@example.com"
+          value="${esc((digest && digest.emailedTo) || '')}" />
+        <label class="sx-check"><input type="checkbox" id="sx-digest-on" ${digest && digest.emailedTo ? 'checked' : ''} /> Email it weekly</label>
+        <button type="button" class="sx-btn sx-primary" id="sx-digest-save">Save</button>
+      </div>`;
+
+    const search = el('sx-hist-search');
+    if (search) {
+      search.addEventListener('input', async () => {
+        const term = search.value.trim();
+        try {
+          const found = await api(`/api/session/history?limit=20&q=${encodeURIComponent(term)}`);
+          const list = el('sx-hist-list');
+          list.innerHTML = (found.sessions || [])
+            .map(
+              (row) => `<li class="sx-hist-row"><div><strong>${esc((row.startedAt || '').slice(0, 10))}</strong>
+                <span class="sx-hist-meta">${row.minutes || 0} min · ${esc(row.mode || 'focus')}</span>
+                <p class="sx-hist-summary">${esc(row.summary || 'No summary saved.')}</p></div></li>`
+            )
+            .join('') || '<li class="sx-modal-note">Nothing matches that yet.</li>';
+        } catch (_) {
+          /* keep the previous list */
+        }
+      });
+    }
+
+    const save = el('sx-digest-save');
+    if (save) {
+      save.addEventListener('click', async () => {
+        try {
+          await api('/api/profile/digest', {
+            parentEmail: el('sx-parent-email').value.trim(),
+            optIn: el('sx-digest-on').checked
+          });
+          save.textContent = 'Saved';
+        } catch (err) {
+          save.textContent = err.message;
+        }
+      });
+    }
+  }
+
+  // ------------------------------------------------------------- exam sprint
+  async function loadExam() {
+    try {
+      const status = await api('/api/profile/exam');
+      const block = el('sx-exam');
+      const copy = el('sx-exam-copy');
+      const go = el('sx-exam-go');
+      const input = el('sx-exam-date');
+      if (status.examDate) input.value = status.examDate;
+      block.hidden = false;
+      if (status.sprintAvailable) {
+        copy.textContent = status.offer;
+        go.hidden = false;
+      } else if (status.examDate) {
+        copy.textContent = `Exam on ${status.examDate} — sprints open 45 days out.`;
+        go.hidden = true;
+      } else {
+        copy.textContent = 'Set an exam date and the page offers a 6-item sprint.';
+        go.hidden = true;
+      }
+    } catch (_) {
+      /* signed-out or offline: the rail block stays hidden */
+    }
+  }
+
+  async function saveExam() {
+    const value = el('sx-exam-date').value;
+    try {
+      await api('/api/profile/exam', { date: value || null });
+      await loadExam();
+    } catch (err) {
+      showError(err.message);
     }
   }
 

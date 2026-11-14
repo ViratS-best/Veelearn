@@ -396,6 +396,10 @@
         <ul id="superadmin-pending-courses-list"></ul>
 
         <h4>My Courses</h4>
+        <button type="button" id="my-impact-btn" class="secondary-btn"
+          style="width: 100%; margin-bottom: 12px; color: #1e293b !important;">
+          📊 Teaching impact &amp; readiness
+        </button>
         <button id="create-course-button-superadmin" class="create-course-btn">
           Create New Course
         </button>
@@ -470,6 +474,19 @@
           <input type="date" id="assignment-due-date"
             style="width: 100%; padding: 10px; margin-bottom: 10px; background: #222; color: #fff; border: 1px solid #555; border-radius: 4px;" />
           <button id="create-assignment-btn" class="success-btn" style="width: 100%; color: #1e293b !important;">📋 Assign Course</button>
+        </div>
+
+        <div style="margin: 14px 0; padding: 12px; border: 1px solid #555; border-radius: 6px; background: #1a1a1a;">
+          <h4 style="margin: 0 0 8px;">⏱️ Assign a practice session</h4>
+          <p style="font-size: 12px; color: #aaa; margin: 0 0 8px;">
+            A 20-minute session on the course selected above, with mastery per student.
+          </p>
+          <input type="number" id="assign-session-minutes" value="20" min="5" max="90"
+            style="width: 100%; padding: 10px; margin-bottom: 8px; background: #222; color: #fff; border: 1px solid #555; border-radius: 4px;" />
+          <input type="date" id="assign-session-due"
+            style="width: 100%; padding: 10px; margin-bottom: 8px; background: #222; color: #fff; border: 1px solid #555; border-radius: 4px;" />
+          <button id="assign-session-btn" class="success-btn" style="width: 100%; color: #1e293b !important;">Assign session</button>
+          <div id="teacher-session-list" style="margin-top: 10px; font-size: 13px;"></div>
         </div>
 
         <button id="create-course-button-user" class="create-course-btn" style="color: #1e293b !important;">
@@ -1186,7 +1203,19 @@
   <script src="course-sims-apphyscem.js?v=1" defer></script>
   <script src="course-boss-battle.js?v=7" defer></script>
   <script src="course-progress.js?v=5" defer></script>
+  <div id="impact-modal" hidden
+    style="position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 16px;">
+    <div style="width: min(720px, 100%); max-height: 82vh; overflow: auto; background: #1e1e1e; color: #eee; border-radius: 10px; padding: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h3 style="margin: 0;" id="impact-title">Teaching impact</h3>
+        <button type="button" id="impact-close" class="secondary-btn" style="color: #1e293b !important;">✕</button>
+      </div>
+      <div id="impact-body"></div>
+    </div>
+  </div>
+
   <script src="script.js?v=38" defer></script>
+  <script src="session-panels.js?v=1" defer></script>
   <script src="course-editor-ux.js?v=1" defer></script>
   <script>
     function loadScriptOnce(src) {
