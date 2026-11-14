@@ -17,7 +17,12 @@ function getHackClubKey() {
 }
 
 function getHackClubModel() {
-    return String(process.env.HACKCLUBAI_MODEL || DEFAULT_MODEL).trim() || DEFAULT_MODEL;
+    const env = String(process.env.HACKCLUBAI_MODEL || '').trim();
+    // The notes pipeline used to default to a dots preview model. A deploy that
+    // still has that value set must not keep every other AI call on it, so the
+    // legacy id is treated as unset. Any other explicit model still wins.
+    if (/^dots-studio\//i.test(env)) return DEFAULT_MODEL;
+    return env || DEFAULT_MODEL;
 }
 
 function getHackClubJsonModel() {

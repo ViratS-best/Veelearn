@@ -45,6 +45,23 @@ ok('the Hack Club key is read for the config checks', JSON.stringify(chatClient.
 if (savedHcKey === undefined) delete process.env.HACKCLUBAI_KEY;
 else process.env.HACKCLUBAI_KEY = savedHcKey;
 
+ok('a stale dots model in env falls back to gemma', (() => {
+    const before = process.env.HACKCLUBAI_MODEL;
+    process.env.HACKCLUBAI_MODEL = 'dots-studio/dots-3-note-preview:free';
+    const model = hackclub.getHackClubModel();
+    if (before === undefined) delete process.env.HACKCLUBAI_MODEL;
+    else process.env.HACKCLUBAI_MODEL = before;
+    return model === 'google/gemma-4-26b-a4b-it:free';
+})());
+ok('a deliberate model override still wins', (() => {
+    const before = process.env.HACKCLUBAI_MODEL;
+    process.env.HACKCLUBAI_MODEL = 'google/gemma-4-31b-it:free';
+    const model = hackclub.getHackClubModel();
+    if (before === undefined) delete process.env.HACKCLUBAI_MODEL;
+    else process.env.HACKCLUBAI_MODEL = before;
+    return model === 'google/gemma-4-31b-it:free';
+})());
+
 ok('no key means an empty list', (() => {
     const before = process.env.HACKCLUBAI_KEY;
     delete process.env.HACKCLUBAI_KEY;
