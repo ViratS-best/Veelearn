@@ -431,16 +431,19 @@ function createCreatorImpact({ query, log } = {}) {
         // One synthetic skill per unit so mastery and the focus list stay readable.
         for (const unit of list) {
             const code = `course.${course.id}.u${unit.ord}`;
+            const name = shortName(unit.title || course.title);
+            const gradeBand = course.grade_level != null ? Number(course.grade_level) : null;
+            const intro = String(unit.text || '').slice(0, FRAME_CHARS) || null;
             await query(
                 `INSERT IGNORE INTO skills (code, track, name, grade_band, order_index, dot_target, intro_md, misconceptions)
                  VALUES (?, 'course', ?, ?, ?, 2, ?, '[]')`,
-                [
-                    code,
-                    shortName(unit.title || course.title),
-                    course.grade_level != null ? Number(course.grade_level) : null,
-                    unit.ord,
-                    String(unit.text || '').slice(0, FRAME_CHARS) || null
-                ]
+                [code, name, gradeBand, unit.ord, intro]
+            );
+            // A course that was ingested before this course's units changed keeps
+            // the old heading unless the row is refreshed.
+            await query(
+                `UPDATE skills SET name = ?, grade_band = ?, order_index = ?, intro_md = ? WHERE code = ?`,
+                [name, gradeBand, unit.ord, intro, code]
             );
         }
         const skillRows = await query(
