@@ -722,6 +722,7 @@
   padding: 16px;
   z-index: 50;
 }
+.sx-modal[hidden] { display: none; }
 .sx-modal-panel {
   width: min(640px, 100%);
   max-height: 80vh;
@@ -771,3 +772,4 @@
     --sx-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
   }
 }
+
