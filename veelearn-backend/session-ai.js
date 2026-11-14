@@ -24,8 +24,16 @@ const CAPS = {
     askPerSession: 6,
     /** LRU entries kept in memory (~1.3 KB each → well under the 12 MB budget). */
     cacheEntries: 500,
-    /** A slow answer inside a session is worse than a template one. */
-    budgetMs: 12000,
+    /**
+     * A slow answer inside a session is worse than a template one — but the page
+     * plays the template immediately, so a late model reply is an upgrade, not a
+     * wait. OpenRouter's free router measured 5 / 25 / 13 s on the live deploy,
+     * so the budget is generous and overridable.
+     */
+    budgetMs: Number(process.env.SESSION_AI_BUDGET_MS) || 18000,
+    summaryBudgetMs: Number(process.env.SESSION_SUMMARY_BUDGET_MS) || 9000,
+    /** A fallback is deterministic; remember it briefly instead of stalling again. */
+    fallbackTtlMs: 5 * 60 * 1000,
     maxTokens: 320
 };
 
@@ -273,14 +281,19 @@ function createSessionAI({ query, qbank, chat, log } = {}) {
     function cacheGet(key) {
         const hit = cache.get(key);
         if (!hit) return null;
+        if (hit.expiresAt && hit.expiresAt < Date.now()) {
+            cache.delete(key);
+            return null;
+        }
         // Refresh recency for the LRU trim.
         cache.delete(key);
         cache.set(key, hit);
         return hit;
     }
 
-    function cacheSet(key, value) {
-        cache.set(key, value);
+    function cacheSet(key, value, ttlMs) {
+        const entry = ttlMs ? Object.assign({}, value, { expiresAt: Date.now() + ttlMs }) : value;
+        cache.set(key, entry);
         while (cache.size > CAPS.cacheEntries) {
             const oldest = cache.keys().next().value;
             cache.delete(oldest);
@@ -386,12 +399,20 @@ function createSessionAI({ query, qbank, chat, log } = {}) {
         const solution = raw.solution_steps ? qbank.solutionFor(raw) : null;
         const callCount = await countCalls(sessionId);
 
-        const fallbackFor = (reason, extra) =>
-            Object.assign(
+        const fallbackFor = (reason, extra) => {
+            const generated = Object.assign(
                 prompts.templateFallback({ mode, question: card, why, solution, distractor }),
-                { ok: true, cached: false, bankMode: reason === 'rate' || reason === 'unconfigured', reason, aiCalls: callCount },
+                {
+                    ok: true,
+                    cached: false,
+                    bankMode: reason === 'rate' || reason === 'unconfigured' || reason === 'timeout',
+                    reason,
+                    aiCalls: callCount
+                },
                 extra || {}
             );
+            return generated;
+        };
 
         // 1. Spend guard: over the ceiling, never call the model again.
         if (callCount >= CAPS.perSession) {
@@ -457,7 +478,15 @@ function createSessionAI({ query, qbank, chat, log } = {}) {
                 if (validated.dropped.length) info(`[session.ai] dropped ${validated.dropped.length} script step(s): ${validated.dropped.slice(0, 3).join('; ')}`);
             } catch (e) {
                 const code = e && e.code;
-                failure = code === 'OPENROUTER_RATE_LIMITED' || e.status === 429 ? 'rate' : code === 'OPENROUTER_NOT_CONFIGURED' ? 'unconfigured' : 'error';
+                const text = String((e && e.message) || '');
+                failure =
+                    code === 'OPENROUTER_RATE_LIMITED' || e.status === 429
+                        ? 'rate'
+                        : code === 'OPENROUTER_NOT_CONFIGURED'
+                          ? 'unconfigured'
+                          : code === 'OPENROUTER_TIMEOUT' || /budget|timeout|ECONNABORTED|ETIMEDOUT/i.test(text)
+                            ? 'timeout'
+                            : 'error';
                 info(`[session.ai] ${failure}: ${e && e.message}`);
                 break; // no second parse attempt for transport failures
             }
@@ -470,7 +499,11 @@ function createSessionAI({ query, qbank, chat, log } = {}) {
                 questionId: raw.id,
                 payload: { kind: safeKind, mode, fallback: true, reason: failure || 'unknown', ms: Date.now() - started }
             });
-            return fallbackFor(failure || 'unknown');
+            const fallback = fallbackFor(failure || 'unknown');
+            fallback.aiCalls = callCount + 1;
+            // Cache it: asking the same question again should not stall again.
+            cacheSet(key, fallback, CAPS.fallbackTtlMs);
+            return fallback;
         }
 
         // 4. Guardrails: the reply may not leak the key, whatever the prompt said.
@@ -551,7 +584,11 @@ function createSessionAI({ query, qbank, chat, log } = {}) {
         ];
 
         try {
-            const text = await chat(messages, { max_tokens: 160, temperature: 0.4, budgetMs: CAPS.budgetMs });
+            const text = await chat(messages, {
+                max_tokens: 160,
+                temperature: 0.4,
+                budgetMs: Number(payload.budgetMs) || CAPS.summaryBudgetMs
+            });
             const parsed = parseJsonLoose(text);
             const line = prompts.clampText(parsed && parsed.say ? parsed.say : text, 320);
             if (!line) return { ok: true, line: template, fallback: true, cached: false, aiCalls: callCount };

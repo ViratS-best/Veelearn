@@ -339,6 +339,21 @@ ok('a finished item advances even if the model asks to stay', createSessionAI.de
     ok('the degraded turn is one chat attempt', chatCalls === 1, String(chatCalls));
     ok('the degraded mode is still the server ladder', degraded.mode === 'teach');
 
+    // ---- a fallback is cached: the same question must not stall twice
+    const degradedAgain = await storm.ai.turn({ userId: 3, sessionId: 91, kind: 'reteach', questionId: 501, distractor: 'B', attempts: 2 });
+    ok('a fallback is served from cache next time', degradedAgain.cached === true);
+    ok('a cached fallback costs no transport call', chatCalls === 1, String(chatCalls));
+    ok('a cached fallback still looks the same', degradedAgain.say === degraded.say);
+
+    // ---- a budget overrun is reported as a timeout, not an unknown error
+    const slow = Object.assign(new Error('OpenRouter request budget exceeded'), { code: 'OPENROUTER_TIMEOUT', status: 504 });
+    const timedOut = aiWith(scriptedChat([slow]));
+    const timeoutTurn = await timedOut.ai.turn({ userId: 3, sessionId: 103, kind: 'reteach', questionId: 501, distractor: 'D', attempts: 2 });
+    ok('a slow model is a timeout', timeoutTurn.fallback === true && timeoutTurn.reason === 'timeout', timeoutTurn.reason);
+    ok('a timeout counts as bank mode', timeoutTurn.bankMode === true);
+    ok('a timeout still returns a playable script', timeoutTurn.script.length > 0);
+    ok('a timeout reports the call it spent', timeoutTurn.aiCalls === 1, String(timeoutTurn.aiCalls));
+
     // ---- no key at all
     const noKey = aiWith(scriptedChat([Object.assign(new Error('nope'), { code: 'OPENROUTER_NOT_CONFIGURED' })]));
     const unconfigured = await noKey.ai.turn({ userId: 3, sessionId: 92, kind: 'reteach', questionId: 501, distractor: 'B' });
@@ -445,6 +460,11 @@ ok('a finished item advances even if the model asks to stay', createSessionAI.de
     });
     ok('the routes expose the AI loop', typeof routes.ai.turn === 'function');
     ok('the routes keep the engine', typeof routes.engine.answer === 'function');
+    ok('the routes expose a non-blocking summary', typeof routes.summary === 'function');
+
+    const noSummary = {};
+    await routes.summary({ user: { id: 3 }, params: { sessionId: 4242 }, body: {} }, noSummary);
+    ok('a missing session summary is a 404', noSummary.out && noSummary.out.status === 404, JSON.stringify(noSummary.out).slice(0, 80));
 
     const resStub = {};
     await routes.aiTurn(

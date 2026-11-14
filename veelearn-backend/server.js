@@ -8203,6 +8203,9 @@ app.post('/api/session/:sessionId/skip', writeLimiter, authenticateToken, (req, 
 app.post('/api/session/:sessionId/ai', writeLimiter, authenticateToken, (req, res) =>
     sessionRoutes.aiTurn(req, res)
 );
+app.post('/api/session/:sessionId/summary', writeLimiter, authenticateToken, (req, res) =>
+    sessionRoutes.summary(req, res)
+);
 app.post('/api/session/:sessionId/end', writeLimiter, authenticateToken, (req, res) => sessionRoutes.end(req, res));
 
 // ===== SEO ENDPOINTS =====

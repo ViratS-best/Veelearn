@@ -156,28 +156,41 @@ function createSessionRoutes({ query, apiResponse, log, chat, qbank: injectedQBa
             }
         },
 
+        /**
+         * POST /api/session/:sessionId/summary
+         *
+         * One model sentence for the end screen, requested after /end has already
+         * answered so the ending never waits on a slow free model.
+         */
+        async summary(req, res) {
+            try {
+                const rows = await query(
+                    `SELECT su.summary AS summary, su.next_step AS next_step
+                     FROM session_summaries su
+                     JOIN sessions s ON s.id = su.session_id
+                     WHERE su.session_id = ? AND s.user_id = ? LIMIT 1`,
+                    [sessionIdFrom(req), req.user.id]
+                );
+                if (!rows.length) return apiResponse(res, 404, 'Session summary not found');
+                const out = await ai.summary({
+                    sessionId: sessionIdFrom(req),
+                    payload: {
+                        summary: rows[0].summary,
+                        nextStep: rows[0].next_step,
+                        budgetMs: req.body?.budgetMs
+                    }
+                });
+                return apiResponse(res, 200, 'OK', out);
+            } catch (e) {
+                return fail(res, e, 'Could not write a summary line');
+            }
+        },
+
         /** POST /api/session/:sessionId/end { reason } */
         async end(req, res) {
             try {
                 const out = await engine.end(req.user.id, sessionIdFrom(req), { reason: req.body?.reason });
                 if (out.error) return apiResponse(res, out.error, out.message);
-                // One optional AI line; the stored summary is already correct, so
-                // a failure here changes nothing the learner needs.
-                try {
-                    const line = await ai.summary({
-                        sessionId: sessionIdFrom(req),
-                        payload: {
-                            summary: out.summary,
-                            nextStep: out.nextStep,
-                            done: out.done,
-                            total: out.total,
-                            minutes: out.minutes
-                        }
-                    });
-                    if (line && line.line && !line.fallback) out.aiLine = line.line;
-                } catch (e) {
-                    /* template summary stands */
-                }
                 return apiResponse(res, 200, 'Session saved', out);
             } catch (e) {
                 return fail(res, e, 'Could not save the session');
