@@ -384,13 +384,22 @@
         ${meta ? `<div style="color:var(--ls-muted);font-size:0.8rem;margin-top:2px;">${esc(meta)}</div>` : ''}
         <div style="color:var(--ls-muted);font-size:0.9rem;">${esc(r.reason || '')}</div>
         <div class="ls-rec-actions">
-          <button type="button" class="ls-btn-primary" data-enroll="${r.courseId}">View / Enroll</button>
+          <button type="button" class="ls-btn-primary" data-practice="${r.courseId}">Practice with the tutor</button>
+          <button type="button" class="ls-btn-soft" data-enroll="${r.courseId}">View / Enroll</button>
           <button type="button" class="ls-btn-soft" data-like="${r.courseId}">Like this course</button>
         </div>
       </div>`;
       })
       .join('');
 
+    el.querySelectorAll('[data-practice]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = parseInt(btn.getAttribute('data-practice'), 10);
+        if (!id) return;
+        // A course session teaches the course's own units instead of a generic track.
+        window.location.href = `session.html?course=${encodeURIComponent(id)}&minutes=15`;
+      });
+    });
     el.querySelectorAll('[data-enroll]').forEach((btn) => {
       btn.addEventListener('click', async () => {
         const id = parseInt(btn.getAttribute('data-enroll'), 10);
