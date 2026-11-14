@@ -533,15 +533,7 @@
     el('sx-summary-text').textContent = text;
     el('sx-summary-next').textContent = (summary && summary.nextStep) || '';
 
-    // One optional model sentence; the template summary above stands without it.
-    const stale = document.querySelector('.sx-ai-line');
-    if (stale) stale.remove();
-    if (summary && summary.aiLine) {
-      const line = document.createElement('p');
-      line.className = 'sx-line sx-ai-line';
-      line.textContent = summary.aiLine;
-      el('sx-summary-text').insertAdjacentElement('afterend', line);
-    }
+    if (summary && summary.aiLine) showAiLine(summary.aiLine);
 
     const earned = state.lastEndReward || { xp: 0, gems: 0 };
     const xp = Number(earned.xp || 0) + Number((session && session.xpAwarded) || 0);
@@ -553,6 +545,27 @@
 
     const heading = el('sx-summary-title');
     if (heading) heading.textContent = session && session.status === 'completed' ? 'Session saved.' : 'Nice work.';
+  }
+
+  /** The model's end-of-session line, asked for after the ending is already on screen. */
+  function showAiLine(text) {
+    const stale = document.querySelector('.sx-ai-line');
+    if (stale) stale.remove();
+    if (!text) return;
+    const line = document.createElement('p');
+    line.className = 'sx-line sx-ai-line';
+    line.textContent = text;
+    el('sx-summary-text').insertAdjacentElement('afterend', line);
+  }
+
+  async function requestSummaryLine() {
+    if (!state.id) return;
+    try {
+      const out = await api(`/api/session/${state.id}/summary`, {});
+      if (out && out.line && !out.fallback) showAiLine(out.line);
+    } catch (_) {
+      /* the stored summary stands */
+    }
   }
 
   async function finish(reason) {
@@ -569,6 +582,7 @@
         renderFocus(out.state.focus, null);
       }
       showSummary({ text: out.summary, nextStep: out.nextStep, aiLine: out.aiLine }, out.state && out.state.session);
+      requestSummaryLine();
 
       if (window.Celebrate && out.done > 0) {
         const session = (out.state && out.state.session) || {};
@@ -685,13 +699,16 @@
     state.lastChosen = chosenKey;
 
     if (result.solution) {
-      // Second miss: ask for the reteach script, keep the rules if it fails.
+      // Second miss: the template plays now, the model upgrades it if it lands.
+      // Free models here answer in 5–25 s, so nothing may wait on them.
+      ruleReteach(optionEl);
       Promise.resolve(requestAI('reteach', { distractor: chosenKey, attempts }))
         .then((payload) => {
-          if (payload && playAI(payload)) return;
-          ruleReteach(optionEl);
+          if (!payload || payload.fallback) return; // the template on screen is the answer
+          if (window.Annotate) Annotate.clear();
+          playAI(payload);
         })
-        .catch(() => ruleReteach(optionEl));
+        .catch(() => {});
       return;
     }
 
