@@ -2,6 +2,36 @@
 
 ## STOP MAKING MDS! NO MDS! USE AGENTS.MD ONLY!
 
+---
+
+### ✅ PHASE 4 + 5 - PEER-COURSE TEACHING & QUALITY OF LIFE
+
+**Status**: COMPLETE (offline-verified; live run pending a Render deploy)
+
+**P4 — course-guided teaching** (`creator-impact.js`)
+- Readiness gate scored 30/25/25/15/5 for units · skill mapping · question coverage · prose · simulator health. Under 60 the course still teaches, in bank-led mode, at 0.5× hours.
+- Auto-split: a one-unit course splits on paragraph blocks into teachable parts; a two-heading course uses its `<h2>`s.
+- Auto-mapping: unit titles + prose are matched against `skills.name`/`code`, written to `course_skills` with `source='auto'` (creator corrections win). Skills with no creator question are filled from the shared bank and labelled.
+- Course plan: unit order, then the weakest skill inside each unit; the unit's own text travels to the tutor as a 600-char frame with "trust the answer key over the creator's explanation".
+- Volunteer hours v2 (`creator_impact_ledger`): 0.25 h × readiness × rating × mastery gain, gates (creator ≠ learner, 2 distinct learners — back-paid when the second arrives, ≥10 min and ≥3 items, idempotent per session), caps (3 h/day, 20 h/week, 200 h/course), completion bonus 1 h per learner at 80% (max 10).
+- Creator pane `GET /api/course/:id/impact`: learners, avg gain, rating, hours, stuck skills, funnel — read from the ledger it audits.
+
+**P5 — quality of life** (`phase5.js`)
+- Exam sprint: `exam_date` within 45 days offers a 6-item plan (due review first, weakest next, topped up from the learner's track). `POST /api/session/start {mode:'sprint'}`.
+- Teacher-assigned sessions: `session_assignments` + `POST /api/teacher/assign-session` + per-student mastery. Class code comes from the teacher.
+- Parent digest: `parent_digests`, opt-in email, sent through the existing Brevo/SMTP transport, one per week, stored so the exact text is auditable.
+- Flashcards from misses + Anki CSV export, SM-2-lite scheduling; session transcript as Markdown; session summary saved to searchable notes; session history searchable by skill or summary; reminder timestamp.
+- Session page: read-aloud (browser `speechSynthesis`, no key), star rating, transcript download, flashcard and note buttons, exam/sprint rail block, sessions modal with digest opt-in, dark parity via `prefers-color-scheme`.
+
+**Endpoints added**: `/api/session/course/:id/readiness`, `/api/course/:id/impact`, `/api/creator/impact`, `/api/profile/exam`, `/api/profile/digest`, `/api/profile/reminder`, `/api/session/:id/transcript`, `/api/session/:id/flashcards`, `/api/session/:id/note`, `/api/session/:id/rate`, `/api/flashcards`, `/api/flashcards/export.csv`, `/api/flashcards/:id/review`, `/api/notes`, `/api/teacher/assign-session`, `/api/teacher/session-assignments`, `/api/teacher/session-assignment/:id`, `/api/student/session-assignments`.
+
+**Migration**: `session-schema.js` now creates 18 tables (adds `creator_impact_ledger`, `session_flashcards`, `session_notes`, `parent_digests`, `session_assignments`) and adds `sessions.rating`, `sessions.sprint`, `courses.readiness_score`, `courses.readiness_json`, `users.exam_date`, `users.parent_email`, `users.digest_opt_in`, `users.reminder_at`.
+
+**Model**: metered `google/gemma-4-26b-a4b-it` is now primary; the `:free` twin and `google/gemini-3.5-flash-lite` are fallbacks (the free tier's daily cap is shared by the whole Hack Club key, so leading with it cost every call a 429).
+
+**Tests**: `node test-phase45.js` (81) · `test-session-core.js` (59) · `test-ai-session.js` (124) · `test-visual-teaching.js` (64).
+
+
 ## Status Summary
 
 **Phase**: Phase 6 - SECURITY HARDENING & STYLING (Session 39) → Phase 7 - PROFESSIONAL ANIME BATTLES (Session 39)

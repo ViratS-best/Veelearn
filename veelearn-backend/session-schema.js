@@ -195,6 +195,81 @@ const TABLES = [
         hits INT DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE KEY uniq_llm_cache (cache_key)
+    )`,
+
+    // ---- P4: teaching impact ledger (volunteer hours v2) ------------------
+    `CREATE TABLE IF NOT EXISTS creator_impact_ledger (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        course_id INT NOT NULL,
+        creator_id INT NOT NULL,
+        learner_id INT NOT NULL,
+        session_id INT NOT NULL,
+        kind VARCHAR(16) DEFAULT 'session',
+        hours REAL DEFAULT 0,
+        readiness_mult REAL DEFAULT 1,
+        quality_mult REAL DEFAULT 1,
+        mastery_mult REAL DEFAULT 1,
+        mastery_gain REAL DEFAULT 0,
+        paid_reason VARCHAR(40) NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_impact_grant (session_id, kind),
+        INDEX idx_impact_course (course_id, created_at),
+        INDEX idx_impact_creator (creator_id, created_at)
+    )`,
+
+    // ---- P5: flashcards from misses, auto notes, digests, assignments -----
+    `CREATE TABLE IF NOT EXISTS session_flashcards (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        question_id INT NULL,
+        skill_id INT NULL,
+        front LONGTEXT NOT NULL,
+        back LONGTEXT NOT NULL,
+        source VARCHAR(16) DEFAULT 'miss',
+        ease REAL DEFAULT 2.5,
+        reps SMALLINT DEFAULT 0,
+        due_at TIMESTAMP NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_card_question (user_id, question_id),
+        INDEX idx_cards_due (user_id, due_at)
+    )`,
+
+    `CREATE TABLE IF NOT EXISTS session_notes (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        session_id INT NULL,
+        body LONGTEXT NOT NULL,
+        skills VARCHAR(400) NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_note_session (session_id),
+        INDEX idx_notes_user (user_id, created_at)
+    )`,
+
+    `CREATE TABLE IF NOT EXISTS parent_digests (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        period_start DATE NOT NULL,
+        period_end DATE NOT NULL,
+        body LONGTEXT NOT NULL,
+        emailed_to VARCHAR(190) NULL,
+        sent_at TIMESTAMP NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_digest_period (user_id, period_start)
+    )`,
+
+    `CREATE TABLE IF NOT EXISTS session_assignments (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        teacher_id INT NOT NULL,
+        course_id INT NOT NULL,
+        class_code VARCHAR(12) NULL,
+        title VARCHAR(160) NULL,
+        unit_index SMALLINT DEFAULT 0,
+        minutes SMALLINT DEFAULT 20,
+        due_at TIMESTAMP NULL,
+        status VARCHAR(12) DEFAULT 'open',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_assign_teacher (teacher_id, created_at),
+        INDEX idx_assign_class (class_code, status)
     )`
 ];
 
@@ -207,12 +282,22 @@ const INDEXES = [
     'CREATE INDEX IF NOT EXISTS idx_focus_items ON session_focus_items (session_id, status)',
     'CREATE INDEX IF NOT EXISTS idx_events_session2 ON session_events (session_id, seq)',
     'CREATE INDEX IF NOT EXISTS idx_attempts_unseen2 ON practice_attempts (user_id, question_id)',
-    'CREATE INDEX IF NOT EXISTS idx_review_due2 ON review_queue (user_id, due_at)'
+    'CREATE INDEX IF NOT EXISTS idx_review_due2 ON review_queue (user_id, due_at)',
+    'CREATE INDEX IF NOT EXISTS idx_cards_due2 ON session_flashcards (user_id, due_at)',
+    'CREATE INDEX IF NOT EXISTS idx_impact_course2 ON creator_impact_ledger (course_id, created_at)'
 ];
 
 const ALTERS = [
     'ALTER TABLE courses ADD COLUMN IF NOT EXISTS ai_ready SMALLINT DEFAULT 0',
     'ALTER TABLE courses ADD COLUMN IF NOT EXISTS sessions_taught INT DEFAULT 0',
+    'ALTER TABLE courses ADD COLUMN IF NOT EXISTS readiness_score SMALLINT DEFAULT 0',
+    'ALTER TABLE courses ADD COLUMN IF NOT EXISTS readiness_json LONGTEXT NULL',
+    'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS rating SMALLINT NULL',
+    'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS sprint SMALLINT DEFAULT 0',
+    'ALTER TABLE users ADD COLUMN IF NOT EXISTS exam_date DATE NULL',
+    'ALTER TABLE users ADD COLUMN IF NOT EXISTS parent_email VARCHAR(190) NULL',
+    'ALTER TABLE users ADD COLUMN IF NOT EXISTS digest_opt_in SMALLINT DEFAULT 0',
+    'ALTER TABLE users ADD COLUMN IF NOT EXISTS reminder_at TIMESTAMP NULL',
     "ALTER TABLE user_learning_profile ADD COLUMN IF NOT EXISTS prefs LONGTEXT NULL"
 ];
 

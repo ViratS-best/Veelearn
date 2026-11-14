@@ -222,7 +222,7 @@ function templateFallback({ mode, question, why, solution, distractor, say } = {
  * client-safe card (qbank.toCard), and `why` is the authored distractor
  * rationale, which is released only after grading.
  */
-function buildMessages({ kind = 'reteach', question, skill, brief, turns, summary, distractor, why, mode } = {}) {
+function buildMessages({ kind = 'reteach', question, skill, brief, turns, summary, distractor, why, mode, course } = {}) {
     if (!question || !question.stem) {
         throw Object.assign(new Error('A question card is required'), { status: 400 });
     }
@@ -252,6 +252,20 @@ function buildMessages({ kind = 'reteach', question, skill, brief, turns, summar
             .filter(Boolean)
             .join('\n')
     );
+
+    // §15.2: a course unit gives the tutor the author's framing, and the
+    // answer-key clause turns every session into a proofreading pass over
+    // user-created content.
+    if (course && (course.title || course.digest)) {
+        const lines = ['COURSE UNIT YOU ARE TEACHING (the creator\'s own words)'];
+        if (course.title) lines.push(`Course: ${clampText(course.title, 120)}`);
+        if (course.unitTitle) lines.push(`Unit: ${clampText(course.unitTitle, 120)}`);
+        if (course.digest) lines.push(clampText(course.digest, 600));
+        lines.push(
+            'Teach this unit in the creator\'s framing and vocabulary. If their explanation conflicts with the question\'s answer key, trust the answer key and note the discrepancy in your summary.'
+        );
+        block.push(lines.join('\n'));
+    }
 
     if (mode) block.push(`Mode the server has set: ${mode}`);
 

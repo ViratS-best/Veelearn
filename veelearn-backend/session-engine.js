@@ -196,6 +196,7 @@ function createSessionEngine({ query, qbank, log } = {}) {
         const rows = await query(
             `SELECT id, user_id, course_id, mode, minutes, goal_text, status, item_index,
                     xp_awarded, gems_awarded, started_at, ended_at, last_active_at,
+                    turn_buffer, sprint, rating,
                     GREATEST(0, CAST(EXTRACT(EPOCH FROM (NOW() - started_at)) AS INTEGER)) AS elapsed_s
              FROM sessions WHERE id = ? AND user_id = ? LIMIT 1`,
             [sessionId, userId]
@@ -325,55 +326,112 @@ function createSessionEngine({ query, qbank, log } = {}) {
                   }
                 : null,
             question,
+            course: parseJson(session.turn_buffer, null),
+            sprint: !!Number(session.sprint || 0),
             map: await mapFor(userId, track),
             summary: summaryRows[0] ? { text: summaryRows[0].summary, nextStep: summaryRows[0].next_step } : null,
             progress: { done, total: items.length }
         };
     }
 
-    async function start(userId, { minutes, track, courseId, intent } = {}) {
+    async function start(userId, { minutes, track, courseId, intent, mode } = {}) {
         const mins = mastery.clamp(minutes || 20, 5, 90);
-        const chosenTrack = await resolveTrack(userId, track);
+        const wantCourse = courseId ? Number(courseId) : null;
+        const wantSprint = String(mode || '') === 'sprint';
 
-        // Reuse an in-flight session for the same track so refresh/back is safe.
-        const activeRows = await query(
-            `SELECT se.id FROM sessions se
-             JOIN session_focus_items f ON f.session_id = se.id
-             JOIN skills s ON s.id = f.skill_id
-             WHERE se.user_id = ? AND se.status = 'active' AND s.track = ?
-             ORDER BY se.id DESC LIMIT 1`,
-            [userId, chosenTrack]
-        );
-        if (activeRows.length) {
-            const existing = await state(userId, activeRows[0].id);
-            if (existing && existing.question) return { ...existing, resumed: true };
+        // Reuse an in-flight session for the same course (or track) so a refresh
+        // or a back-navigation never loses the plan.
+        if (wantCourse) {
+            const activeCourse = await query(
+                "SELECT id FROM sessions WHERE user_id = ? AND status = 'active' AND course_id = ? ORDER BY id DESC LIMIT 1",
+                [userId, wantCourse]
+            );
+            if (activeCourse.length) {
+                const existing = await state(userId, activeCourse[0].id);
+                if (existing && existing.question) return { ...existing, resumed: true };
+            }
         }
 
-        const plan = await planFocus(userId, { track: chosenTrack, minutes: mins });
+        const chosenTrack = wantCourse ? null : await resolveTrack(userId, track);
+
+        if (!wantCourse) {
+            const activeRows = await query(
+                `SELECT se.id FROM sessions se
+                 JOIN session_focus_items f ON f.session_id = se.id
+                 JOIN skills s ON s.id = f.skill_id
+                 WHERE se.user_id = ? AND se.status = 'active' AND s.track = ?
+                 ORDER BY se.id DESC LIMIT 1`,
+                [userId, chosenTrack]
+            );
+            if (activeRows.length) {
+                const existing = await state(userId, activeRows[0].id);
+                if (existing && existing.question) return { ...existing, resumed: true };
+            }
+        }
+
+        // Three planners, one shape. A course session follows the creator's
+        // units (§15.2); a sprint follows the exam plan (§16.3); the default
+        // stays the generic focus list.
+        let plan = [];
+        let courseFrame = null;
+        let sprint = 0;
+        if (wantCourse) {
+            const createImpact = require('./creator-impact');
+            const planned = await createImpact({ query, log }).plan({ userId, courseId: wantCourse, minutes: mins });
+            plan = planned.items;
+            courseFrame = {
+                courseId: wantCourse,
+                title: planned.course.title,
+                readiness: planned.report.score,
+                bankLed: planned.report.bankLed,
+                units: planned.report.units
+            };
+        } else if (wantSprint) {
+            const createPhase5 = require('./phase5');
+            const planned = await createPhase5({ query, log }).sprintPlan({ userId });
+            plan = planned.items || [];
+            sprint = 1;
+            if (!plan.length) plan = await planFocus(userId, { track: chosenTrack, minutes: mins });
+        } else {
+            plan = await planFocus(userId, { track: chosenTrack, minutes: mins });
+        }
         if (!plan.length) {
             const err = new Error('No skills available for this track yet');
             err.status = 503;
             throw err;
         }
 
-        const goalText =
-            mins <= 10
+        const goalText = wantCourse
+            ? `Finish ${Math.min(plan.length, 3)} unit${Math.min(plan.length, 3) === 1 ? '' : 's'} of this course`
+            : wantSprint
+              ? 'Six items to your exam'
+              : mins <= 10
                 ? 'Close two gaps'
                 : mins <= 20
                   ? `Move ${Math.min(3, plan.length)} skills up a level`
                   : 'Half a unit';
 
+        const sessionMode = wantCourse ? 'course' : wantSprint ? 'sprint' : 'focus';
         const inserted = await query(
-            `INSERT INTO sessions (user_id, course_id, mode, intent_text, minutes, goal_text, status, item_index)
-             VALUES (?, ?, ?, ?, ?, ?, 'active', 0)`,
-            [userId, courseId || null, courseId ? 'course' : 'focus', intent ? String(intent).slice(0, 500) : null, mins, goalText]
+            `INSERT INTO sessions (user_id, course_id, mode, intent_text, minutes, goal_text, status, item_index, sprint, turn_buffer)
+             VALUES (?, ?, ?, ?, ?, ?, 'active', 0, ?, ?)`,
+            [
+                userId,
+                wantCourse || null,
+                sessionMode,
+                intent ? String(intent).slice(0, 500) : null,
+                mins,
+                goalText,
+                sprint,
+                courseFrame ? JSON.stringify(courseFrame) : null
+            ]
         );
         const sessionId = inserted.insertId || (await latestSessionId(userId));
         if (!sessionId) throw new Error('Could not create session');
 
         for (let i = 0; i < plan.length; i += 1) {
             const p = plan[i];
-            const q = await qbank.pick({ skillId: p.skillId, tier: p.startTier, userId });
+            const q = await qbank.pick({ skillId: p.skillId, tier: p.startTier || 1, userId });
             await query(
                 `INSERT INTO session_focus_items
                     (session_id, skill_id, ord, is_review, target_dots, status, correct_count, attempts, question_ids)
@@ -388,7 +446,12 @@ function createSessionEngine({ query, qbank, log } = {}) {
                 ]
             );
         }
-        await logEvent(sessionId, 0, 'start', null, null, { track: chosenTrack, minutes: mins });
+        await logEvent(sessionId, 0, 'start', null, null, {
+            track: chosenTrack,
+            minutes: mins,
+            mode: sessionMode,
+            courseId: wantCourse || null
+        });
 
         const fresh = await state(userId, sessionId);
         return { ...fresh, resumed: false };
@@ -686,7 +749,7 @@ function createSessionEngine({ query, qbank, log } = {}) {
     }
 
     // -------------------------------------------------------------------- end
-    async function end(userId, sessionId, { reason } = {}) {
+    async function end(userId, sessionId, { reason, rating } = {}) {
         const session = await sessionRow(userId, sessionId);
         if (!session) return { error: 404, message: 'Session not found' };
         if (session.status === 'completed') {
@@ -736,17 +799,25 @@ function createSessionEngine({ query, qbank, log } = {}) {
             info(`[session] summary insert skipped: ${e.message}`);
         }
 
+        const stars = parseInt(rating, 10);
         await query(
             `UPDATE sessions
              SET status = 'completed', ended_at = NOW(), last_active_at = NOW(),
-                 xp_awarded = xp_awarded + ?, gems_awarded = gems_awarded + ?
+                 xp_awarded = xp_awarded + ?, gems_awarded = gems_awarded + ?,
+                 rating = COALESCE(?, rating)
              WHERE id = ?`,
-            [goalReward.xpAwarded, goalReward.gemsAwarded, sessionId]
+            [
+                goalReward.xpAwarded,
+                goalReward.gemsAwarded,
+                Number.isFinite(stars) && stars >= 1 && stars <= 5 ? stars : null,
+                sessionId
+            ]
         );
         await logEvent(sessionId, await nextSeq(sessionId), 'end', null, null, {
             reason: reason || (reachedGoal ? 'goal' : 'quit'),
             done: done.length,
-            total: items.length
+            total: items.length,
+            rating: Number.isFinite(stars) ? stars : null
         });
 
         return {
@@ -761,6 +832,19 @@ function createSessionEngine({ query, qbank, log } = {}) {
             totals: await rewardTotals(userId),
             state: await state(userId, sessionId)
         };
+    }
+
+    /** Stars live on the session so the creator's quality multiplier can read them. */
+    async function rate(userId, sessionId, { rating } = {}) {
+        const stars = parseInt(rating, 10);
+        if (!Number.isFinite(stars) || stars < 1 || stars > 5) {
+            return { error: 400, message: 'Rate this session from 1 to 5' };
+        }
+        const rows = await query('SELECT id FROM sessions WHERE id = ? AND user_id = ? LIMIT 1', [sessionId, userId]);
+        if (!rows.length) return { error: 404, message: 'Session not found' };
+        await query('UPDATE sessions SET rating = ? WHERE id = ?', [stars, sessionId]);
+        await logEvent(sessionId, await nextSeq(sessionId), 'session.rate', null, null, { rating: stars });
+        return { ok: true, rating: stars };
     }
 
     async function active(userId) {
@@ -802,7 +886,7 @@ function createSessionEngine({ query, qbank, log } = {}) {
         }));
     }
 
-    return { active, answer, end, hint, history, mapFor, skip, start, state };
+    return { active, answer, end, hint, history, mapFor, rate, skip, start, state };
 }
 
 module.exports = createSessionEngine;

@@ -271,10 +271,10 @@ function createSessionAI({ query, qbank, chat, log } = {}) {
         qbank = require('./qbank')({ query });
     }
 
-    function cacheKey({ skillId, questionId, distractor, mode, kind }) {
+    function cacheKey({ skillId, questionId, distractor, mode, kind, courseId }) {
         return crypto
             .createHash('sha256')
-            .update(`${skillId}|${questionId}|${distractor || ''}|${mode || ''}|${kind || ''}`)
+            .update(`${skillId}|${questionId}|${distractor || ''}|${mode || ''}|${kind || ''}|${courseId || ''}`)
             .digest('hex');
     }
 
@@ -356,7 +356,7 @@ function createSessionAI({ query, qbank, chat, log } = {}) {
      * script flagged `fallback: true`, and `bankMode: true` when the cause was
      * rate limiting or a missing key (the session keeps working either way).
      */
-    async function turn({ userId, sessionId, kind = 'reteach', questionId, distractor, attempts = 0, correct = false, itemsDone = false, turns, summary, learnerPrefs } = {}) {
+    async function turn({ userId, sessionId, kind = 'reteach', questionId, distractor, attempts = 0, correct = false, itemsDone = false, turns, summary, learnerPrefs, course = null } = {}) {
         const safeKind = AI_KINDS.includes(kind) && kind !== 'summary' ? kind : 'reteach';
         if (!questionId) {
             return { ok: false, error: 400, message: 'questionId is required' };
@@ -442,7 +442,8 @@ function createSessionAI({ query, qbank, chat, log } = {}) {
             summary,
             distractor,
             why,
-            mode
+            mode,
+            course
         });
 
         const started = Date.now();

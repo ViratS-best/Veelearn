@@ -1273,7 +1273,7 @@ const aiNotesCoursePollLimiter = rateLimit({
 const createAiTutorHandlers = require('./ai-tutor-handlers');
 const aiTutorHandlers = createAiTutorHandlers({ query, aiChatCompletion, apiResponse });
 const createSessionRoutes = require('./session-routes');
-const sessionRoutes = createSessionRoutes({ query, apiResponse, log: { info } });
+const sessionRoutes = createSessionRoutes({ query, apiResponse, log: { info, warn }, sendEmail });
 
 const createAiEditorHelpHandlers = require('./ai-editor-help-handlers');
 const aiEditorHelpHandlers = createAiEditorHelpHandlers({
@@ -8207,6 +8207,46 @@ app.post('/api/session/:sessionId/summary', writeLimiter, authenticateToken, (re
     sessionRoutes.summary(req, res)
 );
 app.post('/api/session/:sessionId/end', writeLimiter, authenticateToken, (req, res) => sessionRoutes.end(req, res));
+
+// ---- P4: course-guided sessions, readiness, teaching impact ---------------
+app.get('/api/session/course/:courseId/readiness', authenticateToken, (req, res) =>
+    sessionRoutes.readiness(req, res)
+);
+app.post('/api/session/course/:courseId/readiness', writeLimiter, authenticateToken, (req, res) =>
+    sessionRoutes.readiness(req, res)
+);
+app.get('/api/course/:courseId/impact', authenticateToken, (req, res) => sessionRoutes.courseImpact(req, res));
+app.get('/api/creator/impact', authenticateToken, (req, res) => sessionRoutes.creatorImpact(req, res));
+
+// ---- P5: exam sprint, transcript, flashcards, notes, digest, assignments ---
+app.get('/api/profile/exam', authenticateToken, (req, res) => sessionRoutes.exam(req, res));
+app.post('/api/profile/exam', writeLimiter, authenticateToken, (req, res) => sessionRoutes.exam(req, res));
+app.get('/api/session/:sessionId/transcript', authenticateToken, (req, res) => sessionRoutes.transcript(req, res));
+app.post('/api/session/:sessionId/flashcards', writeLimiter, authenticateToken, (req, res) =>
+    sessionRoutes.makeCards(req, res)
+);
+app.get('/api/flashcards/export.csv', authenticateToken, (req, res) => sessionRoutes.cardsCsv(req, res));
+app.get('/api/flashcards', authenticateToken, (req, res) => sessionRoutes.cards(req, res));
+app.post('/api/flashcards/:cardId/review', writeLimiter, authenticateToken, (req, res) =>
+    sessionRoutes.reviewCard(req, res)
+);
+app.post('/api/session/:sessionId/note', writeLimiter, authenticateToken, (req, res) => sessionRoutes.saveNote(req, res));
+app.get('/api/notes', authenticateToken, (req, res) => sessionRoutes.notes(req, res));
+app.get('/api/profile/digest', authenticateToken, (req, res) => sessionRoutes.digest(req, res));
+app.post('/api/profile/digest', writeLimiter, authenticateToken, (req, res) => sessionRoutes.digest(req, res));
+app.post('/api/profile/reminder', writeLimiter, authenticateToken, (req, res) => sessionRoutes.reminder(req, res));
+app.post('/api/teacher/assign-session', writeLimiter, authenticateToken, (req, res) =>
+    sessionRoutes.assignSession(req, res)
+);
+app.get('/api/student/session-assignments', authenticateToken, (req, res) =>
+    sessionRoutes.studentAssignments(req, res)
+);
+app.get('/api/teacher/session-assignment/:assignmentId', authenticateToken, (req, res) =>
+    sessionRoutes.teacherMastery(req, res)
+);
+app.get('/api/teacher/session-assignments', authenticateToken, (req, res) =>
+    sessionRoutes.teacherAssignments(req, res)
+);
 
 // ===== SEO ENDPOINTS =====
 // Sitemap.xml endpoint

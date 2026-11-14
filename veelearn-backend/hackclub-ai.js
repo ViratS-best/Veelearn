@@ -2,20 +2,20 @@ const axios = require('axios');
 
 const HACKCLUB_URL = 'https://ai.hackclub.com/proxy/v1/chat/completions';
 /**
- * The one model the product uses: free, fast on Hack Club, and good at both
- * structured JSON (notes → course, session scripts) and short prose (tutor).
+ * The one model the product uses. It is the metered id, not the `:free` twin:
+ * the free tier's daily ceiling is shared by the whole Hack Club key, so leading
+ * with it costs every call a guaranteed 429 before the real request. Metered
+ * gemma-4-26b is $0.07 per million prompt tokens (a session turn is ~$0.0001
+ * against the account's daily allowance), so the fast path pays for itself.
  */
-const DEFAULT_MODEL = 'google/gemma-4-26b-a4b-it:free';
+const DEFAULT_MODEL = 'google/gemma-4-26b-a4b-it';
 const DEFAULT_JSON_MODEL = DEFAULT_MODEL;
 /**
- * A `:free` model has a daily ceiling upstream, and this key shares it with
- * everyone else using the proxy, so the free id answers 429 for long stretches.
- * The same weights without `:free` are billed per token — gemma-4-26b at $0.07
- * per million prompt tokens, well under a cent for a whole session — so the
- * paid twin is the second try, and a fast flash model is the last one. A turn
- * that used to end in silence now still gets an answer.
+ * If the metered gemma is throttled or has a bad day, the free twin is still
+ * worth a try (its cap is the only thing wrong with it), and a fast flash model
+ * is the last resort so a turn never ends in silence.
  */
-const DEFAULT_FALLBACK_MODELS = ['google/gemma-4-26b-a4b-it', 'google/gemini-3.5-flash-lite'];
+const DEFAULT_FALLBACK_MODELS = ['google/gemma-4-26b-a4b-it:free', 'google/gemini-3.5-flash-lite'];
 const DEFAULT_TIMEOUT_MS = 180000;
 
 const JSON_MUST =
