@@ -296,13 +296,12 @@
         syncLearnerTheme();
         [300, 1200, 3000].forEach((ms) => setTimeout(syncLearnerTheme, ms));
         if (window.MutationObserver) {
-            const shell = document.getElementById('learner-shell');
-            if (shell) {
-                new MutationObserver(syncLearnerTheme).observe(shell, {
-                    attributes: true,
-                    attributeFilter: ['data-learner-theme']
-                });
-            }
+            // Watch the whole body: the shell may be inserted (and themed) after this runs.
+            new MutationObserver(syncLearnerTheme).observe(document.body, {
+                attributes: true,
+                attributeFilter: ['data-learner-theme'],
+                subtree: true
+            });
         }
 
         const assignBtn = document.getElementById('assign-session-btn');
