@@ -85,15 +85,25 @@ function tokensOf(text) {
  */
 function splitUnits(content) {
     const html = String(content || '');
-    const byH2 = html.split(/<h2[^>]*>/i).filter((part) => part.trim());
+    const chunks = html.split(/<h2[^>]*>/i);
+    // Anything before the first <h2> is the course intro, not a unit: keeping it
+    // as one made an AP course's h1 + "Audience:" paragraph the first unit title.
+    const intro = chunks.length > 1 ? chunks.shift() : '';
+    const byH2 = chunks.filter((part) => part.trim());
     if (byH2.length >= 2) {
-        return byH2.map((part, i) => {
+        const units = byH2.map((part, i) => {
             const raw = part.replace(/<\/h2>[\s\S]*$/i, '');
             const rest = part.slice(part.toLowerCase().indexOf('</h2>') + 5);
             const title = stripHtml(raw) || `Unit ${i + 1}`;
             const body = stripHtml(rest);
             return { ord: i, title: title.slice(0, 120), text: body, html: rest };
         });
+        const introText = stripHtml(intro);
+        if (introText.length >= 40) {
+            units[0].text = `${introText} ${units[0].text}`.trim();
+            units[0].html = intro + units[0].html;
+        }
+        return units;
     }
 
     const byH3 = html.split(/<h3[^>]*>/i).filter((part) => part.trim());
@@ -347,6 +357,15 @@ function createCreatorImpact({ query, log } = {}) {
 
     const LETTERS = 'ABCDEFGH';
 
+    /** A unit heading, clipped at a word boundary so the focus list stays readable. */
+    function shortName(title) {
+        const clean = String(title || '').replace(/\s+/g, ' ').trim();
+        if (clean.length <= 64) return clean;
+        const cut = clean.slice(0, 64);
+        const space = cut.lastIndexOf(' ');
+        return `${(space > 28 ? cut.slice(0, space) : cut).trim()}…`;
+    }
+
     function optionKey(options, correct) {
         const want = String(correct || '').replace(/\s+/g, ' ').trim().toLowerCase();
         if (!want) return null;
@@ -417,7 +436,7 @@ function createCreatorImpact({ query, log } = {}) {
                  VALUES (?, 'course', ?, ?, ?, 2, ?, '[]')`,
                 [
                     code,
-                    String(unit.title || course.title).slice(0, 160),
+                    shortName(unit.title || course.title),
                     course.grade_level != null ? Number(course.grade_level) : null,
                     unit.ord,
                     String(unit.text || '').slice(0, FRAME_CHARS) || null
