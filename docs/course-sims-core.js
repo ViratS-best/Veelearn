@@ -397,6 +397,7 @@
       try {
         sim.draw(ctx, state, { x: 8, y: 8, w: width - 16, h: height - 16 }, t);
       } catch (err) {
+        host.dataset.simError = err && err.message ? err.message : String(err);
         ctx.fillStyle = PALETTE.red;
         ctx.font = '12px ui-sans-serif, system-ui, sans-serif';
         ctx.fillText('Simulation error', 16, 24);
