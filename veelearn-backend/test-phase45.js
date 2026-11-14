@@ -1025,6 +1025,21 @@ function addSession(db, { id, userId, courseId, minutes = 14, items = 4, ended =
         ok('a nonsense reminder time is refused', badTime && badTime.status === 400);
     }
 
+    // =====================================================================
+    // Wiring: the routes the UI calls have to exist and answer the documented shape
+    // =====================================================================
+    {
+        const fs = require('fs');
+        const path = require('path');
+        const server = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+        const engineSrc = fs.readFileSync(path.join(__dirname, 'session-engine.js'), 'utf8');
+        const routesSrc = fs.readFileSync(path.join(__dirname, 'session-routes.js'), 'utf8');
+        ok('the rate route is mounted', /'\/api\/session\/:sessionId\/rate'/.test(server));
+        ok('the teacher session list is mounted', /'\/api\/teacher\/session-assignments'/.test(server));
+        ok('history searches skill names in SQL', /sk\.name LIKE/.test(engineSrc));
+        ok('history returns the { sessions, count } envelope', /sessions, count: sessions\.length/.test(routesSrc));
+    }
+
     // ------------------------------------------------------------- the report
     if (failures.length) {
         console.error(`\n${failures.length} FAILED of ${pass + failures.length}:`);

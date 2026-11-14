@@ -88,8 +88,9 @@ function createSessionRoutes({
         /** GET /api/session/history */
         async history(req, res) {
             try {
-                const data = await engine.history(req.user.id, { limit: req.query.limit, q: req.query.q });
-                return apiResponse(res, 200, 'OK', data);
+                const sessions = await engine.history(req.user.id, { limit: req.query.limit, q: req.query.q });
+                // The route owns the envelope; the engine keeps returning rows.
+                return apiResponse(res, 200, 'OK', { sessions, count: sessions.length });
             } catch (e) {
                 return fail(res, e, 'Could not load session history');
             }

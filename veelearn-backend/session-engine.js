@@ -863,21 +863,32 @@ function createSessionEngine({ query, qbank, log } = {}) {
         };
     }
 
-    async function history(userId, { limit } = {}) {
+    async function history(userId, { limit, q } = {}) {
         const n = mastery.clamp(limit || 20, 1, 50);
-        const rows = await query(
-            `SELECT se.id, se.minutes, se.status, se.started_at, se.ended_at, se.xp_awarded,
-                    su.summary, su.next_step
-             FROM sessions se
-             LEFT JOIN session_summaries su ON su.session_id = se.id
-             WHERE se.user_id = ?
-             ORDER BY se.id DESC LIMIT ?`,
-            [userId, n]
-        );
+        const term = String(q || '').trim();
+        const base = `SELECT se.id, se.minutes, se.status, se.started_at, se.ended_at, se.xp_awarded,
+                             se.mode, se.rating, se.course_id, su.summary, su.next_step
+                      FROM sessions se
+                      LEFT JOIN session_summaries su ON su.session_id = se.id
+                      WHERE se.user_id = ?`;
+        // QoL 26: the Sessions pane searches skills and summaries, not just dates.
+        const rows = term
+            ? await query(
+                  `${base} AND (su.summary LIKE ? OR se.id IN (
+                        SELECT f.session_id FROM session_focus_items f
+                        JOIN skills sk ON sk.id = f.skill_id
+                        WHERE sk.name LIKE ?))
+                   ORDER BY se.id DESC LIMIT ?`,
+                  [userId, `%${term}%`, `%${term}%`, n]
+              )
+            : await query(`${base} ORDER BY se.id DESC LIMIT ?`, [userId, n]);
         return rows.map((r) => ({
             id: Number(r.id),
             minutes: Number(r.minutes || 0),
             status: r.status,
+            mode: r.mode || 'focus',
+            rating: r.rating != null ? Number(r.rating) : null,
+            courseId: r.course_id != null ? Number(r.course_id) : null,
             startedAt: r.started_at,
             endedAt: r.ended_at,
             xp: Number(r.xp_awarded || 0),

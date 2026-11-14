@@ -8206,6 +8206,7 @@ app.post('/api/session/:sessionId/ai', writeLimiter, authenticateToken, (req, re
 app.post('/api/session/:sessionId/summary', writeLimiter, authenticateToken, (req, res) =>
     sessionRoutes.summary(req, res)
 );
+app.post('/api/session/:sessionId/rate', writeLimiter, authenticateToken, (req, res) => sessionRoutes.rate(req, res));
 app.post('/api/session/:sessionId/end', writeLimiter, authenticateToken, (req, res) => sessionRoutes.end(req, res));
 
 // ---- P4: course-guided sessions, readiness, teaching impact ---------------
