@@ -594,6 +594,17 @@ function createCreatorImpact({ query, log } = {}) {
             );
             const idRow = await query('SELECT id FROM qbank_items WHERE stem_hash = ? LIMIT 1', [stemHash]);
             const questionId = idRow && idRow[0] ? Number(idRow[0].id) : null;
+            // Rows ingested before hints/explanations existed keep their empty
+            // columns under INSERT IGNORE; refresh them with the real feedback.
+            await query(
+                `UPDATE qbank_items SET options = ?, hints = ?, solution_steps = ? WHERE stem_hash = ?`,
+                [
+                    JSON.stringify(item.options),
+                    JSON.stringify(item.hint ? [item.hint] : []),
+                    JSON.stringify(item.explanation ? [item.explanation] : []),
+                    stemHash
+                ]
+            );
             if (questionId) buckets[item.unitIndex].push({ questionId, tier: item.tier });
         }
 
