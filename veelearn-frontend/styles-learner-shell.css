@@ -42,6 +42,17 @@ body.learner-shell-active {
   overflow: hidden;
 }
 
+/*
+ * The landing page's aurora beams are fixed, full-viewport and z-index 999, so
+ * they painted blue bands straight through the learner dashboard (a hard seam
+ * down the middle and a strip across the top). They belong to marketing pages
+ * only — the shell has its own theme backgrounds.
+ */
+body.learner-shell-active #aurora-overlay,
+body.learner-shell-active .aurora-overlay {
+  display: none !important;
+}
+
 #learner-shell {
   display: none;
   min-height: 100vh;
