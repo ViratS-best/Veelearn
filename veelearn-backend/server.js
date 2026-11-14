@@ -210,6 +210,7 @@ app.use(cookieParser());
 // request borrows from and returns immediately. See db.js for the pool and the
 // MySQL-compatibility translation of the SQL used across this file.
 const { db, query, poolStatus } = require('./db');
+const { ensureSessionSchema, seedSessionData } = require('./session-schema');
 const dbConfig = {
     host: process.env.PGHOST || 'localhost',
     port: process.env.PGPORT || 5432,
@@ -1095,6 +1096,18 @@ const initializeDatabase = async () => {
             info('✓ Superadmin already exists');
         }
 
+        // ===== AI LEARNING SESSION TABLES + SEED (Phase 1) =====
+        // Additive only; every statement is idempotent so a restart is safe.
+        try {
+            await ensureSessionSchema({ query, log: { info, warn } });
+            await seedSessionData({ query, log: { info, warn } });
+            const { runRetention, scheduleRetention } = require('./retention');
+            await runRetention({ query, log: { info, warn } });
+            scheduleRetention({ query, log: { info, warn } });
+        } catch (sessionErr) {
+            console.error('Session schema init failed:', sessionErr.message);
+        }
+
     } catch (err) {
         console.error('❌ Database initialization failed:', err);
     }
@@ -1259,6 +1272,8 @@ const aiNotesCoursePollLimiter = rateLimit({
 
 const createAiTutorHandlers = require('./ai-tutor-handlers');
 const aiTutorHandlers = createAiTutorHandlers({ query, openRouterChatCompletion, apiResponse });
+const createSessionRoutes = require('./session-routes');
+const sessionRoutes = createSessionRoutes({ query, apiResponse, log: { info } });
 
 const createAiEditorHelpHandlers = require('./ai-editor-help-handlers');
 const aiEditorHelpHandlers = createAiEditorHelpHandlers({
@@ -8171,6 +8186,24 @@ app.get('/api/ai/notes-course/:jobId', aiNotesCoursePollLimiter, authenticateTok
         apiResponse(res, 500, 'Could not load generation status');
     });
 });
+
+// ===== AI LEARNING SESSIONS (Phase 1) =====
+// Deterministic graded practice: plan -> teach -> answer -> mastery -> resume.
+// The AI layer in Phase 3 decorates these responses; it does not own them.
+app.post('/api/session/start', writeLimiter, authenticateToken, (req, res) => sessionRoutes.start(req, res));
+app.get('/api/session/active', authenticateToken, (req, res) => sessionRoutes.active(req, res));
+app.get('/api/session/history', authenticateToken, (req, res) => sessionRoutes.history(req, res));
+app.get('/api/skills/map', authenticateToken, (req, res) => sessionRoutes.map(req, res));
+app.get('/api/session/:sessionId', authenticateToken, (req, res) => sessionRoutes.get(req, res));
+app.post('/api/session/:sessionId/answer', writeLimiter, authenticateToken, (req, res) =>
+    sessionRoutes.answer(req, res)
+);
+app.post('/api/session/:sessionId/hint', writeLimiter, authenticateToken, (req, res) => sessionRoutes.hint(req, res));
+app.post('/api/session/:sessionId/skip', writeLimiter, authenticateToken, (req, res) => sessionRoutes.skip(req, res));
+app.post('/api/session/:sessionId/ai', writeLimiter, authenticateToken, (req, res) =>
+    sessionRoutes.aiTurn(req, res)
+);
+app.post('/api/session/:sessionId/end', writeLimiter, authenticateToken, (req, res) => sessionRoutes.end(req, res));
 
 // ===== SEO ENDPOINTS =====
 // Sitemap.xml endpoint

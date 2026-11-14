@@ -2333,3 +2333,37 @@ select:focus {
 .btn-spinner {
   animation-duration: 0.8s !important;
 }
+
+/* Study coach → session offer (P3) */
+.study-coach-session-offer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    border: 1px solid rgba(214, 158, 78, 0.35);
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(214, 158, 78, 0.14), rgba(214, 158, 78, 0.04));
+}
+.study-coach-session-offer .sco-title {
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    color: var(--text, #f4ead9);
+}
+.study-coach-session-offer .sco-cta {
+    flex: 0 0 auto;
+    padding: 10px 16px;
+    border-radius: 999px;
+    background: #d69e4e;
+    color: #1a1410;
+    font-weight: 600;
+    text-decoration: none;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+}
+.study-coach-session-offer .sco-cta:hover {
+    background: #e6b264;
+}

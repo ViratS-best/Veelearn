@@ -1,0 +1,4061 @@
+{
+ "version": 1,
+ "tracks": [
+  {
+   "id": "math.g8",
+   "name": "Grade 8 Math",
+   "order": 1
+  },
+  {
+   "id": "algebra1",
+   "name": "Algebra 1",
+   "order": 2
+  },
+  {
+   "id": "apcmech",
+   "name": "AP Physics C: Mechanics",
+   "order": 3
+  },
+  {
+   "id": "sat.math",
+   "name": "SAT Math",
+   "order": 4
+  }
+ ],
+ "skills": [
+  {
+   "code": "g8.exponents",
+   "track": "math.g8",
+   "name": "Laws of exponents",
+   "grade_band": 8,
+   "order": 1,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "When you multiply powers with the same base you add the exponents; when you divide them you subtract; when a power is raised to a power you multiply.",
+   "misconceptions": [
+    "Multiplying the exponents when multiplying powers",
+    "Applying the exponent to the coefficient only"
+   ]
+  },
+  {
+   "code": "g8.sci.not",
+   "track": "math.g8",
+   "name": "Scientific notation",
+   "grade_band": 8,
+   "order": 2,
+   "prereq": "g8.exponents",
+   "dot_target": 2,
+   "intro_md": "Scientific notation writes a number as a value between 1 and 10 times a power of ten. A positive exponent means a big number, a negative exponent means a small one.",
+   "misconceptions": [
+    "Keeping the decimal in the wrong place (the first factor must be 1 to 10)",
+    "Sign error when moving the decimal to the right"
+   ]
+  },
+  {
+   "code": "g8.linear.expressions",
+   "track": "math.g8",
+   "name": "Simplifying linear expressions",
+   "grade_band": 8,
+   "order": 3,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Combine like terms by adding their coefficients, and use the distributive property to remove brackets before combining.",
+   "misconceptions": [
+    "Distributing to the first term only",
+    "Dropping the sign in front of a subtracted bracket"
+   ]
+  },
+  {
+   "code": "g8.linear.equations",
+   "track": "math.g8",
+   "name": "Equations with variables on both sides",
+   "grade_band": 8,
+   "order": 4,
+   "prereq": "g8.linear.expressions",
+   "dot_target": 2,
+   "intro_md": "Move every variable term to one side and every constant to the other, then divide by the coefficient. Whatever you do to one side you must do to the other.",
+   "misconceptions": [
+    "Moving a term without changing its sign",
+    "Dividing only one side by the coefficient"
+   ]
+  },
+  {
+   "code": "g8.systems.substitution",
+   "track": "math.g8",
+   "name": "Solving systems by substitution",
+   "grade_band": 8,
+   "order": 5,
+   "prereq": "g8.linear.equations",
+   "dot_target": 2,
+   "intro_md": "When one equation already gives you y (or x) in terms of the other variable, replace that variable in the second equation. You get one equation with one unknown.",
+   "misconceptions": [
+    "Substituting into the same equation instead of the other one",
+    "Stopping after finding one variable and forgetting the other"
+   ]
+  },
+  {
+   "code": "g8.pythagoras",
+   "track": "math.g8",
+   "name": "The Pythagorean theorem",
+   "grade_band": 8,
+   "order": 6,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "In a right triangle the two legs satisfy a² + b² = c², where c is always the side across from the right angle (the longest side).",
+   "misconceptions": [
+    "Putting a leg where the hypotenuse belongs",
+    "Adding the squares instead of subtracting to find a missing leg"
+   ]
+  },
+  {
+   "code": "alg1.linear.one",
+   "track": "algebra1",
+   "name": "Solving one-variable equations",
+   "grade_band": 9,
+   "order": 1,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Undo operations in reverse order: first the addition or subtraction, then the multiplication or division, working towards x on its own.",
+   "misconceptions": [
+    "Dividing before undoing the constant",
+    "Losing the negative sign when dividing"
+   ]
+  },
+  {
+   "code": "alg1.linear.bothsides",
+   "track": "algebra1",
+   "name": "Linear equations with variables on both sides",
+   "grade_band": 9,
+   "order": 2,
+   "prereq": "alg1.linear.one",
+   "dot_target": 2,
+   "intro_md": "Collect the variable terms on one side and the numbers on the other. If brackets are involved, distribute first.",
+   "misconceptions": [
+    "Distributing to only one term in the bracket",
+    "Sign errors when a bracket is subtracted"
+   ]
+  },
+  {
+   "code": "alg1.inequalities",
+   "track": "algebra1",
+   "name": "Linear inequalities",
+   "grade_band": 9,
+   "order": 3,
+   "prereq": "alg1.linear.bothsides",
+   "dot_target": 2,
+   "intro_md": "Solve inequalities like equations, with one exception: multiplying or dividing both sides by a negative number flips the inequality sign.",
+   "misconceptions": [
+    "Forgetting to flip the sign when dividing by a negative",
+    "Treating 'at most' as a strict inequality"
+   ]
+  },
+  {
+   "code": "alg1.slope",
+   "track": "algebra1",
+   "name": "Slope and intercepts",
+   "grade_band": 9,
+   "order": 4,
+   "prereq": "alg1.linear.bothsides",
+   "dot_target": 2,
+   "intro_md": "Slope is rise over run: (y₂ − y₁) / (x₂ − x₁). In y = mx + b, m is the slope and b is the y-intercept.",
+   "misconceptions": [
+    "Putting the change in x on top",
+    "Reading the intercept as a point instead of the y-value"
+   ]
+  },
+  {
+   "code": "alg1.systems.substitution",
+   "track": "algebra1",
+   "name": "Systems of equations by substitution",
+   "grade_band": 9,
+   "order": 5,
+   "prereq": "alg1.linear.bothsides",
+   "dot_target": 2,
+   "intro_md": "Solve one equation for a variable, substitute it into the other, solve, then back-substitute to find the second variable.",
+   "misconceptions": [
+    "Substituting back into the rearranged equation",
+    "Reporting only one of the two values"
+   ]
+  },
+  {
+   "code": "alg1.quadratics.factor",
+   "track": "algebra1",
+   "name": "Factoring quadratics",
+   "grade_band": 9,
+   "order": 6,
+   "prereq": "alg1.linear.bothsides",
+   "dot_target": 2,
+   "intro_md": "For x² + bx + c, find two numbers that multiply to c and add to b. Those become the two constants in the factored form.",
+   "misconceptions": [
+    "Choosing numbers that multiply to b instead of c",
+    "Losing a sign when c is negative"
+   ]
+  },
+  {
+   "code": "apcmech.kinematics.1d",
+   "track": "apcmech",
+   "name": "One-dimensional kinematics",
+   "grade_band": 12,
+   "order": 1,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "The four constant-acceleration equations connect v, v₀, a, t and Δx. Pick the one that contains what you know and what you need.",
+   "misconceptions": [
+    "Using a constant-acceleration equation when the acceleration changes",
+    "Sign errors from mixing up v and v₀"
+   ]
+  },
+  {
+   "code": "apcmech.newton.second",
+   "track": "apcmech",
+   "name": "Newton's second law",
+   "grade_band": 12,
+   "order": 2,
+   "prereq": "apcmech.kinematics.1d",
+   "dot_target": 2,
+   "intro_md": "ΣF = ma uses the net force, not one force. Draw the free-body diagram first, then add the components along the direction of motion.",
+   "misconceptions": [
+    "Using the applied force instead of the net force",
+    "Forgetting that the normal force is not always mg"
+   ]
+  },
+  {
+   "code": "apcmech.work.constant",
+   "track": "apcmech",
+   "name": "Work done by a constant force",
+   "grade_band": 12,
+   "order": 3,
+   "prereq": "apcmech.newton.second",
+   "dot_target": 2,
+   "intro_md": "W = F d cos θ uses the component of the force along the displacement. A force perpendicular to the motion does no work.",
+   "misconceptions": [
+    "Ignoring the angle and using F·d",
+    "Counting friction as positive work"
+   ]
+  },
+  {
+   "code": "apcmech.work.variable",
+   "track": "apcmech",
+   "name": "Work done by a varying force",
+   "grade_band": 12,
+   "order": 4,
+   "prereq": "apcmech.work.constant",
+   "dot_target": 3,
+   "intro_md": "When the force changes, work is the area under the force-versus-position graph, not force times distance.",
+   "misconceptions": [
+    "Using the final force for the whole distance",
+    "Treating a triangular area as a rectangle"
+   ]
+  },
+  {
+   "code": "apcmech.energy.theorem",
+   "track": "apcmech",
+   "name": "The work-energy theorem",
+   "grade_band": 12,
+   "order": 5,
+   "prereq": "apcmech.work.variable",
+   "dot_target": 3,
+   "intro_md": "The net work done on an object equals its change in kinetic energy: W_net = ΔK. It is often easier than tracking forces through time.",
+   "misconceptions": [
+    "Using only one force's work for W_net",
+    "Forgetting that friction does negative work"
+   ]
+  },
+  {
+   "code": "apcmech.momentum.1d",
+   "track": "apcmech",
+   "name": "Momentum and impulse in one dimension",
+   "grade_band": 12,
+   "order": 6,
+   "prereq": "apcmech.newton.second",
+   "dot_target": 2,
+   "intro_md": "p = mv, and impulse J = FΔt equals the change in momentum. In a collision with no external force, total momentum is conserved.",
+   "misconceptions": [
+    "Forgetting that momentum is a vector",
+    "Using kinetic energy conservation for every collision"
+   ]
+  },
+  {
+   "code": "sat.math.linear",
+   "track": "sat.math",
+   "name": "Linear equations and systems",
+   "grade_band": 11,
+   "order": 1,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "SAT linear questions reward translating words into equations and solving systems efficiently rather than elegantly.",
+   "misconceptions": [
+    "Solving for x when the question asks for an expression",
+    "One solution when the system has two unknowns"
+   ]
+  },
+  {
+   "code": "sat.math.percent",
+   "track": "sat.math",
+   "name": "Percent change and percent of",
+   "grade_band": 11,
+   "order": 2,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Percent change is (new − old) / old × 100. A percent decrease multiplies by (1 − rate); a percent increase multiplies by (1 + rate).",
+   "misconceptions": [
+    "Dividing by the new value instead of the original",
+    "Adding successive percentages instead of multiplying the factors"
+   ]
+  },
+  {
+   "code": "sat.math.ratios",
+   "track": "sat.math",
+   "name": "Ratios, rates and proportions",
+   "grade_band": 11,
+   "order": 3,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Set up a proportion with matching units, then cross-multiply. For part-to-whole ratios, the total is the sum of the parts.",
+   "misconceptions": [
+    "Mixing units in the two sides of a proportion",
+    "Treating a part-to-part ratio as part-to-whole"
+   ]
+  },
+  {
+   "code": "sat.math.geometry.area",
+   "track": "sat.math",
+   "name": "Area and perimeter",
+   "grade_band": 11,
+   "order": 4,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Know the rectangle, triangle and circle formulas cold, and split composite shapes into pieces you can measure.",
+   "misconceptions": [
+    "Using the diameter instead of the radius",
+    "Forgetting to halve for a triangle's area"
+   ]
+  },
+  {
+   "code": "sat.math.functions",
+   "track": "sat.math",
+   "name": "Function notation and composition",
+   "grade_band": 11,
+   "order": 5,
+   "prereq": "sat.math.linear",
+   "dot_target": 2,
+   "intro_md": "f(3) means substitute 3 for x. f(g(2)) means evaluate g(2) first, then put that result into f.",
+   "misconceptions": [
+    "Multiplying f by the input instead of substituting",
+    "Evaluating the outer function first in a composition"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "skill": "g8.exponents",
+   "tier": 1,
+   "qtype": "mcq",
+   "stem": "Simplify: 2³ · 2⁴",
+   "stem_hash": "71cc7815280243cb9a08cbd5e8597298d25b88898547252ef6aa9ab746ead8dd",
+   "options": [
+    {
+     "k": "A",
+     "t": "2⁷",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "2¹²",
+     "why": "You multiplied the exponents (3 × 4). When the base is the same you add them."
+    },
+    {
+     "k": "C",
+     "t": "4⁷",
+     "why": "You added the bases as well. Only the exponents change."
+    },
+    {
+     "k": "D",
+     "t": "2¹",
+     "why": "You subtracted the exponents — that is division, not multiplication."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "The bases are the same. What happens to the exponents when you multiply?",
+    "Add them: 3 + 4."
+   ],
+   "steps": [
+    "Same base, so add the exponents.",
+    "2³ · 2⁴ = 2⁷."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "g8.exponents",
+   "tier": 1,
+   "qtype": "mcq",
+   "stem": "Simplify: (x²)⁵",
+   "stem_hash": "9cdf180518198756793696725ce0b2af0670e59c9b4e6500d7715cf0970c86f8",
+   "options": [
+    {
+     "k": "A",
+     "t": "x¹⁰",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "x⁷",
+     "why": "Adding is for multiplying two powers, not for a power of a power."
+    },
+    {
+     "k": "C",
+     "t": "x²⁵",
+     "why": "You multiplied the exponent by itself. Multiply by the outside exponent: 2 × 5."
+    },
+    {
+     "k": "D",
+     "t": "2x⁵",
+     "why": "No coefficient appears — only the exponent changes."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "A power raised to a power means the exponents…",
+    "Multiply: 2 × 5."
+   ],
+   "steps": [
+    "Power of a power: multiply the exponents.",
+    "(x²)⁵ = x¹⁰."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "g8.exponents",
+   "tier": 2,
+   "qtype": "mcq",
+   "stem": "Simplify: 3⁵ ÷ 3²",
+   "stem_hash": "46a3189b39a7ddcbce81df2b4069344b29970c3a8f4e2ca89c0145822ca17eba",
+   "options": [
+    {
+     "k": "A",
+     "t": "27",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "9",
+     "why": "That is 3², the exponent you subtracted, not the result."
+    },
+    {
+     "k": "C",
+     "t": "3¹⁰",
+     "why": "You added the exponents. Division subtracts them."
+    },
+    {
+     "k": "D",
+     "t": "1³",
+     "why": "You subtracted the bases. The base stays 3."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Division with the same base — subtract what?",
+    "5 − 2 = 3, so the result is 3³."
+   ],
+   "steps": [
+    "Subtract the exponents: 5 − 2 = 3.",
+    "3³ = 27."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "g8.exponents",
+   "tier": 3,
+   "qtype": "mcq",
+   "stem": "Simplify: (2x³y)²",
+   "stem_hash": "9b69ac5a3ad08f8d8e148e10aa99520d4043d560d48ba648c9425a1e73888ffd",
+   "options": [
+    {
+     "k": "A",
+     "t": "4x⁶y²",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "2x⁶y²",
+     "why": "The 2 is inside the bracket, so it is squared too: 2² = 4."
+    },
+    {
+     "k": "C",
+     "t": "4x⁵y²",
+     "why": "For x³ squared you multiply exponents: 3 × 2 = 6, not 3 + 2."
+    },
+    {
+     "k": "D",
+     "t": "2x⁹y²",
+     "why": "You did not square the 2, and you squared x³ incorrectly."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "The exponent outside the bracket applies to every factor inside.",
+    "2² = 4, x^(3×2), y^(1×2)."
+   ],
+   "steps": [
+    "Square every factor: 2² = 4, x⁶, y².",
+    "Result: 4x⁶y²."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "g8.sci.not",
+   "tier": 1,
+   "qtype": "mcq",
+   "stem": "Write 4.5 × 10³ as an ordinary number.",
+   "stem_hash": "c401b3d10997a5866a56433273c9e94038ab94a86fc885885d508560221dfc15",
+   "options": [
+    {
+     "k": "A",
+     "t": "4500",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "450",
+     "why": "10³ moves the decimal three places, not two."
+    },
+    {
+     "k": "C",
+     "t": "45 000",
+     "why": "You moved the decimal one place too far."
+    },
+    {
+     "k": "D",
+     "t": "0.0045",
+     "why": "A positive exponent makes the number bigger, not smaller."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "A positive exponent moves the decimal to the…",
+    "Three places to the right."
+   ],
+   "steps": [
+    "10³ means multiply by 1000.",
+    "4.5 × 1000 = 4500."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "g8.sci.not",
+   "tier": 2,
+   "qtype": "mcq",
+   "stem": "Write 0.00062 in scientific notation.",
+   "stem_hash": "d7a0e009e5cad5d17b5599038454ee080ddaba31fec31b036807e4210050f744",
+   "options": [
+    {
+     "k": "A",
+     "t": "6.2 × 10⁻⁴",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "6.2 × 10⁻⁵",
+     "why": "Count the places you moved: 0.0006|2 is four places, not five."
+    },
+    {
+     "k": "C",
+     "t": "6.2 × 10⁴",
+     "why": "The number is small, so the exponent must be negative."
+    },
+    {
+     "k": "D",
+     "t": "62 × 10⁻³",
+     "why": "The first factor must be between 1 and 10."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Move the decimal until you have a number between 1 and 10.",
+    "Moving right makes the exponent negative."
+   ],
+   "steps": [
+    "0.00062 → 6.2 by moving 4 places right.",
+    "So 6.2 × 10⁻⁴."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "g8.sci.not",
+   "tier": 3,
+   "qtype": "mcq",
+   "stem": "Multiply: (2 × 10⁵)(3 × 10³)",
+   "stem_hash": "a8d47e385a842656cc7b337d656d93069eecd960ec62d92a9bcd7a08685892e2",
+   "options": [
+    {
+     "k": "A",
+     "t": "6 × 10⁸",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "6 × 10¹⁵",
+     "why": "You multiplied the exponents. Multiplying powers adds them."
+    },
+    {
+     "k": "C",
+     "t": "5 × 10⁸",
+     "why": "You added the coefficients (2 + 3). Multiply them."
+    },
+    {
+     "k": "D",
+     "t": "6 × 10²",
+     "why": "You subtracted the exponents instead of adding."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Multiply the front numbers, add the exponents.",
+    "2 × 3 = 6 and 5 + 3 = 8."
+   ],
+   "steps": [
+    "(2 × 3) × 10^(5+3).",
+    "= 6 × 10⁸."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "g8.sci.not",
+   "tier": 4,
+   "qtype": "mcq",
+   "stem": "Light travels 3 × 10⁵ km each second. How far does it travel in 2 × 10² seconds?",
+   "stem_hash": "3db432df32c23bf366acfde584bacdd2f5d4428c276c47e2b5eda93d57851d73",
+   "options": [
+    {
+     "k": "A",
+     "t": "6 × 10⁷ km",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "6 × 10¹⁰ km",
+     "why": "You multiplied the exponents; multiplying powers adds them."
+    },
+    {
+     "k": "C",
+     "t": "5 × 10⁷ km",
+     "why": "You added the speeds instead of multiplying."
+    },
+    {
+     "k": "D",
+     "t": "1.5 × 10³ km",
+     "why": "You divided. Distance is speed × time."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Distance = speed × time.",
+    "Multiply the coefficients, add the exponents."
+   ],
+   "steps": [
+    "(3 × 2) × 10^(5+2).",
+    "= 6 × 10⁷ km."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "g8.linear.expressions",
+   "tier": 1,
+   "qtype": "mcq",
+   "stem": "Simplify: 3x + 5x",
+   "stem_hash": "043d571f438e7c079ba051e11d1afa8216bbf69a72df9447288daf18c4ed4b24",
+   "options": [
+    {
+     "k": "A",
+     "t": "8x",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "15x",
+     "why": "You multiplied the coefficients. Like terms are added."
+    },
+    {
+     "k": "C",
+     "t": "8x²",
+     "why": "Adding x terms does not change the power of x."
+    },
+    {
+     "k": "D",
+     "t": "2x",
+     "why": "You subtracted the coefficients."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "These are like terms — add the numbers in front.",
+    "3 + 5."
+   ],
+   "steps": [
+    "Like terms add: 3 + 5 = 8.",
+    "Result: 8x."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "g8.linear.expressions",
+   "tier": 2,
+   "qtype": "mcq",
+   "stem": "Simplify: 4(2x − 3)",
+   "stem_hash": "405cebbe409063269ae54408d9a6c3da59b7889116c1b547b16ae7b7742c1463",
+   "options": [
+    {
+     "k": "A",
+     "t": "8x − 12",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "8x − 3",
+     "why": "You distributed to the 2x only. The 3 is multiplied too."
+    },
+    {
+     "k": "C",
+     "t": "6x − 12",
+     "why": "You added 4 and 2 instead of multiplying."
+    },
+    {
+     "k": "D",
+     "t": "8x + 12",
+     "why": "The minus sign stays with the 3: 4 × (−3) = −12."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Multiply everything inside the bracket by 4.",
+    "4 × 2x and 4 × (−3)."
+   ],
+   "steps": [
+    "4 × 2x = 8x.",
+    "4 × (−3) = −12, so 8x − 12."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "g8.linear.expressions",
+   "tier": 3,
+   "qtype": "mcq",
+   "stem": "Simplify: 2(3x + 4) − 5x",
+   "stem_hash": "5e3941d3ec282434974a861614d021d50a961d7ce616eaab538b8a1e549df7a7",
+   "options": [
+    {
+     "k": "A",
+     "t": "x + 8",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "11x + 8",
+     "why": "You added 5x. The 5x is subtracted."
+    },
+    {
+     "k": "C",
+     "t": "x + 4",
+     "why": "You only distributed the 2 to the 3x."
+    },
+    {
+     "k": "D",
+     "t": "6x + 8",
+     "why": "You did not combine the −5x with the 6x."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Distribute first, then collect like terms.",
+    "6x − 5x and then the constant 8."
+   ],
+   "steps": [
+    "2(3x + 4) = 6x + 8.",
+    "6x − 5x = x, so x + 8."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "g8.linear.expressions",
+   "tier": 4,
+   "qtype": "mcq",
+   "stem": "Simplify: 5 − 2(x − 3)",
+   "stem_hash": "32092ce305c48e68c87142abfd5fd9c6a565217b830e92a850acf6b5c7e01eeb",
+   "options": [
+    {
+     "k": "A",
+     "t": "11 − 2x",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "11 + 2x",
+     "why": "The 2 multiplies a bracket starting with x, so the x term is negative."
+    },
+    {
+     "k": "C",
+     "t": "3x − 1",
+     "why": "You distributed the −2 to x only, not to −3."
+    },
+    {
+     "k": "D",
+     "t": "−2x − 1",
+     "why": "5 − (−6) = 11, not −1."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Distribute the −2 over both terms inside the bracket.",
+    "−2 · x and −2 · (−3)."
+   ],
+   "steps": [
+    "5 − 2x + 6.",
+    "Combine the numbers: 11 − 2x."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "g8.linear.equations",
+   "tier": 1,
+   "qtype": "mcq",
+   "stem": "Solve for x: 5x + 7 = 22",
+   "stem_hash": "cc29194441c2463a563405e0c20905766ae8c3c074a37432aae815cceed757f8",
+   "options": [
+    {
+     "k": "A",
+     "t": "x = 3",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "x = 5",
+     "why": "That is 22 ÷ 5 — you skipped subtracting 7."
+    },
+    {
+     "k": "C",
+     "t": "x = 2.8",
+     "why": "You divided 22 by 5 before undoing the +7."
+    },
+    {
+     "k": "D",
+     "t": "x = 15",
+     "why": "You subtracted 7 but did not divide by 5."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Undo the +7 first.",
+    "Then divide by 5."
+   ],
+   "steps": [
+    "5x = 22 − 7 = 15.",
+    "x = 3."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "g8.linear.equations",
+   "tier": 2,
+   "qtype": "mcq",
+   "stem": "Solve for x: 3x − 4 = x + 8",
+   "stem_hash": "8972c4eaf7fed1546205bf7d0a0987cc8be9a36af65366298248656a903e2c09",
+   "options": [
+    {
+     "k": "A",
+     "t": "x = 6",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "x = 2",
+     "why": "You subtracted 3x from x and got the sign of the x term wrong."
+    },
+    {
+     "k": "C",
+     "t": "x = 4",
+     "why": "You moved the numbers but not the x terms."
+    },
+    {
+     "k": "D",
+     "t": "x = 12",
+     "why": "You subtracted 4 instead of adding it."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Get the x terms on one side: subtract x from both sides.",
+    "Then move the −4 across."
+   ],
+   "steps": [
+    "2x − 4 = 8.",
+    "2x = 12, so x = 6."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "g8.linear.equations",
+   "tier": 3,
+   "qtype": "mcq",
+   "stem": "Solve for x: 2(x + 3) = 4x − 10",
+   "stem_hash": "b574b844da546e58185561a3e9edc3128ecd983342abb6e8e6834529151f567d",
+   "options": [
+    {
+     "k": "A",
+     "t": "x = 8",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "x = 2",
+     "why": "Check: 2(5) = 10 and 4(2) − 10 = −2. They do not match."
+    },
+    {
+     "k": "C",
+     "t": "x = 4",
+     "why": "You distributed correctly but moved 4x the wrong way."
+    },
+    {
+     "k": "D",
+     "t": "x = 16",
+     "why": "You stopped before dividing by 2."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Distribute the 2 first.",
+    "Then collect the x terms on one side."
+   ],
+   "steps": [
+    "2x + 6 = 4x − 10.",
+    "16 = 2x, so x = 8."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "g8.linear.equations",
+   "tier": 4,
+   "qtype": "mcq",
+   "stem": "Four less than twice a number is 18. Find the number.",
+   "stem_hash": "787edb781ceabb45793383521a41dd0b6da5adaa3a9da2b7ed5d01dfb1bfb222",
+   "options": [
+    {
+     "k": "A",
+     "t": "11",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "7",
+     "why": "That solves 2n + 4 = 18. The 4 is subtracted."
+    },
+    {
+     "k": "C",
+     "t": "9",
+     "why": "That is 18 ÷ 2 — the 'four less' part was ignored."
+    },
+    {
+     "k": "D",
+     "t": "22",
+     "why": "That is 18 + 4 without dividing by 2."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Translate: 'twice a number' then 'four less than'.",
+    "Solve 2n − 4 = 18."
+   ],
+   "steps": [
+    "2n − 4 = 18.",
+    "2n = 22, so n = 11."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "g8.systems.substitution",
+   "tier": 1,
+   "qtype": "mcq",
+   "stem": "y = 2x and x + y = 9. Find x and y.",
+   "stem_hash": "7d393844643ddc09e4e1d2f8d3a4cfe992c367b21696f52df846467b9caccb4d",
+   "options": [
+    {
+     "k": "A",
+     "t": "x = 3, y = 6",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "x = 6, y = 3",
+     "why": "You swapped the values. Substituting gives 6 + 3 = 9 but y ≠ 2x."
+    },
+    {
+     "k": "C",
+     "t": "x = 2, y = 4",
+     "why": "2 + 4 = 6, not 9."
+    },
+    {
+     "k": "D",
+     "t": "x = 4, y = 5",
+     "why": "y is not twice x here."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Replace y in the second equation with 2x.",
+    "Then x + 2x = 9."
+   ],
+   "steps": [
+    "x + 2x = 9, so 3x = 9.",
+    "x = 3 and y = 2(3) = 6."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "g8.systems.substitution",
+   "tier": 2,
+   "qtype": "mcq",
+   "stem": "y = x − 1 and 2x + y = 8",
+   "stem_hash": "9436869a5cdcba5ed5186c91bf2ea2f7a21b5139ba29f1b628859a146d0a363c",
+   "options": [
+    {
+     "k": "A",
+     "t": "x = 3, y = 2",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "x = 2, y = 3",
+     "why": "Check y = x − 1: 3 ≠ 1."
+    },
+    {
+     "k": "C",
+     "t": "x = 4, y = 3",
+     "why": "2(4) + 3 = 11, not 8."
+    },
+    {
+     "k": "D",
+     "t": "x = 3, y = 4",
+     "why": "y must be x − 1, so y is smaller than x."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Substitute x − 1 for y.",
+    "2x + (x − 1) = 8."
+   ],
+   "steps": [
+    "3x − 1 = 8, so 3x = 9.",
+    "x = 3 and y = 2."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "g8.systems.substitution",
+   "tier": 3,
+   "qtype": "mcq",
+   "stem": "x + y = 10 and y = 3x",
+   "stem_hash": "bf5d5e3e5226bf91ea28aee3016cbabf3362f4ec19aee4bf3b2955ff3b492daf",
+   "options": [
+    {
+     "k": "A",
+     "t": "x = 2.5, y = 7.5",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "x = 5, y = 5",
+     "why": "That satisfies the sum but not y = 3x."
+    },
+    {
+     "k": "C",
+     "t": "x = 2, y = 8",
+     "why": "8 is not 3 × 2."
+    },
+    {
+     "k": "D",
+     "t": "x = 3, y = 7",
+     "why": "7 is not 3 × 3."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Substitute: x + 3x = 10.",
+    "Then y = 3x with your x."
+   ],
+   "steps": [
+    "4x = 10, so x = 2.5.",
+    "y = 3(2.5) = 7.5."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "g8.systems.substitution",
+   "tier": 4,
+   "qtype": "mcq",
+   "stem": "10 tickets cost $56 in total. Adult tickets are $8 and child tickets are $4. How many adult tickets were sold?",
+   "stem_hash": "d9079189e4ad2cc63eb10a43e2008c4ef551eb28766b6c9bc95e46979c058fe8",
+   "options": [
+    {
+     "k": "A",
+     "t": "4",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "6",
+     "why": "That is the number of child tickets — the question asks for adults."
+    },
+    {
+     "k": "C",
+     "t": "5",
+     "why": "5 adult ($40) + 5 child ($20) = $60, not $56."
+    },
+    {
+     "k": "D",
+     "t": "3",
+     "why": "3 adult ($24) + 7 child ($28) = $52, not $56."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Let a be adults and c be children. Write both equations.",
+    "8a + 4(10 − a) = 56."
+   ],
+   "steps": [
+    "8a + 40 − 4a = 56.",
+    "4a = 16, so a = 4."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "g8.pythagoras",
+   "tier": 1,
+   "qtype": "mcq",
+   "stem": "A right triangle has legs 3 and 4. How long is the hypotenuse?",
+   "stem_hash": "35122110d1147287e520e20bc96431cd672fc6974da64e34733562444329d800",
+   "options": [
+    {
+     "k": "A",
+     "t": "5",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "7",
+     "why": "You added the legs. The theorem uses squares."
+    },
+    {
+     "k": "C",
+     "t": "12",
+     "why": "That is 3 × 4 — the area, not the hypotenuse."
+    },
+    {
+     "k": "D",
+     "t": "25",
+     "why": "That is c². You forgot the square root."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "a² + b² = c², and c is the longest side.",
+    "9 + 16 = 25; now take the root."
+   ],
+   "steps": [
+    "3² + 4² = 9 + 16 = 25.",
+    "c = √25 = 5."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "g8.pythagoras",
+   "tier": 2,
+   "qtype": "mcq",
+   "stem": "A right triangle has legs 6 and 8. Hypotenuse?",
+   "stem_hash": "7473872aa5ef76207717f3792f1a64604d8cc6b665af3bb5ecf5792c3777a0c3",
+   "options": [
+    {
+     "k": "A",
+     "t": "10",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "14",
+     "why": "You added the legs instead of their squares."
+    },
+    {
+     "k": "C",
+     "t": "48",
+     "why": "That is 6 × 8."
+    },
+    {
+     "k": "D",
+     "t": "100",
+     "why": "That is c², before taking the square root."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Square both legs, add, then square-root.",
+    "36 + 64 = 100."
+   ],
+   "steps": [
+    "36 + 64 = 100.",
+    "c = 10."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "g8.pythagoras",
+   "tier": 3,
+   "qtype": "mcq",
+   "stem": "A right triangle has hypotenuse 13 and one leg 5. Find the other leg.",
+   "stem_hash": "d3bdcacd4695086ecbb6d2f42dbac02755af9154302546d47ff4dc209df7052f",
+   "options": [
+    {
+     "k": "A",
+     "t": "12",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "8",
+     "why": "You subtracted the legs (13 − 5). Subtract the squares."
+    },
+    {
+     "k": "C",
+     "t": "13.9",
+     "why": "You added the squares; here the hypotenuse is already known."
+    },
+    {
+     "k": "D",
+     "t": "18",
+     "why": "You added the leg to the hypotenuse."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Here c is known, so rearrange: a² = c² − b².",
+    "169 − 25."
+   ],
+   "steps": [
+    "169 − 25 = 144.",
+    "a = 12."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "g8.pythagoras",
+   "tier": 4,
+   "qtype": "mcq",
+   "stem": "A 10 ft ladder leans against a wall with its base 6 ft from the wall. How high up the wall does it reach?",
+   "stem_hash": "6fd40a89f7f5ff56ca4261325c6f0b8d93226c529eb54f1493655c45fa9c6d2a",
+   "options": [
+    {
+     "k": "A",
+     "t": "8 ft",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "4 ft",
+     "why": "You subtracted the lengths (10 − 6), not their squares."
+    },
+    {
+     "k": "C",
+     "t": "16 ft",
+     "why": "You added the lengths."
+    },
+    {
+     "k": "D",
+     "t": "11.7 ft",
+     "why": "You added the squares, but the ladder is the hypotenuse."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "The ladder is the hypotenuse.",
+    "10² − 6² = ?"
+   ],
+   "steps": [
+    "100 − 36 = 64.",
+    "Height = 8 ft."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "alg1.linear.one",
+   "tier": 1,
+   "qtype": "mcq",
+   "stem": "Solve for x: x/4 = 7",
+   "stem_hash": "74ffe36200b84eaa85b0c516f7a9d023bc4148ec8d790ea6fd973e009c74762b",
+   "options": [
+    {
+     "k": "A",
+     "t": "x = 28",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "x = 1.75",
+     "why": "You divided by 4 again instead of multiplying."
+    },
+    {
+     "k": "C",
+     "t": "x = 11",
+     "why": "You added 4 to both sides."
+    },
+    {
+     "k": "D",
+     "t": "x = 3",
+     "why": "You subtracted 4 from 7."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "x is being divided by 4. What undoes division?",
+    "Multiply both sides by 4."
+   ],
+   "steps": [
+    "Multiply both sides by 4.",
+    "x = 28."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "alg1.linear.one",
+   "tier": 2,
+   "qtype": "mcq",
+   "stem": "Solve for x: 3x − 5 = 16",
+   "stem_hash": "fa75f81bcf6852ec565ef305426863156b97228eb19c8d7362c89c1d8b4d3da4",
+   "options": [
+    {
+     "k": "A",
+     "t": "x = 7",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "x = 5.3",
+     "why": "You divided 16 by 3 before undoing the −5."
+    },
+    {
+     "k": "C",
+     "t": "x = 11",
+     "why": "You added 5 but did not divide by 3."
+    },
+    {
+     "k": "D",
+     "t": "x = 21",
+     "why": "You added 5 and multiplied instead of dividing."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Undo the subtraction first.",
+    "3x = 21, then divide."
+   ],
+   "steps": [
+    "3x = 21.",
+    "x = 7."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "alg1.linear.one",
+   "tier": 3,
+   "qtype": "mcq",
+   "stem": "Solve for x: 5 − 2x = 17",
+   "stem_hash": "b5c0a7be0ec3d6b64a806d8824620854b95fa02456bb6ea133a06661ec514915",
+   "options": [
+    {
+     "k": "A",
+     "t": "x = −6",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "x = 6",
+     "why": "Check: 5 − 12 = −7, not 17. The sign is wrong."
+    },
+    {
+     "k": "C",
+     "t": "x = −11",
+     "why": "You moved 5 the wrong way: 17 − 5 = 12, then 12 ÷ (−2) = −6."
+    },
+    {
+     "k": "D",
+     "t": "x = −12",
+     "why": "You stopped before dividing by −2."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Move the 5 across: −2x = 17 − 5.",
+    "Then divide by −2."
+   ],
+   "steps": [
+    "−2x = 12.",
+    "x = −6."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "alg1.linear.one",
+   "tier": 4,
+   "qtype": "mcq",
+   "stem": "Solve for x: 2(x − 3)/5 = 4",
+   "stem_hash": "29326aa4eef83286696b18e9b3c0ad0279af3c08fef364e2e8bea39ff75e5d82",
+   "options": [
+    {
+     "k": "A",
+     "t": "x = 13",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "x = 10",
+     "why": "You forgot to add the 3 back after dividing."
+    },
+    {
+     "k": "C",
+     "t": "x = 8",
+     "why": "You multiplied by 5 instead of dividing by 2 first."
+    },
+    {
+     "k": "D",
+     "t": "x = 26",
+     "why": "You doubled at the wrong step."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Multiply both sides by 5 to clear the fraction.",
+    "Then divide by 2 and add 3."
+   ],
+   "steps": [
+    "2(x − 3) = 20, so x − 3 = 10.",
+    "x = 13."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "alg1.linear.bothsides",
+   "tier": 1,
+   "qtype": "mcq",
+   "stem": "Solve for x: 4x = 2x + 10",
+   "stem_hash": "6bf48ea0132f1095738cee0f23506f11041d09747b2f34bfae1ad347cab22b8a",
+   "options": [
+    {
+     "k": "A",
+     "t": "x = 5",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "x = 2.5",
+     "why": "You divided 10 by 4 instead of by 2 after subtracting."
+    },
+    {
+     "k": "C",
+     "t": "x = 10",
+     "why": "You did not divide by 2."
+    },
+    {
+     "k": "D",
+     "t": "x = 20",
+     "why": "You added the x terms instead of subtracting."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Subtract 2x from both sides.",
+    "2x = 10."
+   ],
+   "steps": [
+    "4x − 2x = 10.",
+    "x = 5."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "alg1.linear.bothsides",
+   "tier": 2,
+   "qtype": "mcq",
+   "stem": "Solve for x: 7x − 3 = 4x + 12",
+   "stem_hash": "a7329cd9a8e0be28fe1b5255d7bb7358714a4df6fe5dc78db171ace1628d6141",
+   "options": [
+    {
+     "k": "A",
+     "t": "x = 5",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "x = 3",
+     "why": "That treats the equation as 7x − 3 = 4x + 8."
+    },
+    {
+     "k": "C",
+     "t": "x = 9",
+     "why": "You moved 3 across but not the 4x."
+    },
+    {
+     "k": "D",
+     "t": "x = 15/11",
+     "why": "You added the x terms instead of subtracting."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Get x terms together: 7x − 4x.",
+    "Then move −3 across."
+   ],
+   "steps": [
+    "3x − 3 = 12, so 3x = 15.",
+    "x = 5."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "alg1.linear.bothsides",
+   "tier": 3,
+   "qtype": "mcq",
+   "stem": "Solve for x: 3(2x − 1) = 5x + 7",
+   "stem_hash": "c326938e2555a052238d82c1d5f1bdf77055389f15cf5f76ba08e650c5d1f23b",
+   "options": [
+    {
+     "k": "A",
+     "t": "x = 10",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "x = 4",
+     "why": "You distributed the 3 to 2x only."
+    },
+    {
+     "k": "C",
+     "t": "x = 2",
+     "why": "Check: 3(3) = 9 and 5(2) + 7 = 17."
+    },
+    {
+     "k": "D",
+     "t": "x = 8",
+     "why": "Check: 3(15) = 45 and 5(8) + 7 = 47."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Distribute the 3 first.",
+    "6x − 3 = 5x + 7."
+   ],
+   "steps": [
+    "6x − 5x = 7 + 3.",
+    "x = 10."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "alg1.linear.bothsides",
+   "tier": 4,
+   "qtype": "mcq",
+   "stem": "Solve for x: 2(x + 5) = 4(x − 1)",
+   "stem_hash": "df359b67a79e603c000d2ac902a2d0462039a515de6e19b658ea89888e9bfcf2",
+   "options": [
+    {
+     "k": "A",
+     "t": "x = 7",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "x = 3",
+     "why": "Check: 2(8) = 16 and 4(2) = 8."
+    },
+    {
+     "k": "C",
+     "t": "x = 5",
+     "why": "Check: 2(10) = 20 and 4(4) = 16."
+    },
+    {
+     "k": "D",
+     "t": "x = 9",
+     "why": "Check: 2(14) = 28 and 4(8) = 32."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Distribute on both sides.",
+    "2x + 10 = 4x − 4."
+   ],
+   "steps": [
+    "10 + 4 = 4x − 2x.",
+    "14 = 2x, so x = 7."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "alg1.inequalities",
+   "tier": 1,
+   "qtype": "mcq",
+   "stem": "Solve: x + 5 > 12",
+   "stem_hash": "7e8bbcb898930141598b64b30cd9b896f9ed763737bbe344862d65b4f753f86e",
+   "options": [
+    {
+     "k": "A",
+     "t": "x > 7",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "x < 7",
+     "why": "Adding or subtracting never flips the inequality."
+    },
+    {
+     "k": "C",
+     "t": "x > 17",
+     "why": "You added 5 instead of subtracting."
+    },
+    {
+     "k": "D",
+     "t": "x > −7",
+     "why": "You subtracted the 5 with the wrong sign."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Subtract 5 from both sides.",
+    "Does the sign flip when you subtract? No."
+   ],
+   "steps": [
+    "x > 12 − 5.",
+    "x > 7."
+   ],
+   "visual": {
+    "preset": "number_line",
+    "params": {
+     "elements": [
+      {
+       "type": "point",
+       "x": 7,
+       "name": "7",
+       "label": "x > 7"
+      }
+     ]
+    }
+   },
+   "source": "authored"
+  },
+  {
+   "skill": "alg1.inequalities",
+   "tier": 2,
+   "qtype": "mcq",
+   "stem": "Solve: −3x ≥ 12",
+   "stem_hash": "cf830f29cc02c8208dd28a65c3e982ffb936278e60ca8cfc40bccf4487489703",
+   "options": [
+    {
+     "k": "A",
+     "t": "x ≤ −4",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "x ≥ −4",
+     "why": "Dividing by a negative flips the inequality sign."
+    },
+    {
+     "k": "C",
+     "t": "x ≤ 4",
+     "why": "12 ÷ (−3) is −4, not 4."
+    },
+    {
+     "k": "D",
+     "t": "x ≥ 4",
+     "why": "Both the sign of the number and the inequality are wrong."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Divide by −3 — and what happens to the sign?",
+    "It flips."
+   ],
+   "steps": [
+    "x ≤ 12 ÷ (−3).",
+    "x ≤ −4."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "alg1.inequalities",
+   "tier": 3,
+   "qtype": "mcq",
+   "stem": "Solve: 2x − 5 ≤ 3x + 1",
+   "stem_hash": "f59a7494cb21ed199326408ba180ddf0dce2608e3534453aebd11799d6325aec",
+   "options": [
+    {
+     "k": "A",
+     "t": "x ≥ −6",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "x ≤ −6",
+     "why": "You found −6 correctly but the direction is wrong: subtracting 3x gives −x ≤ 6."
+    },
+    {
+     "k": "C",
+     "t": "x ≥ 6",
+     "why": "−5 − 1 = −6, not 6."
+    },
+    {
+     "k": "D",
+     "t": "x ≤ 6",
+     "why": "Both the value and the direction are wrong."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Subtract 3x from both sides.",
+    "Then −x ≤ 6 — divide by −1 and flip."
+   ],
+   "steps": [
+    "−x − 5 ≤ 1, so −x ≤ 6.",
+    "x ≥ −6."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "alg1.inequalities",
+   "tier": 4,
+   "qtype": "mcq",
+   "stem": "A repair shop charges $15 plus $6 per hour. You can spend at most $45. What is the maximum number of hours?",
+   "stem_hash": "e4bbd10b1d1b22d59234b2f73d9fda7d5cd6177e2c01997712a4b1176a3ce991",
+   "options": [
+    {
+     "k": "A",
+     "t": "5",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "7.5",
+     "why": "That is 45 ÷ 6 — you forgot the $15 base charge."
+    },
+    {
+     "k": "C",
+     "t": "10",
+     "why": "That is 45 ÷ 4.5."
+    },
+    {
+     "k": "D",
+     "t": "6",
+     "why": "6 hours costs $51, which is over budget."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Write the cost: 15 + 6h ≤ 45.",
+    "'At most' means ≤."
+   ],
+   "steps": [
+    "6h ≤ 30.",
+    "h ≤ 5, so 5 hours."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "alg1.slope",
+   "tier": 1,
+   "qtype": "mcq",
+   "stem": "Find the slope of the line through (1, 2) and (3, 6).",
+   "stem_hash": "c3f52c26d1c030c48ee9a05476d912f6fef2d9e812b490db7b170ae4c0f89136",
+   "options": [
+    {
+     "k": "A",
+     "t": "2",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "1/2",
+     "why": "You put the change in x on top. Slope is rise over run."
+    },
+    {
+     "k": "C",
+     "t": "4",
+     "why": "That is only the change in y."
+    },
+    {
+     "k": "D",
+     "t": "8",
+     "why": "You added the coordinates."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Slope = (y₂ − y₁) / (x₂ − x₁).",
+    "(6 − 2) / (3 − 1)."
+   ],
+   "steps": [
+    "4 / 2.",
+    "Slope = 2."
+   ],
+   "visual": {
+    "preset": "function_plot",
+    "params": {
+     "expressions": [
+      "f(x)=2x"
+     ]
+    }
+   },
+   "source": "authored"
+  },
+  {
+   "skill": "alg1.slope",
+   "tier": 2,
+   "qtype": "mcq",
+   "stem": "In the equation y = −3x + 4, what are the slope and y-intercept?",
+   "stem_hash": "860ef1cc2bee7a4998443f002e2390c9b35714a77c3781f9a2c2617a3dd4b2a2",
+   "options": [
+    {
+     "k": "A",
+     "t": "slope −3, intercept 4",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "slope 3, intercept 4",
+     "why": "The minus sign belongs to the slope."
+    },
+    {
+     "k": "C",
+     "t": "slope −3, intercept −4",
+     "why": "The +4 stays positive."
+    },
+    {
+     "k": "D",
+     "t": "slope 4, intercept −3",
+     "why": "You swapped m and b."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "y = mx + b: which letter is the slope?",
+    "m = −3 and b = 4."
+   ],
+   "steps": [
+    "m = −3 is the slope.",
+    "b = 4 is the y-intercept."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "alg1.slope",
+   "tier": 3,
+   "qtype": "mcq",
+   "stem": "Which equation is the line through (2, 5) and (6, 13)?",
+   "stem_hash": "8a7ae93c616e6762e3077dd82e10d9201f789781ef1afec9638e3d6da33901b2",
+   "options": [
+    {
+     "k": "A",
+     "t": "y = 2x + 1",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "y = 2x + 5",
+     "why": "That uses the y-value as the intercept."
+    },
+    {
+     "k": "C",
+     "t": "y = 4x − 3",
+     "why": "4 is the change in y, not the slope."
+    },
+    {
+     "k": "D",
+     "t": "y = 2x − 1",
+     "why": "Check: 2(2) − 1 = 3, not 5."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Find the slope first, then substitute a point.",
+    "(13 − 5) / (6 − 2) = 2; now solve for b."
+   ],
+   "steps": [
+    "m = 2; 5 = 2(2) + b gives b = 1.",
+    "y = 2x + 1."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "alg1.slope",
+   "tier": 4,
+   "qtype": "mcq",
+   "stem": "A line has slope 1/2. What is the slope of a line perpendicular to it?",
+   "stem_hash": "359698ee97c8d5e97569c4670e20b94876b8c3f323854c9b3d48641b633f75d1",
+   "options": [
+    {
+     "k": "A",
+     "t": "−2",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "1/2",
+     "why": "That is parallel, not perpendicular."
+    },
+    {
+     "k": "C",
+     "t": "2",
+     "why": "You flipped the fraction but did not negate it."
+    },
+    {
+     "k": "D",
+     "t": "−1/2",
+     "why": "You negated but did not flip."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Perpendicular slopes are negative reciprocals.",
+    "Flip 1/2 and change the sign."
+   ],
+   "steps": [
+    "Reciprocal of 1/2 is 2.",
+    "Negate it: −2."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "alg1.systems.substitution",
+   "tier": 1,
+   "qtype": "mcq",
+   "stem": "y = 3x and x + y = 12. Find x and y.",
+   "stem_hash": "6b8d53dead5afaffe252211eab52a262b496fc0a1ffda0c1ae61be593163212a",
+   "options": [
+    {
+     "k": "A",
+     "t": "x = 3, y = 9",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "x = 4, y = 8",
+     "why": "y is not 3x here, and 4 + 8 = 12 only by luck."
+    },
+    {
+     "k": "C",
+     "t": "x = 9, y = 3",
+     "why": "You swapped them."
+    },
+    {
+     "k": "D",
+     "t": "x = 6, y = 6",
+     "why": "y = 3x fails."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Substitute 3x for y.",
+    "x + 3x = 12."
+   ],
+   "steps": [
+    "4x = 12, so x = 3.",
+    "y = 9."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "alg1.systems.substitution",
+   "tier": 2,
+   "qtype": "mcq",
+   "stem": "x = y + 4 and 2x + 3y = 23",
+   "stem_hash": "851d0b7427d06ca52deef8490c9dcedd9b966a56756ccd6c684c5aeeded99d15",
+   "options": [
+    {
+     "k": "A",
+     "t": "x = 7, y = 3",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "x = 3, y = 7",
+     "why": "x must be y + 4, so x is the larger one."
+    },
+    {
+     "k": "C",
+     "t": "x = 5, y = 1",
+     "why": "2(5) + 3(1) = 13, not 23."
+    },
+    {
+     "k": "D",
+     "t": "x = 6, y = 2",
+     "why": "2(6) + 3(2) = 18, not 23."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Substitute y + 4 for x.",
+    "2(y + 4) + 3y = 23."
+   ],
+   "steps": [
+    "2y + 8 + 3y = 23, so 5y = 15.",
+    "y = 3 and x = 7."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "alg1.systems.substitution",
+   "tier": 3,
+   "qtype": "mcq",
+   "stem": "2x + y = 11 and y = x + 2",
+   "stem_hash": "cbcb021873d9cd064fa7dbef2db01b470d775bb45fa98bafbc4ae8ef0c0d2f92",
+   "options": [
+    {
+     "k": "A",
+     "t": "x = 3, y = 5",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "x = 4, y = 3",
+     "why": "y must be x + 2."
+    },
+    {
+     "k": "C",
+     "t": "x = 5, y = 1",
+     "why": "2(5) + 1 = 11 works, but y ≠ x + 2."
+    },
+    {
+     "k": "D",
+     "t": "x = 2, y = 7",
+     "why": "2(2) + 7 = 11 works, but y ≠ x + 2."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Substitute x + 2 for y in the first equation.",
+    "2x + x + 2 = 11."
+   ],
+   "steps": [
+    "3x = 9, so x = 3.",
+    "y = 5."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "alg1.systems.substitution",
+   "tier": 4,
+   "qtype": "mcq",
+   "stem": "2 burgers and 1 fries cost $13. 1 burger and 1 fries cost $8. What is the price of one burger?",
+   "stem_hash": "518b04c53bd0b364ae15fc787fb2317ff8ac4651247209982227df8cad5d12f9",
+   "options": [
+    {
+     "k": "A",
+     "t": "$5",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "$6",
+     "why": "Then fries would be $2 and 2(6) + 2 = $14, not $13."
+    },
+    {
+     "k": "C",
+     "t": "$4",
+     "why": "Then fries would be $4 and 2(4) + 4 = $12."
+    },
+    {
+     "k": "D",
+     "t": "$3",
+     "why": "That is the fries price, not the burger."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Subtract the second order from the first.",
+    "(2b + f) − (b + f) = b."
+   ],
+   "steps": [
+    "13 − 8 = 5.",
+    "A burger is $5 (and fries are $3)."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "alg1.quadratics.factor",
+   "tier": 1,
+   "qtype": "mcq",
+   "stem": "Factor: x² + 7x + 12",
+   "stem_hash": "1622a307aec55edbb9b47451495a01bedecc7d20f4103732cd2a020e330f3a26",
+   "options": [
+    {
+     "k": "A",
+     "t": "(x + 3)(x + 4)",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "(x + 2)(x + 6)",
+     "why": "Those multiply to 12 but add to 8, not 7."
+    },
+    {
+     "k": "C",
+     "t": "(x + 1)(x + 12)",
+     "why": "Those add to 13."
+    },
+    {
+     "k": "D",
+     "t": "(x − 3)(x − 4)",
+     "why": "Both signs would make the middle term −7x."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Find two numbers that multiply to 12 and add to 7.",
+    "Try 3 and 4."
+   ],
+   "steps": [
+    "3 × 4 = 12 and 3 + 4 = 7.",
+    "So (x + 3)(x + 4)."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "alg1.quadratics.factor",
+   "tier": 2,
+   "qtype": "mcq",
+   "stem": "Factor: x² − 5x + 6",
+   "stem_hash": "462b9d9ea5bdfc5a684a04f128c33445deea43bb5a59d7ac889f904741890ef6",
+   "options": [
+    {
+     "k": "A",
+     "t": "(x − 2)(x − 3)",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "(x + 2)(x + 3)",
+     "why": "That gives +5x in the middle."
+    },
+    {
+     "k": "C",
+     "t": "(x − 1)(x − 6)",
+     "why": "That gives −7x in the middle."
+    },
+    {
+     "k": "D",
+     "t": "(x − 2)(x + 3)",
+     "why": "That gives +x in the middle, not −5x."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Two numbers multiply to +6 and add to −5.",
+    "Both must be negative."
+   ],
+   "steps": [
+    "−2 × −3 = 6 and −2 + −3 = −5.",
+    "(x − 2)(x − 3)."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "alg1.quadratics.factor",
+   "tier": 3,
+   "qtype": "mcq",
+   "stem": "Factor: x² − 9",
+   "stem_hash": "04581ace7cd898d8814e100efd38473dd4c119932963c0509e8b487ffadb4a6f",
+   "options": [
+    {
+     "k": "A",
+     "t": "(x − 3)(x + 3)",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "(x − 3)²",
+     "why": "That expands to x² − 6x + 9."
+    },
+    {
+     "k": "C",
+     "t": "(x − 9)(x + 1)",
+     "why": "That expands to x² − 8x − 9."
+    },
+    {
+     "k": "D",
+     "t": "It cannot be factored",
+     "why": "A difference of two squares always factors."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "This is a difference of squares: a² − b².",
+    "Here a = x and b = 3."
+   ],
+   "steps": [
+    "a² − b² = (a − b)(a + b).",
+    "(x − 3)(x + 3)."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "alg1.quadratics.factor",
+   "tier": 4,
+   "qtype": "mcq",
+   "stem": "Solve: x² + 2x − 15 = 0",
+   "stem_hash": "b2c7c491ebc54cb46a2c8ada235d6435052208ecb6910b5f73b00f5ccf5c78d4",
+   "options": [
+    {
+     "k": "A",
+     "t": "x = −5 or x = 3",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "x = 5 or x = −3",
+     "why": "Those come from (x − 5)(x + 3), which gives −2x in the middle."
+    },
+    {
+     "k": "C",
+     "t": "x = −5 or x = −3",
+     "why": "Then the constant would be +15."
+    },
+    {
+     "k": "D",
+     "t": "x = 5 or x = 3",
+     "why": "Then both the middle term and the constant have the wrong sign."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Factor first: two numbers multiply to −15, add to +2.",
+    "They are +5 and −3."
+   ],
+   "steps": [
+    "(x + 5)(x − 3) = 0.",
+    "x = −5 or x = 3."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "apcmech.kinematics.1d",
+   "tier": 1,
+   "qtype": "mcq",
+   "stem": "A car speeds up from rest to 20 m/s with a constant acceleration of 4 m/s². How long does it take?",
+   "stem_hash": "059acf9cbe9e2ea38cc4602ef8bc633a5421b5091bea23d31887f684904a186c",
+   "options": [
+    {
+     "k": "A",
+     "t": "5 s",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "80 s",
+     "why": "You multiplied 20 × 4 instead of dividing."
+    },
+    {
+     "k": "C",
+     "t": "4 s",
+     "why": "That is the acceleration value."
+    },
+    {
+     "k": "D",
+     "t": "24 s",
+     "why": "You added the numbers."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "v = v₀ + at with v₀ = 0.",
+    "20 = 4t."
+   ],
+   "steps": [
+    "t = 20 / 4.",
+    "t = 5 s."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "apcmech.kinematics.1d",
+   "tier": 2,
+   "qtype": "mcq",
+   "stem": "Starting from rest with a = 3 m/s², how far does an object travel in 4 s?",
+   "stem_hash": "f0306fc63f7d81d1f557a67af9dea406e96da2000d4a60282df5668db28d99e7",
+   "options": [
+    {
+     "k": "A",
+     "t": "24 m",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "12 m",
+     "why": "You used Δx = vt without the ½."
+    },
+    {
+     "k": "C",
+     "t": "48 m",
+     "why": "You forgot the ½ in ½at²."
+    },
+    {
+     "k": "D",
+     "t": "6 m",
+     "why": "You used a/t instead of ½at²."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Δx = v₀t + ½at², and v₀ = 0.",
+    "½ × 3 × 16."
+   ],
+   "steps": [
+    "½ · 3 · 4² = ½ · 3 · 16.",
+    "= 24 m."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "apcmech.kinematics.1d",
+   "tier": 3,
+   "qtype": "mcq",
+   "stem": "An object has v₀ = 10 m/s, a = 2 m/s², and travels 24 m. What is its final speed?",
+   "stem_hash": "923252ed62030e7f5102fd55c4a7009cf27e9f86c18332cf66fe3e5429e53f40",
+   "options": [
+    {
+     "k": "A",
+     "t": "14 m/s",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "12 m/s",
+     "why": "That is v₀ + at for t = 1 s, not this distance."
+    },
+    {
+     "k": "C",
+     "t": "22 m/s",
+     "why": "That is v₀ + 2a·3, treating time as the distance."
+    },
+    {
+     "k": "D",
+     "t": "196 m/s",
+     "why": "That is v². You forgot the square root."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Use v² = v₀² + 2aΔx.",
+    "100 + 2(2)(24) = 196."
+   ],
+   "steps": [
+    "v² = 100 + 96 = 196.",
+    "v = 14 m/s."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "apcmech.kinematics.1d",
+   "tier": 4,
+   "qtype": "mcq",
+   "stem": "A car goes from rest to 20 m/s in 5 s, then travels at a constant 20 m/s for 10 s. What is the total distance?",
+   "stem_hash": "b832f381b44e6d7ab943e395791ccbb7dbeabf29ea521b6f1262eec6c8bbaa73",
+   "options": [
+    {
+     "k": "A",
+     "t": "250 m",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "200 m",
+     "why": "That counts only the constant-speed part."
+    },
+    {
+     "k": "C",
+     "t": "300 m",
+     "why": "You used 20 m/s for the whole 15 s."
+    },
+    {
+     "k": "D",
+     "t": "150 m",
+     "why": "You treated the first 5 s as constant speed."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Split into two phases.",
+    "Phase 1: ½ · 20 · 5. Phase 2: 20 · 10."
+   ],
+   "steps": [
+    "Phase 1 = 50 m, phase 2 = 200 m.",
+    "Total = 250 m."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "apcmech.newton.second",
+   "tier": 1,
+   "qtype": "mcq",
+   "stem": "A 2 kg object accelerates at 3 m/s². What net force acts on it?",
+   "stem_hash": "3067c199043c24b115d307ecd856d0f11af5f52184efc91dd51692ee6e7a761e",
+   "options": [
+    {
+     "k": "A",
+     "t": "6 N",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "1.5 N",
+     "why": "You divided mass by acceleration."
+    },
+    {
+     "k": "C",
+     "t": "5 N",
+     "why": "You added the numbers."
+    },
+    {
+     "k": "D",
+     "t": "18 N",
+     "why": "You multiplied by 3 twice."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "ΣF = ma.",
+    "2 × 3."
+   ],
+   "steps": [
+    "ΣF = 2 × 3.",
+    "= 6 N."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "apcmech.newton.second",
+   "tier": 2,
+   "qtype": "mcq",
+   "stem": "A 10 kg box is pushed with 40 N while 10 N of friction acts against it. What is its acceleration?",
+   "stem_hash": "513bd698c8fcb6dae24a7e17637013eac17cb06f3c079cff2a2d7d612360b7ed",
+   "options": [
+    {
+     "k": "A",
+     "t": "3 m/s²",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "4 m/s²",
+     "why": "You used the applied force and ignored friction."
+    },
+    {
+     "k": "C",
+     "t": "5 m/s²",
+     "why": "You added the forces instead of subtracting."
+    },
+    {
+     "k": "D",
+     "t": "1 m/s²",
+     "why": "You used the friction force only."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Find the net force first.",
+    "40 − 10 = 30 N, then divide by mass."
+   ],
+   "steps": [
+    "ΣF = 30 N.",
+    "a = 30 / 10 = 3 m/s²."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "apcmech.newton.second",
+   "tier": 3,
+   "qtype": "mcq",
+   "stem": "A block slides down a frictionless 30° incline. What is its acceleration? (g = 9.8 m/s²)",
+   "stem_hash": "c9d1c88351f47dbf4c4b5fd95fa3a55462a087574311bce46372849e0197cd33",
+   "options": [
+    {
+     "k": "A",
+     "t": "4.9 m/s²",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "9.8 m/s²",
+     "why": "That ignores the incline — only part of gravity acts along it."
+    },
+    {
+     "k": "C",
+     "t": "8.5 m/s²",
+     "why": "That is g cos 30°, the perpendicular component."
+    },
+    {
+     "k": "D",
+     "t": "2.5 m/s²",
+     "why": "You used g sin² 30°."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Along the incline the component is g sin θ.",
+    "sin 30° = 0.5."
+   ],
+   "steps": [
+    "a = g sin 30°.",
+    "= 9.8 × 0.5 = 4.9 m/s²."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "apcmech.newton.second",
+   "tier": 4,
+   "qtype": "mcq",
+   "stem": "A 60 kg rider stands on a scale in an elevator and the scale reads 720 N. What is the elevator's acceleration? (g = 9.8 m/s²)",
+   "stem_hash": "6b277362a5c757fce2f4acdb3d082d02f744d4a03160676c839fc3fda136c217",
+   "options": [
+    {
+     "k": "A",
+     "t": "2.2 m/s² upward",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "9.8 m/s² upward",
+     "why": "Then the scale would read 2mg."
+    },
+    {
+     "k": "C",
+     "t": "2.2 m/s² downward",
+     "why": "The reading is above mg, so the acceleration is upward."
+    },
+    {
+     "k": "D",
+     "t": "12 m/s² upward",
+     "why": "You used 720/60 as an acceleration without subtracting g."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Normal force minus weight equals ma.",
+    "720 − 588 = 132 N, then divide by 60 kg."
+   ],
+   "steps": [
+    "mg = 60 × 9.8 = 588 N.",
+    "132 / 60 = 2.2 m/s² upward."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "apcmech.work.constant",
+   "tier": 1,
+   "qtype": "mcq",
+   "stem": "A 10 N force pushes a box 3 m in the direction of motion. How much work is done?",
+   "stem_hash": "1e665f5d220fe0f8770cee90e98c7f34b46f4d9cedcb01f4b750932dd09d85e7",
+   "options": [
+    {
+     "k": "A",
+     "t": "30 J",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "3.3 J",
+     "why": "You divided force by distance."
+    },
+    {
+     "k": "C",
+     "t": "13 J",
+     "why": "You added force and distance."
+    },
+    {
+     "k": "D",
+     "t": "0 J",
+     "why": "The force and motion are parallel, so the work is not zero."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "W = Fd cos θ with θ = 0.",
+    "cos 0 = 1, so F·d."
+   ],
+   "steps": [
+    "W = 10 × 3 × 1.",
+    "= 30 J."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "apcmech.work.constant",
+   "tier": 2,
+   "qtype": "mcq",
+   "stem": "A 10 N force at 60° above the horizontal moves a box 3 m horizontally. How much work does the force do?",
+   "stem_hash": "4adf29801741755c86dcd659b0cdd4fe0a1eaf14f89a6daf616c2275a0993833",
+   "options": [
+    {
+     "k": "A",
+     "t": "15 J",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "30 J",
+     "why": "You ignored the angle."
+    },
+    {
+     "k": "C",
+     "t": "26 J",
+     "why": "You used sin 60°; the horizontal component uses cos."
+    },
+    {
+     "k": "D",
+     "t": "0 J",
+     "why": "Only a perpendicular force would do zero work."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Only the component along the displacement does work.",
+    "F cos θ."
+   ],
+   "steps": [
+    "W = 10 × 3 × cos 60°.",
+    "= 30 × 0.5 = 15 J."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "apcmech.work.constant",
+   "tier": 3,
+   "qtype": "mcq",
+   "stem": "A 5 kg box slides 4 m across a floor with μ = 0.2. What is the work done by friction? (g = 9.8 m/s²)",
+   "stem_hash": "d2ab610b78406ba54d8a2c0296f858e03d9bf8f327f67fc721b3c84e2e6dabce",
+   "options": [
+    {
+     "k": "A",
+     "t": "−39.2 J",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "−9.8 J",
+     "why": "You used the mass alone instead of μmg."
+    },
+    {
+     "k": "C",
+     "t": "+39.2 J",
+     "why": "Friction opposes motion, so its work is negative."
+    },
+    {
+     "k": "D",
+     "t": "−19.6 J",
+     "why": "You used half the friction force."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "f = μN = μmg on a flat floor.",
+    "Then W = −f·d."
+   ],
+   "steps": [
+    "f = 0.2 × 5 × 9.8 = 9.8 N.",
+    "W = −9.8 × 4 = −39.2 J."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "apcmech.work.constant",
+   "tier": 4,
+   "qtype": "mcq",
+   "stem": "The net work done on a 2 kg block starting from rest is 25 J. What is its final speed?",
+   "stem_hash": "0ff79c0955d833f5acce0701655b4d9699106277e02823684f4c309a7e753b91",
+   "options": [
+    {
+     "k": "A",
+     "t": "5 m/s",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "3.5 m/s",
+     "why": "You took the square root of 25/2."
+    },
+    {
+     "k": "C",
+     "t": "12.5 m/s",
+     "why": "That is K/m, not √(2K/m)."
+    },
+    {
+     "k": "D",
+     "t": "25 m/s",
+     "why": "You used the work as a speed."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "W_net = ΔK = ½mv².",
+    "25 = ½ · 2 · v²."
+   ],
+   "steps": [
+    "25 = v².",
+    "v = 5 m/s."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "apcmech.work.variable",
+   "tier": 1,
+   "qtype": "mcq",
+   "stem": "A force F = 4x (newtons, with x in metres) acts from x = 0 to x = 3 m. How much work is done?",
+   "stem_hash": "1ccf6def340c42b9f05af8016ede69b4cb9a827de90f4d046462543a63ad2e0d",
+   "options": [
+    {
+     "k": "A",
+     "t": "18 J",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "12 J",
+     "why": "You evaluated F at x = 3 and multiplied by 3."
+    },
+    {
+     "k": "C",
+     "t": "36 J",
+     "why": "You used 4x² instead of integrating."
+    },
+    {
+     "k": "D",
+     "t": "6 J",
+     "why": "You used the force at x = 1.5 only."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Work is the area under F versus x.",
+    "The area is a triangle: ½ · base · height."
+   ],
+   "steps": [
+    "Height at x = 3 is 12 N.",
+    "½ · 3 · 12 = 18 J."
+   ],
+   "visual": {
+    "preset": "area_shade",
+    "params": {
+     "expressions": [
+      "f(x)=4x"
+     ],
+     "bounds": [
+      0,
+      3
+     ]
+    }
+   },
+   "source": "authored"
+  },
+  {
+   "skill": "apcmech.work.variable",
+   "tier": 2,
+   "qtype": "mcq",
+   "stem": "How much work is needed to stretch a spring (k = 200 N/m) by 0.2 m from its natural length?",
+   "stem_hash": "2877e73b199cb77c2949c8d7007b30f67fbbcfc38e46f0fadf8a24e88f2485a3",
+   "options": [
+    {
+     "k": "A",
+     "t": "4 J",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "40 J",
+     "why": "You used kx without the ½ and squared wrongly."
+    },
+    {
+     "k": "C",
+     "t": "8 J",
+     "why": "You used ½kx² with kx doubled."
+    },
+    {
+     "k": "D",
+     "t": "2 J",
+     "why": "You used ½kx without squaring x."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Elastic potential energy is ½kx².",
+    "½ · 200 · 0.04."
+   ],
+   "steps": [
+    "½ × 200 × 0.2² = ½ × 200 × 0.04.",
+    "= 4 J."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "apcmech.work.variable",
+   "tier": 3,
+   "qtype": "mcq",
+   "stem": "A force increases linearly from 0 N to 12 N as an object moves 3 m. How much work is done?",
+   "stem_hash": "5ecb4368357f260b043bdcffa747fed9ab0bf55497925a0e0b3c0bf1b89dfac3",
+   "options": [
+    {
+     "k": "A",
+     "t": "18 J",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "36 J",
+     "why": "You used the peak force for the whole distance (a rectangle)."
+    },
+    {
+     "k": "C",
+     "t": "9 J",
+     "why": "You used half the distance."
+    },
+    {
+     "k": "D",
+     "t": "72 J",
+     "why": "You doubled the rectangle area."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Linear increase means the graph is a triangle.",
+    "Area = ½ · base · height."
+   ],
+   "steps": [
+    "½ × 3 × 12.",
+    "= 18 J."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "apcmech.work.variable",
+   "tier": 4,
+   "qtype": "mcq",
+   "stem": "A spring with k = 200 N/m is already stretched 0.2 m. How much extra work is needed to stretch it to 0.4 m?",
+   "stem_hash": "00d1a157ded6b2f5fc0c16d0eee2952508ecca9c4bf388c4aebb3fc4adf01d6e",
+   "options": [
+    {
+     "k": "A",
+     "t": "12 J",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "4 J",
+     "why": "That is the work to reach 0.2 m, not the extra."
+    },
+    {
+     "k": "C",
+     "t": "8 J",
+     "why": "That is ½k(0.4)² alone, which double-counts the first stretch."
+    },
+    {
+     "k": "D",
+     "t": "16 J",
+     "why": "You used ½k(0.4)² with k doubled."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Use the difference of elastic energies.",
+    "½k(0.4² − 0.2²)."
+   ],
+   "steps": [
+    "½ × 200 × (0.16 − 0.04).",
+    "= 100 × 0.12 = 12 J."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "apcmech.energy.theorem",
+   "tier": 1,
+   "qtype": "mcq",
+   "stem": "The net work done on a cart is 50 J. What is its change in kinetic energy?",
+   "stem_hash": "87301a9f4316e8127bfb6b63df68ad93772856ac62389ff3d505537247bce58a",
+   "options": [
+    {
+     "k": "A",
+     "t": "+50 J",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "25 J",
+     "why": "You halved it; the theorem is an equality."
+    },
+    {
+     "k": "C",
+     "t": "−50 J",
+     "why": "Positive net work increases kinetic energy."
+    },
+    {
+     "k": "D",
+     "t": "It depends on the mass",
+     "why": "The theorem does not need the mass."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "W_net = ΔK exactly.",
+    "No factor of ½ here."
+   ],
+   "steps": [
+    "ΔK = W_net.",
+    "= +50 J."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "apcmech.energy.theorem",
+   "tier": 2,
+   "qtype": "mcq",
+   "stem": "A block slides 2 m down a frictionless 30° incline from rest. What is its speed at the bottom? (g = 9.8 m/s²)",
+   "stem_hash": "ac7bbd9142640779311442b62994ced32080ac01bf7e2e809da87dc41871d7dd",
+   "options": [
+    {
+     "k": "A",
+     "t": "4.4 m/s",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "2.2 m/s",
+     "why": "You dropped the factor of 2 under the root."
+    },
+    {
+     "k": "C",
+     "t": "9.8 m/s",
+     "why": "That is g, not the speed."
+    },
+    {
+     "k": "D",
+     "t": "6.3 m/s",
+     "why": "You used the full 2 m as the height."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Height drop = 2 sin 30° = 1 m.",
+    "mgh = ½mv², mass cancels."
+   ],
+   "steps": [
+    "v² = 2 × 9.8 × 1 = 19.6.",
+    "v ≈ 4.4 m/s."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "apcmech.energy.theorem",
+   "tier": 3,
+   "qtype": "mcq",
+   "stem": "A 2 kg block slides 2 m down a 30° incline. Gravity would add 19.6 J of kinetic energy, but friction removes 5 J. What is the final speed?",
+   "stem_hash": "88376e1ae7935ce37ace6084741af3dcd3b6cf3d02bd676c1a34e43e96cceb8d",
+   "options": [
+    {
+     "k": "A",
+     "t": "3.8 m/s",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "4.4 m/s",
+     "why": "That ignores friction."
+    },
+    {
+     "k": "C",
+     "t": "3.2 m/s",
+     "why": "You subtracted 5 J twice."
+    },
+    {
+     "k": "D",
+     "t": "2.7 m/s",
+     "why": "You used K/m instead of 2K/m."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Net energy into motion is 19.6 − 5.",
+    "Then v = √(2K/m)."
+   ],
+   "steps": [
+    "K = 14.6 J.",
+    "v = √(2 × 14.6 / 2) = 3.8 m/s."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "apcmech.energy.theorem",
+   "tier": 4,
+   "qtype": "mcq",
+   "stem": "A motor does 300 J of work in 5 s. What is its average power?",
+   "stem_hash": "b9c0d6a89c7990bbf20940024cd312032927f63605490c5d82f29c41c0263ab4",
+   "options": [
+    {
+     "k": "A",
+     "t": "60 W",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "1500 W",
+     "why": "You multiplied work by time."
+    },
+    {
+     "k": "C",
+     "t": "300 W",
+     "why": "You used the work as the power."
+    },
+    {
+     "k": "D",
+     "t": "12 W",
+     "why": "You divided time by work."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "P = W / t.",
+    "300 ÷ 5."
+   ],
+   "steps": [
+    "P = 300 / 5.",
+    "= 60 W."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "apcmech.momentum.1d",
+   "tier": 1,
+   "qtype": "mcq",
+   "stem": "A 3 kg ball moves at 4 m/s. What is its momentum?",
+   "stem_hash": "bf43b3d3e0571ba69fe017e0dcb6f8c90c7f8c8b16840bd381923438e061e577",
+   "options": [
+    {
+     "k": "A",
+     "t": "12 kg·m/s",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "7 kg·m/s",
+     "why": "You added mass and speed."
+    },
+    {
+     "k": "C",
+     "t": "1.3 kg·m/s",
+     "why": "You divided mass by speed."
+    },
+    {
+     "k": "D",
+     "t": "24 kg·m/s",
+     "why": "You doubled the product."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "p = mv.",
+    "3 × 4."
+   ],
+   "steps": [
+    "p = 3 × 4.",
+    "= 12 kg·m/s."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "apcmech.momentum.1d",
+   "tier": 2,
+   "qtype": "mcq",
+   "stem": "A 20 N force acts for 0.5 s. What impulse does it deliver?",
+   "stem_hash": "a84a733cc8559d828970a83f220719f438a05770d864dea7becc5b138c9fb04e",
+   "options": [
+    {
+     "k": "A",
+     "t": "10 N·s",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "40 N·s",
+     "why": "You divided by 0.5 instead of multiplying."
+    },
+    {
+     "k": "C",
+     "t": "0.025 N·s",
+     "why": "You divided force by time."
+    },
+    {
+     "k": "D",
+     "t": "5 N·s",
+     "why": "You halved the force instead of multiplying by time."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Impulse J = FΔt.",
+    "20 × 0.5."
+   ],
+   "steps": [
+    "J = 20 × 0.5.",
+    "= 10 N·s."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "apcmech.momentum.1d",
+   "tier": 3,
+   "qtype": "mcq",
+   "stem": "A 2 kg cart moving at 3 m/s hits a 4 kg cart at rest and they stick together. What is their common speed?",
+   "stem_hash": "c7eb01a85c654f0218551e8adf19e077d248f4a552fc2ebb3a2539ee22e0a563",
+   "options": [
+    {
+     "k": "A",
+     "t": "1 m/s",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "1.5 m/s",
+     "why": "You divided by the 4 kg cart only."
+    },
+    {
+     "k": "C",
+     "t": "2 m/s",
+     "why": "You forgot to add the masses."
+    },
+    {
+     "k": "D",
+     "t": "0.5 m/s",
+     "why": "You used 2 × 3 / 12."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Momentum is conserved in the collision.",
+    "p = 6 kg·m/s before; total mass 6 kg after."
+   ],
+   "steps": [
+    "6 = (2 + 4)v.",
+    "v = 1 m/s."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "apcmech.momentum.1d",
+   "tier": 4,
+   "qtype": "mcq",
+   "stem": "A 4 kg ball moving at 5 m/s elastically strikes an identical ball at rest. What happens?",
+   "stem_hash": "0810f9601fe9d745a4f422ff3c09c9c016f322ed4e6a1e5395be8be41197fd4f",
+   "options": [
+    {
+     "k": "A",
+     "t": "The first stops and the second moves at 5 m/s",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "Both move at 2.5 m/s",
+     "why": "That is the perfectly inelastic outcome."
+    },
+    {
+     "k": "C",
+     "t": "The first continues at 5 m/s and the second stays still",
+     "why": "That would violate momentum conservation."
+    },
+    {
+     "k": "D",
+     "t": "Both bounce backwards",
+     "why": "There is no reason for a reversal in a head-on elastic hit."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "For equal masses in a 1-D elastic collision, the velocities exchange.",
+    "Momentum and kinetic energy are both conserved."
+   ],
+   "steps": [
+    "v₁' = 0 and v₂' = 5 m/s.",
+    "The velocities swap."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "sat.math.linear",
+   "tier": 1,
+   "qtype": "mcq",
+   "stem": "If 2x + 3 = 11, what is x?",
+   "stem_hash": "999aa8a841695154a7c61e8e499e392f9a0387cdce46ac336d07ede38b41b302",
+   "options": [
+    {
+     "k": "A",
+     "t": "4",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "7",
+     "why": "You subtracted 3 from 11 and stopped."
+    },
+    {
+     "k": "C",
+     "t": "5.5",
+     "why": "You divided 11 by 2 before subtracting."
+    },
+    {
+     "k": "D",
+     "t": "8",
+     "why": "You added 3 instead of subtracting."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Undo the +3 first.",
+    "2x = 8."
+   ],
+   "steps": [
+    "2x = 8.",
+    "x = 4."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "sat.math.linear",
+   "tier": 2,
+   "qtype": "mcq",
+   "stem": "If 3(x − 2) = 15, what is x?",
+   "stem_hash": "4b7d43bbefc760c1755a9d72a8243f55ed1823ba646b06702b90cb886af85ba2",
+   "options": [
+    {
+     "k": "A",
+     "t": "7",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "3",
+     "why": "You divided by 3 and stopped."
+    },
+    {
+     "k": "C",
+     "t": "5",
+     "why": "You distributed incorrectly."
+    },
+    {
+     "k": "D",
+     "t": "9",
+     "why": "You added 2 twice."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Divide both sides by 3 first, or distribute.",
+    "x − 2 = 5."
+   ],
+   "steps": [
+    "x − 2 = 5.",
+    "x = 7."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "sat.math.linear",
+   "tier": 3,
+   "qtype": "mcq",
+   "stem": "What is the slope of the line through (0, 3) and (4, 11)?",
+   "stem_hash": "f6ac12ba697ad756d1b618fd20ad3de11cff1a9befa096592286ae23216b2c65",
+   "options": [
+    {
+     "k": "A",
+     "t": "2",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "8",
+     "why": "That is only the change in y."
+    },
+    {
+     "k": "C",
+     "t": "1/2",
+     "why": "You inverted the ratio."
+    },
+    {
+     "k": "D",
+     "t": "3",
+     "why": "That is the y-intercept."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Slope = Δy / Δx.",
+    "(11 − 3) / (4 − 0)."
+   ],
+   "steps": [
+    "8 / 4.",
+    "Slope = 2."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "sat.math.linear",
+   "tier": 4,
+   "qtype": "mcq",
+   "stem": "If 2x + y = 7 and x − y = 2, what is x?",
+   "stem_hash": "6979f87383da3b4a27ea762e5857d973972011a9c6374a7958516d5810b81bdc",
+   "options": [
+    {
+     "k": "A",
+     "t": "3",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "1",
+     "why": "That is y, not x."
+    },
+    {
+     "k": "C",
+     "t": "5",
+     "why": "That is x + 2."
+    },
+    {
+     "k": "D",
+     "t": "4.5",
+     "why": "That is 9/2 from adding the equations incorrectly."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Adding the two equations eliminates y.",
+    "(2x + y) + (x − y) = 3x."
+   ],
+   "steps": [
+    "3x = 9.",
+    "x = 3, and y = 1."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "sat.math.percent",
+   "tier": 1,
+   "qtype": "mcq",
+   "stem": "What is 15% of 80?",
+   "stem_hash": "cf13fa1913e5c63d2c05085a4386626b39e7cd488fb0318855a5d8b64a5d9f3b",
+   "options": [
+    {
+     "k": "A",
+     "t": "12",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "15",
+     "why": "That is the percentage itself."
+    },
+    {
+     "k": "C",
+     "t": "8",
+     "why": "That is 10% of 80."
+    },
+    {
+     "k": "D",
+     "t": "1.2",
+     "why": "You moved the decimal one place too far."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "15% = 0.15.",
+    "0.15 × 80."
+   ],
+   "steps": [
+    "0.15 × 80.",
+    "= 12."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "sat.math.percent",
+   "tier": 2,
+   "qtype": "mcq",
+   "stem": "A $40 item is 25% off. What is the sale price?",
+   "stem_hash": "e85ffcb5f32ca2b00302f87dae5623d514c80a8472b68b43b7d8ac629c009c19",
+   "options": [
+    {
+     "k": "A",
+     "t": "$30",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "$10",
+     "why": "That is the discount, not the price."
+    },
+    {
+     "k": "C",
+     "t": "$35",
+     "why": "That is a 12.5% discount."
+    },
+    {
+     "k": "D",
+     "t": "$32",
+     "why": "That is a 20% discount."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "You pay 75% of the original.",
+    "0.75 × 40."
+   ],
+   "steps": [
+    "40 − 10 = 30.",
+    "or 0.75 × 40 = 30."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "sat.math.percent",
+   "tier": 3,
+   "qtype": "mcq",
+   "stem": "A value increases from 50 to 65. What is the percent increase?",
+   "stem_hash": "2af89a5c77062dcb98565a35143825358c362e65d34b0ed301890e659c53a650",
+   "options": [
+    {
+     "k": "A",
+     "t": "30%",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "15%",
+     "why": "That is the absolute change, not the percent."
+    },
+    {
+     "k": "C",
+     "t": "23%",
+     "why": "You divided by the new value (15/65)."
+    },
+    {
+     "k": "D",
+     "t": "130%",
+     "why": "That is the new value as a percent of the old."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Percent change = change / original × 100.",
+    "15 / 50."
+   ],
+   "steps": [
+    "15 / 50 = 0.3.",
+    "= 30%."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "sat.math.percent",
+   "tier": 4,
+   "qtype": "mcq",
+   "stem": "A $100 item is discounted 20%, then the reduced price is discounted another 10%. What is the final price?",
+   "stem_hash": "2dbd3ada4d51d536b26d458da835ef89c1bd84f7c8d5639b1cfbb75357f72eab",
+   "options": [
+    {
+     "k": "A",
+     "t": "$72",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "$70",
+     "why": "You added the discounts (30% off). They compound."
+    },
+    {
+     "k": "C",
+     "t": "$68",
+     "why": "You applied 10% to the original price."
+    },
+    {
+     "k": "D",
+     "t": "$90",
+     "why": "You applied only the second discount."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Multiply the factors: 0.8 × 0.9.",
+    "Then multiply by 100."
+   ],
+   "steps": [
+    "0.8 × 100 = 80, then 0.9 × 80 = 72.",
+    "Final price $72."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "sat.math.ratios",
+   "tier": 1,
+   "qtype": "mcq",
+   "stem": "Two numbers are in the ratio 3:5 and add to 40. What is the larger number?",
+   "stem_hash": "88c36eac8074efe303dea74456fc61333b3d5a5b6bafeb814b17c5277331f834",
+   "options": [
+    {
+     "k": "A",
+     "t": "25",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "15",
+     "why": "That is the smaller number."
+    },
+    {
+     "k": "C",
+     "t": "24",
+     "why": "That comes from splitting 40 into 5:8."
+    },
+    {
+     "k": "D",
+     "t": "8",
+     "why": "That is one part, not the larger share."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "There are 8 parts in total.",
+    "Each part is 40 ÷ 8 = 5."
+   ],
+   "steps": [
+    "5 parts × 5 = 25.",
+    "Larger number = 25."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "sat.math.ratios",
+   "tier": 2,
+   "qtype": "mcq",
+   "stem": "4 identical items cost $10. What is the cost per item?",
+   "stem_hash": "2212faadf2f7fbf2ddd8353e97b12e14e0cf2fa744361d1370be154691a80441",
+   "options": [
+    {
+     "k": "A",
+     "t": "$2.50",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "$4.00",
+     "why": "You divided the wrong way."
+    },
+    {
+     "k": "C",
+     "t": "$0.40",
+     "why": "You moved the decimal too far."
+    },
+    {
+     "k": "D",
+     "t": "$1.25",
+     "why": "You halved the price twice."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Unit rate = total cost ÷ number of items.",
+    "10 ÷ 4."
+   ],
+   "steps": [
+    "10 / 4.",
+    "= $2.50 each."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "sat.math.ratios",
+   "tier": 3,
+   "qtype": "mcq",
+   "stem": "A recipe uses 3 cups of flour for every 2 cups of sugar. How much flour is needed for 6 cups of sugar?",
+   "stem_hash": "41f559843d6f870c1fdce3e0adcd45d045749045376228698e1d30436f8a5574",
+   "options": [
+    {
+     "k": "A",
+     "t": "9 cups",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "4 cups",
+     "why": "You added 1 instead of scaling."
+    },
+    {
+     "k": "C",
+     "t": "6 cups",
+     "why": "You matched sugar to flour 1:1."
+    },
+    {
+     "k": "D",
+     "t": "12 cups",
+     "why": "You doubled the sugar ratio incorrectly."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Sugar tripled: 2 → 6.",
+    "So flour triples too."
+   ],
+   "steps": [
+    "3 × 3 = 9.",
+    "9 cups of flour."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "sat.math.ratios",
+   "tier": 4,
+   "qtype": "mcq",
+   "stem": "A car travels 120 miles in 2.5 hours. What is its average speed?",
+   "stem_hash": "22cdc8c8b7f27ec16a0530edb833407e3bde29b0d06e0bfffbf27312066f0e24",
+   "options": [
+    {
+     "k": "A",
+     "t": "48 mph",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "60 mph",
+     "why": "You divided by 2 hours instead of 2.5."
+    },
+    {
+     "k": "C",
+     "t": "300 mph",
+     "why": "You multiplied instead of dividing."
+    },
+    {
+     "k": "D",
+     "t": "50 mph",
+     "why": "You rounded the time to 2.4 hours."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Speed = distance ÷ time.",
+    "120 ÷ 2.5."
+   ],
+   "steps": [
+    "120 / 2.5.",
+    "= 48 mph."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "sat.math.geometry.area",
+   "tier": 1,
+   "qtype": "mcq",
+   "stem": "What is the area of a rectangle with sides 6 and 9?",
+   "stem_hash": "9deccd4f68cc7f121af2ca2e3bea5c653acae3972d4e8dcdafc4966aac8a1416",
+   "options": [
+    {
+     "k": "A",
+     "t": "54",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "30",
+     "why": "That is the perimeter."
+    },
+    {
+     "k": "C",
+     "t": "15",
+     "why": "That is the sum of the sides."
+    },
+    {
+     "k": "D",
+     "t": "108",
+     "why": "You used 2 × 6 × 9."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Area of a rectangle = length × width.",
+    "6 × 9."
+   ],
+   "steps": [
+    "6 × 9.",
+    "= 54."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "sat.math.geometry.area",
+   "tier": 2,
+   "qtype": "mcq",
+   "stem": "What is the area of a triangle with base 8 and height 5?",
+   "stem_hash": "499cc6b84f9e3713813ab1222407a6f929567ba3138f6ee207a7736dabc325c9",
+   "options": [
+    {
+     "k": "A",
+     "t": "20",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "40",
+     "why": "You forgot the ½."
+    },
+    {
+     "k": "C",
+     "t": "13",
+     "why": "You added the numbers."
+    },
+    {
+     "k": "D",
+     "t": "26",
+     "why": "You used ½(8 + 5) × 4."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Area = ½ × base × height.",
+    "½ × 8 × 5."
+   ],
+   "steps": [
+    "½ × 40.",
+    "= 20."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "sat.math.geometry.area",
+   "tier": 3,
+   "qtype": "mcq",
+   "stem": "What is the area of a circle with radius 3?",
+   "stem_hash": "bc62264a2fece57e9f9b8183fcec8a2eddb9f05b041807c7abee8d4443d93bfe",
+   "options": [
+    {
+     "k": "A",
+     "t": "9π",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "3π",
+     "why": "You used the radius instead of the square."
+    },
+    {
+     "k": "C",
+     "t": "6π",
+     "why": "That is the circumference."
+    },
+    {
+     "k": "D",
+     "t": "36π",
+     "why": "You squared the diameter."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Area = πr².",
+    "r² = 9."
+   ],
+   "steps": [
+    "π × 3².",
+    "= 9π."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "sat.math.geometry.area",
+   "tier": 4,
+   "qtype": "mcq",
+   "stem": "A square has side 4, and a semicircle of radius 2 sits on one of its sides. What is the total area?",
+   "stem_hash": "8474f78c5d2d500a24122093cab6eba79de2ba8ddd68adeca1f932191dac9e35",
+   "options": [
+    {
+     "k": "A",
+     "t": "16 + 2π",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "16 + 4π",
+     "why": "You used a full circle."
+    },
+    {
+     "k": "C",
+     "t": "16 + π",
+     "why": "You used ½πr with r = 2."
+    },
+    {
+     "k": "D",
+     "t": "32 + 2π",
+     "why": "You doubled the square."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Square area plus half of a circle of radius 2.",
+    "16 + ½π(2²)."
+   ],
+   "steps": [
+    "Square = 16, semicircle = ½π × 4 = 2π.",
+    "Total 16 + 2π."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "sat.math.functions",
+   "tier": 1,
+   "qtype": "mcq",
+   "stem": "If f(x) = 2x + 1, what is f(3)?",
+   "stem_hash": "2ec265ffef04211779816d70b72e849557773b4ea05b9aa5be96410d683c139e",
+   "options": [
+    {
+     "k": "A",
+     "t": "7",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "6",
+     "why": "You forgot the +1."
+    },
+    {
+     "k": "C",
+     "t": "5",
+     "why": "You added the input to the function."
+    },
+    {
+     "k": "D",
+     "t": "9",
+     "why": "You used 2 × 3 + 3."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Substitute 3 for x.",
+    "2(3) + 1."
+   ],
+   "steps": [
+    "2 × 3 = 6.",
+    "6 + 1 = 7."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "sat.math.functions",
+   "tier": 2,
+   "qtype": "mcq",
+   "stem": "If f(x) = x² − 4, what is f(−3)?",
+   "stem_hash": "824daeb5f75cd8c79e1afc844cc624780e37da91543fa928641d553ff1381ae6",
+   "options": [
+    {
+     "k": "A",
+     "t": "5",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "−13",
+     "why": "You squared −3 as −9; squaring a negative gives a positive."
+    },
+    {
+     "k": "C",
+     "t": "13",
+     "why": "You used +9 and added 4."
+    },
+    {
+     "k": "D",
+     "t": "9",
+     "why": "You forgot to subtract 4."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "(−3)² = 9.",
+    "Then subtract 4."
+   ],
+   "steps": [
+    "9 − 4.",
+    "= 5."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "sat.math.functions",
+   "tier": 3,
+   "qtype": "mcq",
+   "stem": "If g(x) = 3x − 2 and g(x) = 10, what is x?",
+   "stem_hash": "6db692fe2c6884841cdef152a964ad430c270f0517b9097c93376597339c0995",
+   "options": [
+    {
+     "k": "A",
+     "t": "4",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "3",
+     "why": "3(3) − 2 = 7, not 10."
+    },
+    {
+     "k": "C",
+     "t": "28",
+     "why": "You did 3(10) − 2."
+    },
+    {
+     "k": "D",
+     "t": "6",
+     "why": "You divided 10 by 2 incorrectly."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Set 3x − 2 equal to 10.",
+    "3x = 12."
+   ],
+   "steps": [
+    "3x = 12.",
+    "x = 4."
+   ],
+   "visual": null,
+   "source": "authored"
+  },
+  {
+   "skill": "sat.math.functions",
+   "tier": 4,
+   "qtype": "mcq",
+   "stem": "If f(x) = x + 1 and g(x) = 2x, what is f(g(2))?",
+   "stem_hash": "0c4ce71745078528780cac51bcab19bc93ba6987f0f6535e4a8ebcc6034379a5",
+   "options": [
+    {
+     "k": "A",
+     "t": "5",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "6",
+     "why": "You did g(f(2))."
+    },
+    {
+     "k": "C",
+     "t": "3",
+     "why": "You used g(2) as the answer."
+    },
+    {
+     "k": "D",
+     "t": "9",
+     "why": "You multiplied instead of substituting."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Work from the inside out: g(2) first.",
+    "Then put that in f."
+   ],
+   "steps": [
+    "g(2) = 4.",
+    "f(4) = 5."
+   ],
+   "visual": null,
+   "source": "authored"
+  }
+ ]
+}

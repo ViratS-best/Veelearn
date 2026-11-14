@@ -3,6 +3,8 @@
  * validated course recommendations, and declarative widgetSpecs.
  */
 
+const gradeGate = require('./grade-gate');
+
 const WIDGET_PRESETS = new Set([
     'function_plot',
     'desmos_graph',
@@ -503,48 +505,8 @@ function validateWidgetSpecs(rawWidgets) {
     return out;
 }
 
-function extractGradeHints(message) {
-    const msg = String(message || '').toLowerCase();
-    const grades = new Set();
-
-    const range = msg.match(/\b(?:grades?\s*)?(\d{1,2})\s*[-–to]+\s*(\d{1,2})(?:\s*(?:st|nd|rd|th)?\s*grade)?\b/);
-    if (range) {
-        const a = parseInt(range[1], 10);
-        const b = parseInt(range[2], 10);
-        if (!Number.isNaN(a) && !Number.isNaN(b)) {
-            const lo = Math.min(a, b);
-            const hi = Math.max(a, b);
-            for (let g = lo; g <= hi && g <= 13; g++) grades.add(g);
-        }
-    }
-
-    const singles = msg.matchAll(/\b(?:grade\s*)?(\d{1,2})(?:st|nd|rd|th)?\s*grade\b/g);
-    for (const m of singles) {
-        const g = parseInt(m[1], 10);
-        if (!Number.isNaN(g) && g >= 1 && g <= 13) grades.add(g);
-    }
-
-    if (/\b(elementary|primary|k-?5|kindergarten)\b/.test(msg)) {
-        [1, 2, 3, 4, 5].forEach((g) => grades.add(g));
-    }
-    if (/\b(middle\s*school|junior\s*high)\b/.test(msg)) {
-        [6, 7, 8].forEach((g) => grades.add(g));
-    }
-    if (/\b(high\s*school|secondary)\b/.test(msg)) {
-        [9, 10, 11, 12].forEach((g) => grades.add(g));
-    }
-    if (/\b(1st|first)\s*grade\b/.test(msg)) grades.add(1);
-    if (/\b(2nd|second)\s*grade\b/.test(msg)) grades.add(2);
-    if (/\b(3rd|third)\s*grade\b/.test(msg)) grades.add(3);
-
-    const gradeN = msg.matchAll(/\bgrade\s*(\d{1,2})\b/g);
-    for (const m of gradeN) {
-        const g = parseInt(m[1], 10);
-        if (!Number.isNaN(g) && g >= 1 && g <= 13) grades.add(g);
-    }
-
-    return [...grades];
-}
+// Grade parsing lives in grade-gate.js so the planner and the tutor agree.
+const extractGradeHints = gradeGate.extractGradeHints;
 
 const ADVANCED_TOPIC_RE =
     /\b(algebra(?:\s*[12])?|pre-?algebra|pre-?calc(?:ulus)?|calculus|trigonometry|trig|linear algebra|differential|mathcounts|math\s*counts|amc\s*8|amc\s*10|amc\s*12|aime|olympiad|competition math|ap calculus|sat math|honors algebra)\b/i;
@@ -614,6 +576,28 @@ function tokenizeForMatch(text) {
         .replace(/[^a-z0-9\s+#]/g, ' ')
         .split(/\s+/)
         .filter((w) => w.length > 2 && !['the', 'and', 'for', 'want', 'learn', 'course', 'with', 'that', 'this', 'have', 'dont', "don't", 'know', 'please', 'recommend', 'something', 'about'].includes(w));
+}
+
+/**
+ * Phase 3: the dashboard coach offers a session when the learner states an
+ * intent it can serve. Pure rules — no model call, no extra latency, and the
+ * session route validates the track anyway.
+ */
+function buildSessionOffer({ message, grade } = {}) {
+    const text = String(message || '');
+    if (!/session|practi[cs]e|revise|revision|prepare|prep|exam|test|quiz me|drill|study plan|get better at|improve/i.test(text)) {
+        return null;
+    }
+    const g = Number(grade);
+    const track = Number.isFinite(g) ? (g <= 8 ? 'math.g8' : g <= 10 ? 'algebra1' : 'sat.math') : 'math.g8';
+    const minutes = /40|forty|hour/i.test(text) ? 40 : /10|ten minute|quick|short/i.test(text) ? 10 : 20;
+    const name = track === 'math.g8' ? 'grade 8 math' : track === 'algebra1' ? 'algebra 1' : 'SAT math';
+    return {
+        minutes,
+        track,
+        label: `A ${minutes}-minute session on ${name} would move this fastest.`,
+        href: `session.html?minutes=${minutes}&track=${encodeURIComponent(track)}`
+    };
 }
 
 function wantsCourseRecommendation(message) {
@@ -975,12 +959,18 @@ function autoFallbackWidgets(message, historyBlob) {
  * Rank courses that actually fit the prompt, then pick the most liked.
  * Child units of masters are excluded from the catalog before this runs.
  */
-function fallbackRecommendations(message, catalog, limit = 3) {
+function fallbackRecommendations(message, catalog, limit = 3, grade = null) {
     if (!catalog?.length) return [];
     const grades = extractGradeHints(message);
 
     const fits = catalog.filter((c) => courseFitsPrompt(message, c));
-    fits.sort((a, b) => (Number(b.like_count) || 0) - (Number(a.like_count) || 0));
+    fits.sort((a, b) => {
+        // Closest grade band first, then most liked.
+        const da = gradeGate.gradeDistance(a, grade);
+        const db = gradeGate.gradeDistance(b, grade);
+        if (da !== db) return da - db;
+        return (Number(b.like_count) || 0) - (Number(a.like_count) || 0);
+    });
     const pick = fits.slice(0, limit);
 
     return pick.map((row) => ({
@@ -1098,10 +1088,34 @@ function createAiTutorHandlers({ query, openRouterChatCompletion, apiResponse })
             const correctQ = quizRow[0]?.correct || 0;
 
             let profileSummary = '';
-            const prof = await query('SELECT summary_text FROM user_learning_profile WHERE user_id = ?', [userId]);
+            let learnerPrefs = {};
+            let prof = [];
+            try {
+                prof = await query('SELECT summary_text, prefs FROM user_learning_profile WHERE user_id = ?', [userId]);
+            } catch (_) {
+                prof = await query('SELECT summary_text FROM user_learning_profile WHERE user_id = ?', [userId]);
+            }
             if (prof.length && prof[0].summary_text) {
                 profileSummary = String(prof[0].summary_text).slice(0, 1500);
             }
+            if (prof.length && prof[0].prefs) {
+                try {
+                    learnerPrefs = typeof prof[0].prefs === 'string' ? JSON.parse(prof[0].prefs) : prof[0].prefs;
+                } catch (_) {
+                    learnerPrefs = {};
+                }
+            }
+
+            // ---- grade gate -------------------------------------------------
+            // The prompt asks the model to match the learner's grade. This is the
+            // server-side veto that makes it true: a grade-8 learner can no longer
+            // be handed AP Physics C, whatever the model decides.
+            const learnerGrade = gradeGate.resolveLearnerGrade({
+                message,
+                declaredGrade: learnerPrefs && learnerPrefs.declared_grade
+            });
+            const gate = gradeGate.filterCatalog(catalog, { grade: learnerGrade.grade, message });
+            const visibleCatalog = gate.allowed;
 
             const historyRows = await query(
                 `SELECT role, content FROM ai_tutor_messages WHERE user_id = ? ORDER BY created_at DESC LIMIT 24`,
@@ -1109,7 +1123,7 @@ function createAiTutorHandlers({ query, openRouterChatCompletion, apiResponse })
             );
             historyRows.reverse();
 
-            const availableLines = catalog
+            const availableLines = visibleCatalog
                 .map((c) => {
                     const g = c.grade_level != null ? `grade=${c.grade_level}` : 'grade=any';
                     const d = String(c.desc_preview || '').replace(/\s+/g, ' ').trim();
@@ -1177,7 +1191,7 @@ function createAiTutorHandlers({ query, openRouterChatCompletion, apiResponse })
 
             let { replyText, rawRecs, rawWidgets } = splitReplyAndPayloads(rawReply);
             let safeReply = guardSocraticReply(replyText);
-            let recommendations = validateRecommendations(rawRecs, catalog);
+            let recommendations = validateRecommendations(rawRecs, visibleCatalog);
             let widgets = validateWidgetSpecs(rawWidgets);
 
             // Geometry: never inject a canned figure the model did not choose
@@ -1188,8 +1202,8 @@ function createAiTutorHandlers({ query, openRouterChatCompletion, apiResponse })
                 }
             }
 
-            if (catalog.length && wantsCourseRecommendation(message)) {
-                const ranked = fallbackRecommendations(message, catalog, 3);
+            if (wantsCourseRecommendation(message)) {
+                const ranked = fallbackRecommendations(message, visibleCatalog, 3, learnerGrade.grade);
                 recommendations = ranked;
                 if (recommendations.length && !/veelearn course|recommended course|here are (a few )?courses|most liked/i.test(safeReply)) {
                     safeReply = `${safeReply}\n\nI picked the most liked Veelearn course that matches what you asked for — tap View / Enroll below.`.trim();
@@ -1233,7 +1247,17 @@ function createAiTutorHandlers({ query, openRouterChatCompletion, apiResponse })
                 maybeRefreshLearningProfile(userId).catch(() => {});
             });
 
-            return apiResponse(res, 200, 'OK', { reply: safeReply, recommendations, widgets });
+            return apiResponse(res, 200, 'OK', {
+                reply: safeReply,
+                recommendations,
+                widgets,
+                sessionOffer: buildSessionOffer({ message, grade: learnerGrade.grade }),
+                gradeGate: {
+                    grade: learnerGrade.grade,
+                    source: learnerGrade.source,
+                    hidden: gate.blocked.length
+                }
+            });
         },
 
         async history(req, res) {

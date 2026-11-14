@@ -1547,6 +1547,7 @@ async function sendStudyCoachMessage() {
         const reply = data.data?.reply || "";
         await appendStudyCoachBubble("assistant", reply, data.data?.widgets || []);
         renderStudyCoachRecommendations(data.data?.recommendations);
+        renderStudyCoachSessionOffer(data.data?.sessionOffer);
     } catch (e) {
         console.error(e);
         removeStudyCoachTypingIndicator();
@@ -1558,6 +1559,25 @@ async function sendStudyCoachMessage() {
         if (sendBtn) sendBtn.disabled = false;
         if (input) input.disabled = false;
     }
+}
+
+/**
+ * Phase 3: the coach offers a session card. The link is built server-side and
+ * only ever points at session.html, so nothing here needs to be trusted.
+ */
+function renderStudyCoachSessionOffer(offer) {
+    if (!offer) return;
+    const box = document.getElementById("study-coach-recs");
+    if (!box) return;
+    const href = String(offer.href || "");
+    if (!/^session\.html\?/.test(href)) return;
+
+    const card = document.createElement("div");
+    card.className = "study-coach-session-offer";
+    card.innerHTML =
+        `<p class="sco-title">${escapeHtml(offer.label || "Start a session")}</p>` +
+        `<a class="sco-cta" href="${escapeHtml(href)}">Start session</a>`;
+    box.prepend(card);
 }
 
 /**
