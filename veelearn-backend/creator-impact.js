@@ -524,24 +524,26 @@ function createCreatorImpact({ query, log } = {}) {
             .filter((row) => !hitIsMastered(row))
             .sort((a, b) => (a.unitOrd - b.unitOrd) || (a.p - b.p));
 
-        let items = ordered.slice(0, count).map((row, i) => ({
-            ord: i,
-            skillId: row.skill.id,
-            skillName: row.skill.name,
-            isReview: 0,
-            targetDots: 2,
-            startTier: row.level >= 2 ? 3 : row.level >= 1 ? 2 : 1,
-            unitIndex: row.unit ? row.unit.ord : 0,
-            frame: frameFor(row.unit)
-        }));
+        // The creator's own questions lead. Token matching against the shared bank
+        // is loose enough that an AP Calculus course can pull in an algebra skill
+        // by sharing one word, which is how a calculus session turned into grade-8
+        // practice. Their questions make a session that is actually this course.
+        let items = await ingestCourseQuestions(course, units);
 
-        // The shared bank has no skills for this subject (AP Calculus, say), but
-        // the creator's own graded questions still make a real session.
         if (!items.length) {
-            items = (await ingestCourseQuestions(course, units)).slice(0, count);
+            items = ordered.slice(0, count).map((row, i) => ({
+                ord: i,
+                skillId: row.skill.id,
+                skillName: row.skill.name,
+                isReview: 0,
+                targetDots: 2,
+                startTier: row.level >= 2 ? 3 : row.level >= 1 ? 2 : 1,
+                unitIndex: row.unit ? row.unit.ord : 0,
+                frame: frameFor(row.unit)
+            }));
         }
 
-        return { course, report, items };
+        return { course, report, items: items.slice(0, count) };
     }
 
     function hitIsMastered(row) {
