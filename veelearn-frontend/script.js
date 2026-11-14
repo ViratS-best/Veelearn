@@ -2986,7 +2986,9 @@ function insertSimulatorBlock(blockId, title, type) {
 // ===== UI RENDERING =====
 function showLandingPage() {
     if (window.LearnerShell?.hideLearnerShell) window.LearnerShell.hideLearnerShell();
-    document.body.classList.remove("auth-warm-page");
+    // Marketing page shares the warm palette with the learner dashboard.
+    document.body.classList.add("auth-warm-page");
+    document.documentElement.classList.add("auth-warm-page");
     const landing = document.getElementById("landing-page");
     const auth = document.getElementById("auth-section");
     const dashboard = document.getElementById("dashboard-section");
@@ -3065,6 +3067,7 @@ function showAuthSection(type = "login") {
     if (window.LearnerShell?.hideLearnerShell) window.LearnerShell.hideLearnerShell();
     // Warm welcome/login page, matching the learner dashboard theme.
     document.body.classList.add("auth-warm-page");
+    document.documentElement.classList.add("auth-warm-page");
 
     const auth = document.getElementById("auth-section");
     const landing = document.getElementById("landing-page");
@@ -3114,6 +3117,7 @@ function showAuthSection(type = "login") {
 
 function showDashboard() {
     document.body.classList.remove("auth-warm-page");
+    document.documentElement.classList.remove("auth-warm-page");
     if (window.CourseProgress?.endSession) window.CourseProgress.endSession();
     stopCourseTimer();
     currentViewingCourseId = null;
