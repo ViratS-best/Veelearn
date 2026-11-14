@@ -357,6 +357,14 @@ function createCreatorImpact({ query, log } = {}) {
 
     const LETTERS = 'ABCDEFGH';
 
+    const warn = (msg) => {
+        try {
+            if (typeof log === 'function') log(msg);
+        } catch (_) {
+            /* logging must never break a session */
+        }
+    };
+
     /** A unit heading, clipped at a word boundary so the focus list stays readable. */
     function shortName(title) {
         const clean = String(title || '').replace(/\s+/g, ' ').trim();
@@ -388,8 +396,94 @@ function createCreatorImpact({ query, log } = {}) {
      * (stem_hash makes it idempotent), and one focus item per unit that carries
      * all of that unit's questions.
      */
-    async function ingestCourseQuestions(course, units) {
-        let rows;
+    function parseAiJson(text) {
+        const raw = String(text || '')
+            .replace(/^```(?:json)?/i, '')
+            .replace(/```\s*$/i, '')
+            .trim();
+        const a = raw.indexOf('{');
+        const b = raw.lastIndexOf('}');
+        if (a === -1 || b === -1) return {};
+        try {
+            return JSON.parse(raw.slice(a, b + 1));
+        } catch (_) {
+            return {};
+        }
+    }
+
+    function firstSentence(text) {
+        const clean = String(text || '').replace(/\s+/g, ' ').trim();
+        if (!clean) return '';
+        const m = clean.match(/^(.{20,160}?[.!?])\s/);
+        return m ? m[1] : clean.slice(0, 160);
+    }
+
+    /**
+     * A unit with no questions a machine can grade is where the AI earns its
+     * keep: it writes three MCQs from the unit's own text, with a one-line hint
+     * and a real explanation, so any course is teachable the moment it opens.
+     */
+    async function aiQuestionsForUnit(course, unit) {
+        const text = String(unit.text || '').replace(/\s+/g, ' ').trim().slice(0, 1400);
+        if (!text) return [];
+        const messages = [
+            {
+                role: 'system',
+                content:
+                    'You write practice questions for a study app. Reply with JSON only, no prose, no code fences. ' +
+                    'Shape: {"questions":[{"stem":"...","options":["...","...","...","..."],"answer":0,' +
+                    '"hint":"...","explanation":"..."}]}. answer is the 0-based index of the correct option. ' +
+                    'Use LaTeX with $...$ for math. The hint must be a nudge, never the answer. ' +
+                    'The explanation must say why the right answer works and why the tempting wrong one fails.'
+            },
+            {
+                role: 'user',
+                content:
+                    `Course: ${course.title}\nUnit: ${unit.title}\n\nUnit content:\n${text}\n\n` +
+                    'Write 3 questions that test this unit, easiest first.'
+            }
+        ];
+        let raw;
+        try {
+            raw = await require('./ai-chat').aiChatCompletion(messages, {
+                max_tokens: 1100,
+                temperature: 0.4,
+                jsonMust: true,
+                timeoutMs: 30000
+            });
+        } catch (err) {
+            warn(`[creator-impact] AI questions failed for "${unit.title}": ${err.message}`);
+            return [];
+        }
+        const payload = parseAiJson(raw);
+        const list = Array.isArray(payload.questions) ? payload.questions : [];
+        const out = [];
+        for (const q of list) {
+            const stem = String(q.stem || '').trim();
+            const texts = Array.isArray(q.options)
+                ? q.options.map((o) => String(o == null ? '' : o).trim())
+                : [];
+            if (!stem || texts.length < 2) continue;
+            const options = texts.map((t, i) => ({ k: LETTERS[i], t, why: String(q.explanation || '').slice(0, 400) }));
+            let answer = null;
+            if (typeof q.answer === 'number' && options[q.answer]) answer = options[q.answer].k;
+            else if (typeof q.answer === 'string') answer = optionKey(options, q.answer);
+            if (!answer) continue;
+            out.push({
+                stem,
+                options,
+                answer,
+                tier: 1,
+                hint: String(q.hint || '').slice(0, 300),
+                explanation: String(q.explanation || '').slice(0, 600),
+                unitIndex: unit.ord
+            });
+        }
+        return out;
+    }
+
+    async function ingestCourseQuestions(course, units, { maxUnits } = {}) {
+        let rows = [];
         try {
             rows = await query(
                 `SELECT id, question_text, question_type, options, correct_answer, explanation, difficulty
@@ -397,15 +491,12 @@ function createCreatorImpact({ query, log } = {}) {
                 [course.id]
             );
         } catch (err) {
-            log(`[creator-impact] course_questions unavailable: ${err.message}`);
-            return [];
+            warn(`[creator-impact] course_questions unavailable: ${err.message}`);
         }
-        if (!rows || !rows.length) return [];
 
         const list = units && units.length ? units : [{ ord: 0, title: course.title, text: '' }];
-        const buckets = list.map(() => []);
         const parsed = [];
-        rows.forEach((q, i) => {
+        (rows || []).forEach((q, i) => {
             let rawOptions = q.options;
             if (typeof rawOptions === 'string') {
                 try {
@@ -419,13 +510,42 @@ function createCreatorImpact({ query, log } = {}) {
                 : [];
             const answer = optionKey(options, q.correct_answer);
             if (!answer) return; // no comparable key: never ship an ungradeable item
+            const answerText = (options.find((o) => o.k === answer) || {}).t || '';
+            const explanation = String(q.explanation || '').trim();
+            // The explanation is what makes a wrong answer teachable, and the
+            // first line of it is a far better hint than "trust your first step".
+            options.forEach((o) => {
+                o.why = o.k === answer
+                    ? ''
+                    : explanation || `Not ${o.t}. Compare it with the correct choice: ${answerText}.`;
+            });
             const tier = String(q.difficulty || '').toLowerCase() === 'hard' ? 3
                 : String(q.difficulty || '').toLowerCase() === 'medium' ? 2 : 1;
             const stem = String(q.question_text || '').trim();
             if (!stem) return;
-            const unitIndex = Math.min(list.length - 1, Math.floor((i * list.length) / rows.length));
-            parsed.push({ q, options, answer, tier, stem, unitIndex, explanation: q.explanation || null });
+            const unitIndex = Math.min(list.length - 1, Math.floor((i * list.length) / (rows || []).length));
+            parsed.push({
+                stem,
+                options,
+                answer,
+                tier,
+                hint: firstSentence(explanation),
+                explanation,
+                unitIndex
+            });
         });
+
+        // Units with nothing gradeable get AI-written questions instead of a 503.
+        const limit = Math.min(list.length, Math.max(1, Number(maxUnits) || list.length));
+        const counts = list.map(() => 0);
+        parsed.forEach((item) => {
+            counts[item.unitIndex] = (counts[item.unitIndex] || 0) + 1;
+        });
+        for (let i = 0; i < limit; i += 1) {
+            if (counts[i]) continue;
+            const generated = await aiQuestionsForUnit(course, list[i]);
+            generated.forEach((item) => parsed.push(item));
+        }
         if (!parsed.length) return [];
 
         // One synthetic skill per unit so mastery and the focus list stay readable.
@@ -439,8 +559,6 @@ function createCreatorImpact({ query, log } = {}) {
                  VALUES (?, 'course', ?, ?, ?, 2, ?, '[]')`,
                 [code, name, gradeBand, unit.ord, intro]
             );
-            // A course that was ingested before this course's units changed keeps
-            // the old heading unless the row is refreshed.
             await query(
                 `UPDATE skills SET name = ?, grade_band = ?, order_index = ?, intro_md = ? WHERE code = ?`,
                 [name, gradeBand, unit.ord, intro, code]
@@ -453,6 +571,7 @@ function createCreatorImpact({ query, log } = {}) {
         const skillByCode = new Map(skillRows.map((r) => [r.code, Number(r.id)]));
 
         const crypto = require('crypto');
+        const buckets = list.map(() => []);
         for (const item of parsed) {
             const skillId = skillByCode.get(`course.${course.id}.u${item.unitIndex}`);
             if (!skillId) continue;
@@ -460,7 +579,7 @@ function createCreatorImpact({ query, log } = {}) {
             await query(
                 `INSERT IGNORE INTO qbank_items
                     (skill_id, tier, qtype, stem, stem_hash, options, answer, hints, solution_steps, source, course_id, live)
-                 VALUES (?, ?, 'mcq', ?, ?, ?, ?, NULL, ?, 'course', ?, 1)`,
+                 VALUES (?, ?, 'mcq', ?, ?, ?, ?, ?, ?, 'course', ?, 1)`,
                 [
                     skillId,
                     item.tier,
@@ -468,6 +587,7 @@ function createCreatorImpact({ query, log } = {}) {
                     stemHash,
                     JSON.stringify(item.options),
                     item.answer,
+                    JSON.stringify(item.hint ? [item.hint] : []),
                     JSON.stringify(item.explanation ? [item.explanation] : []),
                     Number(course.id)
                 ]
@@ -484,7 +604,7 @@ function createCreatorImpact({ query, log } = {}) {
             items.push({
                 ord: items.length,
                 skillId: skillByCode.get(`course.${course.id}.u${unit.ord}`),
-                skillName: String(unit.title || course.title),
+                skillName: shortName(unit.title || course.title),
                 isReview: 0,
                 targetDots: 2,
                 startTier: Math.min(...bucket.map((b) => b.tier)),
@@ -550,7 +670,7 @@ function createCreatorImpact({ query, log } = {}) {
         // is loose enough that an AP Calculus course can pull in an algebra skill
         // by sharing one word, which is how a calculus session turned into grade-8
         // practice. Their questions make a session that is actually this course.
-        let items = await ingestCourseQuestions(course, units);
+        let items = await ingestCourseQuestions(course, units, { maxUnits: count });
 
         if (!items.length) {
             items = ordered.slice(0, count).map((row, i) => ({

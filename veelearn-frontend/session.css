@@ -501,10 +501,24 @@
   position: absolute;
   top: 0;
   left: 0;
-  height: 1px;
+  height: 2px;
   width: 0;
-  background: linear-gradient(90deg, rgba(234, 88, 12, 0.55), rgba(234, 88, 12, 0.12));
+  background: linear-gradient(90deg, rgba(234, 88, 12, 0.55), rgba(234, 88, 12, 0.16));
   transform-origin: left center;
+  border-radius: 2px;
+}
+/* The pointing end: without this the line read as a stray stroke. */
+.sx-mascot-leader::after {
+  content: '';
+  position: absolute;
+  right: -1px;
+  top: 50%;
+  width: 0;
+  height: 0;
+  border-left: 8px solid rgba(234, 88, 12, 0.6);
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  transform: translateY(-50%);
 }
 
 /* ------------------------------------------------------------ annotations */
@@ -665,7 +679,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sx-mascot-dock { transition: none !important; }
+  .sx-mascot-dock { transition-duration: 200ms !important; }
   .rig-hop,
   .sx-shake,
   .sx-confetti,

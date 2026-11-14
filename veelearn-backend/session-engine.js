@@ -396,7 +396,11 @@ function createSessionEngine({ query, qbank, log } = {}) {
             plan = await planFocus(userId, { track: chosenTrack, minutes: mins });
         }
         if (!plan.length) {
-            const err = new Error('No skills available for this track yet');
+            const err = new Error(
+                wantCourse
+                    ? 'This course has no practice questions yet — its creator needs to add quiz questions.'
+                    : 'No practice material for this track yet'
+            );
             err.status = 503;
             throw err;
         }
