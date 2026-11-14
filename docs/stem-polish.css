@@ -999,19 +999,20 @@ main {
 }
 
 /* ===== Warm welcome/login page (matches the learner dashboard theme) ===== */
-body.auth-warm-page,
-body.auth-warm-page html {
-  background-color: var(--ls-bg, #FFF8F1) !important;
+html.auth-warm-page,
+body.auth-warm-page {
+  background: var(--ls-bg, #FFF8F1) !important;
 }
 
 body.auth-warm-page {
   color: var(--ls-text, #1A1A1A) !important;
-  background-image:
-    radial-gradient(900px 460px at 12% 8%, rgba(234, 88, 12, 0.1), transparent 60%),
-    radial-gradient(760px 420px at 88% 92%, rgba(255, 237, 213, 0.85), transparent 58%),
-    linear-gradient(160deg, var(--ls-bg, #FFF8F1) 0%, var(--ls-user-bubble, #FFF1E6) 100%) !important;
-  background-size: auto !important;
-  background-attachment: fixed !important;
+  min-height: 100vh;
+}
+
+/* The cool aurora light beams belong to the blue theme. */
+body.auth-warm-page #aurora-overlay,
+body.auth-warm-page .aurora-overlay {
+  display: none !important;
 }
 
 body.auth-warm-page h1,
@@ -1058,10 +1059,10 @@ body.auth-warm-page > header #global-search-btn {
 }
 
 body.auth-warm-page #auth-section {
-  background: var(--ls-bg, #FFF8F1) !important;
-  border: 1px solid var(--ls-border, #F3E8DE) !important;
-  border-radius: 24px !important;
-  box-shadow: var(--ls-shadow, 0 8px 24px rgba(234, 88, 12, 0.08)) !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding-top: clamp(8px, 2vw, 20px) !important;
 }
 
 body.auth-warm-page #auth-section > h2 {
@@ -1152,4 +1153,102 @@ body.auth-warm-page #forgot-error-message {
 body.auth-warm-page #forgot-success-message,
 body.auth-warm-page #register-success-message {
   color: #15803D !important;
+}
+
+/* Landing page in the same warm theme */
+body.auth-warm-page #landing-page {
+  background: transparent !important;
+}
+
+body.auth-warm-page #landing-page .hero {
+  border: 1px solid var(--ls-border, #F3E8DE) !important;
+  background: linear-gradient(135deg, #FFF8F1 0%, #FFEDD5 58%, #FED7AA 100%) !important;
+  box-shadow: 0 24px 60px rgba(234, 88, 12, 0.14) !important;
+}
+
+body.auth-warm-page #landing-page .hero::after {
+  color: var(--ls-accent, #EA580C) !important;
+}
+
+body.auth-warm-page #landing-page .hero h1 {
+  color: var(--ls-text, #1A1A1A) !important;
+}
+
+body.auth-warm-page #landing-page .hero p {
+  color: #57534E !important;
+}
+
+body.auth-warm-page .hero-actions .primary-btn {
+  color: #FFFFFF !important;
+  background: var(--ls-btn, #1A1A1A) !important;
+  box-shadow: 0 9px 20px rgba(26, 26, 26, 0.18) !important;
+}
+
+body.auth-warm-page .hero-actions .primary-btn:hover {
+  background: var(--ls-btn-hover, #EA580C) !important;
+}
+
+body.auth-warm-page .hero-actions .secondary-btn {
+  color: var(--ls-text, #1A1A1A) !important;
+  background: #FFFFFF !important;
+  border: 1px solid var(--ls-border, #F3E8DE) !important;
+}
+
+body.auth-warm-page .hero-actions .secondary-btn:hover {
+  background: var(--ls-accent-soft, #FFEDD5) !important;
+  border-color: #FDBA74 !important;
+}
+
+body.auth-warm-page #landing-page .feature-card {
+  background: #FFFFFF !important;
+  border: 1px solid var(--ls-border, #F3E8DE) !important;
+  box-shadow: 0 10px 26px rgba(234, 88, 12, 0.08) !important;
+}
+
+body.auth-warm-page #landing-page .feature-card:hover {
+  border-color: #FDBA74 !important;
+  box-shadow: 0 18px 38px rgba(234, 88, 12, 0.16) !important;
+}
+
+body.auth-warm-page #landing-page .feature-icon,
+body.auth-warm-page #landing-page .feature-card:nth-child(2n) .feature-icon,
+body.auth-warm-page #landing-page .feature-card:nth-child(3n) .feature-icon {
+  color: var(--ls-accent, #EA580C) !important;
+  background: var(--ls-accent-soft, #FFEDD5) !important;
+}
+
+body.auth-warm-page #landing-page .feature-card h3 {
+  color: var(--ls-text, #1A1A1A) !important;
+}
+
+body.auth-warm-page #landing-page .feature-card p {
+  color: #57534E !important;
+}
+
+body.auth-warm-page #landing-page .how-it-works {
+  background: linear-gradient(135deg, #211A15 0%, #3A2A1E 100%) !important;
+  box-shadow: 0 22px 50px rgba(33, 26, 21, 0.22) !important;
+}
+
+body.auth-warm-page #landing-page .how-it-works h2 {
+  color: #FFF7ED !important;
+}
+
+body.auth-warm-page #landing-page .step {
+  background: rgba(255, 248, 241, 0.08) !important;
+  border: 1px solid rgba(253, 186, 116, 0.28) !important;
+}
+
+body.auth-warm-page #landing-page .step h4 {
+  color: #FFF7ED !important;
+}
+
+body.auth-warm-page #landing-page .step p {
+  color: #E7DED3 !important;
+  opacity: 1;
+}
+
+body.auth-warm-page #landing-page .step-num {
+  color: #7C2D12 !important;
+  background: #FDBA74 !important;
 }
