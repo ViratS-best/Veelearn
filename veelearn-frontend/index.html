@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="styles.css?v=10" />
   <link rel="stylesheet" href="styles-redesign.css?v=2" />
   <link rel="stylesheet" href="styles-humanized.css" />
-  <link rel="stylesheet" href="styles-learner-shell.css?v=17" />
+  <link rel="stylesheet" href="styles-learner-shell.css?v=18" />
   <link rel="stylesheet" href="course-sims.css?v=1" />
   <link rel="stylesheet" href="stem-polish.css?v=4" />
   <link rel="stylesheet" href="loading-states.css" media="print" onload="this.media='all'" />
@@ -122,6 +122,71 @@
   ]
 }
 </script>
+  <style id="vl-panel-styles">
+    /* P4/P5 dashboard surfaces: token-driven so they follow the light/dark theme. */
+    .vl-modal-open { overflow: hidden; }
+    .vl-modal {
+      position: fixed; inset: 0; padding: 16px; z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(15, 23, 42, 0.45);
+    }
+    .vl-modal[hidden] { display: none; }
+    .vl-modal-panel {
+      width: min(720px, 100%); max-height: 82vh; overflow: auto;
+      background: var(--ls-card, var(--bg-card, #fff)); color: var(--ls-text, var(--text-light, #111827));
+      border: 1px solid var(--ls-border, var(--border, #e2e8f0)); border-radius: 12px;
+      padding: 20px; box-shadow: 0 20px 50px rgba(15, 23, 42, 0.28);
+    }
+    .vl-modal-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+    .vl-modal-head h3 { margin: 0; }
+    .vl-close {
+      background: transparent; color: inherit; cursor: pointer;
+      border: 1px solid var(--ls-border, var(--border, #cbd5e1)); border-radius: 8px;
+      padding: 4px 10px; font-size: 14px; line-height: 1.2;
+    }
+    .vl-close:hover { border-color: var(--ls-accent, var(--primary, #6366f1)); color: var(--ls-accent, var(--primary, #6366f1)); }
+    .vl-card {
+      border: 1px solid var(--ls-border, var(--border, #e2e8f0)); border-radius: 10px;
+      padding: 14px; margin-bottom: 14px; background: var(--ls-input-bg, var(--bg-input, #f8fafc));
+    }
+    .vl-card-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .vl-chip { font-size: 13px; font-weight: 600; }
+    .vl-intro { margin: 0 0 14px; font-size: 14px; }
+    .vl-small { font-size: 13px; margin: 8px 0; }
+    .vl-strong { font-weight: 600; }
+    .vl-muted { color: var(--ls-muted, var(--text-muted, #64748b)); }
+    .vl-faint { color: var(--ls-muted, var(--text-muted, #94a3b8)); font-size: 12px; margin: 10px 0 0; }
+    .vl-good { color: var(--success, #10b981); }
+    .vl-warn { color: var(--warning, #f59e0b); }
+    .vl-bad { color: var(--danger, #ef4444); }
+    .vl-list { margin: 8px 0 0 18px; font-size: 13px; }
+    .vl-stats { display: flex; gap: 18px; flex-wrap: wrap; margin: 10px 0; font-size: 14px; }
+    .vl-tight { margin: 0 0 6px; }
+    .vl-row {
+      display: flex; justify-content: space-between; gap: 8px; padding: 4px 0;
+      border-top: 1px solid var(--ls-border, var(--border, #e2e8f0)); font-size: 13px;
+    }
+    .vl-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .vl-table th { text-align: left; padding: 6px 8px; color: var(--ls-muted, var(--text-muted, #64748b)); font-weight: 600; }
+    .vl-table td { padding: 6px 8px; border-top: 1px solid var(--ls-border, var(--border, #e2e8f0)); }
+    .vl-mini-btn { padding: 2px 8px; font-size: 12px; color: var(--ls-text, var(--text-light, #111827)) !important; }
+    .vl-input {
+      width: 100%; padding: 10px; margin-bottom: 8px;
+      background: var(--ls-input-bg, var(--bg-input, #fff)); color: var(--ls-text, var(--text-light, #111827));
+      border: 1px solid var(--ls-border, var(--border, #cbd5e1)); border-radius: 6px; font: inherit;
+    }
+    /* Sits on the left so the auto-save "Ready" chip on the right never covers it. */
+    .vl-pill {
+      position: fixed; left: 18px; bottom: 18px; z-index: 900;
+      display: flex; gap: 8px; align-items: center; max-width: calc(100% - 140px);
+      background: var(--ls-card, var(--bg-card, #fff)); color: var(--ls-text, var(--text-light, #111827));
+      border: 1px solid var(--ls-border, var(--border, #e2e8f0)); border-radius: 999px;
+      padding: 8px 10px; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
+      font: 13px/1.2 system-ui, sans-serif;
+    }
+    .vl-pill-link { color: var(--ls-accent, var(--primary, #6366f1)); text-decoration: none; font-weight: 600; }
+    .vl-pill-x { background: none; border: none; color: var(--ls-muted, var(--text-muted, #64748b)); cursor: pointer; font-size: 15px; }
+  </style>
 </head>
 
 <body>
@@ -476,15 +541,13 @@
           <button id="create-assignment-btn" class="success-btn" style="width: 100%; color: #1e293b !important;">📋 Assign Course</button>
         </div>
 
-        <div style="margin: 14px 0; padding: 12px; border: 1px solid #555; border-radius: 6px; background: #1a1a1a;">
-          <h4 style="margin: 0 0 8px;">⏱️ Assign a practice session</h4>
-          <p style="font-size: 12px; color: #aaa; margin: 0 0 8px;">
+        <div class="vl-card">
+          <h4 class="vl-strong" style="margin: 0 0 8px;">⏱️ Assign a practice session</h4>
+          <p class="vl-muted vl-small">
             A 20-minute session on the course selected above, with mastery per student.
           </p>
-          <input type="number" id="assign-session-minutes" value="20" min="5" max="90"
-            style="width: 100%; padding: 10px; margin-bottom: 8px; background: #222; color: #fff; border: 1px solid #555; border-radius: 4px;" />
-          <input type="date" id="assign-session-due"
-            style="width: 100%; padding: 10px; margin-bottom: 8px; background: #222; color: #fff; border: 1px solid #555; border-radius: 4px;" />
+          <input type="number" id="assign-session-minutes" class="vl-input" value="20" min="5" max="90" aria-label="Minutes" />
+          <input type="date" id="assign-session-due" class="vl-input" aria-label="Due date" />
           <button id="assign-session-btn" class="success-btn" style="width: 100%; color: #1e293b !important;">Assign session</button>
           <div id="teacher-session-list" style="margin-top: 10px; font-size: 13px;"></div>
         </div>
@@ -1203,19 +1266,18 @@
   <script src="course-sims-apphyscem.js?v=1" defer></script>
   <script src="course-boss-battle.js?v=7" defer></script>
   <script src="course-progress.js?v=5" defer></script>
-  <div id="impact-modal" hidden
-    style="position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 16px;">
-    <div style="width: min(720px, 100%); max-height: 82vh; overflow: auto; background: #1e1e1e; color: #eee; border-radius: 10px; padding: 20px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-        <h3 style="margin: 0;" id="impact-title">Teaching impact</h3>
-        <button type="button" id="impact-close" class="secondary-btn" style="color: #1e293b !important;">✕</button>
+  <div id="impact-modal" class="vl-modal" hidden>
+    <div class="vl-modal-panel" role="dialog" aria-modal="true" aria-labelledby="impact-title">
+      <div class="vl-modal-head">
+        <h3 id="impact-title">Teaching impact</h3>
+        <button type="button" id="impact-close" class="vl-close" aria-label="Close teaching impact">✕</button>
       </div>
       <div id="impact-body"></div>
     </div>
   </div>
 
   <script src="script.js?v=38" defer></script>
-  <script src="session-panels.js?v=1" defer></script>
+  <script src="session-panels.js?v=3" defer></script>
   <script src="course-editor-ux.js?v=1" defer></script>
   <script>
     function loadScriptOnce(src) {
