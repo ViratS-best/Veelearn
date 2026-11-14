@@ -1,0 +1,154 @@
+/* ============================================================================
+ * course-sims.css — presentation for .vl-sim blocks inside course reading view.
+ * Kept close to the course "stage" cards so a simulation reads as part of the
+ * lesson rather than a widget bolted onto it.
+ * ========================================================================== */
+
+.vl-sim {
+  background: #fffdf9;
+  border: 1px solid #f3e8de;
+  border-radius: 16px;
+  padding: 18px 20px 16px;
+  margin: 22px 0;
+  box-shadow: 0 1px 0 rgba(120, 80, 40, 0.04);
+}
+
+.vl-sim-head {
+  margin-bottom: 12px;
+}
+
+.vl-sim-title {
+  font-size: 1.02rem;
+  font-weight: 800;
+  color: #7c2d12;
+  letter-spacing: 0.01em;
+  margin-bottom: 4px;
+}
+
+.vl-sim-blurb {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #6b5a4a;
+}
+
+.vl-sim-stage {
+  background: #fff;
+  border: 1px solid #efe6da;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.vl-sim-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  touch-action: pan-y;
+}
+
+.vl-sim-controls {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.vl-sim-control {
+  display: grid;
+  grid-template-columns: minmax(96px, 168px) 1fr auto;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.9rem;
+  color: #4b3f35;
+}
+
+.vl-sim-control-label {
+  font-weight: 700;
+  color: #5b4636;
+}
+
+.vl-sim-control input[type='range'] {
+  width: 100%;
+  accent-color: #b45309;
+  cursor: pointer;
+}
+
+.vl-sim-select {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #e6d9cb;
+  border-radius: 8px;
+  background: #fff;
+  color: #3f342b;
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.vl-sim-control-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: #7c2d12;
+  min-width: 66px;
+  text-align: right;
+}
+
+.vl-sim-readout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed #eee0d2;
+}
+
+.vl-sim-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 84px;
+}
+
+.vl-sim-metric-key {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #9a8574;
+}
+
+.vl-sim-metric-value {
+  font-size: 1.02rem;
+  font-variant-numeric: tabular-nums;
+  color: #3f342b;
+}
+
+.vl-sim-note {
+  margin: 12px 0 0;
+  padding: 8px 0 0 12px;
+  border-left: 3px solid #e7c9a9;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: #6b5a4a;
+}
+
+.vl-sim-caption {
+  margin: 10px 0 0;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: #8a7a6b;
+}
+
+@media (max-width: 640px) {
+  .vl-sim {
+    padding: 14px 14px 12px;
+  }
+  .vl-sim-control {
+    grid-template-columns: 1fr auto;
+  }
+  .vl-sim-control input[type='range'],
+  .vl-sim-select {
+    grid-column: 1 / -1;
+    order: 3;
+  }
+  .vl-sim-readout {
+    gap: 6px 16px;
+  }
+}

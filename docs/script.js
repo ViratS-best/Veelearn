@@ -8857,7 +8857,7 @@ function applyFlowEmbedStyles(el, extraCss) {
 
 function normalizeAbsoluteEmbeds(editor) {
     if (!editor) return;
-    editor.querySelectorAll('.simulator-block, .phet-sim-wrapper, .quiz-question-placeholder, .vl-callout, .vl-step-reveal, .vl-matching, .vl-graph-embed').forEach((el) => {
+    editor.querySelectorAll('.simulator-block, .phet-sim-wrapper, .quiz-question-placeholder, .vl-callout, .vl-step-reveal, .vl-matching, .vl-graph-embed, .vl-sim').forEach((el) => {
         const styleAttr = el.getAttribute('style') || '';
         const computedPos = (el.style.position || '').toLowerCase();
         const looksAbsolute =
@@ -8899,7 +8899,7 @@ function resolveEditorBlockAnchor(editor, node) {
     if (!editor || !node) return null;
     let el = node.nodeType === Node.TEXT_NODE ? node.parentElement : node;
     const blockSel =
-        '.quiz-question-placeholder, .simulator-block, .phet-sim-wrapper, .vl-callout, .vl-step-reveal, .vl-matching, .vl-graph-embed, p, h1, h2, h3, h4, h5, h6, li, blockquote, pre, table, hr, div';
+        '.quiz-question-placeholder, .simulator-block, .phet-sim-wrapper, .vl-callout, .vl-step-reveal, .vl-matching, .vl-graph-embed, .vl-sim, p, h1, h2, h3, h4, h5, h6, li, blockquote, pre, table, hr, div';
     while (el && el !== editor) {
         if (el.matches && el.matches(blockSel)) {
             let top = el;
