@@ -32,6 +32,18 @@
 
   const el = (id) => document.getElementById(id);
 
+  // MathJax arrives async; every render asks it to typeset the live nodes so a
+  // stem like $(x-r)^2$ never shows as raw dollars.
+  function typesetContent() {
+    const mj = window.MathJax;
+    if (!mj || typeof mj.typesetPromise !== 'function') return;
+    const nodes = ['sx-stem', 'sx-options', 'sx-feedback', 'sx-hintbox', 'sx-intro-text']
+      .map((id) => document.getElementById(id))
+      .filter(Boolean);
+    if (!nodes.length) return;
+    Promise.resolve(mj.typesetPromise(nodes)).catch(() => {});
+  }
+
   const state = {
     id: null,
     session: null,
@@ -228,6 +240,7 @@
     el('sx-q-skill').textContent = item.name;
     el('sx-q-tier').textContent = `tier ${question.tier} · ${TIER_LABEL[question.tier] || 'practice'}`;
     el('sx-stem').textContent = question.stem;
+    typesetContent();
 
     renderOptions(question.options);
     setOptionsEnabled(true);
@@ -355,6 +368,7 @@
     const feedback = el('sx-feedback');
     feedback.innerHTML = parts.join('');
     feedback.hidden = false;
+    typesetContent();
     state.lastSolution = result.solution || null;
 
     const boardBtn = el('sx-board-btn');
@@ -487,8 +501,9 @@
     try {
       const out = await api(`/api/session/${state.id}/hint`, { questionId: state.question.id });
       const box = el('sx-hintbox');
-      box.textContent = out.hint || 'No hint for this one — trust your first step.';
+      box.textContent = out.hint || 'Look again at what the question is really asking you to find.';
       box.hidden = false;
+      typesetContent();
       if (state.visualReady && window.Mascot) {
         Mascot.mood('thinking');
         Promise.resolve(Mascot.pointAt('#sx-hintbox')).catch(() => {});

@@ -7,6 +7,15 @@
     <meta name="description" content="A short, focused Veelearn practice session: a few skills, one question at a time, and a mastery dot for every gap you close.">
     <meta name="robots" content="noindex, nofollow">
     <link rel="icon" type="image/png" href="VEELEARN.png">
+    <script>
+      // Course questions are written in LaTeX; without this the stems show raw $...$.
+      window.MathJax = {
+        tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
+        svg: { fontCache: 'global' },
+        options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'] }
+      };
+    </script>
+    <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
     <link rel="stylesheet" href="styles-learner-shell.css?v=18">
     <link rel="stylesheet" href="session.css?v=2">
     <script>
@@ -23,7 +32,7 @@
 <body class="sx-body">
     <div class="sx-app" id="sx-app" aria-busy="true">
         <header class="sx-top">
-            <a class="sx-back" id="sx-back" href="student-dashboard.html">← Dashboard</a>
+            <a class="sx-back" id="sx-back" href="index.html">← Dashboard</a>
             <div class="sx-goal">
                 <span class="sx-goal-label" id="sx-goal-label">Getting your session ready…</span>
                 <span class="sx-track" id="sx-track"></span>
@@ -72,7 +81,7 @@
                     <p class="sx-intro" id="sx-summary-text"></p>
                     <p class="sx-next" id="sx-summary-next"></p>
                     <div class="sx-rewards" id="sx-summary-rewards"></div>
-                    <a class="sx-btn sx-primary" href="student-dashboard.html">Back to dashboard</a>
+                    <a class="sx-btn sx-primary" href="index.html">Back to dashboard</a>
                 </article>
 
                 <div class="sx-error" id="sx-error" hidden></div>

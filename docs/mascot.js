@@ -210,10 +210,17 @@
     const dock = state.dock;
     if (!dock) return Promise.resolve();
 
-    if (state.reduced || options.instant) {
+    if (options.instant) {
       dock.style.transition = 'none';
       dock.style.transform = `translate(${dest.x}px, ${dest.y}px) scaleX(${flip})`;
       return Promise.resolve();
+    }
+    if (state.reduced) {
+      // Reduced motion means shorter and gentler, not a teleport: the mascot
+      // still glides so the eye can follow where it went.
+      dock.style.transition = 'transform 200ms ease-out';
+      dock.style.transform = `translate(${dest.x}px, ${dest.y}px) scaleX(${flip})`;
+      return new Promise((resolve) => setTimeout(resolve, 210));
     }
 
     if (distance > 900) {
@@ -339,7 +346,7 @@
     setMood('idle');
     state.target = { x: state.home.x, y: state.home.y };
     if (state.dock) {
-      state.dock.style.transition = state.reduced ? 'none' : 'transform 420ms cubic-bezier(.32,.72,0,1)';
+      state.dock.style.transition = state.reduced ? 'transform 200ms ease-out' : 'transform 420ms cubic-bezier(.32,.72,0,1)';
       state.dock.style.transform = `translate(${state.home.x}px, ${state.home.y}px) scaleX(1)`;
     }
     state.lastNarration = performance.now();
@@ -418,8 +425,8 @@
     state.lastNarration = performance.now();
     const rest = { x: Math.max(8, stage.width - 128), y: Math.max(8, stage.height - 150) };
     state.target = rest;
-    if (state.dock && !state.reduced) {
-      state.dock.style.transition = 'transform 900ms cubic-bezier(.32,.72,0,1)';
+    if (state.dock) {
+      state.dock.style.transition = state.reduced ? 'transform 240ms ease-out' : 'transform 900ms cubic-bezier(.32,.72,0,1)';
       state.dock.style.transform = `translate(${rest.x}px, ${rest.y}px) scaleX(1)`;
     }
     setMood('sleepy');
@@ -514,7 +521,9 @@
 
         state.ready = true;
         poseOnce();
-        if (!state.reduced) state.raf = requestAnimationFrame(tick);
+        // Always run the frame loop: pupils track the cursor even for learners
+        // who turned motion down, only the decorative bob/blink/drift is skipped.
+        state.raf = requestAnimationFrame(tick);
 
         return api;
       })
