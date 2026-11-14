@@ -1,6 +1,5 @@
 const express = require('express');
 const WebSocket = require('ws');
-const mysql = require('mysql2');
 const dotenv = require('dotenv');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -9,6 +8,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const xss = require('xss');
 const rateLimit = require('express-rate-limit');
+const { ipKeyGenerator } = require('express-rate-limit');
 const path = require('path');
 const nodemailer = require('nodemailer');
 
@@ -128,7 +128,7 @@ const authLimiter = rateLimit({
 // Rate limiter for API endpoints that modify data
 const writeLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 write requests per windowMs
+    max: Number(process.env.WRITE_RATE_MAX || 100), // per IP per windowMs
     message: { success: false, message: 'Too many write requests, please try again later.' },
     standardHeaders: true,
     legacyHeaders: false,
@@ -206,30 +206,15 @@ app.use(express.json({ limit: '50mb' }));
 app.use(cookieParser());
 
 // ===== DATABASE CONFIGURATION =====
+// PostgreSQL via db.js: one shared pg.Pool (max 20 connections) that every
+// request borrows from and returns immediately. See db.js for the pool and the
+// MySQL-compatibility translation of the SQL used across this file.
+const { db, query, poolStatus } = require('./db');
 const dbConfig = {
-    host: process.env.DB_HOST || process.env.MYSQLHOST || 'localhost',
-    port: process.env.DB_PORT || process.env.MYSQLPORT || 3306,
-    user: process.env.DB_USER || process.env.MYSQLUSER || 'root',
-    password: process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || '',
-    database: process.env.DB_NAME || process.env.MYSQL_DATABASE || process.env.MYSQLDATABASE || 'veelearn_db',
-    ssl: process.env.DB_SSL_CA ? {
-        ca: process.env.DB_SSL_CA.replace(/\\n/g, '\n'),
-        rejectUnauthorized: true
-    } : (process.env.MYSQLHOST ? { rejectUnauthorized: false } : null)
+    host: process.env.PGHOST || 'localhost',
+    port: process.env.PGPORT || 5432,
+    database: process.env.PG_DATABASE || 'defaultdb'
 };
-
-// Create a pool
-const db = mysql.createPool({
-    ...dbConfig,
-    connectionLimit: 10,
-    waitForConnections: true,
-    queueLimit: 0,
-    // DATE/DATETIME as 'YYYY-MM-DD...' strings (fixes daily check-in same-day compare)
-    dateStrings: true
-});
-
-// Promisify for async/await
-const query = util.promisify(db.query).bind(db);
 
 // Database health check
 setInterval(async () => {
@@ -243,21 +228,13 @@ setInterval(async () => {
 // Initialize database and tables sequentially
 const initializeDatabase = async () => {
     try {
-        info(`📡 Attempting to connect to database at ${dbConfig.host}:${dbConfig.port}`);
-        // 1. Ensure database exists
-        const connection = mysql.createConnection({
-            host: dbConfig.host,
-            port: dbConfig.port,
-            user: dbConfig.user,
-            password: dbConfig.password
-        });
-        const connectionQuery = util.promisify(connection.query).bind(connection);
+        info(`📡 Connecting to PostgreSQL at ${dbConfig.host}:${dbConfig.port}/${dbConfig.database}`);
+        // The database already exists on Aiven PostgreSQL (defaultdb); verify the
+        // pool can reach it instead of creating a database like MySQL allowed.
+        await query('SELECT 1');
+        info(`PostgreSQL database '${dbConfig.database}' reachable`);
 
-        await connectionQuery(`CREATE DATABASE IF NOT EXISTS ${dbConfig.database}`);
-        connection.end();
-        info(`Database '${dbConfig.database}' verified/created`);
-
-        // 2. Create tables in proper order
+        // 1. Create tables in proper order (all IF NOT EXISTS; no-ops on the migrated schema)
         info('Initializing tables...');
 
         // Users table (Parent)
@@ -1321,15 +1298,17 @@ let wakeUpStartTime = null;
 const smartAuthLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: (req, res) => {
-        // Return 15 requests during wake-up, 5 normally
-        return serverWakeUpMode ? 15 : 5;
+        // Return 15 requests during wake-up, 5 normally; env override for load tests
+        return Number(process.env.AUTH_RATE_MAX || (serverWakeUpMode ? 15 : 5));
     },
     message: { success: false, message: 'Too many authentication attempts, please try again later.' },
     standardHeaders: true,
     legacyHeaders: false,
     keyGenerator: (req) => {
-        // Include wake-up mode in key to prevent limit abuse
-        return req.ip + (serverWakeUpMode ? '_wakeup' : '_normal');
+        // ipKeyGenerator normalises IPv6 addresses so a single client cannot
+        // rotate through addresses in its own /64 to bypass the limit.
+        // Include wake-up mode in the key to prevent limit abuse.
+        return ipKeyGenerator(req.ip) + (serverWakeUpMode ? '_wakeup' : '_normal');
     }
 });
 
@@ -1385,7 +1364,9 @@ app.get('/api/health', (req, res) => {
         status: 'ok', 
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
-        wakeUpMode: serverWakeUpMode
+        wakeUpMode: serverWakeUpMode,
+        // Shared connection pool: total <= 20, waiting = requests queued for a socket
+        pool: poolStatus()
     });
 });
 
@@ -4242,12 +4223,12 @@ app.get('/api/users/enrollments/:courseId/progress', authenticateToken, (req, re
                    cu.prerequisite_unit_id,
                    CASE WHEN cep.completed = TRUE THEN TRUE 
                         WHEN cu.prerequisite_unit_id IS NULL THEN TRUE
-                        ELSE EXISTS (
+                        ELSE CASE WHEN EXISTS (
                             SELECT 1 FROM course_enrollment_progress cep2
                             WHERE cep2.unit_id = cu.prerequisite_unit_id
                             AND cep2.user_id = ?
                             AND cep2.completed = TRUE
-                        )
+                        ) THEN 1 ELSE 0 END
                    END as is_unlocked
             FROM course_units cu
             JOIN courses c ON cu.child_course_id = c.id
@@ -4784,7 +4765,7 @@ app.get('/api/users/:userId/courses', authenticateToken, (req, res) => {
         return apiResponse(res, 403, 'Access denied. You can only view your own courses');
     }
 
-    const query = 'SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time, created_at, grade_level, video_url, course_type, gamification_json FROM courses WHERE creator_id = ? ORDER BY COALESCE(created_at, creation_time) DESC';
+    const query = 'SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time, created_at, grade_level, video_url, course_type, gamification_json FROM courses WHERE creator_id = ? ORDER BY COALESCE(created_at, to_timestamp(NULLIF(creation_time, 0))) DESC';
     db.query(query, [userId], (err, results) => {
         if (err) {
             // Fallback if created_at / course_type columns missing on older DBs
@@ -4816,7 +4797,7 @@ app.get('/api/users/:userId/courses', authenticateToken, (req, res) => {
 app.get('/api/my-courses', authenticateToken, (req, res) => {
     const userId = req.user.id;
     const query =
-        'SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time, created_at, grade_level, video_url, course_type, gamification_json FROM courses WHERE creator_id = ? ORDER BY COALESCE(created_at, creation_time) DESC';
+        'SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time, created_at, grade_level, video_url, course_type, gamification_json FROM courses WHERE creator_id = ? ORDER BY COALESCE(created_at, to_timestamp(NULLIF(creation_time, 0))) DESC';
     db.query(query, [userId], (err, results) => {
         if (err) {
             if (/Unknown column/i.test(String(err.message || err))) {
@@ -5576,12 +5557,12 @@ app.get('/api/users/enrollments/:courseId/progress', authenticateToken, (req, re
                    cu.prerequisite_unit_id,
                    CASE WHEN cep.completed = TRUE THEN TRUE 
                         WHEN cu.prerequisite_unit_id IS NULL THEN TRUE
-                        ELSE EXISTS (
+                        ELSE CASE WHEN EXISTS (
                             SELECT 1 FROM course_enrollment_progress cep2
                             WHERE cep2.unit_id = cu.prerequisite_unit_id
                             AND cep2.user_id = ?
                             AND cep2.completed = TRUE
-                        )
+                        ) THEN 1 ELSE 0 END
                    END as is_unlocked
             FROM course_units cu
             JOIN courses c ON cu.child_course_id = c.id
@@ -5887,7 +5868,7 @@ app.get('/api/simulators', (req, res) => {
         LEFT JOIN users u ON s.creator_id = u.id
         LEFT JOIN simulator_ratings sr ON s.id = sr.simulator_id
         ${whereClause}
-        GROUP BY s.id
+        GROUP BY s.id, u.email
         ${orderClause}
         LIMIT ? OFFSET ?
     `;
@@ -7728,19 +7709,19 @@ app.get('/api/student/enrolled-courses', authenticateToken, (req, res) => {
             ) as correct_answers,
             COUNT(DISTINCT ca.id) as total_assignments,
             COUNT(DISTINCT CASE WHEN asub.is_submitted = 1 THEN ca.id END) as completed_assignments,
-            GROUP_CONCAT(DISTINCT JSON_OBJECT(
+            string_agg(DISTINCT jsonb_build_object(
                 'assignment_id', ca.id,
                 'title', ca.title,
                 'due_date', ca.due_date,
-                'correct_answers', IFNULL(asub.correct_answers, 0),
-                'total_questions', IFNULL(asub.total_questions, 0),
-                'is_submitted', IFNULL(asub.is_submitted, 0)
-            ) SEPARATOR '|||') as submissions_json,
-            GROUP_CONCAT(DISTINCT JSON_OBJECT(
+                'correct_answers', COALESCE(asub.correct_answers, 0),
+                'total_questions', COALESCE(asub.total_questions, 0),
+                'is_submitted', COALESCE(asub.is_submitted, 0)
+            )::text, '|||') as submissions_json,
+            string_agg(DISTINCT jsonb_build_object(
                 'id', ca.id,
                 'title', ca.title,
                 'due_date', ca.due_date
-            ) SEPARATOR '|||') as assignments_json
+            )::text, '|||') as assignments_json
         FROM courses c
         JOIN enrollments e ON e.course_id = c.id AND e.user_id = ?
         LEFT JOIN users u ON u.id = c.creator_id
@@ -7748,7 +7729,7 @@ app.get('/api/student/enrolled-courses', authenticateToken, (req, res) => {
         LEFT JOIN classroom_assignments ca ON ca.course_id = c.id
         LEFT JOIN assignment_submissions asub ON ca.id = asub.assignment_id AND asub.student_id = e.user_id
         GROUP BY c.id, c.title, c.description, c.course_type, c.status, u.email, e.enrolled_at,
-                 cv.progress_percentage, cv.last_page_index
+                 e.user_id, cv.progress_percentage, cv.last_page_index
         ORDER BY c.title ASC
     `, [studentId], (err, results) => {
         if (err) {

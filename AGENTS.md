@@ -3875,6 +3875,84 @@ npx http-server . -p 5000
 
 ---
 
+## ✅ SESSION 40 - MIGRATED FROM AIVEN MYSQL TO AIVEN POSTGRESQL 🐘🔌
+
+**Status**: ✅ COMPLETE - SCHEMA + DATA MIGRATED, BACKEND PORTED TO `pg`, POOL LIVE
+
+**Last Updated**: November 14, 2026
+
+### What changed
+
+| File | Change |
+|------|--------|
+| `pg_migrate.py` (repo root) | One-shot migration tool. Reads the MySQL schema from `information_schema`, writes PostgreSQL DDL, copies every row, then adds indexes/FKs and resets sequences. `--dry-run`, `--recreate`, `--verify`. |
+| `veelearn-backend/db.js` (new) | Shared `pg.Pool` + MySQL-compatibility query layer. Exposes `db.query(sql, params, cb)`, a promise `query()` helper, `poolStatus()`, `healthCheck()`, `close()`. |
+| `veelearn-backend/server.js` | `mysql2` pool replaced by `require('./db')`. `CREATE DATABASE` bootstrap replaced with a `SELECT 1` reachability check. Two MySQL-only aggregate queries rewritten (`GROUP_CONCAT`/`JSON_OBJECT` → `string_agg`/`jsonb_build_object`). `/api/health` now returns live pool stats. |
+| `veelearn-backend/package.json` | `mysql2` removed, `pg` added. |
+| `veelearn-backend/.env.example` | PostgreSQL + pool variables documented. |
+
+### Migration results
+
+- 41 tables, 11,918 rows copied. Row counts match 41/41; per-column digests match with 0 value differences (JSON columns compared after parsing).
+- 70 foreign keys recreated, 61 unique keys preserved, 36 identity sequences set to `max(id)`.
+- Type mapping: `AUTO_INCREMENT` → identity, unsigned ints widened, `tinyint` → `smallint`, `longtext` → `text`, `json` → `jsonb`, `datetime` → `timestamp`.
+- The MySQL service was left untouched, so rollback = pointing the env vars back.
+
+### Connection pooling (20-connection Aiven limit)
+
+Aiven PostgreSQL runs `max_connections = 20` **with `superuser_reserved_connections = 3`**, so an ordinary role gets at most **17** sockets. The pool therefore defaults to **15** (`PG_POOL_MAX`), leaving headroom for psql/console sessions; using 20 was tested and produced `53300 too many clients already` under load.
+
+- `pg.Pool` is created once per process. Every query checks a socket out, runs, and returns it in milliseconds; extra requests queue inside the pool (`pool.waitingCount`) instead of opening new connections.
+- Idle sockets are closed after 30s (`PG_POOL_IDLE_MS`), connect timeout 15s (`PG_POOL_CONNECT_MS`).
+- `/api/health` exposes `{ max, total, idle, waiting, queries, errors, slowQueries }` so the pool can be watched in production.
+- Load test: 60 concurrent requests against a 15-socket pool → 60/60 HTTP 200, peak 15 server connections, 0 errors; 40 requests at 20-way parallelism → 40/40 200.
+- Do **not** run multiple backend instances without lowering `PG_POOL_MAX` per instance (instances × pool ≤ 17).
+
+### SQL compatibility handled in `db.js`
+
+`?` → `$n` (quote-aware) · `IFNULL` → `COALESCE` · `CURDATE()`/`DATABASE()` → PostgreSQL equivalents · `YEAR()`/`MONTH()` → `EXTRACT` · `DATEDIFF` → date subtraction · `TRUE`/`FALSE` → `1`/`0` (boolean-ish columns are `smallint`) · `INSERT IGNORE` → `ON CONFLICT DO NOTHING` · `ON DUPLICATE KEY UPDATE` → `ON CONFLICT (<unique cols>) DO UPDATE` with `VALUES(col)` → `EXCLUDED.col` · DDL: `AUTO_INCREMENT`→identity, `ENUM`→`text`, `LONGTEXT`→`text`, `UNIQUE KEY`→`CONSTRAINT`, inline `INDEX`/`KEY` dropped, `MODIFY COLUMN`→`ALTER COLUMN … TYPE`, `AFTER`/`FIRST` stripped.
+
+Result shapes stay mysql2-compatible: `SELECT` resolves to a row array, writes resolve to `{ insertId, affectedRows }` (inserts get `RETURNING <pk>` appended automatically). JSON columns are returned as strings so existing `JSON.parse` calls keep working; dates come back as `YYYY-MM-DD HH:MM:SS` strings, and `COUNT(*)` is a JS number. PostgreSQL `23505` is surfaced as `ER_DUP_ENTRY` so existing duplicate-email handling still works.
+
+### Environment
+
+```
+PGHOST / PGPORT / PGUSER / PGPASSWORD / PG_DATABASE
+PGSSL_CA   (optional; falls back to DB_SSL_CA)
+PG_POOL_MAX=15, PG_POOL_IDLE_MS=30000, PG_POOL_CONNECT_MS=15000
+```
+
+### Re-running the migration
+
+```bash
+python pg_migrate.py --dry-run     # inspect generated DDL
+python pg_migrate.py --recreate    # drop, recreate, copy, verify
+python pg_migrate.py --verify      # row-count comparison only
+```
+
+Credentials are read from the environment only; nothing is stored in the repo.
+
+### Full API verification (Session 40 follow-up)
+
+`api_smoke.py` (repo root) drives the whole route surface against the running backend: it creates throwaway users (student/teacher/parent/promo/school-admin/superadmin), a course with a quiz question and a unit, a class, an assignment, a simulator, posts, messages and gamification events, then deletes everything it created and prints the restored table counts. Run it with `SMOKE_BASE` (default `http://127.0.0.1:5055`) and the `PG*` env vars.
+
+**Result: 125 of 126 checks pass.** The only failure is `POST /api/forgot-password`, which returns 500 because no email provider is configured in the local environment (`BREVO_API_KEY` / SMTP missing) — not a database issue.
+
+Bugs the sweep found and fixed in the PostgreSQL port:
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `become-teacher`, settings and other writes returned 500 | mysql2 converts JS `true/false` to `1/0`; pg sends a real boolean into `smallint` columns | boolean params normalised in `db.js` |
+| `/api/my-courses`, `/api/users/:id/courses` 500 | `ORDER BY COALESCE(created_at, creation_time)` mixed `timestamp` and `integer` | `COALESCE(created_at, to_timestamp(NULLIF(creation_time,0)))` |
+| `/api/student/enrolled-courses` 500 | correlated subquery referenced `e.user_id` not present in `GROUP BY` | added `e.user_id` to the group list |
+| `/api/simulators` 500 | `GROUP BY s.id` while selecting `u.email` | `GROUP BY s.id, u.email` |
+| `/api/users/enrollments/:id/progress` 500 | `CASE` mixing `THEN 1` with `ELSE EXISTS(...)` (boolean) | wrapped the `EXISTS` in `CASE WHEN ... THEN 1 ELSE 0 END` |
+| `/api/learner/feedback` 500 | MySQL `SUBSTRING_INDEX` | translated to `split_part` in `db.js` |
+
+Rate limits were also made configurable for testing: `AUTH_RATE_MAX` (default 5, 15 per 15 min in wake-up mode) and `WRITE_RATE_MAX` (default 100). Production defaults are unchanged; the smoke run sets higher values because it registers six accounts and performs ~100 writes.
+
+---
+
 _Developed by: Veelearn Team_
-_Last Update: November 15, 2025 - Session 22 (CODE ANALYSIS COMPLETE)_
+_Last Update: November 14, 2026 - Session 40 (POSTGRESQL MIGRATION + POOLING)_
 _For detailed implementation plan, see DEVELOPMENT_ROADMAP.md_
