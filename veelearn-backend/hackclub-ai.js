@@ -7,6 +7,15 @@ const HACKCLUB_URL = 'https://ai.hackclub.com/proxy/v1/chat/completions';
  */
 const DEFAULT_MODEL = 'google/gemma-4-26b-a4b-it:free';
 const DEFAULT_JSON_MODEL = DEFAULT_MODEL;
+/**
+ * A `:free` model has a daily ceiling upstream, and this key shares it with
+ * everyone else using the proxy, so the free id answers 429 for long stretches.
+ * The same weights without `:free` are billed per token — gemma-4-26b at $0.07
+ * per million prompt tokens, well under a cent for a whole session — so the
+ * paid twin is the second try, and a fast flash model is the last one. A turn
+ * that used to end in silence now still gets an answer.
+ */
+const DEFAULT_FALLBACK_MODELS = ['google/gemma-4-26b-a4b-it', 'google/gemini-3.5-flash-lite'];
 const DEFAULT_TIMEOUT_MS = 180000;
 
 const JSON_MUST =
@@ -23,6 +32,22 @@ function getHackClubModel() {
     // legacy id is treated as unset. Any other explicit model still wins.
     if (/^dots-studio\//i.test(env)) return DEFAULT_MODEL;
     return env || DEFAULT_MODEL;
+}
+
+/** The models to try, in order: this one, the account's, then the twins. */
+function getHackClubModelCandidates(explicit) {
+    const out = [];
+    const push = (m) => {
+        const v = String(m || '').trim();
+        // The notes pipeline used to pin a dots preview model; treat it as unset.
+        if (!v || /^dots-studio\//i.test(v) || out.includes(v)) return;
+        out.push(v);
+    };
+    push(explicit);
+    push(getHackClubModel());
+    for (const m of String(process.env.HACKCLUBAI_FALLBACK_MODELS || '').split(',')) push(m);
+    for (const m of DEFAULT_FALLBACK_MODELS) push(m);
+    return out.length ? out : [DEFAULT_MODEL];
 }
 
 function getHackClubJsonModel() {
@@ -231,7 +256,7 @@ async function postChat(body, timeoutMs) {
  * Hack Club chat completions. Documented fields: model, messages, temperature, max_tokens.
  * PDFs use plugins file-parser (native → pdf-text → mistral-ocr). JSON is forced in the user text.
  */
-async function hackClubChatCompletion(messages, opts = {}) {
+async function hackClubChatCompletionOnce(messages, opts = {}) {
     const key = getHackClubKey();
     if (!key) {
         const err = new Error('Hack Club AI is not configured');
@@ -339,8 +364,36 @@ async function hackClubChatCompletion(messages, opts = {}) {
     throw lastError || Object.assign(new Error('Hack Club AI returned an empty response'), { code: 'HACKCLUB_EMPTY' });
 }
 
+/**
+ * Public entry point. Walks getHackClubModelCandidates so a throttled or
+ * unavailable model does not cost the caller its answer; configuration and
+ * timeout errors end the call immediately because another model cannot fix them.
+ */
+async function hackClubChatCompletion(messages, opts = {}) {
+    const models = getHackClubModelCandidates(opts.model);
+    let lastError = null;
+    for (let i = 0; i < models.length; i += 1) {
+        try {
+            const out = await hackClubChatCompletionOnce(messages, Object.assign({}, opts, { model: models[i] }));
+            // Lets the caller report the model that actually answered, not just
+            // "the AI" — the chain makes that ambiguous otherwise.
+            if (typeof opts.onModel === 'function') opts.onModel(models[i]);
+            return out;
+        } catch (e) {
+            lastError = e;
+            const retryable =
+                e.code === 'HACKCLUB_RATE_LIMITED' || e.code === 'HACKCLUB_ERROR' || e.code === 'HACKCLUB_EMPTY';
+            if (!retryable || i === models.length - 1) throw e;
+        }
+    }
+    throw lastError || Object.assign(new Error('Hack Club AI request failed'), { code: 'HACKCLUB_ERROR' });
+}
+
 module.exports = {
     hackClubChatCompletion,
+    hackClubChatCompletionOnce,
+    getHackClubModelCandidates,
+    DEFAULT_FALLBACK_MODELS,
     extractAssistantText,
     toHackClubMessages,
     getHackClubKey,

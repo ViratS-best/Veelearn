@@ -62,6 +62,19 @@ ok('a deliberate model override still wins', (() => {
     return model === 'google/gemma-4-31b-it:free';
 })());
 
+ok('the model chain starts at the free gemma and then the same weights', (() => {
+    const list = hackclub.getHackClubModelCandidates();
+    return (
+        list[0] === 'google/gemma-4-26b-a4b-it:free' &&
+        list[1] === 'google/gemma-4-26b-a4b-it' &&
+        list.includes('google/gemini-3.5-flash-lite')
+    );
+})());
+ok('the chain never repeats a model', (() => {
+    const list = hackclub.getHackClubModelCandidates('google/gemma-4-26b-a4b-it');
+    return new Set(list).size === list.length;
+})());
+
 ok('no key means an empty list', (() => {
     const before = process.env.HACKCLUBAI_KEY;
     delete process.env.HACKCLUBAI_KEY;
@@ -514,6 +527,41 @@ ok('a finished item advances even if the model asks to stay', createSessionAI.de
     const notFound = {};
     await routes.aiTurn({ user: { id: 3 }, params: { sessionId: 111 }, body: { questionId: 999999 } }, notFound);
     ok('an unknown question is a 404', notFound.out && notFound.out.status === 404, JSON.stringify(notFound.out).slice(0, 80));
+
+    // ---- a throttled free model must not cost the caller the answer
+    {
+        const axios = require('axios');
+        const realPost = axios.post;
+        const savedKey = process.env.HACKCLUBAI_KEY;
+        process.env.HACKCLUBAI_KEY = 'hc-test-key';
+        const asked = [];
+        axios.post = async (url, body) => {
+            asked.push(body.model);
+            if (asked.length === 1) {
+                return { status: 429, data: { error: 'Rate limit exceeded. Retry in 42s.' } };
+            }
+            return {
+                status: 200,
+                data: { choices: [{ message: { content: 'eight sevens is fifty-six' }, finish_reason: 'stop' }] }
+            };
+        };
+        try {
+            let reported = null;
+            const out = await hackclub.hackClubChatCompletion([{ role: 'user', content: 'why is 7x8=56?' }], {
+                jsonMust: false,
+                onModel: (m) => {
+                    reported = m;
+                }
+            });
+            ok('a 429 on the free model retries instead of failing', out.content === 'eight sevens is fifty-six', JSON.stringify(out).slice(0, 120));
+            ok('the retry uses the paid twin of the same model', asked[0] === 'google/gemma-4-26b-a4b-it:free' && asked[1] === 'google/gemma-4-26b-a4b-it', JSON.stringify(asked));
+            ok('the caller is told which model answered', reported === 'google/gemma-4-26b-a4b-it', String(reported));
+        } finally {
+            axios.post = realPost;
+            if (savedKey === undefined) delete process.env.HACKCLUBAI_KEY;
+            else process.env.HACKCLUBAI_KEY = savedKey;
+        }
+    }
 
     // ------------------------------------------------------------- the report
     if (failures.length) {

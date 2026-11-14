@@ -54,6 +54,7 @@ function getModelCandidates(opts = {}) {
     push(process.env.HACKCLUBAI_MODEL);
     push(DEFAULT_MODEL);
     for (const m of String(process.env.HACKCLUBAI_FALLBACK_MODELS || '').split(',')) push(m);
+    for (const m of hackclub.DEFAULT_FALLBACK_MODELS || []) push(m);
     return list;
 }
 
@@ -117,31 +118,26 @@ async function aiChatCompletion(messages, opts = {}) {
         throw err;
     }
 
-    const models = getModelCandidates(opts);
     const timeoutMs = Number(opts.timeoutMs) || Number(opts.budgetMs) || DEFAULT_TIMEOUT_MS;
-    let lastError = null;
 
-    for (const model of models) {
-        try {
-            const out = await hackclub.hackClubChatCompletion(messages, {
-                model,
-                temperature: opts.temperature ?? 0.35,
-                max_tokens: opts.max_tokens ?? 1024,
-                timeoutMs,
-                jsonMust: opts.jsonMust === true,
-                fileContext: opts.fileContext
-            });
-            const content = typeof out === 'string' ? out : out && out.content;
-            if (typeof content === 'string' && content.trim()) return content.trim();
-            lastError = Object.assign(new Error('Hack Club AI returned an empty response'), { code: 'HACKCLUB_EMPTY' });
-        } catch (e) {
-            lastError = e;
-            if (isFatal(e)) throw adaptError(e);
-            // A different model may answer where this one failed.
-        }
+    // The model chain (free id, paid twin, flash) lives in hackclub-ai.js so the
+    // notes pipeline and this client walk exactly the same list.
+    try {
+        const out = await hackclub.hackClubChatCompletion(messages, {
+            model: opts.model,
+            temperature: opts.temperature ?? 0.35,
+            max_tokens: opts.max_tokens ?? 1024,
+            timeoutMs,
+            jsonMust: opts.jsonMust === true,
+            fileContext: opts.fileContext,
+            onModel: opts.onModel
+        });
+        const content = typeof out === 'string' ? out : out && out.content;
+        if (typeof content === 'string' && content.trim()) return content.trim();
+        throw Object.assign(new Error('Hack Club AI returned an empty response'), { code: 'HACKCLUB_EMPTY' });
+    } catch (e) {
+        throw adaptError(e);
     }
-
-    throw adaptError(lastError || Object.assign(new Error('Hack Club AI request failed'), { code: 'HACKCLUB_ERROR' }));
 }
 
 /**

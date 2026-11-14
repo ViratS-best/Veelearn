@@ -466,9 +466,12 @@ function createSessionAI({ query, qbank, chat, log } = {}) {
                     max_tokens: CAPS.maxTokens,
                     temperature: 0.4,
                     budgetMs: CAPS.budgetMs,
-                    jsonMust: true
+                    jsonMust: true,
+                    onModel: (m) => {
+                        usedModel = m;
+                    }
                 });
-                usedModel = 'hackclub';
+                if (!usedModel) usedModel = 'hackclub';
                 const parsed = parseJsonLoose(text);
                 if (!parsed) {
                     failure = 'parse';
