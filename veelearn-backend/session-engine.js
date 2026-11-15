@@ -220,10 +220,21 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
         );
     }
 
+    /** A review waits until every skill in its unit is done. */
+    function reviewBlocked(item, items) {
+        if (!item || !Number(item.is_review)) return false;
+        return items.some(
+            (row) =>
+                !Number(row.is_review) &&
+                Number(row.unit_index || 0) === Number(item.unit_index || 0) &&
+                row.status !== 'done'
+        );
+    }
+
     function currentItem(items, index) {
         const active = items.find((i) => i.status === 'active');
-        if (active) return active;
-        const pending = items.find((i) => i.status === 'pending');
+        if (active && !reviewBlocked(active, items)) return active;
+        const pending = items.find((i) => i.status === 'pending' && !reviewBlocked(i, items));
         if (pending) return pending;
         const byIndex = items[Number(index)];
         return byIndex && byIndex.status !== 'deferred' ? byIndex : null;
@@ -503,7 +514,10 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
                       targetDots: Number(item.target_dots || 2),
                       correctCount: Number(item.correct_count || 0),
                       attempts: Number(item.attempts || 0),
-                      needed: mastery.correctsNeeded(Number(item.target_dots || 2)),
+                      // A review stores how many correct answers it wants, not a dot target.
+                      needed: Number(item.is_review)
+                          ? Math.max(1, Number(item.target_dots || 18))
+                          : mastery.correctsNeeded(Number(item.target_dots || 2)),
                       dots: mastery.dots(levelById.get(Number(item.skill_id)) || 0)
                   }
                 : null,
