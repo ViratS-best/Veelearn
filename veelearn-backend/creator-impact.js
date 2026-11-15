@@ -191,7 +191,13 @@ function createCreatorImpact({ query, log } = {}) {
      * Score a course for session-readiness, persisting the mapping so the next
      * call is cheap and the editor can show what was auto-filled (§15.3).
      */
+    const readinessCache = new Map();
+    const READINESS_TTL_MS = 30 * 1000;
+
     async function readiness(courseId, { persist = true } = {}) {
+        const cacheKey = `${courseId}:${persist ? 1 : 0}`;
+        const cachedReady = readinessCache.get(cacheKey);
+        if (cachedReady && Date.now() - cachedReady.at < READINESS_TTL_MS) return cachedReady.report;
         const course = await loadCourse(courseId);
         if (!course) {
             const err = new Error('Course not found');
@@ -318,7 +324,7 @@ function createCreatorImpact({ query, log } = {}) {
             }
         }
 
-        return {
+        const report = {
             courseId: Number(courseId),
             title: course.title,
             score,
@@ -341,6 +347,8 @@ function createCreatorImpact({ query, log } = {}) {
             }),
             filled
         };
+        readinessCache.set(cacheKey, { at: Date.now(), report });
+        return report;
     }
 
     /** The unit's own words, short enough to fit the tutor's prompt budget. */

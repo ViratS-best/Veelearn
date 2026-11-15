@@ -26,7 +26,7 @@ function parseJson(value, fallback) {
     }
 }
 
-function createSessionEngine({ query, qbank, log, chatStream } = {}) {
+function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
     const info = (log && log.info) || (() => {});
 
     // ---------------------------------------------------------------- rewards
@@ -277,8 +277,8 @@ function createSessionEngine({ query, qbank, log, chatStream } = {}) {
                 // Prefetch and the first render can race; one call per skill is enough.
                 let pending = ensuring.get(Number(item.skill_id));
                 if (!pending) {
-                    const impact = require('./creator-impact')({ query, log });
-                    pending = impact.ensureQuestionsForSkill(item.skill_id).finally(() => {
+                    const onDemand = impact || require('./creator-impact')({ query, log });
+                    pending = onDemand.ensureQuestionsForSkill(item.skill_id).finally(() => {
                         setTimeout(() => ensuring.delete(Number(item.skill_id)), 5000);
                     });
                     ensuring.set(Number(item.skill_id), pending);
@@ -481,8 +481,10 @@ function createSessionEngine({ query, qbank, log, chatStream } = {}) {
         let courseFrame = null;
         let sprint = 0;
         if (wantCourse) {
-            const createImpact = require('./creator-impact');
-            const planned = await createImpact({ query, log }).plan({ userId, courseId: wantCourse, minutes: mins });
+            // One instance for the process: it holds the course ingest cache, so a
+            // new session does not re-read and re-write the whole course.
+            const planner = impact || require('./creator-impact')({ query, log });
+            const planned = await planner.plan({ userId, courseId: wantCourse, minutes: mins });
             plan = planned.items;
             timings.plan = Date.now() - startedAt;
             courseFrame = {

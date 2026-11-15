@@ -24,18 +24,19 @@ function createSessionRoutes({
     sendEmail
 } = {}) {
     const qbank = injectedQBank || createQBank({ query });
+    // P4/P5 surfaces. Both are injectable so their tests stay offline.
+    const impact = injectedImpact || createCreatorImpact({ query, log });
     const engine = createSessionEngine({
         query,
         qbank,
         log,
+        impact,
         // Streaming is only wired when the caller did not inject its own client
         // (tests pass a fake `chat`, which has no stream variant).
         chatStream: chat ? null : require('./ai-chat').aiChatCompletionStream
     });
     // `chat` is injectable so the AI loop can be tested without a key.
     const ai = createSessionAI({ query, qbank, chat, log });
-    // P4/P5 surfaces. Both are injectable so their tests stay offline.
-    const impact = injectedImpact || createCreatorImpact({ query, log });
     const p5 = injectedPhase5 || createPhase5({ query, log, sendEmail });
 
     function fail(res, e, fallbackMessage) {
