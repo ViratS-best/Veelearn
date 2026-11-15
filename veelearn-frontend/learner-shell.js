@@ -127,8 +127,8 @@
             <p><strong>Achievements</strong> — Visit daily to grow your streak and earn gems.</p>
             <p><strong>Gem Store</strong> — Spend gems on avatar looks and dashboard themes.</p>
             <p><strong>Volunteer Hrs</strong> — See hours earned creating courses and download certificates.</p>
-            <p><strong>Course Creation / Simulator Studio</strong> — Build courses and sims like before.</p>
-            <p><strong>Marketplace</strong> — Open it from Simulator Studio (you'll be asked to save first).</p>
+            <p><strong>Course Creation</strong> — Build a course as an outline: units, skills, questions and teaching notes.</p>
+            <p><strong>Simulators</strong> — Open your simulators from a course block or the existing studio pages.</p>
           </div>
         </section>
       </main>
