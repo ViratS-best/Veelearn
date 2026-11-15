@@ -402,7 +402,12 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
                     .map((o) => `${o.k}. ${o.t}`)
                     .join('\n');
                 const visual = parseJson(onCard.visual, null);
-                const visualText = describeVisual(visual);
+                let visualText = describeVisual(visual);
+                // A diagram authored only as SVG has no alt text; hand the tutor the
+                // geometry so it can still see what the learner is looking at.
+                if (!visualText && visual && typeof visual.svg === 'string') {
+                    visualText = ('inline svg: ' + visual.svg).replace(/\s+/g, ' ').slice(0, 600);
+                }
                 cardImage = visualImage(visual);
                 cardBlock =
                     `The learner is looking at this question right now: ${String(onCard.stem || '').slice(0, 500)}\n` +
