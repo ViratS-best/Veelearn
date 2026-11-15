@@ -260,9 +260,10 @@
   let lastPointed = null;
 
   /** Keep Vee beside the sentence it is currently writing, not the whole block. */
-  function pointAtSentence(spans) {
-    if (!state.visualReady || !window.Mascot || !spans.length) return;
-    const target = spans[spans.length - 1];
+  function pointAtSentence(spans, box) {
+    if (!state.visualReady || !window.Mascot) return;
+    const target = (spans && spans.length ? spans[spans.length - 1] : box) || null;
+    if (!target) return;
     if (!target || target === lastPointed) return;
     if (Date.now() - lastPointAt < 600) return;
     lastPointAt = Date.now();
@@ -271,34 +272,36 @@
     Promise.resolve(Mascot.pointAt(target)).catch(() => {});
   }
 
-  /** A phrase that is really in the sentence, shortened until it matches. */
-  function keyPhrase(sentence) {
-    const clean = String(sentence).replace(/\$[^$]*\$/g, ' ').replace(/\s+/g, ' ').trim();
-    const words = clean.split(' ').filter(Boolean);
-    for (let n = Math.min(7, words.length); n >= 3; n -= 1) {
-      const phrase = words.slice(0, n).join(' ').replace(/[,;:]$/, '');
-      if (phrase.length >= 8 && String(sentence).includes(phrase)) return phrase;
-    }
-    return '';
-  }
-
-  /** Once the lesson is on screen, underline the parts worth remembering. */
-  function underlineKeyParts(box) {
+  /**
+   * Once the lesson is on screen, underline the parts worth remembering.
+   * MathJax rewrites the paragraph, so the anchor is the block and the phrase is
+   * matched against the text actually rendered — a span would already be gone.
+   */
+  function underlineKeyParts(box, text) {
     if (!state.visualReady || !window.Annotate || !box) return;
-    const spans = [...box.querySelectorAll('.sx-sent')].filter((s) => s.textContent.trim().length > 24);
-    if (!spans.length) return;
-    const math = spans.find((s) => /\$[^$]+\$/.test(s.textContent));
-    const rule = spans.find((s) => /\b(because|means|remember|rule|key|notice|so)\b/i.test(s.textContent));
-    const picks = [math || rule || spans[0]];
-    const second = spans.find((s) => s !== picks[0] && /\$[^$]+\$/.test(s.textContent));
-    if (second) picks.push(second);
-    picks.forEach((span, i) => {
-      const phrase = keyPhrase(span.textContent);
+    const shown = String(box.innerText || box.textContent || '').replace(/\s+/g, ' ');
+    const src = String(text || shown).replace(/\s+/g, ' ');
+    const sentences = (src.match(/[^.!?]*[.!?]+/g) || [src]).map((s) => s.trim()).filter((s) => s.length > 24);
+    if (!sentences.length) return;
+    const math = sentences.find((s) => /\$[^$]+\$/.test(s));
+    const rule = sentences.find((s) => /\b(because|means|remember|rule|key|notice|so)\b/i.test(s));
+    const picks = [math || rule || sentences[0]].filter(Boolean);
+    picks.forEach((sentence, i) => {
+      const clean = sentence.replace(/\$[^$]*\$/g, ' ').replace(/\s+/g, ' ').trim();
+      const words = clean.split(' ').filter(Boolean);
+      let phrase = '';
+      for (let n = Math.min(7, words.length); n >= 3; n -= 1) {
+        const cand = words.slice(0, n).join(' ').replace(/[,;:]$/, '');
+        if (cand.length >= 8 && shown.includes(cand)) {
+          phrase = cand;
+          break;
+        }
+      }
       if (!phrase) return;
       setTimeout(() => {
-        ink(() => Annotate.underline({ anchor: span, text: phrase, ms: 420 }));
-        if (i === 0 && window.Mascot) Promise.resolve(Mascot.pointAt(span)).catch(() => {});
-      }, 240 + i * 340);
+        ink(() => Annotate.underline({ anchor: box, text: phrase, ms: 420 }));
+        if (i === 0 && window.Mascot) Promise.resolve(Mascot.pointAt(box)).catch(() => {});
+      }, 260 + i * 340);
     });
   }
 
@@ -348,7 +351,7 @@
             text += data.t;
             if (Date.now() - lastPaint > 90) {
               lastPaint = Date.now();
-              pointAtSentence(paintSentences(box, text));
+              pointAtSentence(paintSentences(box, text), box);
             }
             if (Date.now() - typesetAt > 700) {
               typesetAt = Date.now();
@@ -356,7 +359,7 @@
             }
           } else if (event === 'done' && data.text) {
             text = data.text;
-            pointAtSentence(paintSentences(box, text));
+            pointAtSentence(paintSentences(box, text), box);
           }
         }
       }
@@ -375,7 +378,7 @@
     if (table && state.visualReady && window.Mascot) {
       Promise.resolve(Mascot.pointAt(table)).catch(() => {});
     } else {
-      underlineKeyParts(box);
+      underlineKeyParts(box, text);
     }
     return text;
   }
