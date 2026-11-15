@@ -1344,7 +1344,7 @@
   function renderTables(host, text) {
     if (!host) return null;
     const raw = String(text || '');
-    const isRow = (line) => /^\s*\|.*\|\s*$/.test(line);
+    const isRow = (line) => /^\s*\|/.test(line);
     if (!raw.split('\n').some(isRow)) {
       host.textContent = raw;
       return null;
