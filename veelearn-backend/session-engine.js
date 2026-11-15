@@ -928,6 +928,26 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
                             [sessionId]
                         );
                         const nextOrd = Number(maxRows[0] && maxRows[0].m ? maxRows[0].m : 0) + 1;
+                        // A retake draws from the whole unit again, not only the cards the
+                        // failed attempt happened to serve, and asks for 90% of that pool.
+                        const unitRows = await query(
+                            `SELECT question_ids FROM session_focus_items
+                             WHERE session_id = ? AND unit_index = ? AND is_review = 0
+                             ORDER BY ord ASC`,
+                            [sessionId, unitIndex]
+                        );
+                        let retakePool = [];
+                        for (const row of unitRows) {
+                            for (const qid of parseJson(row.question_ids, [])) {
+                                if (!retakePool.includes(Number(qid))) retakePool.push(Number(qid));
+                            }
+                        }
+                        retakePool = retakePool.slice(0, 20);
+                        if (!retakePool.length) retakePool = parseJson(item.question_ids, []).map(Number);
+                        const retakeTarget = Math.max(
+                            1,
+                            Math.min(retakePool.length, Math.ceil(retakePool.length * REVIEW_PASS))
+                        );
                         await query(
                             `INSERT INTO session_focus_items
                                 (session_id, skill_id, ord, is_review, target_dots, status, correct_count, attempts, question_ids, frame_md, unit_index)
@@ -936,8 +956,8 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
                                 sessionId,
                                 item.skill_id,
                                 nextOrd,
-                                Number(item.target_dots || 18),
-                                item.question_ids,
+                                retakeTarget,
+                                JSON.stringify(retakePool),
                                 item.frame_md,
                                 unitIndex
                             ]
