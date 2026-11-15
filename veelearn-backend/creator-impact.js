@@ -874,8 +874,12 @@ function createCreatorImpact({ query, log } = {}) {
             }
         }
         if (!picked.length) picked = realSkills.slice(0, count);
+        // A unit's prose is only this card's lesson when the unit is *about* the
+        // skill. A chapter that mentions work in passing must not teach its own
+        // topic while the card asks a work-energy question.
+        const usesUnit = (row) => Boolean(row.unit) && row.titleHits >= 1;
         let introById = new Map();
-        const unframed = picked.filter((row) => !row.unit).map((row) => Number(row.skill.id));
+        const unframed = picked.filter((row) => !usesUnit(row)).map((row) => Number(row.skill.id));
         if (unframed.length) {
             const marks = unframed.map(() => '?').join(', ');
             const introRows = await query(`SELECT id, intro_md FROM skills WHERE id IN (${marks})`, unframed);
@@ -886,7 +890,7 @@ function createCreatorImpact({ query, log } = {}) {
             // A matched skill borrows its unit's words; a filler card must not, or the
             // lesson would describe a chapter it has nothing to do with.
             const intro = unframed.length ? introById.get(Number(row.skill.id)) || '' : '';
-            const frame = row.unit
+            const frame = usesUnit(row)
                 ? frameFor(row.unit)
                 : {
                       unit: row.unitHint ? row.unitHint.ord : 0,
