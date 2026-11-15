@@ -256,7 +256,7 @@
         id: 'session-board-widget',
         title: 'Board diagram',
         objective: extra.objective,
-        view: { type: viewType(preset), width: 520, height: 300 },
+        view: { type: viewType(preset), width: 520, height: 240 },
         state: Object.assign({}, extra.state),
         inputs: extra.inputs,
         outputs: extra.outputs,
