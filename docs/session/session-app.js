@@ -1510,7 +1510,10 @@
     // Let the typing finish, so the answer never snaps in whole at the end.
     if (shown < text.length) {
       await new Promise((resolve) => {
-        const wait = () => (shown >= text.length ? resolve() : setTimeout(wait, 30));
+        // A background tab throttles the typing; give it six seconds, then finish.
+        const deadline = Date.now() + 6000;
+        const wait = () =>
+          shown >= text.length || Date.now() > deadline ? resolve() : setTimeout(wait, 30);
         wait();
       });
     }
