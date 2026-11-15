@@ -663,41 +663,82 @@ function createCreatorImpact({ query, log } = {}) {
 
         const crypto = require('crypto');
         const buckets = list.map(() => []);
+        const prepared = [];
         for (const item of parsed) {
             const skillId = skillByCode.get(`course.${course.id}.u${item.unitIndex}`);
             if (!skillId) continue;
-            const stemHash = crypto.createHash('sha256').update(item.stem).digest('hex');
-            await query(
-                `INSERT IGNORE INTO qbank_items
-                    (skill_id, tier, qtype, stem, stem_hash, options, answer, hints, solution_steps, source, course_id, live)
-                 VALUES (?, ?, 'mcq', ?, ?, ?, ?, ?, ?, 'course', ?, 1)`,
-                [
-                    skillId,
-                    item.tier,
-                    item.stem,
-                    stemHash,
-                    JSON.stringify(item.options),
-                    item.answer,
-                    JSON.stringify(item.hint ? [item.hint] : []),
-                    JSON.stringify(item.explanation ? [item.explanation] : []),
-                    Number(course.id)
-                ]
-            );
-            const idRow = await query('SELECT id FROM qbank_items WHERE stem_hash = ? LIMIT 1', [stemHash]);
-            const questionId = idRow && idRow[0] ? Number(idRow[0].id) : null;
-            // Rows ingested before hints/explanations existed keep their empty
-            // columns under INSERT IGNORE; refresh them with the real feedback.
-            await query(
-                `UPDATE qbank_items SET options = ?, hints = ?, solution_steps = ? WHERE stem_hash = ?`,
-                [
-                    JSON.stringify(item.options),
-                    JSON.stringify(item.hint ? [item.hint] : []),
-                    JSON.stringify(item.explanation ? [item.explanation] : []),
-                    stemHash
-                ]
-            );
-            if (questionId) buckets[item.unitIndex].push({ questionId, tier: item.tier });
+            prepared.push({
+                skillId,
+                item,
+                stemHash: crypto.createHash('sha256').update(item.stem).digest('hex'),
+                optionsJson: JSON.stringify(item.options),
+                hintsJson: JSON.stringify(item.hint ? [item.hint] : []),
+                stepsJson: JSON.stringify(item.explanation ? [item.explanation] : [])
+            });
         }
+        if (!prepared.length) {
+            ingestCache.set(signature, { at: Date.now(), items: [] });
+            return [];
+        }
+
+        // One round trip instead of one per question: a 55-question course used to
+        // cost ~165 queries on a cold start, which is where the 16 s went.
+        const hashes = prepared.map((p) => p.stemHash);
+        const hashList = hashes.map(() => '?').join(', ');
+        let known = [];
+        try {
+            known = await query(`SELECT id, stem_hash FROM qbank_items WHERE stem_hash IN (${hashList})`, hashes);
+        } catch (_) {
+            known = [];
+        }
+        const idByHash = new Map(known.map((r) => [String(r.stem_hash), Number(r.id)]));
+        const missing = prepared.filter((p) => !idByHash.has(p.stemHash));
+
+        for (let i = 0; i < missing.length; i += 40) {
+            const chunk = missing.slice(i, i + 40);
+            const values = chunk.map(() => `(?, ?, 'mcq', ?, ?, ?, ?, ?, ?, 'course', ?, 1)`).join(', ');
+            const params = [];
+            chunk.forEach((p) => {
+                params.push(
+                    p.skillId,
+                    p.item.tier,
+                    p.item.stem,
+                    p.stemHash,
+                    p.optionsJson,
+                    p.item.answer,
+                    p.hintsJson,
+                    p.stepsJson,
+                    Number(course.id)
+                );
+            });
+            try {
+                await query(
+                    `INSERT IGNORE INTO qbank_items
+                        (skill_id, tier, qtype, stem, stem_hash, options, answer, hints, solution_steps, source, course_id, live)
+                     VALUES ${values}`,
+                    params
+                );
+            } catch (err) {
+                warn(`[creator-impact] question batch skipped: ${err.message}`);
+            }
+        }
+
+        if (missing.length) {
+            const fresh = await query(`SELECT id, stem_hash FROM qbank_items WHERE stem_hash IN (${hashList})`, hashes);
+            fresh.forEach((r) => idByHash.set(String(r.stem_hash), Number(r.id)));
+        }
+
+        const firstByUnit = new Map();
+        for (const p of prepared) {
+            const questionId = idByHash.get(p.stemHash);
+            if (!questionId) continue;
+            if (!firstByUnit.has(p.item.unitIndex)) {
+                firstByUnit.set(p.item.unitIndex, { questionId, tier: p.item.tier });
+            }
+        }
+        firstByUnit.forEach((entry, unitIndex) => {
+            buckets[unitIndex].push(entry);
+        });
 
         const items = [];
         buckets.forEach((bucket, unitIndex) => {
