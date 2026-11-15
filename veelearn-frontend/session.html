@@ -17,7 +17,7 @@
     </script>
     <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
     <link rel="stylesheet" href="styles-learner-shell.css?v=20">
-    <link rel="stylesheet" href="session.css?v=4">
+    <link rel="stylesheet" href="session.css?v=5">
     <script>
       // Match the dashboard theme the learner bought in the gem store.
       (function () {
@@ -77,6 +77,15 @@
                         <button type="button" class="sx-ghost" id="sx-skip-btn">Skip for now</button>
                     </div>
                     <div class="sx-hintbox" id="sx-hintbox" hidden></div>
+                    <div class="sx-ask" id="sx-ask">
+                        <label class="sx-ask-label" for="sx-ask-input">Ask Vee about this</label>
+                        <div class="sx-ask-row">
+                            <input id="sx-ask-input" class="sx-ask-input" type="text" maxlength="400"
+                                   placeholder="Why does the sign flip here?" autocomplete="off" />
+                            <button type="button" class="sx-ghost" id="sx-ask-btn">Ask</button>
+                        </div>
+                        <div class="sx-ask-log" id="sx-ask-log" hidden></div>
+                    </div>
                     <div class="sx-feedback" id="sx-feedback" hidden></div>
                 </article>
 
@@ -108,10 +117,10 @@
     </div>
 
     <script src="session/learning-map.js"></script>
-    <script src="mascot.js?v=4"></script>
+    <script src="mascot.js?v=5"></script>
     <script src="annotate.js"></script>
     <script src="board.js"></script>
     <script src="celebrate.js"></script>
-    <script src="session/session-app.js?v=5"></script>
+    <script src="session/session-app.js?v=6"></script>
 </body>
 </html>

@@ -25,7 +25,7 @@ const hackclub = require('./hackclub-ai');
 const HACKCLUB_URL = 'https://ai.hackclub.com/proxy/v1/chat/completions';
 
 /** The model the whole product now uses: fast, free, and available on Hack Club. */
-const DEFAULT_MODEL = 'google/gemma-4-26b-a4b-it';
+const DEFAULT_MODEL = 'z-ai/glm-5.3-flash:nitro';
 const DEFAULT_TIMEOUT_MS = 60000;
 const MAX_RETRY_DELAY_MS = 800;
 

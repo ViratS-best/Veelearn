@@ -151,7 +151,10 @@ function createSessionRoutes({
                 }
             };
             try {
-                const out = await engine.teach(req.user.id, id, { onDelta: (t) => send('delta', { t }) });
+                const out = await engine.teach(req.user.id, id, {
+                    onDelta: (t) => send('delta', { t }),
+                    question: req.body && req.body.question
+                });
                 if (out.error) send('error', { message: out.message });
                 else send('done', { text: out.text, fallback: out.fallback });
             } catch (e) {

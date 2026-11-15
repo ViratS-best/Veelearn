@@ -34,8 +34,8 @@ function ok(name, cond, detail) {
 const chatClient = require('./ai-chat');
 const hackclub = require('./hackclub-ai');
 
-ok('the shared model is metered gemma on Hack Club', chatClient.DEFAULT_MODEL === 'google/gemma-4-26b-a4b-it', chatClient.DEFAULT_MODEL);
-ok('the Hack Club client defaults to the same model', hackclub.DEFAULT_MODEL === 'google/gemma-4-26b-a4b-it', hackclub.DEFAULT_MODEL);
+ok('the shared model is the requested GLM', chatClient.DEFAULT_MODEL === 'z-ai/glm-5.3-flash:nitro', chatClient.DEFAULT_MODEL);
+ok('the Hack Club client defaults to the same model', hackclub.DEFAULT_MODEL === 'z-ai/glm-5.3-flash:nitro', hackclub.DEFAULT_MODEL);
 ok('the free twin is only a fallback now', (hackclub.DEFAULT_FALLBACK_MODELS || []).includes('google/gemma-4-26b-a4b-it:free'));
 ok('the endpoint is Hack Club, not OpenRouter', /ai\.hackclub\.com/.test(fs.readFileSync(path.join(__dirname, 'hackclub-ai.js'), 'utf8')));
 ok('no backend file still calls the OpenRouter API', !/openrouter\.ai/i.test(fs.readFileSync(path.join(__dirname, 'ai-chat.js'), 'utf8').replace(/^\s*\*.*$/gm, '')));
@@ -46,13 +46,13 @@ ok('the Hack Club key is read for the config checks', JSON.stringify(chatClient.
 if (savedHcKey === undefined) delete process.env.HACKCLUBAI_KEY;
 else process.env.HACKCLUBAI_KEY = savedHcKey;
 
-ok('a stale dots model in env falls back to gemma', (() => {
+ok('a stale dots model in env falls back to the default', (() => {
     const before = process.env.HACKCLUBAI_MODEL;
     process.env.HACKCLUBAI_MODEL = 'dots-studio/dots-3-note-preview:free';
     const model = hackclub.getHackClubModel();
     if (before === undefined) delete process.env.HACKCLUBAI_MODEL;
     else process.env.HACKCLUBAI_MODEL = before;
-    return model === 'google/gemma-4-26b-a4b-it';
+    return model === 'z-ai/glm-5.3-flash:nitro';
 })());
 ok('a deliberate model override still wins', (() => {
     const before = process.env.HACKCLUBAI_MODEL;
@@ -63,10 +63,10 @@ ok('a deliberate model override still wins', (() => {
     return model === 'google/gemma-4-31b-it:free';
 })());
 
-ok('the chain leads with metered gemma, then its free twin', (() => {
+ok('the chain leads with GLM, then the free twin', (() => {
     const list = hackclub.getHackClubModelCandidates();
     return (
-        list[0] === 'google/gemma-4-26b-a4b-it' &&
+        list[0] === 'z-ai/glm-5.3-flash:nitro' &&
         list[1] === 'google/gemma-4-26b-a4b-it:free' &&
         list.includes('google/gemini-3.5-flash-lite')
     );
@@ -555,7 +555,7 @@ ok('a finished item advances even if the model asks to stay', createSessionAI.de
                 }
             });
             ok('a 429 on the lead model retries instead of failing', out.content === 'eight sevens is fifty-six', JSON.stringify(out).slice(0, 120));
-            ok('the retry walks to the next model in the chain', asked[0] === 'google/gemma-4-26b-a4b-it' && asked[1] === 'google/gemma-4-26b-a4b-it:free', JSON.stringify(asked));
+            ok('the retry walks to the next model in the chain', asked[0] === 'z-ai/glm-5.3-flash:nitro' && asked[1] === 'google/gemma-4-26b-a4b-it:free', JSON.stringify(asked));
             ok('the caller is told which model answered', reported === 'google/gemma-4-26b-a4b-it:free', String(reported));
         } finally {
             axios.post = realPost;

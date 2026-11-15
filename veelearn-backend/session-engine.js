@@ -207,7 +207,7 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
     async function focusItems(sessionId) {
         return query(
             `SELECT f.id, f.session_id, f.skill_id, f.ord, f.is_review, f.target_dots, f.status,
-                    f.correct_count, f.attempts, f.question_ids, f.started_at, f.completed_at,
+                    f.correct_count, f.attempts, f.question_ids, f.frame_md, f.started_at, f.completed_at,
                     s.name AS skill_name, s.code AS skill_code, s.track, s.intro_md
              FROM session_focus_items f
              JOIN skills s ON s.id = f.skill_id
@@ -303,7 +303,7 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
      * text is the fallback, so even without a key the learner gets taught instead
      * of being handed another question.
      */
-    async function teach(userId, sessionId, { onDelta } = {}) {
+    async function teach(userId, sessionId, { onDelta, question } = {}) {
         const session = await sessionRow(userId, sessionId);
         if (!session) return { error: 404, message: 'Session not found' };
         const items = await focusItems(sessionId);
@@ -311,14 +311,26 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
         if (!item) return { error: 409, message: 'That session has no current unit' };
 
         const rows = await query('SELECT name, intro_md FROM skills WHERE id = ? LIMIT 1', [item.skill_id]);
-        const unitText = String((rows[0] && rows[0].intro_md) || '').replace(/\s+/g, ' ').trim();
+        // The focus item carries the unit's own words; the skill intro is the fallback.
+        const unitText = String(item.frame_md || (rows[0] && rows[0].intro_md) || '')
+            .replace(/\s+/g, ' ')
+            .trim();
         const title = item.skill_name || (rows[0] && rows[0].name) || 'this unit';
         const frame = parseJson(session.turn_buffer, null);
+        const asked = String(question || '').trim().slice(0, 400);
         const fallback =
             unitText.slice(0, 900) ||
-            `In ${title}, start from what the question is giving you, name the rule it matches, then apply that rule one step at a time.`;
+            (asked
+                ? `Here is the unit's idea: ${title}. Match the rule the question uses, then apply it one step at a time.`
+                : `In ${title}, start from what the question is giving you, name the rule it matches, then apply that rule one step at a time.`);
 
         if (typeof chatStream !== 'function') return { ok: true, text: fallback, fallback: true };
+
+        const task = asked
+            ? `The learner asks: "${asked}"\nAnswer it directly in under 110 words, using this unit. ` +
+              'Do not reveal the answer to the practice question they are on. Use $...$ for math.'
+            : 'Teach this unit in under 120 words: the one idea, why it works, and a tiny worked example. ' +
+              'Do not ask a question and do not give the answer to any practice question. Use $...$ for math.';
 
         let text = '';
         try {
@@ -336,11 +348,11 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
                             `Course: ${(frame && frame.title) || 'a self-study course'}\n` +
                             `Unit: ${title}\n` +
                             (unitText ? `Unit material: ${unitText.slice(0, 1200)}\n` : '') +
-                            '\nTeach this unit in under 120 words: the one idea, why it works, and a tiny worked example. ' +
-                            'Do not ask a question and do not give the answer to any practice question. Use $...$ for math.'
+                            '\n' +
+                            task
                     }
                 ],
-                { max_tokens: 300, temperature: 0.5, budgetMs: 25000, onDelta }
+                { max_tokens: 320, temperature: 0.5, budgetMs: 25000, onDelta }
             );
         } catch (err) {
             info(`[session] teach fallback: ${err.message}`);
@@ -514,7 +526,7 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
         }
 
         const goalText = wantCourse
-            ? `Finish ${plan.length} unit${plan.length === 1 ? '' : 's'} of this course`
+            ? `Close ${plan.length} topic${plan.length === 1 ? '' : 's'} in this course`
             : wantSprint
               ? 'Six items to your exam'
               : mins <= 10
@@ -547,17 +559,19 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
             // A course unit can arrive with its creator's questions already chosen.
             const seeded = Array.isArray(p.questionIds) ? p.questionIds.filter(Boolean) : [];
             const q = seeded.length ? null : await qbank.pick({ skillId: p.skillId, tier: p.startTier || 1, userId });
+            const frameDigest = p.frame && p.frame.digest ? String(p.frame.digest) : null;
             await query(
                 `INSERT INTO session_focus_items
-                    (session_id, skill_id, ord, is_review, target_dots, status, correct_count, attempts, question_ids)
-                 VALUES (?, ?, ?, ?, ?, 'pending', 0, 0, ?)`,
+                    (session_id, skill_id, ord, is_review, target_dots, status, correct_count, attempts, question_ids, frame_md)
+                 VALUES (?, ?, ?, ?, ?, 'pending', 0, 0, ?, ?)`,
                 [
                     sessionId,
                     p.skillId,
                     i,
                     p.isReview ? 1 : 0,
                     p.targetDots,
-                    JSON.stringify(seeded.length ? seeded.map(Number) : q ? [Number(q.id)] : [])
+                    JSON.stringify(seeded.length ? seeded.map(Number) : q ? [Number(q.id)] : []),
+                    frameDigest
                 ]
             );
         }

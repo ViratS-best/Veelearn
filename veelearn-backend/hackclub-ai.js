@@ -8,7 +8,7 @@ const HACKCLUB_URL = 'https://ai.hackclub.com/proxy/v1/chat/completions';
  * gemma-4-26b is $0.07 per million prompt tokens (a session turn is ~$0.0001
  * against the account's daily allowance), so the fast path pays for itself.
  */
-const DEFAULT_MODEL = 'google/gemma-4-26b-a4b-it';
+const DEFAULT_MODEL = 'z-ai/glm-5.3-flash:nitro';
 const DEFAULT_JSON_MODEL = DEFAULT_MODEL;
 /**
  * If the metered gemma is throttled or has a bad day, the free twin is still

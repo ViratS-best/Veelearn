@@ -480,6 +480,7 @@
 
 .sx-mascot-bubble {
   position: absolute;
+  pointer-events: none;
   top: 0;
   left: 0;
   max-width: 240px;
@@ -821,4 +822,53 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .sx-intro.is-streaming::after { animation: none; }
+}
+
+/* ------------------------------------------------------------- asking Vee */
+.sx-ask { margin-top: 12px; }
+.sx-ask-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sx-muted, #78716c);
+  margin-bottom: 6px;
+}
+.sx-ask-row { display: flex; gap: 8px; }
+.sx-ask-input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--sx-border, #f0e2d4);
+  background: #fffdf9;
+  color: var(--sx-ink, #1f2937);
+  font: inherit;
+}
+.sx-ask-input:focus { outline: 2px solid var(--sx-accent, #ea580c); outline-offset: 1px; }
+.sx-ask-log {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 260px;
+  overflow: auto;
+}
+.sx-ask-entry {
+  border-left: 3px solid var(--sx-accent, #ea580c);
+  padding: 2px 0 2px 10px;
+}
+.sx-ask-q { margin: 0 0 4px; font-weight: 700; font-size: 13.5px; }
+.sx-ask-a { margin: 0; font-size: 14px; line-height: 1.55; }
+.sx-ask-a.is-streaming::after {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -0.15em;
+  background: currentColor;
+  opacity: 0.6;
+  animation: sxCaret 900ms steps(2, start) infinite;
 }

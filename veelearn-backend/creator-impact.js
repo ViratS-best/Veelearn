@@ -820,49 +820,24 @@ function createCreatorImpact({ query, log } = {}) {
         // is loose enough that an AP Calculus course can pull in an algebra skill
         // by sharing one word, which is how a calculus session turned into grade-8
         // practice. Their questions make a session that is actually this course.
-        let items = await ingestCourseQuestions(course, units, { maxUnits: count });
+        // The course is the guide, not the question source: every card comes from
+        // the shared bank, chosen for the skill its unit actually teaches. This is
+        // what stops a photosynthesis question appearing under partial fractions.
+        const countById = new Map(report.skills.map((row) => [Number(row.id), Number(row.questions || 0)]));
+        const withQuestions = ordered.filter((row) => (countById.get(Number(row.skill.id)) || 0) > 0);
+        const picked = (withQuestions.length ? withQuestions : ordered).slice(0, count);
+        const items = picked.map((row, i) => ({
+            ord: i,
+            skillId: row.skill.id,
+            skillName: row.skill.name,
+            isReview: 0,
+            targetDots: 2,
+            startTier: row.level >= 2 ? 3 : row.level >= 1 ? 2 : 1,
+            unitIndex: row.unit ? row.unit.ord : 0,
+            frame: frameFor(row.unit)
+        }));
 
-        if (!items.length) {
-            items = ordered.slice(0, count).map((row, i) => ({
-                ord: i,
-                skillId: row.skill.id,
-                skillName: row.skill.name,
-                isReview: 0,
-                targetDots: 2,
-                startTier: row.level >= 2 ? 3 : row.level >= 1 ? 2 : 1,
-                unitIndex: row.unit ? row.unit.ord : 0,
-                frame: frameFor(row.unit)
-            }));
-        }
-
-        // Units the creator asked for but never wrote questions for still belong
-        // in the plan: their card is written by the AI when it is opened.
-        if (course.content) {
-            const covered = new Set(items.map((i) => Number(i.unitIndex)));
-            const skillRows = await query('SELECT id, code FROM skills WHERE code LIKE ?', [`course.${course.id}.u%`]);
-            const skillByOrd = new Map(skillRows.map((r) => [Number(String(r.code).split('.u').pop()), Number(r.id)]));
-            for (const unit of units) {
-                if (items.length >= count) break;
-                if (covered.has(Number(unit.ord))) continue;
-                const skillId = skillByOrd.get(Number(unit.ord));
-                if (!skillId) continue;
-                if (/^what you will learn/i.test(String(unit.title || ''))) continue;
-                items.push({
-                    ord: items.length,
-                    skillId,
-                    skillName: shortName(unit.title || course.title),
-                    isReview: 0,
-                    targetDots: 2,
-                    startTier: 1,
-                    unitIndex: unit.ord,
-                    frame: frameFor(unit),
-                    questionIds: [],
-                    needsAi: true
-                });
-            }
-        }
-
-        return { course, report, items: items.slice(0, count) };
+        return { course, report, items };
     }
 
     function hitIsMastered(row) {
