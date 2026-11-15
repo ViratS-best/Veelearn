@@ -1217,6 +1217,14 @@
         .then(() => {
           Mascot.park();
           Mascot.mood('idle');
+          // A resumed session renders its card before the mascot exists, so the
+          // pointing and underline are re-issued here rather than lost.
+          if (state.question && el('sx-question-card') && !el('sx-question-card').hidden) {
+            setTimeout(() => {
+              Promise.resolve(Mascot.pointAt('#sx-stem')).catch(() => {});
+              underlineKeyParts(el('sx-stem'), state.question.stem);
+            }, 400);
+          }
         })
         .catch(() => {});
       // Clicking Vee is a shortcut for "show me on the board".
