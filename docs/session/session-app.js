@@ -1507,6 +1507,13 @@
       if (!text) answer.textContent = 'I could not reach Vee just now. Try again in a moment.';
     }
 
+    // Let the typing finish, so the answer never snaps in whole at the end.
+    if (shown < text.length) {
+      await new Promise((resolve) => {
+        const wait = () => (shown >= text.length ? resolve() : setTimeout(wait, 30));
+        wait();
+      });
+    }
     revealing = false;
     answer.classList.remove('is-streaming');
     const table = renderTables(answer, cleanAskText(text));
