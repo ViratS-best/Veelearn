@@ -868,6 +868,22 @@
 .sx-ask-entry + .sx-ask-entry { margin-top: 12px; }
 .sx-ask-q { margin: 0 0 4px; font-weight: 700; font-size: 13.5px; }
 .sx-ask-a { margin: 0; font-size: 14px; line-height: 1.55; }
+.sx-ask-a .sx-ask-p { white-space: pre-line; margin: 0 0 6px; }
+/* Vee's tables: real rows and columns, not markdown pipes. */
+.sx-ask-a .sx-table,
+#sx-intro-text .sx-table {
+  border-collapse: collapse;
+  margin: 10px 0;
+  font-size: 14px;
+  background: #fff;
+}
+.sx-table th,
+.sx-table td {
+  border: 1px solid rgba(120, 90, 60, 0.28);
+  padding: 6px 12px;
+  text-align: left;
+}
+.sx-table th { background: rgba(234, 88, 12, 0.1); font-weight: 600; }
 .sx-ask-a.is-streaming::after {
   content: '';
   display: inline-block;
