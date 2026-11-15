@@ -62,15 +62,6 @@
               </div>
             </div>
           </div>
-          <div class="ls-nav-flyout" data-flyout="studio">
-            <button type="button" class="ls-nav-btn" data-ls-nav="studio"><span class="ls-nav-icon">${NAV_ICONS.studio}</span>Simulator Studio</button>
-            <div class="ls-flyout-panel" aria-label="Your simulators">
-              <div class="ls-flyout-panel-inner">
-                <button type="button" class="ls-flyout-action" data-flyout-new="sim">+ New simulator</button>
-                <div class="ls-flyout-list" id="ls-flyout-sims"><div class="ls-flyout-empty">Hover to load…</div></div>
-              </div>
-            </div>
-          </div>
           <button type="button" class="ls-nav-btn" data-ls-nav="store"><span class="ls-nav-icon">${NAV_ICONS.store}</span>Gem Store</button>
           <button type="button" class="ls-nav-btn" data-ls-nav="volunteer"><span class="ls-nav-icon">${NAV_ICONS.volunteer}</span>Volunteer Hrs</button>
         </nav>
