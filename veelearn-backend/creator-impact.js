@@ -832,12 +832,13 @@ function createCreatorImpact({ query, log } = {}) {
                     unitOrd: matched ? hit.unit.ord : 99,
                     unit: matched ? hit.unit : null,
                     unitHint: hint ? hint.unit : null,
+                    titleHits: hit ? hit.inTitle : 0,
                     p: m.p,
                     level: m.level
                 };
             })
             .filter((row) => !hitIsMastered(row))
-            .sort((a, b) => (a.unitOrd - b.unitOrd) || (a.p - b.p));
+            .sort((a, b) => (a.unitOrd - b.unitOrd) || (b.titleHits - a.titleHits) || (a.p - b.p));
 
         // The creator's own questions lead. Token matching against the shared bank
         // is loose enough that an AP Calculus course can pull in an algebra skill
@@ -867,16 +868,40 @@ function createCreatorImpact({ query, log } = {}) {
             }
         }
         if (!picked.length) picked = realSkills.slice(0, count);
-        const items = picked.map((row, i) => ({
-            ord: i,
-            skillId: row.skill.id,
-            skillName: row.skill.name,
-            isReview: 0,
-            targetDots: 2,
-            startTier: row.level >= 2 ? 3 : row.level >= 1 ? 2 : 1,
-            unitIndex: (row.unit || row.unitHint) ? (row.unit || row.unitHint).ord : 0,
-            frame: frameFor(row.unit || row.unitHint)
-        }));
+        let introById = new Map();
+        const unframed = picked.filter((row) => !row.unit).map((row) => Number(row.skill.id));
+        if (unframed.length) {
+            const marks = unframed.map(() => '?').join(', ');
+            const introRows = await query(`SELECT id, intro_md FROM skills WHERE id IN (${marks})`, unframed);
+            introById = new Map(introRows.map((r) => [Number(r.id), String(r.intro_md || '')]));
+        }
+
+        const items = picked.map((row, i) => {
+            // A matched skill borrows its unit's words; a filler card must not, or the
+            // lesson would describe a chapter it has nothing to do with.
+            const intro = unframed.length ? introById.get(Number(row.skill.id)) || '' : '';
+            const frame = row.unit
+                ? frameFor(row.unit)
+                : {
+                      unit: row.unitHint ? row.unitHint.ord : 0,
+                      title: row.skill.name,
+                      digest: String(intro || `${row.skill.name}: work through this skill one step at a time.`)
+                          .replace(/\s+/g, ' ')
+                          .trim()
+                          .slice(0, FRAME_CHARS),
+                      truncated: false
+                  };
+            return {
+                ord: i,
+                skillId: row.skill.id,
+                skillName: row.skill.name,
+                isReview: 0,
+                targetDots: 2,
+                startTier: row.level >= 2 ? 3 : row.level >= 1 ? 2 : 1,
+                unitIndex: (row.unit || row.unitHint) ? (row.unit || row.unitHint).ord : 0,
+                frame
+            };
+        });
 
         return { course, report, items };
     }
