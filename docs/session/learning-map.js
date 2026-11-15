@@ -44,17 +44,25 @@
       return;
     }
 
+    // Only what the learner has started. Listing every skill in the track at zero
+    // dots made the map look like a wall of untouched names.
     container.innerHTML = map
       .map((t) => {
-        const skills = (t.skills || [])
-          .map(
-            (s) => `<li class="sx-map-skill is-l${Number(s.level) || 0}" title="${esc(s.name)} — level ${Number(s.level) || 0} of 4">
+        const all = t.skills || [];
+        const started = all.filter((s) => Number(s.level) > 0);
+        const skills = started.length
+          ? started
+              .map(
+                (s) => `<li class="sx-map-skill is-l${Number(s.level) || 0}" title="${esc(s.name)} — level ${Number(s.level) || 0} of 4">
               ${dotsHtml(s.level)}<span>${esc(s.name)}</span></li>`
-          )
-          .join('');
+              )
+              .join('')
+          : '<li class="sx-map-untouched">Nothing started here yet.</li>';
+        const left = all.length - started.length;
         return `<section class="sx-map-track${t.track === currentTrack ? ' is-current' : ''}">
           <header><h2>${esc(trackName(t.track))}</h2><span>${Number(t.percent) || 0}%</span></header>
           <ul>${skills}</ul>
+          ${left > 0 && started.length ? `<p class="sx-map-left">${left} more not started</p>` : ''}
         </section>`;
       })
       .join('');

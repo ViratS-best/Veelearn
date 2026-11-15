@@ -2213,3 +2213,15 @@ body.learner-shell-active #learner-shell .ls-notes-error {
 @media (prefers-reduced-motion: reduce) {
   .ls-session-card, .ls-session-card:hover { animation: none; transform: none; }
 }
+
+/* ------------------------------------------------------- session-length picker */
+.ls-minutes-wrap {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 13px; color: var(--ls-muted);
+}
+.ls-minutes {
+  padding: 7px 10px; border-radius: 10px;
+  border: 1px solid var(--ls-border); background: var(--ls-input-bg); color: var(--ls-text);
+  font: inherit;
+}
+.ls-session-cta { flex-wrap: wrap; }

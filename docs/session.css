@@ -778,3 +778,47 @@
   .sx-question-card.is-in, .sx-option, .sx-feedback:not([hidden]), .sx-toast { animation: none !important; }
   .sx-option:hover:not(:disabled) { transform: none; }
 }
+
+/* ---------------------------------------------------------- streamed lesson */
+.sx-teach-status {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sx-accent, #ea580c);
+  margin: 6px 0 10px;
+}
+.sx-intro.is-streaming::after {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -0.15em;
+  background: currentColor;
+  opacity: 0.6;
+  animation: sxCaret 900ms steps(2, start) infinite;
+}
+@keyframes sxCaret {
+  0%, 45% { opacity: 0.6; }
+  46%, 100% { opacity: 0; }
+}
+.sx-intro-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.sx-extend {
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 999px;
+}
+.sx-map-untouched,
+.sx-map-left {
+  font-size: 12px;
+  color: var(--sx-muted, #78716c);
+  padding: 4px 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sx-intro.is-streaming::after { animation: none; }
+}

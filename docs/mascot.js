@@ -15,7 +15,7 @@
   'use strict';
 
   const R_MAX = 9; // rig units of pupil travel inside the iris
-  const FAR = 260; // px at which pupils are fully deflected
+  const FAR = 620; // px at which pupils are fully deflected (eye-relative)
   const BOB_MS = 3000; // idle bob period
   const IDLE_DRIFT_MS = 12000;
 
@@ -77,6 +77,7 @@
     raf: null,
     last: 0,
     lastNarration: performance.now(),
+    rectsAt: 0,
     bubbleEl: null,
     bubbleTimer: null,
     blinkAt: 0,
@@ -328,6 +329,12 @@
     state.last = now;
 
     if (state.rectsDirty) readRects();
+    // The mascot walks and hops: its eyes move with it, so a cached rect makes the
+    // pupils point at where it used to stand. Refresh while the page is live.
+    if (now - state.rectsAt > 220) {
+      readRects();
+      state.rectsAt = now;
+    }
 
     // eyes
     updatePupils(easeFactor(dt));
