@@ -676,6 +676,10 @@
   /* Split-screen: a smaller Vee docked in the card corner, never hidden. */
   .sx-mascot-dock { width: 64px; height: 64px; }
   .sx-mascot-svg svg { width: 64px; height: 64px; }
+  /* Vee docks in the card's top-right corner: keep the first lines clear of it. */
+  .sx-kicker,
+  .sx-stem,
+  .sx-intro { padding-right: 72px; }
   .sx-board { inset: 6px; padding: 14px; }
   .sx-board-body { grid-template-columns: minmax(0, 1fr); }
 }
