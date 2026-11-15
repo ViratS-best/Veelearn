@@ -53,15 +53,6 @@
           <button type="button" class="ls-nav-btn" data-ls-nav="sessions"><span class="ls-nav-icon">${NAV_ICONS.sessions}</span>Sessions</button>
           <button type="button" class="ls-nav-btn" data-ls-nav="achievements"><span class="ls-nav-icon">${NAV_ICONS.achievements}</span>Achievements</button>
           <button type="button" class="ls-nav-btn" data-ls-nav="enrolled"><span class="ls-nav-icon">${NAV_ICONS.enrolled}</span>Enrolled Courses</button>
-          <div class="ls-nav-flyout" data-flyout="create">
-            <button type="button" class="ls-nav-btn" data-ls-nav="create"><span class="ls-nav-icon">${NAV_ICONS.create}</span>Course Creation</button>
-            <div class="ls-flyout-panel" aria-label="Your courses">
-              <div class="ls-flyout-panel-inner">
-                <button type="button" class="ls-flyout-action" data-flyout-new="course">+ New course</button>
-                <div class="ls-flyout-list" id="ls-flyout-courses"><div class="ls-flyout-empty">Hover to load…</div></div>
-              </div>
-            </div>
-          </div>
           <button type="button" class="ls-nav-btn" data-ls-nav="store"><span class="ls-nav-icon">${NAV_ICONS.store}</span>Gem Store</button>
           <button type="button" class="ls-nav-btn" data-ls-nav="volunteer"><span class="ls-nav-icon">${NAV_ICONS.volunteer}</span>Volunteer Hrs</button>
         </nav>
@@ -99,6 +90,13 @@
             </label>
             <a class="ls-session-start" id="ls-start-session" href="${startHref()}"><span id="ls-start-label">Start a ${preferredMinutes()}-minute session</span></a>
           </div>
+          <div class="ls-outline-cta">
+            <div class="ls-outline-cta-text">
+              <strong>Build a course as an outline</strong>
+              <span>One page per topic, a circle per skill, questions and teaching notes — the AI teaches them in the order you made them.</span>
+            </div>
+            <a class="ls-outline-start" id="ls-new-outline" href="outline.html">+ New outline</a>
+          </div>
           <div class="ls-ai-box">
             <div id="ls-ai-messages"></div>
             <div class="ls-ai-composer">
@@ -127,7 +125,7 @@
             <p><strong>Achievements</strong> — Visit daily to grow your streak and earn gems.</p>
             <p><strong>Gem Store</strong> — Spend gems on avatar looks and dashboard themes.</p>
             <p><strong>Volunteer Hrs</strong> — See hours earned creating courses and download certificates.</p>
-            <p><strong>Course Creation</strong> — Build a course as an outline: units, skills, questions and teaching notes.</p>
+            <p><strong>Build a course as an outline</strong> — Dashboard card. One page per topic, a circle per skill, questions and teaching notes; the AI follows them in order.</p>
             <p><strong>Simulators</strong> — Open your simulators from a course block or the existing studio pages.</p>
           </div>
         </section>
@@ -550,8 +548,8 @@
       }
       wrap.hidden = false;
       wrap.innerHTML = `
-        <h3 class="ls-section-title">Your courses</h3>
-        <p class="ls-section-sub">Hover a card and press play to preview. Open Course Creation to edit.</p>
+        <h3 class="ls-section-title">Your outlines</h3>
+        <p class="ls-section-sub">Press play to preview, or open the outline to edit its map.</p>
         <ul class="ls-created-grid">
           ${courses
             .map((c) => {
@@ -564,6 +562,7 @@
                 <div class="ls-created-body">
                   <strong>${esc(c.title || 'Untitled')}</strong>
                   ${status ? `<span class="ls-flyout-meta">${status}</span>` : ''}
+                  <a class="ls-created-edit" href="outline.html?id=${c.id}">Edit outline</a>
                 </div>
               </li>`;
             })
@@ -697,10 +696,8 @@
     }
 
     if (name === 'create') {
-      if (typeof window.createNewCourse === 'function') {
-        hideLearnerShell();
-        window.createNewCourse();
-      }
+      // Outline creation lives in the dashboard now; keep the name working for old links.
+      window.location.href = 'outline.html';
       return;
     }
     if (name === 'studio') {
