@@ -728,7 +728,12 @@
     renderFocus(sessionState.focus, sessionState.item.id);
     startTimer(sessionState.session.remainingMs);
 
-    const fresh = Number(sessionState.item.attempts) === 0 && !state.introSeen.has(Number(sessionState.item.id));
+    // A review is a test, not a lesson: it opens straight on its card, so nobody
+    // has to sit through a teach stream (or press through one) to start it.
+    const fresh =
+        !sessionState.item.isReview &&
+        Number(sessionState.item.attempts) === 0 &&
+        !state.introSeen.has(Number(sessionState.item.id));
     if (fresh && sessionState.item.intro) showIntro(sessionState);
     else if (sessionState.question) showQuestion(sessionState.question, sessionState.item);
     else refresh();
