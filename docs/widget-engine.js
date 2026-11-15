@@ -470,6 +470,101 @@
     if (val) val.textContent = input.value;
   }
 
+  /**
+   * A pointer drag that behaves like a finger: pointer, mouse and touch, plus
+   * events dispatched by scripts and test harnesses. JSXGraph's own drag needs
+   * internal mouse state, so the widget carries its own drag surface.
+   */
+  function enablePointDrag(host, board, target, onMove) {
+    if (!host || !board || !target || typeof onMove !== 'function') return;
+    const svg = host.querySelector('svg') || host;
+    let active = false;
+
+    const box = () => {
+      const r = svg.getBoundingClientRect ? svg.getBoundingClientRect() : host.getBoundingClientRect();
+      const bb = typeof board.getBoundingBox === 'function' ? board.getBoundingBox() : [-10, 6, 10, -6];
+      return { r, bb };
+    };
+
+    const toUser = (cx, cy) => {
+      try {
+        if (typeof board.getUsrCoordsOfMouse === 'function') {
+          const c = board.getUsrCoordsOfMouse({ clientX: cx, clientY: cy, pageX: cx, pageY: cy });
+          if (c && Number.isFinite(c[0]) && Number.isFinite(c[1])) return { x: c[0], y: c[1] };
+        }
+      } catch (_) {
+        /* fall through to the bounding-box mapping */
+      }
+      const { r, bb } = box();
+      if (!r.width || !r.height) return null;
+      return {
+        x: bb[0] + ((cx - r.left) / r.width) * (bb[2] - bb[0]),
+        y: bb[1] - ((cy - r.top) / r.height) * (bb[1] - bb[3])
+      };
+    };
+
+    const pointAt = () => {
+      try {
+        const node = target.rendNode;
+        if (node && node.getBoundingClientRect) {
+          const r = node.getBoundingClientRect();
+          if (r.width || r.height) return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+        }
+      } catch (_) {
+        /* ignore */
+      }
+      const { r, bb } = box();
+      return {
+        x: r.left + ((target.X() - bb[0]) / (bb[2] - bb[0])) * r.width,
+        y: r.top + ((bb[1] - target.Y()) / (bb[1] - bb[3])) * r.height
+      };
+    };
+
+    const point = (ev) => {
+      if (ev.touches && ev.touches.length) return ev.touches[0];
+      if (ev.changedTouches && ev.changedTouches.length) return ev.changedTouches[0];
+      return ev;
+    };
+
+    const move = (ev) => {
+      if (!active) return;
+      const p = point(ev);
+      if (p == null) return;
+      const u = toUser(p.clientX, p.clientY);
+      if (!u) return;
+      if (ev.cancelable) ev.preventDefault();
+      onMove(u, ev);
+    };
+
+    const start = (ev) => {
+      const p = point(ev);
+      if (p == null || !Number.isFinite(p.clientX)) return;
+      const at = pointAt();
+      if (Math.hypot(p.clientX - at.x, p.clientY - at.y) > 30) return;
+      active = true;
+      host.classList.add('vl-dragging');
+      if (ev.cancelable) ev.preventDefault();
+      move(ev);
+    };
+
+    const end = () => {
+      if (!active) return;
+      active = false;
+      host.classList.remove('vl-dragging');
+    };
+
+    ['pointerdown', 'mousedown', 'touchstart'].forEach((type) => {
+      host.addEventListener(type, start, { passive: false });
+      if (svg !== host) svg.addEventListener(type, start, { passive: false });
+    });
+    ['pointermove', 'mousemove', 'touchmove'].forEach((type) =>
+      window.addEventListener(type, move, { passive: false })
+    );
+    ['pointerup', 'pointercancel', 'mouseup', 'touchend', 'touchcancel'].forEach((type) =>
+      window.addEventListener(type, end)
+    );
+  }
+
   function pointOpts(el, color) {
     return {
       name: el.label || el.name || '',
@@ -735,6 +830,13 @@
         syncControl(host, state.point);
         board.update();
       });
+      enablePointDrag(host, board, p, (u) => {
+        const val = Math.round(Math.max(-10, Math.min(10, u.x)) * 10) / 10;
+        state.point = val;
+        p.setPosition(JXG.COORDS_BY_USER, [val, 0]);
+        syncControl(host, val);
+        board.update();
+      });
       opts._update = () => {
         p.setPosition(JXG.COORDS_BY_USER, [Number(state.point) || 0, 0]);
         board.update();
@@ -764,6 +866,14 @@
         state.angle = (Math.round(deg) + 360) % 360;
         syncControl(host, state.angle);
         tip.setPosition(JXG.COORDS_BY_USER, [Math.cos(ang()), Math.sin(ang())]);
+        board.update();
+      });
+      enablePointDrag(host, board, tip, (u) => {
+        if (!u.x && !u.y) return;
+        const deg = (Math.atan2(u.y, u.x) * 180) / Math.PI;
+        state.angle = (Math.round(deg) + 360) % 360;
+        tip.setPosition(JXG.COORDS_BY_USER, [Math.cos(ang()), Math.sin(ang())]);
+        syncControl(host, state.angle);
         board.update();
       });
       opts._update = () => {
@@ -921,6 +1031,29 @@
           { strokeColor: '#9b59b6', strokeWidth: 2 }
         );
         plotted = true;
+      }
+      // A point the student can drag along the curve. Moving it up or down sets
+      // the same `a` the slider shows, so the parabola bends under the finger.
+      if (plotted && state.a != null) {
+        const px = 1;
+        const curveY = () => (Number(state.a) || 0) * px * px;
+        const q = board.create(
+          'point',
+          [px, curveY()],
+          pointOpts({ name: 'P', label: 'P', color: '#f59e0b', fixed: false })
+        );
+        board.create(
+          'text',
+          [px + 0.2, () => curveY() + 0.5, () => `P = (${px}, ${Math.round((Number(state.a) || 0) * 10) / 10})`],
+          { fontSize: 13, strokeColor: '#f8fafc' }
+        );
+        enablePointDrag(host, board, q, (u) => {
+          const next = Math.round(Math.max(-2, Math.min(2, u.y)) * 10) / 10;
+          state.a = next;
+          q.setPosition(JXG.COORDS_BY_USER, [px, next * px * px]);
+          syncControl(host, next);
+          board.update();
+        });
       }
       applyGeometryElements(board, JXG, params.elements, named);
       opts._update = () => board.update();

@@ -558,6 +558,10 @@
 .sx-board-canvas { min-width: 0; }
 .sx-board-canvas .vl-widget-host { min-height: 220px; }
 .sx-board-canvas .vl-widget-view { max-height: 240px; }
+/* The sketch carries its own pointer drag: no page scroll while dragging a point. */
+.sx-board-canvas .vl-widget-host svg,
+.sx-board-canvas .vl-widget-host { touch-action: none; }
+.sx-board-canvas .vl-widget-host.vl-dragging { cursor: grabbing; }
 .sx-board-steps {
   margin: 0;
   padding-left: 20px;
@@ -682,6 +686,14 @@
   .sx-intro { padding-right: 72px; }
   .sx-board { inset: 6px; padding: 14px; }
   .sx-board-body { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (min-width: 721px) {
+  /* Desktop: Vee docks at the stage's right edge, so the lesson text stops short
+     of it instead of running underneath. */
+  .sx-kicker,
+  .sx-stem,
+  .sx-intro { padding-right: 148px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
