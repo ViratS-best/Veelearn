@@ -426,10 +426,12 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
         if (typeof chatStream !== 'function') return { ok: true, text: fallback, fallback: true };
 
         const task = asked
-            ? `Answer this question in under 120 words: "${asked}"\n` +
+            ? `Answer this question in under 160 words: "${asked}"\n` +
               (cardBlock ? `Context (do not repeat or quote it back):\n${cardBlock}\n` : '') +
               'Speak straight to the learner, in the second person. Explain the idea behind the card, ' +
-              'never state which choice is correct, and use $...$ for math.'
+              'never state which choice is correct, and use $...$ for math. ' +
+              'If the learner asks for a table or a diagram, include a small GitHub-style markdown ' +
+              'table and finish it — the table is drawn for them.'
             : 'Teach this unit in under 120 words: the one idea, why it works, and a tiny worked example. ' +
               'Do not ask a question and do not give the answer to any practice question. Use $...$ for math.';
 
@@ -465,7 +467,7 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
                               task
                     }
                 ],
-                { max_tokens: 320, temperature: 0.5, budgetMs: 25000, onDelta }
+                { max_tokens: asked ? 700 : 320, temperature: 0.5, budgetMs: 25000, onDelta }
             );
         } catch (err) {
             info(`[session] teach fallback: ${err.message}`);
