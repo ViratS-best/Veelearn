@@ -288,25 +288,27 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
 
     async function ensureQuestion(item, userId) {
         const ids = parseJson(item.question_ids, []);
+        const lastId = ids.length ? ids[ids.length - 1] : null;
+        if (lastId) {
+            const raw = await qbank.getRaw(lastId);
+            if (raw) return qbank.toCard(raw);
+        }
+        // A review serves the next card from its pool, never the same skill on repeat.
         if (Number(item.is_review)) {
             const pool = parseJson(item.review_pool, []).map(Number);
             const fresh = pool.find((id) => !ids.map(Number).includes(Number(id)));
             if (fresh) {
                 const raw = await qbank.getRaw(fresh);
                 if (raw) {
+                    const served = [...ids.map(Number), Number(fresh)];
                     await query('UPDATE session_focus_items SET question_ids = ? WHERE id = ?', [
-                        JSON.stringify([...ids.map(Number), Number(fresh)]),
+                        JSON.stringify(served),
                         item.id
                     ]);
-                    item.question_ids = JSON.stringify([...ids.map(Number), Number(fresh)]);
+                    item.question_ids = JSON.stringify(served);
                     return qbank.toCard(raw);
                 }
             }
-        }
-        const lastId = ids.length ? ids[ids.length - 1] : null;
-        if (lastId) {
-            const raw = await qbank.getRaw(lastId);
-            if (raw) return qbank.toCard(raw);
         }
 
         let picked = await qbank.pickUnserved({ skillId: item.skill_id, exclude: [] });
