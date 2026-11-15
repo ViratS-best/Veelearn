@@ -2171,6 +2171,41 @@ body.learner-shell-active #learner-shell .ls-notes-error {
   font-weight: 600;
 }
 .ls-session-start:hover { background: #c2410c; }
+.ls-outline-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  background: var(--ls-surface, #fff);
+  border: 1px dashed #f6d9bd;
+  border-radius: 16px;
+  padding: 14px 18px;
+  margin: 0 0 18px;
+}
+.ls-outline-cta-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ls-outline-cta-text strong { font-size: 15px; color: var(--ls-active-text, #9a3412); }
+.ls-outline-cta-text span { font-size: 13px; color: var(--ls-muted, #6b7280); }
+.ls-outline-start {
+  flex: none;
+  background: var(--ls-accent, #ea580c);
+  color: #fff;
+  text-decoration: none;
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.ls-outline-start:hover { background: #c2410c; }
+.ls-created-edit {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ls-accent, #ea580c);
+  text-decoration: none;
+}
+.ls-created-edit:hover { text-decoration: underline; }
 @media (max-width: 560px) {
   .ls-session-cta { padding: 12px 14px; }
   .ls-session-start { width: 100%; text-align: center; }
