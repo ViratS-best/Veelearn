@@ -240,6 +240,27 @@
    * The lesson is written one sentence at a time so Vee has something specific to
    * point at while it talks, instead of a paragraph it can only aim at as a whole.
    */
+  /**
+   * A vague unit can make the tutor think out loud ("The user wants me to…").
+   * That is not a lesson: keep the last learner-facing paragraph, else nothing so
+   * the unit's own words show instead.
+   */
+  function cleanLesson(text) {
+    const raw = String(text || '').trim();
+    const startsMeta = /^(the user|the learner|i need to|i should|i will|i'll|let me|we need to|okay\b|ok\b|hmm\b|since the unit)/i;
+    if (!startsMeta.test(raw)) return raw;
+    const meta = /^(the user|the learner|i need|i should|i'll|i will|let me|we need|okay|ok\b|hmm\b|since the unit|this is quite)/i;
+    const paras = raw
+      .split(/\n\s*\n/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+    const usable = paras.filter(
+      (p) => !meta.test(p) && !/\bI (need|should|will|must)\b|\bThe user\b|\bthe learner\b/i.test(p.slice(0, 160))
+    );
+    const lesson = usable.length ? usable[usable.length - 1] : '';
+    return lesson.length >= 40 ? lesson : '';
+  }
+
   function paintSentences(box, text) {
     const raw = String(text || '');
     const parts = raw.match(/[^.!?\n]*[.!?]+[\s]*|\n+|.+$/g) || [];
@@ -357,7 +378,7 @@
             text += data.t;
             if (Date.now() - lastPaint > 90) {
               lastPaint = Date.now();
-              pointAtSentence(paintSentences(box, text), box);
+              pointAtSentence(paintSentences(box, cleanLesson(text)), box);
             }
             if (Date.now() - typesetAt > 700) {
               typesetAt = Date.now();
@@ -365,13 +386,14 @@
             }
           } else if (event === 'done' && data.text) {
             text = data.text;
-            pointAtSentence(paintSentences(box, text), box);
+            pointAtSentence(paintSentences(box, cleanLesson(text)), box);
           }
         }
       }
     } catch (_) {
       text = box.textContent || '';
     }
+    text = cleanLesson(text) || String(text || '');
     if (!String(text).trim() && state.item && state.item.intro) {
       text = state.item.intro;
       paintSentences(box, text);
