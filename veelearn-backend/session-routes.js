@@ -89,8 +89,14 @@ function createSessionRoutes({
         async history(req, res) {
             try {
                 const sessions = await engine.history(req.user.id, { limit: req.query.limit, q: req.query.q });
-                // The route owns the envelope; the engine keeps returning rows.
-                return apiResponse(res, 200, 'OK', { sessions, count: sessions.length });
+                // The dashboard's Sessions pane lists everything, active first, so
+                // a learner can pick a specific session back up.
+                const status = String(req.query.status || 'all');
+                const filtered =
+                    status === 'active' || status === 'completed'
+                        ? sessions.filter((row) => row.status === status)
+                        : sessions;
+                return apiResponse(res, 200, 'OK', { sessions: filtered, count: filtered.length });
             } catch (e) {
                 return fail(res, e, 'Could not load session history');
             }
