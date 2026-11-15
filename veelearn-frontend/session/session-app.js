@@ -1212,6 +1212,28 @@
     if (state.visualReady) return;
     state.visualReady = true;
     if (window.Annotate) Annotate.attach(el('sx-stage'));
+    // Resizing clears the ink layer; re-issue pointing and underlining for whatever
+    // is on screen so a split-screen window is not less interactive than a full one.
+    if (!state.onResize) {
+      let resizeTimer = null;
+      state.onResize = () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+          if (!state.visualReady) return;
+          const intro = el('sx-intro');
+          const introText = el('sx-intro-text');
+          const stem = el('sx-stem');
+          if (intro && !intro.hidden && introText) {
+            if (window.Mascot) Promise.resolve(Mascot.pointAt(introText)).catch(() => {});
+            underlineKeyParts(introText, introText.textContent);
+          } else if (stem && state.question && el('sx-question-card') && !el('sx-question-card').hidden) {
+            if (window.Mascot) Promise.resolve(Mascot.pointAt(stem)).catch(() => {});
+            underlineKeyParts(stem, state.question.stem);
+          }
+        }, 420);
+      };
+      window.addEventListener('resize', state.onResize);
+    }
     if (window.Mascot) {
       Promise.resolve(Mascot.attach('#sx-mascot-host'))
         .then(() => {

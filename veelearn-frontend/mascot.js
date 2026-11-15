@@ -469,7 +469,12 @@
     if (!state.onResize) {
       state.onResize = () => {
         invalidate();
-        if (state.lastAnchor) moveTo(state.lastAnchor, { instant: true });
+        // Wait for the layout to settle: reading rects mid-resize parks Vee off-screen.
+        clearTimeout(state.resizeTimer);
+        state.resizeTimer = setTimeout(() => {
+          invalidate();
+          if (state.lastAnchor) moveTo(state.lastAnchor, { instant: true });
+        }, 180);
       };
       global.addEventListener('resize', state.onResize);
     }
