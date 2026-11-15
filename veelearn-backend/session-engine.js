@@ -509,6 +509,7 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
                     isReview: !!Number(i.is_review),
                     unitIndex: Number(i.unit_index || 0),
                     targetDots: Number(i.target_dots || 2),
+                    poolSize: parseJson(i.question_ids, []).length,
                     correctCount: Number(i.correct_count || 0),
                     dots: mastery.dots(level),
                     level
