@@ -516,6 +516,7 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
                       name: item.skill_name,
                       intro: item.intro_md || '',
                       isReview: !!Number(item.is_review),
+                      unitIndex: Number(item.unit_index || 0),
                       targetDots: Number(item.target_dots || 2),
                       correctCount: Number(item.correct_count || 0),
                       attempts: Number(item.attempts || 0),
