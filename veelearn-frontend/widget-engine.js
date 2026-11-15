@@ -825,17 +825,16 @@
         fontSize: 14,
         strokeColor: '#f8fafc'
       });
-      p.on('drag', () => {
-        state.point = Math.round(p.X() * 10) / 10;
-        syncControl(host, state.point);
-        board.update();
-      });
-      enablePointDrag(host, board, p, (u) => {
-        const val = Math.round(Math.max(-10, Math.min(10, u.x)) * 10) / 10;
+      const publishPoint = (val) => {
         state.point = val;
         p.setPosition(JXG.COORDS_BY_USER, [val, 0]);
         syncControl(host, val);
         board.update();
+        if (typeof opts._refresh === 'function') opts._refresh();
+      };
+      p.on('drag', () => publishPoint(Math.round(p.X() * 10) / 10));
+      enablePointDrag(host, board, p, (u) => {
+        publishPoint(Math.round(Math.max(-10, Math.min(10, u.x)) * 10) / 10);
       });
       opts._update = () => {
         p.setPosition(JXG.COORDS_BY_USER, [Number(state.point) || 0, 0]);
@@ -861,20 +860,20 @@
         { fontSize: 12, strokeColor: '#f8fafc' }
       );
       // Dragging the point moves the angle instead of flinging it off the circle.
-      tip.on('drag', () => {
-        const deg = (Math.atan2(tip.Y(), tip.X()) * 180) / Math.PI;
-        state.angle = (Math.round(deg) + 360) % 360;
-        syncControl(host, state.angle);
+      const publishAngle = (degRaw) => {
+        const deg = (Math.round(degRaw) + 360) % 360;
+        state.angle = deg;
         tip.setPosition(JXG.COORDS_BY_USER, [Math.cos(ang()), Math.sin(ang())]);
+        syncControl(host, deg);
         board.update();
+        if (typeof opts._refresh === 'function') opts._refresh();
+      };
+      tip.on('drag', () => {
+        publishAngle((Math.atan2(tip.Y(), tip.X()) * 180) / Math.PI);
       });
       enablePointDrag(host, board, tip, (u) => {
         if (!u.x && !u.y) return;
-        const deg = (Math.atan2(u.y, u.x) * 180) / Math.PI;
-        state.angle = (Math.round(deg) + 360) % 360;
-        tip.setPosition(JXG.COORDS_BY_USER, [Math.cos(ang()), Math.sin(ang())]);
-        syncControl(host, state.angle);
-        board.update();
+        publishAngle((Math.atan2(u.y, u.x) * 180) / Math.PI);
       });
       opts._update = () => {
         tip.setPosition(JXG.COORDS_BY_USER, [Math.cos(ang()), Math.sin(ang())]);
@@ -1053,6 +1052,7 @@
           q.setPosition(JXG.COORDS_BY_USER, [px, next * px * px]);
           syncControl(host, next);
           board.update();
+          if (typeof opts._refresh === 'function') opts._refresh();
         });
       }
       applyGeometryElements(board, JXG, params.elements, named);
@@ -1704,7 +1704,7 @@
 
     const outputsApi = wireOutputs(outputsEl, state, spec.outputs || []);
     const runtime = { destroy() {} };
-    const hook = { _update: null, _action: null };
+    const hook = { _update: null, _action: null, _refresh: () => outputsApi.refresh() };
 
     wireControls(
       controls,

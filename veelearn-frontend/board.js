@@ -12,7 +12,7 @@
 (function (global) {
   'use strict';
 
-  const ENGINE_SRC = 'widget-engine.js?v=3';
+  const ENGINE_SRC = 'widget-engine.js?v=4';
   const TYPE_SPEED = 34; // chars/second, same as the mascot's writing pace
 
   const SUPPORTED = [
