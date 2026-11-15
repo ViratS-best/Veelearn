@@ -375,7 +375,11 @@
       const cur = state.pupils[key];
       cur.x += (t.x - cur.x) * factor;
       cur.y += (t.y - cur.y) * factor;
-      pupil.style.transform = `translate(${cur.x.toFixed(2)}px, ${cur.y.toFixed(2)}px)`;
+      // The dock flips with scaleX(-1) when the mascot faces left, and that mirror
+      // applies to the pupils too. Negating the horizontal offset keeps the eyes
+      // pointing at the cursor instead of the opposite side of the card.
+      const flip = state.targetFlip === -1 ? -1 : 1;
+      pupil.style.transform = `translate(${(cur.x * flip).toFixed(2)}px, ${cur.y.toFixed(2)}px)`;
     });
   }
 

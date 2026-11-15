@@ -78,7 +78,7 @@
   }
 
   function runTypeset(attempt) {
-    const nodes = ['sx-stem', 'sx-options', 'sx-feedback', 'sx-hintbox', 'sx-intro-text']
+    const nodes = ['sx-stem', 'sx-options', 'sx-feedback', 'sx-hintbox', 'sx-intro-text', 'sx-ask-log']
       .map((id) => document.getElementById(id))
       .filter(Boolean);
     if (!nodes.length) return;
@@ -112,15 +112,29 @@
 
   // ------------------------------------------------------------------ helpers
   async function api(path, body) {
-    const res = await fetch(`${API_BASE_URL}${path}`, {
-      method: body ? 'POST' : 'GET',
-      headers: Object.assign(
-        { Authorization: `Bearer ${token}` },
-        body ? { 'Content-Type': 'application/json' } : {}
-      ),
-      credentials: 'include',
-      body: body ? JSON.stringify(body) : undefined
-    });
+    // A request that never settles used to leave `busy` true forever, which reads
+    // as "the buttons stopped working". Every call now has a deadline.
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    const timer = controller ? setTimeout(() => controller.abort(), 40000) : null;
+    let res;
+    try {
+      res = await fetch(`${API_BASE_URL}${path}`, {
+        method: body ? 'POST' : 'GET',
+        headers: Object.assign(
+          { Authorization: `Bearer ${token}` },
+          body ? { 'Content-Type': 'application/json' } : {}
+        ),
+        credentials: 'include',
+        body: body ? JSON.stringify(body) : undefined,
+        signal: controller ? controller.signal : undefined
+      });
+    } catch (err) {
+      throw new Error(
+        err && err.name === 'AbortError' ? 'That took too long. Try again.' : 'Network error. Try again.'
+      );
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
 
     if (res.status === 401 || res.status === 403) {
       localStorage.removeItem('token');
@@ -480,10 +494,14 @@
       state.solved = true;
       renderFeedback(result, key);
     } catch (err) {
-      state.busy = false;
-      setOptionsEnabled(true);
       if (picked) picked.classList.remove('is-picked');
       showError(err.message);
+    } finally {
+      // Released whatever happened: a stuck request must never leave the card dead.
+      if (!state.solved) {
+        state.busy = false;
+        setOptionsEnabled(true);
+      }
     }
   }
 
@@ -1246,6 +1264,88 @@
     });
   }
 
+  // ---------------------------------------------------------------- ask Vee
+  let asking = false;
+
+  async function askVee() {
+    const input = el('sx-ask-input');
+    const btn = el('sx-ask-btn');
+    const log = el('sx-ask-log');
+    if (!input || !log || asking || !state.id) return;
+    const question = String(input.value || '').trim();
+    if (!question) return;
+
+    asking = true;
+    if (btn) btn.disabled = true;
+    input.value = '';
+    log.hidden = false;
+
+    const entry = document.createElement('div');
+    entry.className = 'sx-ask-entry';
+    const asked = document.createElement('p');
+    asked.className = 'sx-ask-q';
+    asked.textContent = question;
+    const answer = document.createElement('p');
+    answer.className = 'sx-ask-a is-streaming';
+    answer.textContent = '';
+    entry.appendChild(asked);
+    entry.appendChild(answer);
+    log.appendChild(entry);
+    entry.scrollIntoView({ block: 'nearest' });
+
+    let text = '';
+    let typesetAt = 0;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/session/${state.id}/teach`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ question })
+      });
+      if (!res.ok || !res.body) throw new Error('unavailable');
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const frames = buffer.split('\n\n');
+        buffer = frames.pop() || '';
+        for (const frame of frames) {
+          const lines = frame.split('\n');
+          const event = (lines.find((l) => l.startsWith('event:')) || '').slice(6).trim();
+          const dataLine = lines.find((l) => l.startsWith('data:'));
+          if (!dataLine) continue;
+          let data = {};
+          try {
+            data = JSON.parse(dataLine.slice(5).trim());
+          } catch (_) {
+            continue;
+          }
+          if (event === 'delta' && data.t) {
+            text += data.t;
+            answer.textContent = text;
+            if (Date.now() - typesetAt > 700) {
+              typesetAt = Date.now();
+              typesetContent();
+            }
+          } else if (event === 'done' && data.text) {
+            text = data.text;
+            answer.textContent = text;
+          }
+        }
+      }
+    } catch (_) {
+      if (!text) answer.textContent = 'I could not reach Vee just now. Try again in a moment.';
+    }
+
+    answer.classList.remove('is-streaming');
+    typesetContent();
+    asking = false;
+    if (btn) btn.disabled = false;
+  }
+
   // -------------------------------------------------------------------- boot
   async function boot() {
     try {
@@ -1297,6 +1397,17 @@
     wireShortcuts();
     const extendBtn = el('sx-extend');
     if (extendBtn) extendBtn.addEventListener('click', extendSession);
+    const askBtn = el('sx-ask-btn');
+    if (askBtn) askBtn.addEventListener('click', askVee);
+    const askInput = el('sx-ask-input');
+    if (askInput) {
+      askInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          askVee();
+        }
+      });
+    }
     el('sx-hint-btn').addEventListener('click', askHint);
     el('sx-skip-btn').addEventListener('click', skip);
     el('sx-end-btn').addEventListener('click', () => finish('quit'));
