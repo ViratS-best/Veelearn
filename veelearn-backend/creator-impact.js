@@ -882,7 +882,13 @@ function createCreatorImpact({ query, log } = {}) {
             const doneBy = new Map(doneRows.map((r) => [Number(r.unit_index), Number(r.done || 0)]));
             // Unit indexes are stored 1-based: rows written before the column existed
             // default to 0, and a 0 must not look like "the first unit is finished".
-            unitTarget = units.find((u) => (doneBy.get(Number(u.ord) + 1) || 0) === 0) || null;
+            // A contents section is not a unit to practise.
+            unitTarget =
+                units.find(
+                    (u) =>
+                        !/^what you will learn/i.test(String(u.title || '')) &&
+                        (doneBy.get(Number(u.ord) + 1) || 0) === 0
+                ) || null;
         }
 
         const qualified = realSkills.filter((row) => row.matched && has(row));
@@ -890,7 +896,7 @@ function createCreatorImpact({ query, log } = {}) {
         // match for a unit still gives that unit a session, and the card keeps its
         // own skill intro as the lesson, so nothing drifts to another chapter.
         const inTargetUnit = unitTarget
-            ? ordered.filter((row) => {
+            ? realSkills.filter((row) => {
                   const where = row.unit || row.unitHint;
                   return Boolean(where) && Number(where.ord) === Number(unitTarget.ord) && has(row);
               })
