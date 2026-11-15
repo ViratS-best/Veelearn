@@ -1504,7 +1504,10 @@
         }
       }
     } catch (_) {
-      if (!text) answer.textContent = 'I could not reach Vee just now. Try again in a moment.';
+      // A stream that dies mid-sentence would otherwise leave half a word on screen.
+      if (String(text || '').trim().length < 20) {
+        text = 'I could not finish that answer — ask me again in a moment.';
+      }
     }
 
     // Let the typing finish, so the answer never snaps in whole at the end.
