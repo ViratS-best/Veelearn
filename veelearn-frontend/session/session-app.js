@@ -247,15 +247,21 @@
    */
   function cleanLesson(text) {
     const raw = String(text || '').trim();
-    const startsMeta = /^(the user|the learner|i need to|i should|i will|i'll|let me|we need to|okay\b|ok\b|hmm\b|since the unit)/i;
-    if (!startsMeta.test(raw)) return raw;
-    const meta = /^(the user|the learner|i need|i should|i'll|i will|let me|we need|okay|ok\b|hmm\b|since the unit|this is quite)/i;
+    const startsMeta = /^(the user|the learner|i need to|i should|i will|i'll|let me|we need to|okay\b|ok\b|hmm\b|since the unit|actually\b|given the ambiguity|the most sensible)/i;
+    const thinking =
+      /(the user wants|i need to teach|i should interpret|given the ambiguity|the safest approach is|that actually makes sense|the most sensible interpretation)/i;
+    if (!startsMeta.test(raw) && !thinking.test(raw)) return raw;
+    const meta = /^(the user|the learner|i need|i should|i'll|i will|let me|we need|okay|ok\b|hmm\b|since the unit|this is quite|actually\b|given the ambiguity|the most sensible)/i;
     const paras = raw
       .split(/\n\s*\n/)
       .map((p) => p.trim())
       .filter(Boolean);
     const usable = paras.filter(
-      (p) => !meta.test(p) && !/\bI (need|should|will|must)\b|\bThe user\b|\bthe learner\b/i.test(p.slice(0, 160))
+      (p) =>
+        !meta.test(p) &&
+        !/\bI (need|should|will|must)\b|\bThe user\b|\bthe learner\b|given the ambiguity|the safest approach|that actually makes sense/i.test(
+          p.slice(0, 200)
+        )
     );
     const lesson = usable.length ? usable[usable.length - 1] : '';
     return lesson.length >= 40 ? lesson : '';
