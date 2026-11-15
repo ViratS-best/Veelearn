@@ -15,6 +15,9 @@ const mastery = require('./mastery');
 
 const TRACK_FALLBACK = 'math.g8';
 
+/** Unit reviews must clear this share of their questions to move on. */
+const REVIEW_PASS = 0.9;
+
 function parseJson(value, fallback) {
     if (value == null) return fallback;
     if (typeof value === 'object') return value;
@@ -819,47 +822,26 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
         let next = 'retry';
         let nextQuestion = null;
 
-        // A review that ends under 90% puts the unit's skills back and asks for the
-        // review again, so a lucky guess never counts as knowing the unit.
-        let reviewRetry = false;
-        if (correct && itemDone && Number(item.is_review)) {
-            const accuracy = attempts ? correctCount / attempts : 1;
-            if (accuracy < 0.9) {
-                reviewRetry = true;
-                try {
-                    await query(
-                        `UPDATE session_focus_items
-                         SET status = 'pending', correct_count = 0, attempts = 0, completed_at = NULL
-                         WHERE session_id = ? AND unit_index = ? AND is_review = 0`,
-                        [sessionId, Number(item.unit_index || 0)]
-                    );
-                    const maxRows = await query('SELECT COALESCE(MAX(ord), 0) AS m FROM session_focus_items WHERE session_id = ?', [
-                        sessionId
-                    ]);
-                    const nextOrd = Number(maxRows[0] && maxRows[0].m ? maxRows[0].m : 0) + 1;
-                    await query(
-                        `INSERT INTO session_focus_items
-                            (session_id, skill_id, ord, is_review, target_dots, status, correct_count, attempts, question_ids, frame_md, unit_index)
-                         VALUES (?, ?, ?, 1, ?, 'pending', 0, 0, ?, ?, ?)`,
-                        [
-                            sessionId,
-                            item.skill_id,
-                            nextOrd,
-                            Number(item.target_dots || 18),
-                            item.question_ids,
-                            item.frame_md,
-                            Number(item.unit_index || 0)
-                        ]
-                    );
-                } catch (err) {
-                    info(`[session] review reset skipped: ${err.message}`);
-                }
-            }
-        }
-
         if (correct) {
             if (itemDone) {
-                next = reviewRetry ? 'review' : 'advance';
+                next = 'advance';
+            } else if (Number(item.is_review)) {
+                // A review walks its own pool, so twenty correct answers mean twenty
+                // different questions instead of one skill on repeat.
+                const pool = parseJson(item.question_ids, []).map(Number);
+                const unserved = pool.filter((id) => !servedIds.includes(Number(id)));
+                if (unserved.length) {
+                    const rawNext = await qbank.getRaw(unserved[0]);
+                    nextQuestion = rawNext ? qbank.toCard(rawNext) : null;
+                }
+                if (nextQuestion) {
+                    next = 'more';
+                } else {
+                    // The pool is spent: that is the end of the review, and now it is
+                    // scored against the 90% bar.
+                    itemDone = true;
+                    next = 'advance';
+                }
             } else {
                 next = 'more';
                 const tier = Math.min(4, Number(raw.tier) + 1);
@@ -881,6 +863,78 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
             // Taught once already — hand back a variant one tier easier.
             next = 'variant';
             nextQuestion = await qbank.pick({ skillId: raw.skill_id, tier: Math.max(1, Number(raw.tier) - 1), userId });
+        }
+
+        // The 90% gate. Passing closes any review left over from an earlier failure;
+        // failing puts the unit's skills back and re-queues exactly one review,
+        // reusing a pending one instead of stacking a fresh card each time.
+        let reviewRetry = false;
+        if (correct && itemDone && Number(item.is_review)) {
+            const accuracy = attempts ? correctCount / attempts : 1;
+            const unitIndex = Number(item.unit_index || 0);
+            if (accuracy < REVIEW_PASS) {
+                reviewRetry = true;
+                next = 'review';
+                try {
+                    await query(
+                        `UPDATE session_focus_items
+                         SET status = 'pending', correct_count = 0, attempts = 0, completed_at = NULL
+                         WHERE session_id = ? AND unit_index = ? AND is_review = 0`,
+                        [sessionId, unitIndex]
+                    );
+                    const pending = await query(
+                        `SELECT id FROM session_focus_items
+                         WHERE session_id = ? AND unit_index = ? AND is_review = 1 AND id <> ?
+                           AND status IN ('pending', 'active')
+                         ORDER BY ord ASC LIMIT 1`,
+                        [sessionId, unitIndex, item.id]
+                    );
+                    if (pending.length) {
+                        await query(
+                            `UPDATE session_focus_items
+                             SET status = 'pending', correct_count = 0, attempts = 0, completed_at = NULL
+                             WHERE id = ?`,
+                            [pending[0].id]
+                        );
+                    } else {
+                        const maxRows = await query(
+                            'SELECT COALESCE(MAX(ord), 0) AS m FROM session_focus_items WHERE session_id = ?',
+                            [sessionId]
+                        );
+                        const nextOrd = Number(maxRows[0] && maxRows[0].m ? maxRows[0].m : 0) + 1;
+                        await query(
+                            `INSERT INTO session_focus_items
+                                (session_id, skill_id, ord, is_review, target_dots, status, correct_count, attempts, question_ids, frame_md, unit_index)
+                             VALUES (?, ?, ?, 1, ?, 'pending', 0, 0, ?, ?, ?)`,
+                            [
+                                sessionId,
+                                item.skill_id,
+                                nextOrd,
+                                Number(item.target_dots || 18),
+                                item.question_ids,
+                                item.frame_md,
+                                unitIndex
+                            ]
+                        );
+                    }
+                    info(`[session] unit ${unitIndex} review failed at ${Math.round(accuracy * 100)}% — skills reset`);
+                } catch (err) {
+                    info(`[session] review reset skipped: ${err.message}`);
+                }
+            } else {
+                // A passed unit must not leave a duplicate review card behind.
+                try {
+                    await query(
+                        `UPDATE session_focus_items
+                         SET status = 'done', completed_at = COALESCE(completed_at, NOW())
+                         WHERE session_id = ? AND unit_index = ? AND is_review = 1 AND id <> ?
+                           AND status IN ('pending', 'active')`,
+                        [sessionId, unitIndex, item.id]
+                    );
+                } catch (err) {
+                    info(`[session] stale review cleanup skipped: ${err.message}`);
+                }
+            }
         }
 
         if (nextQuestion && servedIds.includes(Number(nextQuestion.id))) {

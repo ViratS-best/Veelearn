@@ -24,7 +24,7 @@
 
 const FRAME_CHARS = 900;
 const LETTERS = 'ABCDEFGH';
-const REVIEW_MIN = 8;
+const REVIEW_MIN = 4;
 const REVIEW_TARGET_RATIO = 0.9;
 
 function parseJson(value, fallback) {
@@ -290,7 +290,7 @@ function createOutlines({ query, log } = {}) {
                         skillId: reviewSkillId,
                         skillName: reviewName,
                         isReview: 1,
-                        targetDots: Math.max(REVIEW_MIN, Math.ceil(all.length * REVIEW_TARGET_RATIO)),
+                        targetDots: Math.max(2, Math.ceil(all.length * REVIEW_TARGET_RATIO)),
                         startTier: 1,
                         unitIndex: outline.units.indexOf(unit) + 1,
                         unitLabel: `Unit ${outline.units.indexOf(unit) + 1}: ${unit.title} review`,
