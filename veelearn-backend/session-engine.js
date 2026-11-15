@@ -880,9 +880,15 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
                 }
                 if (nextQuestion) {
                     next = 'more';
+                } else if (correctCount < need) {
+                    // Every pool card has been seen but the bar is not met yet, so
+                    // re-ask one rather than ending the review early or deadlocking.
+                    const again = pool.find((id) => Number(id) !== Number(raw.id));
+                    const rawAgain = again ? await qbank.getRaw(again) : null;
+                    nextQuestion = rawAgain ? qbank.toCard(rawAgain) : null;
+                    next = nextQuestion ? 'more' : 'retry';
                 } else {
-                    // The pool is spent: that is the end of the review, and now it is
-                    // scored against the 90% bar.
+                    // The pool is spent and the bar is met: score it against 90%.
                     itemDone = true;
                     next = 'advance';
                 }
@@ -1070,6 +1076,14 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
                 attempts,
                 needed: need,
                 done: itemDone
+            },
+            trace: {
+                need,
+                correctCount,
+                attempts,
+                served: servedIds.length,
+                reviewPool: parseJson(item.review_pool, []).length,
+                itemDone
             },
             mastery: m,
             reward: {
