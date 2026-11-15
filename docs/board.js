@@ -12,7 +12,7 @@
 (function (global) {
   'use strict';
 
-  const ENGINE_SRC = 'widget-engine.js';
+  const ENGINE_SRC = 'widget-engine.js?v=2';
   const TYPE_SPEED = 34; // chars/second, same as the mascot's writing pace
 
   const SUPPORTED = [
@@ -200,6 +200,48 @@
     }
   };
 
+  const NUDGE = {
+    number_line: { key: 'point', step: 0.5, min: -10, max: 10 },
+    unit_circle: { key: 'angle', step: 15, min: 0, max: 360 },
+    function_plot: { key: 'a', step: 0.1, min: -2, max: 2 }
+  };
+
+  /** Tap-friendly step buttons, for touch screens and for anyone who dislikes sliders. */
+  function addNudges(canvas, widget, preset) {
+    const cfg = NUDGE[preset];
+    if (!cfg || !widget || !widget.state) return;
+    const controls = canvas.querySelector('.vl-widget-controls');
+    if (!controls) return;
+    const row = document.createElement('div');
+    row.className = 'vl-widget-control-row sx-board-nudge';
+    const label = document.createElement('label');
+    label.textContent = 'Step it';
+    const sync = () => {
+      const slider = controls.querySelector('input[type="range"]');
+      if (!slider) return;
+      slider.value = String(widget.state[cfg.key]);
+      const val = slider.parentElement && slider.parentElement.querySelector('.vl-widget-val');
+      if (val) val.textContent = slider.value;
+    };
+    const bump = (dir) => {
+      const next = Number(widget.state[cfg.key]) + dir * cfg.step;
+      widget.state[cfg.key] = Math.round(Math.min(cfg.max, Math.max(cfg.min, next)) * 100) / 100;
+      sync();
+      widget.update();
+    };
+    [['◀', -1, 'Move back'], ['▶', 1, 'Move forward']].forEach(([glyph, dir, aria]) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'sx-nudge';
+      btn.textContent = glyph;
+      btn.setAttribute('aria-label', aria);
+      btn.addEventListener('click', () => bump(dir));
+      row.appendChild(btn);
+    });
+    row.appendChild(label);
+    controls.appendChild(row);
+  }
+
   async function mountPreset(canvas, preset, params) {
     if (!preset || !SUPPORTED.includes(preset)) return false;
     try {
@@ -221,6 +263,7 @@
         behavior: { preset, params: merged }
       };
       state.widget = await engine.mountWidget(canvas, spec, { skipDrawing: true });
+      addNudges(canvas, state.widget, preset);
       return true;
     } catch (_) {
       return false;
