@@ -34,6 +34,28 @@ function parseJson(value, fallback) {
  * because the model did its arithmetic out loud. When that pattern shows up,
  * keep the finished sentences and drop the working.
  */
+/**
+ * A vague unit can make the model think out loud instead of teaching: "The user
+ * wants me to teach…". That is not a lesson. Keep the last paragraph that reads
+ * like it is addressed to the learner; if there is none, return nothing so the
+ * unit's own words are shown instead.
+ */
+function stripPlanning(text) {
+    const raw = String(text || '').trim();
+    const start = /^(the user|the learner|i need to|i should|i will|i'll|let me|we need to|okay\b|ok\b|hmm\b|since the unit)/i;
+    if (!start.test(raw)) return raw;
+    const meta = /^(the user|the learner|i need|i should|i'll|i will|let me|we need|okay|ok\b|hmm\b|since the unit|this is quite)/i;
+    const paras = raw
+        .split(/\n\s*\n/)
+        .map((p) => p.trim())
+        .filter(Boolean);
+    const usable = paras.filter(
+        (p) => !meta.test(p) && !/\bI (need|should|will|must)\b|\bThe user\b|\bthe learner\b/i.test(p.slice(0, 160))
+    );
+    const lesson = usable.length ? usable[usable.length - 1] : '';
+    return lesson.length >= 40 ? lesson : '';
+}
+
 function stripDrafting(text) {
     const raw = String(text || '');
     const quoted = raw.match(/"([^"]{8,})"\s*\(\d+\)/g) || [];
@@ -450,7 +472,8 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
               'Write only the words the learner should read: no planning, no counting words, ' +
               'no drafts in quotes.'
             : 'Teach this unit in under 120 words: the one idea, why it works, and a tiny worked example. ' +
-              'Do not ask a question and do not give the answer to any practice question. Use $...$ for math.';
+              'Do not ask a question and do not give the answer to any practice question. Use $...$ for math. ' +
+              'Write only the lesson the learner reads: no planning, no thinking out loud, no quoting these instructions.';
 
         let text = '';
         try {
@@ -489,7 +512,8 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
         } catch (err) {
             info(`[session] teach fallback: ${err.message}`);
         }
-        return { ok: true, text: stripDrafting(String(text || fallback).trim()), fallback: !text };
+        const cleaned = stripDrafting(stripPlanning(String(text || '').trim()));
+        return { ok: true, text: cleaned || fallback, fallback: !text || !cleaned };
     }
 
     /** More time on the clock, without losing the plan. */
