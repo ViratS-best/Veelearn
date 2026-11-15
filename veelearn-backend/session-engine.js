@@ -232,10 +232,14 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
     }
 
     function currentItem(items, index) {
-        const active = items.find((i) => i.status === 'active');
+        const open = items.filter((i) => i.status === 'active' || i.status === 'pending');
+        const active = open.find((i) => i.status === 'active');
         if (active && !reviewBlocked(active, items)) return active;
-        const pending = items.find((i) => i.status === 'pending' && !reviewBlocked(i, items));
+        const pending = open.find((i) => i.status === 'pending' && !reviewBlocked(i, items));
         if (pending) return pending;
+        // Blocked reviews only happen when their unit is already out of order; never
+        // leave the learner without a card when work is still open.
+        if (open.length) return open[0];
         const byIndex = items[Number(index)];
         return byIndex && byIndex.status !== 'deferred' ? byIndex : null;
     }
