@@ -459,6 +459,17 @@
     return Number.isFinite(n) ? n : fallback;
   }
 
+  /** A drag on the board keeps the matching slider honest. */
+  function syncControl(host, value) {
+    const card = host && host.closest ? host.closest('.vl-widget-card') : null;
+    if (!card) return;
+    const input = card.querySelector('.vl-widget-controls input[type="range"]');
+    if (!input) return;
+    input.value = String(value);
+    const val = input.parentElement && input.parentElement.querySelector('.vl-widget-val');
+    if (val) val.textContent = input.value;
+  }
+
   function pointOpts(el, color) {
     return {
       name: el.label || el.name || '',
@@ -721,6 +732,7 @@
       });
       p.on('drag', () => {
         state.point = Math.round(p.X() * 10) / 10;
+        syncControl(host, state.point);
         board.update();
       });
       opts._update = () => {
@@ -749,7 +761,8 @@
       // Dragging the point moves the angle instead of flinging it off the circle.
       tip.on('drag', () => {
         const deg = (Math.atan2(tip.Y(), tip.X()) * 180) / Math.PI;
-        state.angle = Math.round(deg);
+        state.angle = (Math.round(deg) + 360) % 360;
+        syncControl(host, state.angle);
         tip.setPosition(JXG.COORDS_BY_USER, [Math.cos(ang()), Math.sin(ang())]);
         board.update();
       });
