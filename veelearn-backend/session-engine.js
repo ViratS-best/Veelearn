@@ -207,7 +207,7 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
     async function focusItems(sessionId) {
         return query(
             `SELECT f.id, f.session_id, f.skill_id, f.ord, f.is_review, f.target_dots, f.status,
-                    f.correct_count, f.attempts, f.question_ids, f.frame_md, f.started_at, f.completed_at,
+                    f.correct_count, f.attempts, f.question_ids, f.frame_md, f.unit_index, f.started_at, f.completed_at,
                     s.name AS skill_name, s.code AS skill_code, s.track, s.intro_md
              FROM session_focus_items f
              JOIN skills s ON s.id = f.skill_id
@@ -298,6 +298,36 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
         return qbank.toCard(picked);
     }
 
+    /** A readable summary of a bank diagram, for prompts that only read text. */
+    function describeVisual(visual) {
+        if (!visual || typeof visual !== 'object') return '';
+        const bits = [];
+        for (const key of ['alt', 'caption', 'description', 'title', 'label']) {
+            if (visual[key]) bits.push(String(visual[key]));
+        }
+        if (!bits.length && typeof visual.svg === 'string') {
+            const texts = (visual.svg.match(/<text[^>]*>([^<]{2,140})<\/text>/gi) || [])
+                .slice(0, 8)
+                .map((t) => t.replace(/<[^>]+>/g, '').trim())
+                .filter(Boolean);
+            if (texts.length) bits.push(texts.join(' / '));
+        }
+        if (visual.type) bits.unshift(String(visual.type));
+        return bits.join(' · ').slice(0, 400);
+    }
+
+    /** The bank's diagram as something the vision model can actually look at. */
+    function visualImage(visual) {
+        if (!visual || typeof visual !== 'object') return null;
+        const raw = visual.image || visual.image_url || visual.url || visual.src;
+        if (typeof raw === 'string' && /^data:image\//.test(raw)) return raw;
+        if (typeof raw === 'string' && /^https?:\/\//.test(raw)) return raw;
+        if (typeof visual.svg === 'string' && /^\s*<svg/i.test(visual.svg)) {
+            return 'data:image/svg+xml;base64,' + Buffer.from(visual.svg).toString('base64');
+        }
+        return null;
+    }
+
     /**
      * A short lesson for the current unit, streamed token by token. The unit's own
      * text is the fallback, so even without a key the learner gets taught instead
@@ -318,6 +348,29 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
         const title = item.skill_name || (rows[0] && rows[0].name) || 'this unit';
         const frame = parseJson(session.turn_buffer, null);
         const asked = String(question || '').trim().slice(0, 400);
+
+        // Asking needs the card in front of the learner: without it Vee answered a
+        // generic question about the unit and never saw what the learner was on.
+        let cardBlock = '';
+        let cardImage = null;
+        try {
+            const qids = parseJson(item.question_ids, []);
+            const onCard = qids.length ? await qbank.getRaw(qids[qids.length - 1]) : null;
+            if (onCard) {
+                const choices = parseJson(onCard.options, [])
+                    .map((o) => `${o.k}. ${o.t}`)
+                    .join('\n');
+                const visual = parseJson(onCard.visual, null);
+                const visualText = describeVisual(visual);
+                cardImage = visualImage(visual);
+                cardBlock =
+                    `The learner is looking at this question right now: ${String(onCard.stem || '').slice(0, 500)}\n` +
+                    (choices ? `Choices:\n${choices.slice(0, 700)}\n` : '') +
+                    (visualText ? `Its diagram shows: ${visualText}\n` : '');
+            }
+        } catch (_) {
+            cardBlock = '';
+        }
         const fallback =
             unitText.slice(0, 900) ||
             (asked
@@ -327,8 +380,10 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
         if (typeof chatStream !== 'function') return { ok: true, text: fallback, fallback: true };
 
         const task = asked
-            ? `The learner asks: "${asked}"\nAnswer it directly in under 110 words, using this unit. ` +
-              'Do not reveal the answer to the practice question they are on. Use $...$ for math.'
+            ? `The learner asks: "${asked}"\n` +
+              (cardBlock ? `${cardBlock}\n` : '') +
+              'Answer their question about that card in under 120 words. Explain the idea behind it, ' +
+              'not which choice is correct. Use $...$ for math.'
             : 'Teach this unit in under 120 words: the one idea, why it works, and a tiny worked example. ' +
               'Do not ask a question and do not give the answer to any practice question. Use $...$ for math.';
 
@@ -344,12 +399,24 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
                     },
                     {
                         role: 'user',
-                        content:
-                            `Course: ${(frame && frame.title) || 'a self-study course'}\n` +
-                            `Unit: ${title}\n` +
-                            (unitText ? `Unit material: ${unitText.slice(0, 1200)}\n` : '') +
-                            '\n' +
-                            task
+                        content: cardImage
+                            ? [
+                                  {
+                                      type: 'text',
+                                      text:
+                                          `Course: ${(frame && frame.title) || 'a self-study course'}\n` +
+                                          `Unit: ${title}\n` +
+                                          (unitText ? `Unit material: ${unitText.slice(0, 1200)}\n` : '') +
+                                          '\n' +
+                                          task
+                                  },
+                                  { type: 'image_url', image_url: { url: cardImage } }
+                              ]
+                            : `Course: ${(frame && frame.title) || 'a self-study course'}\n` +
+                              `Unit: ${title}\n` +
+                              (unitText ? `Unit material: ${unitText.slice(0, 1200)}\n` : '') +
+                              '\n' +
+                              task
                     }
                 ],
                 { max_tokens: 320, temperature: 0.5, budgetMs: 25000, onDelta }
@@ -525,8 +592,9 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
             throw err;
         }
 
+        const unitLabel = wantCourse && plan[0] && plan[0].unitLabel ? String(plan[0].unitLabel).slice(0, 150) : null;
         const goalText = wantCourse
-            ? `Close ${plan.length} topic${plan.length === 1 ? '' : 's'} in this course`
+            ? unitLabel || `Close ${plan.length} topic${plan.length === 1 ? '' : 's'} in this course`
             : wantSprint
               ? 'Six items to your exam'
               : mins <= 10
@@ -562,8 +630,8 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
             const frameDigest = p.frame && p.frame.digest ? String(p.frame.digest) : null;
             await query(
                 `INSERT INTO session_focus_items
-                    (session_id, skill_id, ord, is_review, target_dots, status, correct_count, attempts, question_ids, frame_md)
-                 VALUES (?, ?, ?, ?, ?, 'pending', 0, 0, ?, ?)`,
+                    (session_id, skill_id, ord, is_review, target_dots, status, correct_count, attempts, question_ids, frame_md, unit_index)
+                 VALUES (?, ?, ?, ?, ?, 'pending', 0, 0, ?, ?, ?)`,
                 [
                     sessionId,
                     p.skillId,
@@ -571,7 +639,8 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
                     p.isReview ? 1 : 0,
                     p.targetDots,
                     JSON.stringify(seeded.length ? seeded.map(Number) : q ? [Number(q.id)] : []),
-                    frameDigest
+                    frameDigest,
+                    Number(p.unitIndex || 0)
                 ]
             );
         }

@@ -860,9 +860,37 @@ function createCreatorImpact({ query, log } = {}) {
         const isPlaceholder = (row) => /^course\./.test(String(row.skill.code || ''));
         const realSkills = ordered.filter((row) => !isPlaceholder(row));
         const has = (row) => (countById.get(Number(row.skill.id)) || 0) > 0;
+        // A master course is a course of units: one session covers one unit and the
+        // next start moves to the next unit the learner has not finished yet. A
+        // single-unit course has nowhere to go, so it keeps the course-wide plan.
+        const multiUnit = units.length > 1;
+        let unitTarget = null;
+        if (multiUnit) {
+            let doneRows = [];
+            try {
+                doneRows = await query(
+                    `SELECT f.unit_index, SUM(CASE WHEN f.completed_at IS NOT NULL THEN 1 ELSE 0 END) AS done
+                     FROM session_focus_items f
+                     JOIN sessions s ON s.id = f.session_id
+                     WHERE s.user_id = ? AND s.course_id = ?
+                     GROUP BY f.unit_index`,
+                    [userId, courseId]
+                );
+            } catch (_) {
+                doneRows = [];
+            }
+            const doneBy = new Map(doneRows.map((r) => [Number(r.unit_index), Number(r.done || 0)]));
+            unitTarget = units.find((u) => (doneBy.get(Number(u.ord)) || 0) === 0) || null;
+        }
+
         const qualified = realSkills.filter((row) => row.matched && has(row));
-        let picked = qualified.slice(0, count);
-        if (picked.length < count) {
+        const inTargetUnit = unitTarget
+            ? ordered.filter(
+                  (row) => row.matched && row.unit && Number(row.unit.ord) === Number(unitTarget.ord) && has(row)
+              )
+            : [];
+        let picked = inTargetUnit.length ? inTargetUnit.slice(0, count) : qualified.slice(0, count);
+        if (!inTargetUnit.length && picked.length < count) {
             // Topped up from the rest of the bank so the session still fills its
             // time budget when a unit has no matching skill with questions.
             const chosen = new Set(picked.map((row) => Number(row.skill.id)));
@@ -874,6 +902,13 @@ function createCreatorImpact({ query, log } = {}) {
             }
         }
         if (!picked.length) picked = realSkills.slice(0, count);
+        const unitInfo =
+            inTargetUnit.length && unitTarget
+                ? { ord: Number(unitTarget.ord), title: shortName(unitTarget.title || ''), total: units.length }
+                : null;
+        const unitLabel = unitInfo
+            ? `Unit ${unitInfo.ord + 1} of ${unitInfo.total}: ${unitInfo.title}`
+            : null;
         // A unit's prose is only this card's lesson when the unit is *about* the
         // skill. A chapter that mentions work in passing must not teach its own
         // topic while the card asks a work-energy question.
@@ -909,11 +944,12 @@ function createCreatorImpact({ query, log } = {}) {
                 targetDots: 2,
                 startTier: row.level >= 2 ? 3 : row.level >= 1 ? 2 : 1,
                 unitIndex: (row.unit || row.unitHint) ? (row.unit || row.unitHint).ord : 0,
+                unitLabel,
                 frame
             };
         });
 
-        return { course, report, items };
+        return { course, report, items, unit: unitInfo };
     }
 
     function hitIsMastered(row) {
