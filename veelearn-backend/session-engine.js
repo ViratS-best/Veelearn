@@ -260,6 +260,8 @@ function createSessionEngine({ query, qbank, log, chatStream } = {}) {
      * unit has nothing servable, the AI writes its questions at this exact moment
      * and they are stored, so the next visit is instant.
      */
+    const ensuring = new Map();
+
     async function ensureQuestion(item, userId) {
         const ids = parseJson(item.question_ids, []);
         const lastId = ids.length ? ids[ids.length - 1] : null;
@@ -272,9 +274,17 @@ function createSessionEngine({ query, qbank, log, chatStream } = {}) {
         if (!picked) picked = await qbank.pick({ skillId: item.skill_id, tier: 1, userId });
         if (!picked) {
             try {
-                const impact = require('./creator-impact')({ query, log });
-                const made = await impact.ensureQuestionsForSkill(item.skill_id);
-                if (made.length) picked = await qbank.getRaw(made[0]);
+                // Prefetch and the first render can race; one call per skill is enough.
+                let pending = ensuring.get(Number(item.skill_id));
+                if (!pending) {
+                    const impact = require('./creator-impact')({ query, log });
+                    pending = impact.ensureQuestionsForSkill(item.skill_id).finally(() => {
+                        setTimeout(() => ensuring.delete(Number(item.skill_id)), 5000);
+                    });
+                    ensuring.set(Number(item.skill_id), pending);
+                }
+                const made = await pending;
+                if (made && made.length) picked = await qbank.getRaw(made[0]);
             } catch (err) {
                 info(`[session] on-demand questions skipped: ${err.message}`);
             }
@@ -348,7 +358,7 @@ function createSessionEngine({ query, qbank, log, chatStream } = {}) {
         return { ok: true, added: add, state: await state(userId, sessionId) };
     }
 
-    async function state(userId, sessionId) {
+    async function state(userId, sessionId, { ensure = true } = {}) {
         const session = await sessionRow(userId, sessionId);
         if (!session) return null;
         const items = await focusItems(sessionId);
@@ -356,7 +366,7 @@ function createSessionEngine({ query, qbank, log, chatStream } = {}) {
         const remainingMs = Math.max(0, Number(session.minutes || 20) * 60000 - Number(session.elapsed_s || 0) * 1000);
 
         let question = null;
-        if (item && session.status === 'active') {
+        if (item && session.status === 'active' && ensure) {
             question = await ensureQuestion(item, userId);
         }
 
@@ -437,8 +447,11 @@ function createSessionEngine({ query, qbank, log, chatStream } = {}) {
                 [userId, wantCourse]
             );
             if (activeCourse.length) {
-                const existing = await state(userId, activeCourse[0].id);
-                if (existing && existing.question) return { ...existing, resumed: true };
+                const existing = await state(userId, activeCourse[0].id, { ensure: false });
+                // Resume even when the current unit has not written its card yet:
+                // the page prefetches it, and starting a second session would lose
+                // the plan the learner already has.
+                if (existing) return { ...existing, resumed: true };
             }
         }
 
@@ -549,7 +562,8 @@ function createSessionEngine({ query, qbank, log, chatStream } = {}) {
             courseId: wantCourse || null
         });
 
-        const fresh = await state(userId, sessionId);
+        // No generation here: opening a session must not wait on the model.
+        const fresh = await state(userId, sessionId, { ensure: false });
         return { ...fresh, resumed: false };
     }
 

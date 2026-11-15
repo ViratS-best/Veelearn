@@ -305,6 +305,15 @@
     // Teach on arrival: the first thing a learner sees is Vee explaining, and the
     // text is being written while they read it.
     teach();
+    // Meanwhile the unit's first question is being written server-side. Fetch it
+    // in the background so "Let's go" usually has it already.
+    if (!sessionState.question) {
+      api(`/api/session/${state.id}`)
+        .then((next) => {
+          if (next && next.question) state.prefetched = next;
+        })
+        .catch(() => {});
+    }
 
     const btn = el('sx-intro-start');
     btn.disabled = false;
@@ -318,6 +327,11 @@
       }
       // No card yet: the server writes one on demand, so wait for it instead of
       // bouncing between intro and a refresh that never resolves.
+      if (state.prefetched && state.prefetched.question) {
+        applyState(state.prefetched);
+        state.prefetched = null;
+        return;
+      }
       showWriting();
       loadCard();
     };

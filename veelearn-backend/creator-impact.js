@@ -685,6 +685,9 @@ function createCreatorImpact({ query, log } = {}) {
         buckets.forEach((bucket, unitIndex) => {
             if (!bucket.length) return;
             const unit = list[unitIndex];
+            // The course's "what you will learn" section is a table of contents,
+            // not a unit to practise: it wasted a plan slot and forced an AI call.
+            if (/^what you will learn/i.test(String(unit.title || ''))) return;
             items.push({
                 ord: items.length,
                 skillId: skillByCode.get(`course.${course.id}.u${unit.ord}`),

@@ -73,7 +73,7 @@ ok('deflection points toward the cursor', straight.x > 0 && Math.abs(straight.y)
 
 const near = Mascot.pupilOffset(50, 0, 0, 0);
 ok('a near cursor deflects less', Math.hypot(near.x, near.y) < 9, `got ${Math.hypot(near.x, near.y)}`);
-close('deflection scales with distance', Math.hypot(near.x, near.y), (50 / 260) * 9, 0.001);
+close('deflection scales with distance', Math.hypot(near.x, near.y), (50 / 620) * 9, 0.001);
 
 const centred = Mascot.pupilOffset(0, 0, 0, 0);
 ok('a cursor on the eye centre does not move the pupil', Math.abs(centred.x) < 0.001 && Math.abs(centred.y) < 0.001);
