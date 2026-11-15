@@ -707,17 +707,26 @@
           board.create('point', [readCoord(el, 'x', 0), 0], pointOpts(el));
         }
       });
-      if (state.point != null) {
-        const p = board.create(
-          'point',
-          [Number(state.point) || 0, 0],
-          pointOpts({ name: 'P', label: 'P', color: '#e74c3c', fixed: false })
-        );
-        opts._update = () => {
-          p.setPosition(JXG.COORDS_BY_USER, [Number(state.point) || 0, 0]);
-          board.update();
-        };
-      }
+      // A point the student can drag, and a live readout of where it is.
+      const start = Number(state.point != null ? state.point : params.point != null ? params.point : 0) || 0;
+      state.point = start;
+      const p = board.create(
+        'point',
+        [start, 0],
+        pointOpts({ name: 'P', label: 'P', color: '#e74c3c', fixed: false })
+      );
+      board.create('text', [-9.4, 1.15, () => `P at x = ${Math.round(p.X() * 10) / 10}`], {
+        fontSize: 14,
+        strokeColor: '#f8fafc'
+      });
+      p.on('drag', () => {
+        state.point = Math.round(p.X() * 10) / 10;
+        board.update();
+      });
+      opts._update = () => {
+        p.setPosition(JXG.COORDS_BY_USER, [Number(state.point) || 0, 0]);
+        board.update();
+      };
       return { board };
     }
 
@@ -725,13 +734,29 @@
       board.setBoundingBox([-1.8, 1.8, 1.8, -1.8]);
       board.create('circle', [[0, 0], 1], { strokeColor: '#667eea' });
       const ang = () => ((Number(state.angle) || 0) * Math.PI) / 180;
+      if (state.angle == null) state.angle = 0;
       const tip = board.create(
         'point',
-        [() => Math.cos(ang()), () => Math.sin(ang())],
+        [Math.cos(ang()), Math.sin(ang())],
         pointOpts({ name: 'P', label: 'P', color: '#e74c3c', fixed: false })
       );
       board.create('segment', [[0, 0], tip], { strokeColor: '#e74c3c' });
-      opts._update = () => board.update();
+      board.create(
+        'text',
+        [-1.7, 1.55, () => `θ = ${Math.round(Number(state.angle) || 0)}°  (${tip.X().toFixed(2)}, ${tip.Y().toFixed(2)})`],
+        { fontSize: 12, strokeColor: '#f8fafc' }
+      );
+      // Dragging the point moves the angle instead of flinging it off the circle.
+      tip.on('drag', () => {
+        const deg = (Math.atan2(tip.Y(), tip.X()) * 180) / Math.PI;
+        state.angle = Math.round(deg);
+        tip.setPosition(JXG.COORDS_BY_USER, [Math.cos(ang()), Math.sin(ang())]);
+        board.update();
+      });
+      opts._update = () => {
+        tip.setPosition(JXG.COORDS_BY_USER, [Math.cos(ang()), Math.sin(ang())]);
+        board.update();
+      };
       return { board };
     }
 

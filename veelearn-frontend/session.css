@@ -437,6 +437,9 @@
   left: 0;
   width: 112px;
   height: 112px;
+  /* the host ignores pointer events so text stays selectable; Vee itself is clickable */
+  pointer-events: auto;
+  cursor: pointer;
   will-change: transform;
   transition: transform 420ms cubic-bezier(0.32, 0.72, 0, 1);
 }
@@ -651,7 +654,9 @@
 
 /* ------------------------------------------------------------------ motion */
 @media (max-width: 720px) {
-  .sx-mascot-host { display: none; }
+  /* Split-screen: a smaller Vee docked in the card corner, never hidden. */
+  .sx-mascot-dock { width: 64px; height: 64px; }
+  .sx-mascot-svg svg { width: 64px; height: 64px; }
   .sx-board { inset: 6px; padding: 14px; }
   .sx-board-body { grid-template-columns: minmax(0, 1fr); }
 }

@@ -166,29 +166,43 @@
   }
 
   // -------------------------------------------------------------- movement
+  /** Split-screen laptops still deserve a tutor: shrink and dock instead. */
+  function compactMode() {
+    return typeof global.matchMedia === 'function' && global.matchMedia('(max-width: 720px)').matches;
+  }
+
+  function mascotSize() {
+    return compactMode() ? 64 : 112;
+  }
+
   function placeFor(anchorEl) {
     const el = q(anchorEl);
     const stage = state.rects.stage || stageRect();
+    const size = mascotSize();
     if (!el) {
       // never throw, never guess: fall back to the centre of the problem card
-      return { x: stage.width / 2 - 56, y: stage.height - 130 };
+      return { x: stage.width / 2 - size / 2, y: stage.height - size - 18 };
     }
     const r = el.getBoundingClientRect();
-    let x = r.left - stage.left - 118; // sit to the left of what we point at
-    let y = r.top - stage.top + r.height / 2 - 56;
+    if (compactMode()) {
+      // Narrow: pin to the card's top-right corner, clear of the text column.
+      return { x: clamp(stage.width - size - 8, 8, Math.max(8, stage.width - size - 8)), y: 6 };
+    }
+    let x = r.left - stage.left - (size + 6); // sit to the left of what we point at
+    let y = r.top - stage.top + r.height / 2 - size / 2;
 
     if (x < 8) x = r.right - stage.left + 10; // no room on the left, go right
-    x = clamp(x, 8, Math.max(8, stage.width - 120));
-    y = clamp(y, 8, Math.max(8, stage.height - 120));
+    x = clamp(x, 8, Math.max(8, stage.width - size - 8));
+    y = clamp(y, 8, Math.max(8, stage.height - size - 8));
 
     // never cover the answer options
     const opts = state.rects.options;
     if (opts) {
-      const box = { left: stage.left + x, top: stage.top + y, right: stage.left + x + 112, bottom: stage.top + y + 112 };
+      const box = { left: stage.left + x, top: stage.top + y, right: stage.left + x + size, bottom: stage.top + y + size };
       const hit = !(box.right < opts.left || box.left > opts.right || box.bottom < opts.top || box.top > opts.bottom);
       if (hit) {
-        const above = opts.top - stage.top - 122;
-        y = above > 8 ? above : clamp(opts.bottom - stage.top + 10, 8, Math.max(8, stage.height - 120));
+        const above = opts.top - stage.top - (size + 10);
+        y = above > 8 ? above : clamp(opts.bottom - stage.top + 10, 8, Math.max(8, stage.height - size - 8));
       }
     }
     return { x, y };
@@ -206,6 +220,7 @@
 
     state.target = dest;
     state.targetFlip = flip;
+    state.lastAnchor = anchorEl;
     state.lastNarration = performance.now();
 
     const dock = state.dock;
@@ -448,6 +463,16 @@
     state.dock = dock;
     state.bobEl = bob;
     state.bubbleEl = bubble;
+
+    // Crossing the split-screen threshold re-homes the mascot instead of
+    // leaving it parked at coordinates from the other width.
+    if (!state.onResize) {
+      state.onResize = () => {
+        invalidate();
+        if (state.lastAnchor) moveTo(state.lastAnchor, { instant: true });
+      };
+      global.addEventListener('resize', state.onResize);
+    }
 
     const src = options.src || 'assets/learner/mascot-rig.svg';
 

@@ -172,20 +172,53 @@
     }
   }
 
+  /**
+   * A drawing the student cannot touch is a picture. Each quick-draw preset gets
+   * one control the learner can move, and the same state can be dragged on the
+   * board itself (the point on the line, the point on the circle).
+   */
+  const INTERACTIVE = {
+    number_line: {
+      objective: 'Drag the point, or slide it — the readout follows.',
+      state: { point: 2 },
+      inputs: [
+        { key: 'point', label: 'Point on the line', type: 'slider', min: -10, max: 10, step: 0.5 }
+      ],
+      outputs: [{ key: 'point', label: 'position' }]
+    },
+    unit_circle: {
+      objective: 'Drag the point around the circle, or set the angle.',
+      state: { angle: 45 },
+      inputs: [{ key: 'angle', label: 'Angle (degrees)', type: 'slider', min: 0, max: 360, step: 5 }],
+      outputs: [{ key: 'angle', label: 'angle' }]
+    },
+    function_plot: {
+      objective: 'Change a and watch the curve bend.',
+      state: { a: 1 },
+      inputs: [{ key: 'a', label: 'a in y = a·x²', type: 'slider', min: -2, max: 2, step: 0.1 }],
+      outputs: [{ key: 'a', label: 'a' }]
+    }
+  };
+
   async function mountPreset(canvas, preset, params) {
     if (!preset || !SUPPORTED.includes(preset)) return false;
     try {
       const engine = await loadEngine();
       if (!engine || typeof engine.mountWidget !== 'function') return false;
+      const extra = INTERACTIVE[preset] || { objective: '', state: {}, inputs: [], outputs: [] };
+      const merged = Object.assign({}, params || {});
+      if (preset === 'function_plot' && !(merged.expressions || []).length) {
+        merged.expressions = ['a*x^2'];
+      }
       const spec = {
         id: 'session-board-widget',
         title: 'Board diagram',
-        objective: '',
+        objective: extra.objective,
         view: { type: viewType(preset), width: 520, height: 300 },
-        state: {},
-        inputs: [],
-        outputs: [],
-        behavior: { preset, params: params || {} }
+        state: Object.assign({}, extra.state),
+        inputs: extra.inputs,
+        outputs: extra.outputs,
+        behavior: { preset, params: merged }
       };
       state.widget = await engine.mountWidget(canvas, spec, { skipDrawing: true });
       return true;
