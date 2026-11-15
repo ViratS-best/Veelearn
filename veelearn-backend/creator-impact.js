@@ -884,10 +884,14 @@ function createCreatorImpact({ query, log } = {}) {
         }
 
         const qualified = realSkills.filter((row) => row.matched && has(row));
+        // The unit's best-guess skills, with questions. A bank with no strong topic
+        // match for a unit still gives that unit a session, and the card keeps its
+        // own skill intro as the lesson, so nothing drifts to another chapter.
         const inTargetUnit = unitTarget
-            ? ordered.filter(
-                  (row) => row.matched && row.unit && Number(row.unit.ord) === Number(unitTarget.ord) && has(row)
-              )
+            ? ordered.filter((row) => {
+                  const where = row.unit || row.unitHint;
+                  return Boolean(where) && Number(where.ord) === Number(unitTarget.ord) && has(row);
+              })
             : [];
         let picked = inTargetUnit.length ? inTargetUnit.slice(0, count) : qualified.slice(0, count);
         if (!inTargetUnit.length && picked.length < count) {
