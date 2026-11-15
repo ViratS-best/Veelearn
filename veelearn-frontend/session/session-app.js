@@ -49,6 +49,14 @@
    * when a later render happened to land), remember that a typeset is owed and
    * run it the moment the typesetter is up.
    */
+  let typesetTimer = null;
+
+  /**
+   * MathJax rejects a typeset call made while it is still working on the previous
+   * one (which is exactly what happens when a streamed lesson is being typeset as
+   * the first question appears). Coalesce the calls, and retry if it was busy —
+   * otherwise the stem kept its raw dollars until some later render.
+   */
   function typesetContent() {
     if (!mathReady()) {
       mathPending = true;
@@ -65,13 +73,20 @@
       setTimeout(wait, 120);
       return;
     }
+    clearTimeout(typesetTimer);
+    typesetTimer = setTimeout(() => runTypeset(0), 60);
+  }
+
+  function runTypeset(attempt) {
     const nodes = ['sx-stem', 'sx-options', 'sx-feedback', 'sx-hintbox', 'sx-intro-text']
       .map((id) => document.getElementById(id))
       .filter(Boolean);
     if (!nodes.length) return;
     Promise.resolve(window.MathJax.startup.promise)
       .then(() => window.MathJax.typesetPromise(nodes))
-      .catch(() => {});
+      .catch(() => {
+        if (attempt < 6) setTimeout(() => runTypeset(attempt + 1), 220);
+      });
   }
 
   const state = {
