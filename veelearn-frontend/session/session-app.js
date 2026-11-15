@@ -1170,10 +1170,11 @@
     const s = String(question || '').toLowerCase();
     if (/number line/.test(s)) return 'number_line';
     if (/unit circle|sine|cosine|trig/.test(s)) return 'unit_circle';
-    if (/triangle|angle|area of|geometry/.test(s)) return 'triangle_lab';
-    if (/projectile|velocity|throw|launch/.test(s)) return 'projectile';
+    if (/triangle|angle|area of|geometry/.test(s)) return 'unit_circle';
+    if (/projectile|velocity|throw|launch/.test(s)) return 'function_plot';
     if (/graph|plot|parabola|function|curve|slope|line/.test(s)) return 'function_plot';
-    return 'geometry_board';
+    if (/number|order|value|position|distance/.test(s)) return 'number_line';
+    return 'function_plot';
   }
 
   /** Vee draws a small interactive sketch when the question asks to be shown. */
@@ -1195,11 +1196,16 @@
     const steps = (state.lastSolution && state.lastSolution.steps) || [];
     const visual = state.question && state.question.visual;
     const spec = visual && typeof visual === 'object' ? visual : {};
+    const hint = `${(state.item && state.item.name) || ''} ${(state.question && state.question.stem) || ''}`;
+    // Never open an empty board: with no worked steps and no item diagram, Vee
+    // still draws something the learner can move.
+    if (!steps.length && !spec.preset) return openQuickDraw(hint);
+    const preset = spec.preset || boardPresetFor(hint);
     if (window.Mascot) Mascot.mood('writing');
     Board.open({
       title: state.item ? state.item.name : 'On the board',
       steps,
-      preset: spec.preset,
+      preset,
       params: spec.params
     })
       .then(() => {
