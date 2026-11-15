@@ -42,14 +42,73 @@ function createQBank({ query }) {
         };
     }
 
-    /** Full row, server-side only. */
+    const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
+
+    /**
+     * Deterministic Fisher-Yates. Seeded by the question id so the same row keeps
+     * the same order across requests, which is what makes the repair idempotent.
+     */
+    function shuffledOptions(options, seed) {
+        const list = options.slice();
+        let s = (Number(seed) || 1) % 4294967296;
+        const rand = () => {
+            s = (s * 1103515245 + 12345) % 2147483648;
+            return s / 2147483648;
+        };
+        for (let i = list.length - 1; i > 0; i -= 1) {
+            const j = Math.floor(rand() * (i + 1));
+            const tmp = list[i];
+            list[i] = list[j];
+            list[j] = tmp;
+        }
+        return list;
+    }
+
+    /**
+     * Full row, server-side only.
+     *
+     * A bank built from creator quizzes tends to put the correct choice first, so
+     * every card read "the answer is A". The first time such a row is served its
+     * options are shuffled and the key rewritten; every later read is consistent.
+     */
     async function getRaw(questionId) {
         const rows = await query(
             `SELECT id, skill_id, tier, qtype, stem, options, answer, hints, solution_steps, visual, live
              FROM qbank_items WHERE id = ? LIMIT 1`,
             [questionId]
         );
-        return rows[0] || null;
+        const row = rows[0];
+        if (!row) return null;
+        const options = parseJson(row.options, []);
+        const key = String(row.answer == null ? '' : row.answer).trim().toUpperCase();
+        if (Array.isArray(options) && options.length >= 3 && options[0] && options[0].k === key) {
+            const mixed = shuffledOptions(options, row.id);
+            const correctText = (options.find((o) => o.k === key) || {}).t;
+            // A shuffle that happens to leave the key first is exactly the bug the
+            // learner reported, so move it off the first slot on purpose.
+            let at = mixed.findIndex((o) => o.t === correctText);
+            if (at === 0) {
+                const moveTo = 1 + (Number(row.id) % (mixed.length - 1));
+                const tmp = mixed[0];
+                mixed[0] = mixed[moveTo];
+                mixed[moveTo] = tmp;
+                at = moveTo;
+            }
+            const remapped = mixed.map((o, i) => Object.assign({}, o, { k: LETTERS[i] }));
+            const newKey = remapped[at] ? remapped[at].k : LETTERS[0];
+            try {
+                await query('UPDATE qbank_items SET options = ?, answer = ? WHERE id = ?', [
+                    JSON.stringify(remapped),
+                    newKey,
+                    row.id
+                ]);
+                row.options = remapped;
+                row.answer = newKey;
+            } catch (_) {
+                /* serving an unshuffled row beats failing the card */
+            }
+        }
+        return row;
     }
 
     /** Distractor-specific explanation, released only after a wrong answer. */
@@ -179,6 +238,7 @@ function createQBank({ query }) {
         pickUnserved,
         solutionFor,
         toCard,
+        shuffledOptions,
         tracks,
         whyFor
     };

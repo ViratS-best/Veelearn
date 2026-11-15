@@ -16,8 +16,8 @@
       };
     </script>
     <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
-    <link rel="stylesheet" href="styles-learner-shell.css?v=19">
-    <link rel="stylesheet" href="session.css?v=3">
+    <link rel="stylesheet" href="styles-learner-shell.css?v=20">
+    <link rel="stylesheet" href="session.css?v=4">
     <script>
       // Match the dashboard theme the learner bought in the gem store.
       (function () {
@@ -39,6 +39,7 @@
             </div>
             <div class="sx-top-right">
                 <div class="sx-timer" id="sx-timer" role="timer" aria-label="Time left">--:--</div>
+                <button type="button" class="sx-ghost sx-extend" id="sx-extend" title="Add 10 minutes to this session">+10 min</button>
                 <div class="sx-xp" id="sx-xp">0 XP</div>
             </div>
         </header>
@@ -60,7 +61,11 @@
                     <p class="sx-kicker" id="sx-intro-kicker">New skill</p>
                     <h2 class="sx-skill" id="sx-intro-skill"></h2>
                     <p class="sx-intro" id="sx-intro-text"></p>
-                    <button type="button" class="sx-btn sx-primary" id="sx-intro-start">Let's go</button>
+                    <div class="sx-teach-status" id="sx-teach-status" hidden>Vee is explaining this unit…</div>
+                    <div class="sx-intro-actions">
+                        <button type="button" class="sx-btn sx-primary" id="sx-intro-start">Let's go</button>
+                        <button type="button" class="sx-ghost" id="sx-intro-teach">Teach me first</button>
+                    </div>
                 </article>
 
                 <article class="sx-card" id="sx-question-card" hidden>
@@ -103,10 +108,10 @@
     </div>
 
     <script src="session/learning-map.js"></script>
-    <script src="mascot.js?v=2"></script>
+    <script src="mascot.js?v=3"></script>
     <script src="annotate.js"></script>
     <script src="board.js"></script>
     <script src="celebrate.js"></script>
-    <script src="session/session-app.js?v=3"></script>
+    <script src="session/session-app.js?v=4"></script>
 </body>
 </html>

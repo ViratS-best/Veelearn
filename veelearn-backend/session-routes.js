@@ -24,7 +24,14 @@ function createSessionRoutes({
     sendEmail
 } = {}) {
     const qbank = injectedQBank || createQBank({ query });
-    const engine = createSessionEngine({ query, qbank, log });
+    const engine = createSessionEngine({
+        query,
+        qbank,
+        log,
+        // Streaming is only wired when the caller did not inject its own client
+        // (tests pass a fake `chat`, which has no stream variant).
+        chatStream: chat ? null : require('./ai-chat').aiChatCompletionStream
+    });
     // `chat` is injectable so the AI loop can be tested without a key.
     const ai = createSessionAI({ query, qbank, chat, log });
     // P4/P5 surfaces. Both are injectable so their tests stay offline.
@@ -120,6 +127,46 @@ function createSessionRoutes({
                 return apiResponse(res, 200, 'OK', data);
             } catch (e) {
                 return fail(res, e, 'Could not load the session');
+            }
+        },
+
+        /**
+         * POST /api/session/:sessionId/teach
+         * Server-sent events: a short lesson for the current unit, typed live.
+         */
+        async teach(req, res) {
+            const id = sessionIdFrom(req);
+            res.writeHead(200, {
+                'Content-Type': 'text/event-stream; charset=utf-8',
+                'Cache-Control': 'no-cache, no-transform',
+                Connection: 'keep-alive',
+                'X-Accel-Buffering': 'no'
+            });
+            const send = (event, data) => {
+                try {
+                    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+                } catch (_) {
+                    /* client went away */
+                }
+            };
+            try {
+                const out = await engine.teach(req.user.id, id, { onDelta: (t) => send('delta', { t }) });
+                if (out.error) send('error', { message: out.message });
+                else send('done', { text: out.text, fallback: out.fallback });
+            } catch (e) {
+                send('error', { message: (e && e.message) || 'Could not teach this unit' });
+            }
+            res.end();
+        },
+
+        /** POST /api/session/:sessionId/extend { minutes } */
+        async extend(req, res) {
+            try {
+                const out = await engine.extend(req.user.id, sessionIdFrom(req), req.body?.minutes);
+                if (out.error) return apiResponse(res, out.error, out.message);
+                return apiResponse(res, 200, 'Session extended', out);
+            } catch (e) {
+                return fail(res, e, 'Could not extend the session');
             }
         },
 

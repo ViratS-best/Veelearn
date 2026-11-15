@@ -1037,7 +1037,7 @@ function addSession(db, { id, userId, courseId, minutes = 14, items = 4, ended =
         ok('the rate route is mounted', /'\/api\/session\/:sessionId\/rate'/.test(server));
         ok('the teacher session list is mounted', /'\/api\/teacher\/session-assignments'/.test(server));
         ok('history searches skill names in SQL', /sk\.name LIKE/.test(engineSrc));
-        ok('history returns the { sessions, count } envelope', /sessions, count: sessions\.length/.test(routesSrc));
+        ok('history returns the { sessions, count } envelope', /sessions: filtered, count: filtered\.length/.test(routesSrc));
     }
 
     // ------------------------------------------------------------- the report

@@ -21,7 +21,8 @@
   }
 
   const params = new URLSearchParams(window.location.search);
-  const requestedMinutes = Math.min(45, Math.max(5, parseInt(params.get('minutes') || '10', 10) || 10));
+  const storedMinutes = parseInt((() => { try { return localStorage.getItem('learnerSessionMinutes') || ''; } catch (_) { return ''; } })(), 10);
+  const requestedMinutes = Math.min(90, Math.max(5, parseInt(params.get('minutes') || '', 10) || storedMinutes || 15));
   const requestedTrack = params.get('track') || '';
   const requestedMode = params.get('mode') || '';
   const requestedCourse = params.get('course') || '';
@@ -35,14 +36,42 @@
 
   // MathJax arrives async; every render asks it to typeset the live nodes so a
   // stem like $(x-r)^2$ never shows as raw dollars.
-  function typesetContent() {
+  let mathPending = false;
+
+  function mathReady() {
     const mj = window.MathJax;
-    if (!mj || typeof mj.typesetPromise !== 'function') return;
+    return !!(mj && mj.startup && typeof mj.typesetPromise === 'function');
+  }
+
+  /**
+   * MathJax is loaded async, so the first renders happen before it exists. Rather
+   * than dropping those calls (which is why LaTeX only appeared after answering,
+   * when a later render happened to land), remember that a typeset is owed and
+   * run it the moment the typesetter is up.
+   */
+  function typesetContent() {
+    if (!mathReady()) {
+      mathPending = true;
+      const wait = () => {
+        if (mathReady()) {
+          if (mathPending) {
+            mathPending = false;
+            typesetContent();
+          }
+          return;
+        }
+        setTimeout(wait, 120);
+      };
+      setTimeout(wait, 120);
+      return;
+    }
     const nodes = ['sx-stem', 'sx-options', 'sx-feedback', 'sx-hintbox', 'sx-intro-text']
       .map((id) => document.getElementById(id))
       .filter(Boolean);
     if (!nodes.length) return;
-    Promise.resolve(mj.typesetPromise(nodes)).catch(() => {});
+    Promise.resolve(window.MathJax.startup.promise)
+      .then(() => window.MathJax.typesetPromise(nodes))
+      .catch(() => {});
   }
 
   const state = {
@@ -173,6 +202,78 @@
   }
 
   // -------------------------------------------------------------------- cards
+  /**
+   * A lesson written now, for this unit, streamed as the model types it. The
+   * static `item.intro` is only the seed: the learner watches it being written
+   * instead of being handed the finished paragraph after a spinner.
+   */
+  async function streamTeach(container, { silent } = {}) {
+    if (!state.id) return '';
+    const box = container || el('sx-intro-text');
+    if (!box) return '';
+    box.textContent = '';
+    box.classList.add('is-streaming');
+    el('sx-teach-status').hidden = !silent;
+
+    let text = '';
+    let typesetAt = 0;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/session/${state.id}/teach`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({})
+      });
+      if (!res.ok || !res.body) throw new Error('teach unavailable');
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const frames = buffer.split('\n\n');
+        buffer = frames.pop() || '';
+        for (const frame of frames) {
+          const lines = frame.split('\n');
+          const event = (lines.find((l) => l.startsWith('event:')) || '').slice(6).trim();
+          const dataLine = lines.find((l) => l.startsWith('data:'));
+          if (!dataLine) continue;
+          let data = {};
+          try {
+            data = JSON.parse(dataLine.slice(5).trim());
+          } catch (_) {
+            continue;
+          }
+          if (event === 'delta' && data.t) {
+            // One chunk at a time: this is the model's own token, not a replay.
+            text += data.t;
+            box.textContent = text;
+            if (Date.now() - typesetAt > 700) {
+              typesetAt = Date.now();
+              typesetContent();
+            }
+          } else if (event === 'done' && data.text) {
+            text = data.text;
+            box.textContent = text;
+          }
+        }
+      }
+    } catch (_) {
+      text = box.textContent || '';
+    }
+    if (!String(text).trim() && state.item && state.item.intro) {
+      text = state.item.intro;
+      box.textContent = text;
+    }
+
+    box.classList.remove('is-streaming');
+    el('sx-teach-status').hidden = true;
+    typesetContent();
+    return text;
+  }
+
   function showIntro(sessionState) {
     const item = sessionState.item;
     hideCards();
@@ -180,19 +281,76 @@
     el('sx-intro').hidden = false;
     el('sx-intro-kicker').textContent = item.isReview ? 'Review' : 'New skill';
     el('sx-intro-skill').textContent = item.name;
-    el('sx-intro-text').textContent =
-      item.intro || 'Take this one slowly. You will get a few questions on it and a hint whenever you want one.';
+    el('sx-intro-text').textContent = item.intro || '';
     if (state.visualReady && window.Mascot) {
       Mascot.mood('talking');
       Promise.resolve(Mascot.pointAt('#sx-intro-text')).catch(() => {});
     }
 
+    const teachBtn = el('sx-intro-teach');
+    let taught = false;
+    const teach = async () => {
+      if (teachBtn) {
+        teachBtn.disabled = true;
+        teachBtn.textContent = 'Writing…';
+      }
+      await streamTeach(el('sx-intro-text'));
+      taught = true;
+      if (teachBtn) {
+        teachBtn.disabled = false;
+        teachBtn.textContent = 'Explain it again';
+      }
+    };
+    if (teachBtn) teachBtn.onclick = teach;
+    // Teach on arrival: the first thing a learner sees is Vee explaining, and the
+    // text is being written while they read it.
+    teach();
+
     const btn = el('sx-intro-start');
+    btn.disabled = false;
+    btn.textContent = "Let's go";
     btn.onclick = () => {
       state.introSeen.add(Number(item.id));
-      if (sessionState.question) showQuestion(sessionState.question, item);
-      else refresh();
+      state.item = item;
+      if (sessionState.question) {
+        showQuestion(sessionState.question, item);
+        return;
+      }
+      // No card yet: the server writes one on demand, so wait for it instead of
+      // bouncing between intro and a refresh that never resolves.
+      showWriting();
+      loadCard();
     };
+    return taught;
+  }
+
+  /** The "Vee is writing this one" state while a question is generated. */
+  function showWriting() {
+    hideCards();
+    el('sx-loading').hidden = false;
+    el('sx-loading').textContent = 'Vee is writing this question…';
+  }
+
+  /** Fetch the session until it has a card for the current item (on-demand AI). */
+  async function loadCard(tries = 0) {
+    try {
+      const sessionState = await api(`/api/session/${state.id}`);
+      if (sessionState.question) {
+        applyState(sessionState);
+        return;
+      }
+      if (sessionState.summary || sessionState.session.status === 'completed') {
+        applyState(sessionState);
+        return;
+      }
+      if (tries < 14) {
+        setTimeout(() => loadCard(tries + 1), 2000);
+        return;
+      }
+      showError('That unit has no questions yet. Try another session.');
+    } catch (err) {
+      showError(err.message);
+    }
   }
 
   function renderOptions(options) {
@@ -208,6 +366,7 @@
       btn.addEventListener('click', () => submit(opt.k));
       box.appendChild(btn);
     });
+    typesetContent();
   }
 
   function setOptionsEnabled(enabled) {
@@ -615,7 +774,7 @@
           xp: Number(session.xpAwarded || reward.xp || 0),
           gems: Number(session.gemsAwarded || reward.gems || 0),
           onChoose: (choice) => {
-            if (choice === 'keep') window.location.href = 'session.html?minutes=10';
+            if (choice === 'keep') window.location.href = `session.html?minutes=${state.session ? state.session.minutes : requestedMinutes}`;
           }
         });
       }
@@ -679,7 +838,6 @@
   function ruleFirstMiss(optionEl, result) {
     if (window.Mascot) Mascot.mood('oops');
     ink(() => Annotate.circle({ anchor: optionEl, ms: 380 }));
-    ink(() => Annotate.curve({ anchor: '#sx-feedback [data-annotate="why"]', ms: 400 }));
     ink(() => Mascot.moveTo('#sx-feedback [data-annotate="why"]'));
 
     const why = String(result.why || '');
@@ -1089,8 +1247,27 @@
     }
   }
 
+  async function extendSession() {
+    const btn = el('sx-extend');
+    if (!state.id || !btn) return;
+    btn.disabled = true;
+    btn.textContent = 'Adding…';
+    try {
+      const out = await api(`/api/session/${state.id}/extend`, { minutes: 10 });
+      if (out && out.state) applyState(out.state);
+      else refresh();
+    } catch (err) {
+      showError(err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '+10 min';
+    }
+  }
+
   function wire() {
     wireShortcuts();
+    const extendBtn = el('sx-extend');
+    if (extendBtn) extendBtn.addEventListener('click', extendSession);
     el('sx-hint-btn').addEventListener('click', askHint);
     el('sx-skip-btn').addEventListener('click', skip);
     el('sx-end-btn').addEventListener('click', () => finish('quit'));

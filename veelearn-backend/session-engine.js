@@ -26,7 +26,7 @@ function parseJson(value, fallback) {
     }
 }
 
-function createSessionEngine({ query, qbank, log } = {}) {
+function createSessionEngine({ query, qbank, log, chatStream } = {}) {
     const info = (log && log.info) || (() => {});
 
     // ---------------------------------------------------------------- rewards
@@ -253,6 +253,101 @@ function createSessionEngine({ query, qbank, log } = {}) {
         return out;
     }
 
+    /**
+     * The card the learner is about to see — always a real one.
+     *
+     * Course units no longer arrive with questions written ahead of time. When a
+     * unit has nothing servable, the AI writes its questions at this exact moment
+     * and they are stored, so the next visit is instant.
+     */
+    async function ensureQuestion(item, userId) {
+        const ids = parseJson(item.question_ids, []);
+        const lastId = ids.length ? ids[ids.length - 1] : null;
+        if (lastId) {
+            const raw = await qbank.getRaw(lastId);
+            if (raw) return qbank.toCard(raw);
+        }
+
+        let picked = await qbank.pickUnserved({ skillId: item.skill_id, exclude: [] });
+        if (!picked) picked = await qbank.pick({ skillId: item.skill_id, tier: 1, userId });
+        if (!picked) {
+            try {
+                const impact = require('./creator-impact')({ query, log });
+                const made = await impact.ensureQuestionsForSkill(item.skill_id);
+                if (made.length) picked = await qbank.getRaw(made[0]);
+            } catch (err) {
+                info(`[session] on-demand questions skipped: ${err.message}`);
+            }
+        }
+        if (!picked) return null;
+
+        await query('UPDATE session_focus_items SET question_ids = ? WHERE id = ?', [
+            JSON.stringify([Number(picked.id)]),
+            item.id
+        ]);
+        return qbank.toCard(picked);
+    }
+
+    /**
+     * A short lesson for the current unit, streamed token by token. The unit's own
+     * text is the fallback, so even without a key the learner gets taught instead
+     * of being handed another question.
+     */
+    async function teach(userId, sessionId, { onDelta } = {}) {
+        const session = await sessionRow(userId, sessionId);
+        if (!session) return { error: 404, message: 'Session not found' };
+        const items = await focusItems(sessionId);
+        const item = currentItem(items, session.item_index);
+        if (!item) return { error: 409, message: 'That session has no current unit' };
+
+        const rows = await query('SELECT name, intro_md FROM skills WHERE id = ? LIMIT 1', [item.skill_id]);
+        const unitText = String((rows[0] && rows[0].intro_md) || '').replace(/\s+/g, ' ').trim();
+        const title = item.skill_name || (rows[0] && rows[0].name) || 'this unit';
+        const frame = parseJson(session.turn_buffer, null);
+        const fallback =
+            unitText.slice(0, 900) ||
+            `In ${title}, start from what the question is giving you, name the rule it matches, then apply that rule one step at a time.`;
+
+        if (typeof chatStream !== 'function') return { ok: true, text: fallback, fallback: true };
+
+        let text = '';
+        try {
+            text = await chatStream(
+                [
+                    {
+                        role: 'system',
+                        content:
+                            'You are Vee, a patient tutor for a study app. Teach in plain, warm prose. ' +
+                            'Never mention that you are an AI or a model.'
+                    },
+                    {
+                        role: 'user',
+                        content:
+                            `Course: ${(frame && frame.title) || 'a self-study course'}\n` +
+                            `Unit: ${title}\n` +
+                            (unitText ? `Unit material: ${unitText.slice(0, 1200)}\n` : '') +
+                            '\nTeach this unit in under 120 words: the one idea, why it works, and a tiny worked example. ' +
+                            'Do not ask a question and do not give the answer to any practice question. Use $...$ for math.'
+                    }
+                ],
+                { max_tokens: 300, temperature: 0.5, budgetMs: 25000, onDelta }
+            );
+        } catch (err) {
+            info(`[session] teach fallback: ${err.message}`);
+        }
+        return { ok: true, text: String(text || fallback).trim(), fallback: !text };
+    }
+
+    /** More time on the clock, without losing the plan. */
+    async function extend(userId, sessionId, minutes) {
+        const session = await sessionRow(userId, sessionId);
+        if (!session) return { error: 404, message: 'Session not found' };
+        if (session.status !== 'active') return { error: 409, message: 'This session is not active' };
+        const add = Math.max(1, Math.min(60, parseInt(minutes, 10) || 10));
+        await query('UPDATE sessions SET minutes = minutes + ?, last_active_at = NOW() WHERE id = ?', [add, sessionId]);
+        return { ok: true, added: add, state: await state(userId, sessionId) };
+    }
+
     async function state(userId, sessionId) {
         const session = await sessionRow(userId, sessionId);
         if (!session) return null;
@@ -262,12 +357,7 @@ function createSessionEngine({ query, qbank, log } = {}) {
 
         let question = null;
         if (item && session.status === 'active') {
-            const ids = parseJson(item.question_ids, []);
-            const lastId = ids.length ? ids[ids.length - 1] : null;
-            if (lastId) {
-                const raw = await qbank.getRaw(lastId);
-                question = qbank.toCard(raw);
-            }
+            question = await ensureQuestion(item, userId);
         }
 
         const summaryRows = await query('SELECT summary, next_step FROM session_summaries WHERE session_id = ? LIMIT 1', [
@@ -406,7 +496,7 @@ function createSessionEngine({ query, qbank, log } = {}) {
         }
 
         const goalText = wantCourse
-            ? `Finish ${Math.min(plan.length, 3)} unit${Math.min(plan.length, 3) === 1 ? '' : 's'} of this course`
+            ? `Finish ${plan.length} unit${plan.length === 1 ? '' : 's'} of this course`
             : wantSprint
               ? 'Six items to your exam'
               : mins <= 10
@@ -916,7 +1006,7 @@ function createSessionEngine({ query, qbank, log } = {}) {
         }));
     }
 
-    return { active, answer, end, hint, history, mapFor, rate, skip, start, state };
+    return { active, answer, end, extend, hint, history, mapFor, rate, skip, start, state, teach };
 }
 
 module.exports = createSessionEngine;

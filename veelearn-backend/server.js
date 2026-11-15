@@ -8198,6 +8198,8 @@ app.get('/api/session/:sessionId', authenticateToken, (req, res) => sessionRoute
 app.post('/api/session/:sessionId/answer', writeLimiter, authenticateToken, (req, res) =>
     sessionRoutes.answer(req, res)
 );
+app.post('/api/session/:sessionId/teach', authenticateToken, (req, res) => sessionRoutes.teach(req, res));
+app.post('/api/session/:sessionId/extend', writeLimiter, authenticateToken, (req, res) => sessionRoutes.extend(req, res));
 app.post('/api/session/:sessionId/hint', writeLimiter, authenticateToken, (req, res) => sessionRoutes.hint(req, res));
 app.post('/api/session/:sessionId/skip', writeLimiter, authenticateToken, (req, res) => sessionRoutes.skip(req, res));
 app.post('/api/session/:sessionId/ai', writeLimiter, authenticateToken, (req, res) =>

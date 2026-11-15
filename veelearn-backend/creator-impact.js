@@ -469,10 +469,21 @@ function createCreatorImpact({ query, log } = {}) {
             if (typeof q.answer === 'number' && options[q.answer]) answer = options[q.answer].k;
             else if (typeof q.answer === 'string') answer = optionKey(options, q.answer);
             if (!answer) continue;
+            // The model is told to vary the index, but shuffle anyway: a bank where
+            // the key is always A teaches learners to click A.
+            const ordered = options.slice();
+            for (let i = ordered.length - 1; i > 0; i -= 1) {
+                const j = Math.floor(Math.random() * (i + 1));
+                const tmp = ordered[i];
+                ordered[i] = ordered[j];
+                ordered[j] = tmp;
+            }
+            const keys = ['A', 'B', 'C', 'D', 'E', 'F'];
+            const reshuffled = ordered.map((o, i) => Object.assign({}, o, { k: keys[i] }));
             out.push({
                 stem,
-                options,
-                answer,
+                options: reshuffled,
+                answer: reshuffled[ordered.indexOf(options.find((o) => o.k === answer))]?.k || answer,
                 tier: 1,
                 hint: String(q.hint || '').slice(0, 300),
                 explanation: String(q.explanation || '').slice(0, 600),
@@ -480,6 +491,61 @@ function createCreatorImpact({ query, log } = {}) {
             });
         }
         return out;
+    }
+
+    /**
+     * Write a unit's questions right now, because the learner has reached it.
+     * Returns the new question ids. The plan no longer pre-generates them, so a
+     * course session starts instantly and each unit costs one call when opened.
+     */
+    async function ensureQuestionsForSkill(skillId) {
+        const skillRows = await query('SELECT id, code, name, intro_md FROM skills WHERE id = ? LIMIT 1', [skillId]);
+        const skill = skillRows[0];
+        if (!skill) return [];
+        const match = /^course\.(\d+)\.u(\d+)$/.exec(String(skill.code || ''));
+        if (!match) return [];
+        const course = await loadCourse(Number(match[1]));
+        if (!course) return [];
+        const ord = Number(match[2]);
+        const units = splitUnits(course.content);
+        const unit =
+            units.find((u) => Number(u.ord) === ord) ||
+            units[ord] || { ord, title: skill.name, text: skill.intro_md || '' };
+        const generated = await aiQuestionsForUnit(course, {
+            ord,
+            title: unit.title || skill.name,
+            text: String(unit.text || skill.intro_md || '')
+        });
+        if (!generated.length) return [];
+
+        const crypto = require('crypto');
+        const ids = [];
+        for (const item of generated) {
+            const stemHash = crypto.createHash('sha256').update(item.stem).digest('hex');
+            try {
+                await query(
+                    `INSERT IGNORE INTO qbank_items
+                        (skill_id, tier, qtype, stem, stem_hash, options, answer, hints, solution_steps, source, course_id, live)
+                     VALUES (?, ?, 'mcq', ?, ?, ?, ?, ?, ?, 'course', ?, 1)`,
+                    [
+                        Number(skillId),
+                        item.tier,
+                        item.stem,
+                        stemHash,
+                        JSON.stringify(item.options),
+                        item.answer,
+                        JSON.stringify(item.hint ? [item.hint] : []),
+                        JSON.stringify(item.explanation ? [item.explanation] : []),
+                        Number(course.id)
+                    ]
+                );
+                const row = await query('SELECT id FROM qbank_items WHERE stem_hash = ? LIMIT 1', [stemHash]);
+                if (row[0]) ids.push(Number(row[0].id));
+            } catch (err) {
+                warn(`[creator-impact] on-demand question skipped: ${err.message}`);
+            }
+        }
+        return ids;
     }
 
     async function ingestCourseQuestions(course, units, { maxUnits } = {}) {
@@ -505,10 +571,23 @@ function createCreatorImpact({ query, log } = {}) {
                     rawOptions = [];
                 }
             }
-            const options = Array.isArray(rawOptions)
+            const original = Array.isArray(rawOptions)
                 ? rawOptions.map((o, k) => ({ k: LETTERS[k], t: String(o == null ? '' : o).trim(), why: '' }))
                 : [];
-            const answer = optionKey(options, q.correct_answer);
+            // Shuffle once at ingest so a quiz written with the key first does not
+            // turn every session into "always A".
+            const options = original
+                .map((o) => ({ o, r: Math.random() }))
+                .sort((a, b) => a.r - b.r)
+                .map((x, k) => Object.assign({}, x.o, { k: LETTERS[k] }));
+            const answer = optionKey(
+                options,
+                (() => {
+                    const key = optionKey(original, q.correct_answer);
+                    const text = original.find((o) => o.k === key)?.t;
+                    return options.find((o) => o.t === text)?.k || q.correct_answer;
+                })()
+            );
             if (!answer) return; // no comparable key: never ship an ungradeable item
             const answerText = (options.find((o) => o.k === answer) || {}).t || '';
             const explanation = String(q.explanation || '').trim();
@@ -535,18 +614,12 @@ function createCreatorImpact({ query, log } = {}) {
             });
         });
 
-        // Units with nothing gradeable get AI-written questions instead of a 503.
-        const limit = Math.min(list.length, Math.max(1, Number(maxUnits) || list.length));
-        const counts = list.map(() => 0);
-        parsed.forEach((item) => {
-            counts[item.unitIndex] = (counts[item.unitIndex] || 0) + 1;
-        });
-        for (let i = 0; i < limit; i += 1) {
-            if (counts[i]) continue;
-            const generated = await aiQuestionsForUnit(course, list[i]);
-            generated.forEach((item) => parsed.push(item));
+        // Units with nothing gradeable are left empty on purpose: the session writes
+        // their questions the moment the learner reaches them, so opening a course
+        // no longer waits on one AI call per unit.
+        if (!parsed.length) {
+            /* skills are still created below, so the unit cards exist */
         }
-        if (!parsed.length) return [];
 
         // One synthetic skill per unit so mastery and the focus list stay readable.
         for (const unit of list) {
@@ -656,7 +729,10 @@ function createCreatorImpact({ query, log } = {}) {
         }
 
         const mastery = require('./mastery');
-        const count = Math.max(1, mastery.itemsForMinutes(minutes || 20));
+        const mins = Number(minutes) || 20;
+        // A course session should walk the course, not stop at the generic
+        // three-card budget: one unit per ~3 minutes, up to eight.
+        const count = Math.max(mastery.itemsForMinutes(mins), Math.min(8, Math.ceil(mins / 3)));
         let masteryRows = [];
         if (report.skills.length) {
             const placeholders = report.skills.map(() => '?').join(', ');
@@ -694,6 +770,33 @@ function createCreatorImpact({ query, log } = {}) {
                 unitIndex: row.unit ? row.unit.ord : 0,
                 frame: frameFor(row.unit)
             }));
+        }
+
+        // Units the creator asked for but never wrote questions for still belong
+        // in the plan: their card is written by the AI when it is opened.
+        if (course.content) {
+            const covered = new Set(items.map((i) => Number(i.unitIndex)));
+            const skillRows = await query('SELECT id, code FROM skills WHERE code LIKE ?', [`course.${course.id}.u%`]);
+            const skillByOrd = new Map(skillRows.map((r) => [Number(String(r.code).split('.u').pop()), Number(r.id)]));
+            for (const unit of units) {
+                if (items.length >= count) break;
+                if (covered.has(Number(unit.ord))) continue;
+                const skillId = skillByOrd.get(Number(unit.ord));
+                if (!skillId) continue;
+                if (/^what you will learn/i.test(String(unit.title || ''))) continue;
+                items.push({
+                    ord: items.length,
+                    skillId,
+                    skillName: shortName(unit.title || course.title),
+                    isReview: 0,
+                    targetDots: 2,
+                    startTier: 1,
+                    unitIndex: unit.ord,
+                    frame: frameFor(unit),
+                    questionIds: [],
+                    needsAi: true
+                });
+            }
         }
 
         return { course, report, items: items.slice(0, count) };
@@ -1082,7 +1185,7 @@ function createCreatorImpact({ query, log } = {}) {
         return { courses: out, hours: round2(hours) };
     }
 
-    return { readiness, plan, impact, record, summaryForCreator, splitUnits, frameFor };
+    return { readiness, plan, ensureQuestionsForSkill, impact, record, summaryForCreator, splitUnits, frameFor };
 }
 
 module.exports = createCreatorImpact;

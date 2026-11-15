@@ -102,7 +102,11 @@
               <strong>Ready for a short session?</strong>
               <span>A few skills, one question at a time — about 10 minutes.</span>
             </div>
-            <a class="ls-session-start" id="ls-start-session" href="session.html?minutes=10">Start a 10-minute session</a>
+            <label class="ls-minutes-wrap">
+              <span>How long?</span>
+              <select id="ls-start-minutes" class="ls-minutes" aria-label="Session length">${minutesOptions(preferredMinutes())}</select>
+            </label>
+            <a class="ls-session-start" id="ls-start-session" href="${startHref()}"><span id="ls-start-label">Start a ${preferredMinutes()}-minute session</span></a>
           </div>
           <div class="ls-ai-box">
             <div id="ls-ai-messages"></div>
@@ -187,6 +191,7 @@
   }
 
   function showPane(name) {
+    bindMinutes(document.getElementById('ls-start-minutes'));
     document.querySelectorAll('#learner-shell .ls-pane').forEach((pane) => {
       pane.classList.toggle('active', pane.getAttribute('data-pane') === name);
     });
@@ -254,6 +259,37 @@
   const escPane = (value) =>
     String(value == null ? '' : value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
+  // A session length the learner actually chose, remembered across visits.
+  const MINUTE_CHOICES = [5, 10, 15, 20, 30, 45, 60];
+  function preferredMinutes() {
+    const n = parseInt(localStorage.getItem('learnerSessionMinutes') || '', 10);
+    return MINUTE_CHOICES.includes(n) ? n : 15;
+  }
+  function minutesOptions(selected) {
+    return MINUTE_CHOICES.map(
+      (m) => `<option value="${m}"${m === selected ? ' selected' : ''}>${m} min</option>`
+    ).join('');
+  }
+  function startHref(mins) {
+    return `session.html?minutes=${mins || preferredMinutes()}`;
+  }
+  function bindMinutes(select, onPick) {
+    if (!select) return;
+    if (select.dataset.minutesBound === '1') return;
+    select.dataset.minutesBound = '1';
+    select.value = String(preferredMinutes());
+    select.addEventListener('change', () => {
+      const n = parseInt(select.value, 10) || 15;
+      localStorage.setItem('learnerSessionMinutes', String(n));
+      document.querySelectorAll('#ls-start-session, .ls-session-new').forEach((a) => {
+        a.setAttribute('href', startHref(n));
+      });
+      const label = document.getElementById('ls-start-label');
+      if (label) label.textContent = `Start a ${n}-minute session`;
+      if (onPick) onPick(n);
+    });
+  }
+
   let sessionCache = [];
   let sessionTab = 'all';
 
@@ -313,7 +349,11 @@
           <button type="button" class="ls-session-tab" data-sx-tab="active">In progress</button>
           <button type="button" class="ls-session-tab" data-sx-tab="completed">Finished</button>
         </div>
-        <a class="ls-btn-primary ls-session-new" href="session.html?minutes=10">Start a 10-minute session</a>
+        <label class="ls-minutes-wrap">
+          <span>How long?</span>
+          <select id="ls-pane-minutes" class="ls-minutes" aria-label="Session length">${minutesOptions(preferredMinutes())}</select>
+        </label>
+        <a class="ls-btn-primary ls-session-new" href="${startHref()}">Start a ${preferredMinutes()}-minute session</a>
       </div>
       <div id="ls-session-list" class="ls-session-list"><p class="ls-session-empty">Loading your sessions…</p></div>`;
 
@@ -325,6 +365,10 @@
       });
     });
     document.getElementById('ls-sx-search')?.addEventListener('input', paintSessionList);
+    bindMinutes(document.getElementById('ls-pane-minutes'), () => {
+      const newLink = document.querySelector('.ls-session-new');
+      if (newLink) newLink.textContent = `Start a ${preferredMinutes()}-minute session`;
+    });
 
     try {
       const res = await fetch(`${sessionApiBase()}/api/session/history?limit=50`, {
