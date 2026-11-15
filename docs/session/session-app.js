@@ -25,6 +25,7 @@
   const requestedTrack = params.get('track') || '';
   const requestedMode = params.get('mode') || '';
   const requestedCourse = params.get('course') || '';
+  const requestedSession = params.get('session') || '';
 
   const esc = (window.SessionMap && window.SessionMap.esc) || String;
   const dotsHtml = (window.SessionMap && window.SessionMap.dotsHtml) || (() => '');
@@ -240,6 +241,12 @@
     el('sx-q-skill').textContent = item.name;
     el('sx-q-tier').textContent = `tier ${question.tier} · ${TIER_LABEL[question.tier] || 'practice'}`;
     el('sx-stem').textContent = question.stem;
+    const card = el('sx-question-card');
+    if (card) {
+      card.classList.remove('is-in');
+      void card.offsetWidth;
+      card.classList.add('is-in');
+    }
     typesetContent();
 
     renderOptions(question.options);
@@ -1016,9 +1023,55 @@
     }
   }
 
+  // ------------------------------------------------------------- shortcuts
+  // A–D or 1–4 answers, Enter continues, H asks for a hint, S skips. Typing in a
+  // field is left alone.
+  function wireShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      const tag = (e.target && e.target.tagName) || '';
+      if (/INPUT|TEXTAREA|SELECT/.test(tag) || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === 'Enter') {
+        const next = el('sx-continue');
+        if (next && !next.hidden) {
+          e.preventDefault();
+          next.click();
+        }
+        return;
+      }
+      const key = String(e.key || '').toUpperCase();
+      const asKey = { 1: 'A', 2: 'B', 3: 'C', 4: 'D', 5: 'E', 6: 'F' }[key] || key;
+      if (/^[A-F]$/.test(asKey)) {
+        if (state.busy || state.solved || !state.question) return;
+        const option = el('sx-options').querySelector(`[data-key="${asKey}"]`);
+        if (option && !option.disabled) {
+          e.preventDefault();
+          submit(asKey);
+        }
+        return;
+      }
+      if (key === 'H') {
+        const hint = el('sx-hint-btn');
+        if (hint && !hint.hidden && !hint.disabled) hint.click();
+      } else if (key === 'S') {
+        const skip = el('sx-skip-btn');
+        if (skip && !skip.hidden && !skip.disabled) skip.click();
+      }
+    });
+  }
+
   // -------------------------------------------------------------------- boot
   async function boot() {
     try {
+      // ?session=<id> opens exactly that session, so the dashboard can resume any
+      // one of them rather than always starting the newest.
+      if (requestedSession) {
+        const existing = await api(`/api/session/${encodeURIComponent(requestedSession)}`);
+        if (existing && existing.session && existing.session.status === 'active') {
+          applyState(existing);
+          initVisual();
+          return;
+        }
+      }
       const body = { minutes: requestedMinutes };
       if (requestedTrack) body.track = requestedTrack;
       // ?course=<id> is how a course opens a session (§15.2). Without this the
@@ -1037,6 +1090,7 @@
   }
 
   function wire() {
+    wireShortcuts();
     el('sx-hint-btn').addEventListener('click', askHint);
     el('sx-skip-btn').addEventListener('click', skip);
     el('sx-end-btn').addEventListener('click', () => finish('quit'));

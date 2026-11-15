@@ -118,6 +118,7 @@
 
         <section class="ls-pane" id="ls-pane-achievements" data-pane="achievements"></section>
         <section class="ls-pane" id="ls-pane-enrolled" data-pane="enrolled"></section>
+        <section class="ls-pane" id="ls-pane-sessions" data-pane="sessions"></section>
         <section class="ls-pane" id="ls-pane-store" data-pane="store"></section>
         <section class="ls-pane" id="ls-pane-volunteer" data-pane="volunteer"></section>
         <section class="ls-pane" id="ls-pane-settings" data-pane="settings"></section>
@@ -237,6 +238,105 @@
       credentials: 'include'
     });
     return res.json().catch(() => ({}));
+  }
+
+  // --------------------------------------------------------------- sessions
+  function sessionApiBase() {
+    const configured = typeof window.API_BASE_URL === 'string' ? window.API_BASE_URL : '';
+    if (configured) return configured;
+    const host = window.location.hostname;
+    if (host.includes('veelearn.org')) return 'https://api.veelearn.org';
+    if (host.includes('github.io')) return 'https://veelearn.onrender.com';
+    if (host === 'localhost' || host === '127.0.0.1') return 'http://localhost:3000';
+    return window.location.origin;
+  }
+
+  const escPane = (value) =>
+    String(value == null ? '' : value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
+  let sessionCache = [];
+  let sessionTab = 'all';
+
+  function sessionCard(row) {
+    const live = row.status === 'active';
+    const stars = row.rating ? ' · ' + '★'.repeat(Number(row.rating)) : '';
+    const when = (row.startedAt || '').toString().slice(0, 16);
+    const body = row.summary || row.nextStep || (live ? 'Paused mid-session — pick it up.' : 'No summary saved.');
+    const actions = [
+      live ? `<a class="ls-btn-primary" href="session.html?session=${row.id}">Resume</a>` : '',
+      row.courseId
+        ? `<a class="ls-btn-soft" href="session.html?course=${row.courseId}&minutes=15">Practice this course</a>`
+        : '',
+      !live ? `<a class="ls-btn-soft" href="session.html?minutes=10">Start fresh</a>` : ''
+    ]
+      .filter(Boolean)
+      .join('');
+    return `
+      <article class="ls-session-card${live ? ' is-live' : ''}">
+        <div class="ls-session-top">
+          <strong>${escPane(row.goal || (live ? 'Session in progress' : 'Practice session'))}</strong>
+          <span class="ls-session-pill${live ? ' is-live' : ''}">${live ? 'In progress' : 'Finished'}</span>
+        </div>
+        <p class="ls-session-meta">${row.minutes || 0} min · ${escPane(row.mode || 'focus')}${stars}${when ? ' · ' + escPane(when) : ''}</p>
+        <p class="ls-session-summary">${escPane(body)}</p>
+        <div class="ls-session-actions">${actions}</div>
+      </article>`;
+  }
+
+  function paintSessionList() {
+    const list = document.getElementById('ls-session-list');
+    if (!list) return;
+    const term = (document.getElementById('ls-sx-search')?.value || '').trim().toLowerCase();
+    const rows = sessionCache.filter((row) => {
+      if (sessionTab === 'active' && row.status !== 'active') return false;
+      if (sessionTab === 'completed' && row.status === 'active') return false;
+      if (!term) return true;
+      return `${row.goal || ''} ${row.summary || ''} ${row.mode || ''}`.toLowerCase().includes(term);
+    });
+    list.innerHTML = rows.length
+      ? rows.map(sessionCard).join('')
+      : '<p class="ls-session-empty">No sessions here yet. Start one and it will show up.</p>';
+  }
+
+  async function renderSessionsPane() {
+    const pane = document.getElementById('ls-pane-sessions');
+    if (!pane) return;
+    pane.innerHTML = `
+      <div class="ls-sessions-head">
+        <h2 class="ls-section-title">Your sessions</h2>
+        <p class="ls-section-sub">Every focused session you have started. Resume one exactly where you stopped.</p>
+      </div>
+      <div class="ls-session-tools">
+        <input type="search" id="ls-sx-search" class="ls-session-search" placeholder="Search by goal or summary" aria-label="Search sessions" />
+        <div class="ls-session-tabs" role="tablist">
+          <button type="button" class="ls-session-tab is-on" data-sx-tab="all">All</button>
+          <button type="button" class="ls-session-tab" data-sx-tab="active">In progress</button>
+          <button type="button" class="ls-session-tab" data-sx-tab="completed">Finished</button>
+        </div>
+        <a class="ls-btn-primary ls-session-new" href="session.html?minutes=10">Start a 10-minute session</a>
+      </div>
+      <div id="ls-session-list" class="ls-session-list"><p class="ls-session-empty">Loading your sessions…</p></div>`;
+
+    pane.querySelectorAll('[data-sx-tab]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        sessionTab = btn.getAttribute('data-sx-tab');
+        pane.querySelectorAll('[data-sx-tab]').forEach((b) => b.classList.toggle('is-on', b === btn));
+        paintSessionList();
+      });
+    });
+    document.getElementById('ls-sx-search')?.addEventListener('input', paintSessionList);
+
+    try {
+      const res = await fetch(`${sessionApiBase()}/api/session/history?limit=50`, {
+        headers: authHeaders(),
+        credentials: 'include'
+      });
+      const payload = await res.json().catch(() => ({}));
+      sessionCache = (payload.data && payload.data.sessions) || [];
+    } catch (_) {
+      sessionCache = [];
+    }
+    paintSessionList();
   }
 
   function setupNavFlyouts(shell) {
@@ -555,7 +655,9 @@
     ensureShellDom();
 
     if (name === 'sessions') {
-      window.location.href = 'session.html?minutes=10';
+      showPane('sessions');
+      setActiveNav('sessions');
+      renderSessionsPane();
       return;
     }
 

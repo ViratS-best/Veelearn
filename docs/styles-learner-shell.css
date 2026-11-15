@@ -2175,3 +2175,41 @@ body.learner-shell-active #learner-shell .ls-notes-error {
   .ls-session-cta { padding: 12px 14px; }
   .ls-session-start { width: 100%; text-align: center; }
 }
+
+/* ------------------------------------------------------------ sessions pane */
+.ls-sessions-head { margin-bottom: 14px; }
+.ls-session-tools {
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px;
+}
+.ls-session-search {
+  flex: 1 1 220px; padding: 10px 12px; border-radius: 10px;
+  border: 1px solid var(--ls-border); background: var(--ls-input-bg); color: var(--ls-text);
+  font: inherit;
+}
+.ls-session-tabs { display: flex; gap: 6px; }
+.ls-session-tab {
+  border: 1px solid var(--ls-border); background: var(--ls-card); color: var(--ls-muted);
+  border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.ls-session-tab.is-on { background: var(--ls-active-bg); color: var(--ls-active-text); border-color: var(--ls-active-bg); }
+.ls-session-new { text-decoration: none; }
+.ls-session-list { display: grid; gap: 12px; }
+.ls-session-card {
+  background: var(--ls-card); border: 1px solid var(--ls-border); border-radius: 14px;
+  padding: 14px 16px; box-shadow: var(--ls-shadow);
+  transition: transform 180ms ease, box-shadow 180ms ease;
+  animation: lsSessionIn 260ms cubic-bezier(.22,.68,0,1) both;
+}
+.ls-session-card:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12); }
+.ls-session-card.is-live { border-color: var(--ls-accent); }
+.ls-session-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ls-session-pill { font-size: 12px; font-weight: 700; color: var(--ls-muted); }
+.ls-session-pill.is-live { color: var(--ls-accent); }
+.ls-session-meta { margin: 4px 0 6px; font-size: 12px; color: var(--ls-muted); text-transform: capitalize; }
+.ls-session-summary { margin: 0 0 10px; font-size: 14px; color: var(--ls-text); }
+.ls-session-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.ls-session-empty { color: var(--ls-muted); }
+@keyframes lsSessionIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .ls-session-card, .ls-session-card:hover { animation: none; transform: none; }
+}
