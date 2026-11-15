@@ -132,6 +132,20 @@ def main() -> int:
         if raw_visual is not None:
             if not isinstance(raw_visual, dict):
                 fail(errors, f"{skill}: visual must be a dict: {raw['stem'][:50]}")
+            elif isinstance(raw_visual.get("svg"), str):
+                # Authored SVG diagrams (the exam banks). Rendered as a figure on the
+                # card, so the same safety rules the browser relies on apply here.
+                body = raw_visual["svg"].strip()
+                if not body.lower().startswith("<svg"):
+                    fail(errors, f"{skill}: visual svg must start with <svg: {raw['stem'][:50]}")
+                if len(body) > 20000:
+                    fail(errors, f"{skill}: visual svg is too large ({len(body)} chars)")
+                if re.search(r"<script|<foreignObject|<iframe", body, re.I):
+                    fail(errors, f"{skill}: visual svg contains an active element: {raw['stem'][:50]}")
+                if re.search(r"\son[a-z]+\s*=", body, re.I):
+                    fail(errors, f"{skill}: visual svg contains an inline event handler: {raw['stem'][:50]}")
+                if not str(raw_visual.get("alt") or raw_visual.get("caption") or "").strip():
+                    fail(errors, f"{skill}: visual svg needs alt text: {raw['stem'][:50]}")
             elif raw_visual.get("preset") not in VISUAL_PRESETS:
                 fail(errors, f"{skill}: unknown visual preset {raw_visual.get('preset')!r}")
             elif not isinstance(raw_visual.get("params", {}), dict):

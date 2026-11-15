@@ -128,21 +128,42 @@ const seed = JSON.parse(fs.readFileSync(path.join(__dirname, 'seed', 'session_se
 const withVisual = seed.questions.filter((q) => q.visual);
 ok('some items carry a board diagram', withVisual.length >= 3, `${withVisual.length} items`);
 
+// A diagram is either a board preset the widget engine can mount, or an authored
+// SVG that the session card renders as a figure. Both must be safe to ship.
 let badVisual = 0;
+const presetVisuals = [];
+const svgVisuals = [];
 for (const item of withVisual) {
     const v = item.visual;
-    if (!v || typeof v !== 'object' || !Board.supported.includes(v.preset)) badVisual += 1;
+    if (!v || typeof v !== 'object') {
+        badVisual += 1;
+        continue;
+    }
+    if (typeof v.svg === 'string') {
+        const svg = v.svg.trim();
+        const unsafe =
+            !svg.toLowerCase().startsWith('<svg') ||
+            /<script|<foreignObject|<iframe/i.test(svg) ||
+            /\son[a-z]+\s*=/i.test(svg) ||
+            !String(v.alt || v.caption || '').trim();
+        if (unsafe || svg.length > 20000) badVisual += 1;
+        svgVisuals.push(item);
+        continue;
+    }
+    if (!Board.supported.includes(v.preset)) badVisual += 1;
     else if (v.params != null && typeof v.params !== 'object') badVisual += 1;
+    else presetVisuals.push(item);
 }
-eq('every diagram uses a preset the board can mount', badVisual, 0);
+eq('every diagram is a mountable preset or a safe authored SVG', badVisual, 0);
+ok('the bank ships authored SVG figures', svgVisuals.length >= 5, `${svgVisuals.length} svg items`);
 
-const presetsUsed = new Set(withVisual.map((q) => q.visual.preset));
+const presetsUsed = new Set(presetVisuals.map((q) => q.visual.preset));
 ok('the diagrams are not all the same preset', presetsUsed.size >= 3, [...presetsUsed].join(','));
 
 // toCard must carry the diagram through but still hide the answer
 const createQBank = require('./qbank');
 const qbank = createQBank({ query: async () => [] });
-const sample = withVisual[0];
+const sample = presetVisuals[0];
 const card = qbank.toCard({
     id: 1,
     skill_id: 2,
@@ -157,6 +178,50 @@ const card = qbank.toCard({
 });
 ok('the card carries the diagram spec', card.visual && card.visual.preset === sample.visual.preset);
 ok('the card still hides the answer', !('answer' in card) && !JSON.stringify(card).includes('"answer"'));
+
+const svgSample = svgVisuals[0];
+const svgCard = qbank.toCard({
+    id: 2,
+    skill_id: 2,
+    tier: svgSample.tier,
+    qtype: 'mcq',
+    stem: svgSample.stem,
+    options: JSON.stringify(svgSample.options),
+    answer: svgSample.answer,
+    hints: JSON.stringify(svgSample.hints),
+    solution_steps: JSON.stringify(svgSample.steps),
+    visual: JSON.stringify(svgSample.visual)
+});
+ok('the card carries an authored SVG figure', !!(svgCard.visual && svgCard.visual.svg));
+
+// ------------------------------------------------------- exam bank coverage
+// The STEM / English / SAT R&W / ACT / MATHCOUNTS / AMC banks must stay complete
+// enough for a session to teach them: four questions per skill, a tier-1 item,
+// and an answer keyed to a real option.
+const EXAM_TRACKS = ['stem.sci', 'english', 'sat.rw', 'act', 'mathcounts', 'amc8', 'amc10', 'amc12'];
+const seedSkills = new Map(seed.skills.map((s) => [s.code, s]));
+const perSkill = new Map();
+for (const q of seed.questions) perSkill.set(q.skill, (perSkill.get(q.skill) || 0) + 1);
+
+for (const track of EXAM_TRACKS) {
+    const skills = seed.skills.filter((s) => s.track === track);
+    ok(`${track} has skills in the bank`, skills.length >= 2, `${skills.length} skills`);
+    const thin = skills.filter((s) => (perSkill.get(s.code) || 0) < 4);
+    ok(`${track} skills carry at least four questions`, thin.length === 0, thin.map((s) => s.code).join(','));
+}
+
+const badKeys = seed.questions.filter((q) => {
+    const keys = (q.options || []).map((o) => String(o.k));
+    return keys.length !== 4 || !keys.includes(String(q.answer)) || !seedSkills.has(q.skill);
+});
+eq('every bank question keys to one of its four options', badKeys.length, 0);
+
+const tierOne = new Set(seed.questions.filter((q) => q.tier === 1).map((q) => q.skill));
+const missingTierOne = [...seedSkills.keys()].filter((code) => {
+    const skill = seedSkills.get(code);
+    return EXAM_TRACKS.includes(skill.track) && !tierOne.has(code);
+});
+eq('every exam skill opens with a recall item', missingTierOne.length, 0);
 
 // -------------------------------------------------------------------- report
 if (failures.length) {

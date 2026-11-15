@@ -895,3 +895,11 @@ QUESTIONS = [
       ["Work from the inside out: g(2) first.", "Then put that in f."],
       ["g(2) = 4.", "f(4) = 5."]),
 ]
+
+
+# The exam and subject banks (STEM science, English, SAT Reading & Writing, ACT,
+# MATHCOUNTS, AMC 8/10/12) live in their own module so this file stays readable.
+# They are appended here so build_session_seed.py validates one list.
+from seed.qbank_exams import QUESTIONS as _EXAM_QUESTIONS  # noqa: E402
+
+QUESTIONS = QUESTIONS + _EXAM_QUESTIONS

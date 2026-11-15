@@ -15,6 +15,15 @@ TRACKS = [
     {"id": "algebra1", "name": "Algebra 1", "order": 2},
     {"id": "apcmech", "name": "AP Physics C: Mechanics", "order": 3},
     {"id": "sat.math", "name": "SAT Math", "order": 4},
+    # Exam and subject tracks (seed/qbank_exams.py supplies their questions).
+    {"id": "stem.sci", "name": "STEM Science", "order": 5},
+    {"id": "english", "name": "English", "order": 6},
+    {"id": "sat.rw", "name": "SAT Reading & Writing", "order": 7},
+    {"id": "act", "name": "ACT", "order": 8},
+    {"id": "mathcounts", "name": "MATHCOUNTS", "order": 9},
+    {"id": "amc8", "name": "AMC 8", "order": 10},
+    {"id": "amc10", "name": "AMC 10", "order": 11},
+    {"id": "amc12", "name": "AMC 12", "order": 12},
 ]
 
 SKILLS = [
@@ -414,6 +423,312 @@ SKILLS = [
         "misconceptions": [
             "Multiplying f by the input instead of substituting",
             "Evaluating the outer function first in a composition"
+        ],
+    },
+
+    # ------------------------------------------------------------- STEM science
+    {
+        "code": "sci.bio.cell",
+        "track": "stem.sci",
+        "name": "Cell structure and function",
+        "grade_band": 9,
+        "order": 1,
+        "prereq": None,
+        "dot_target": 2,
+        "intro": (
+            "Each organelle does one job well: mitochondria make ATP, the rough ER builds proteins "
+            "for export, and the cell wall lets a plant cell take on water without bursting."
+        ),
+        "misconceptions": [
+            "Treating the ribosome as the cell's energy source",
+            "Forgetting that a plant cell has both a membrane and a wall"
+        ],
+    },
+    {
+        "code": "sci.chem.moles",
+        "track": "stem.sci",
+        "name": "Bonding and the mole",
+        "grade_band": 10,
+        "order": 2,
+        "prereq": None,
+        "dot_target": 2,
+        "intro": (
+            "Moles are just a count: moles = mass ÷ molar mass, and one mole always holds "
+            "6.0 × 10²³ particles. Ionic bonds transfer electrons; covalent bonds share them."
+        ),
+        "misconceptions": [
+            "Multiplying mass by molar mass instead of dividing",
+            "Confusing the number of molecules with the number of atoms"
+        ],
+    },
+
+    # ------------------------------------------------------------------ English
+    {
+        "code": "eng.grammar.boundaries",
+        "track": "english",
+        "name": "Commas and sentence boundaries",
+        "grade_band": 9,
+        "order": 1,
+        "prereq": None,
+        "dot_target": 2,
+        "intro": (
+            "Two complete sentences cannot be joined by a comma alone. Use a semicolon, a period, "
+            "or a comma plus a coordinating conjunction — and use a semicolon, never a comma, "
+            "before a conjunctive adverb like 'however'."
+        ),
+        "misconceptions": [
+            "Joining two complete sentences with only a comma",
+            "Putting a semicolon before a coordinating conjunction"
+        ],
+    },
+    {
+        "code": "eng.read.inference",
+        "track": "english",
+        "name": "Inference in a short passage",
+        "grade_band": 9,
+        "order": 2,
+        "prereq": None,
+        "dot_target": 2,
+        "intro": (
+            "An inference is the smallest conclusion the details support. Name the detail that "
+            "changed, then ask what that change would cause."
+        ),
+        "misconceptions": [
+            "Choosing a statement the passage never implies",
+            "Confusing what happened with why it happened"
+        ],
+    },
+
+    # ------------------------------------------------------ SAT Reading & Writing
+    {
+        "code": "sat.rw.words",
+        "track": "sat.rw",
+        "name": "Words in context",
+        "grade_band": 11,
+        "order": 1,
+        "prereq": None,
+        "dot_target": 2,
+        "intro": (
+            "Cover the blank and predict your own word from the sentence's logic, especially "
+            "contrast words like 'although' and 'rather than'. Then pick the choice closest to it."
+        ),
+        "misconceptions": [
+            "Picking a word that sounds impressive but ignores the contrast",
+            "Using a familiar meaning that does not fit this sentence"
+        ],
+    },
+    {
+        "code": "sat.rw.boundaries",
+        "track": "sat.rw",
+        "name": "Sentence boundaries on the SAT",
+        "grade_band": 11,
+        "order": 2,
+        "prereq": "sat.rw.words",
+        "dot_target": 2,
+        "intro": (
+            "Most boundary questions come down to one test: could each side of the punctuation stand "
+            "alone as a sentence? If both can, you need a semicolon or a period."
+        ),
+        "misconceptions": [
+            "Choosing a colon after a fragment",
+            "Splitting a subject from its verb with a semicolon"
+        ],
+    },
+
+    # ---------------------------------------------------------------------- ACT
+    {
+        "code": "act.math.rates",
+        "track": "act",
+        "name": "Rates and percents",
+        "grade_band": 11,
+        "order": 1,
+        "prereq": None,
+        "dot_target": 2,
+        "intro": (
+            "Find the unit rate first, then scale. Successive percent discounts multiply "
+            "(0.75 × 0.90), they never add to a single 35% cut."
+        ),
+        "misconceptions": [
+            "Adding successive percentages instead of multiplying factors",
+            "Dividing distance by the wrong time"
+        ],
+    },
+    {
+        "code": "act.science.data",
+        "track": "act",
+        "name": "ACT science: reading data",
+        "grade_band": 11,
+        "order": 2,
+        "prereq": "act.math.rates",
+        "dot_target": 2,
+        "intro": (
+            "ACT science rarely asks for outside knowledge. Read the axes and table headers, find "
+            "the trend, then answer exactly what the question asks about that trend."
+        ),
+        "misconceptions": [
+            "Reading a data table as if the rows were time order when the header says otherwise",
+            "Answering from general science knowledge instead of the figure"
+        ],
+    },
+    {
+        "code": "act.english.usage",
+        "track": "act",
+        "name": "Usage and punctuation",
+        "grade_band": 11,
+        "order": 3,
+        "prereq": None,
+        "dot_target": 2,
+        "intro": (
+            "Find the real subject before choosing the verb form — words like 'each', 'every' and "
+            "'the team' are singular even when they are followed by a plural noun."
+        ),
+        "misconceptions": [
+            "Matching the verb to the nearest noun instead of the subject",
+            "Putting the apostrophe in the wrong place for a plural possessive"
+        ],
+    },
+
+    # ---------------------------------------------------------------- MATHCOUNTS
+    {
+        "code": "mc.counting",
+        "track": "mathcounts",
+        "name": "Casework and counting",
+        "grade_band": 7,
+        "order": 1,
+        "prereq": None,
+        "dot_target": 3,
+        "intro": (
+            "Counting is organisation: multiply independent choices, divide out repeats, and count "
+            "paths by choosing which steps are the horizontal ones."
+        ),
+        "misconceptions": [
+            "Forgetting to divide by repeated letters",
+            "Adding counts for overlapping sets instead of subtracting the overlap"
+        ],
+    },
+    {
+        "code": "mc.numbertheory",
+        "track": "mathcounts",
+        "name": "Divisibility and primes",
+        "grade_band": 8,
+        "order": 2,
+        "prereq": "mc.counting",
+        "dot_target": 3,
+        "intro": (
+            "Prime factorisation answers divisor-count and remainder questions. For factorials, "
+            "count each prime's multiples, then its squares, then its cubes."
+        ),
+        "misconceptions": [
+            "Counting divisors without adding one to each exponent",
+            "Missing the 9s and 27s when counting powers in a factorial"
+        ],
+    },
+
+    # -------------------------------------------------------------------- AMC 8
+    {
+        "code": "amc8.geometry",
+        "track": "amc8",
+        "name": "AMC 8 geometry",
+        "grade_band": 8,
+        "order": 1,
+        "prereq": None,
+        "dot_target": 3,
+        "intro": (
+            "Most AMC 8 geometry is one formula plus one right triangle: know the Pythagorean "
+            "triples, the triangle area formula and 2πr."
+        ),
+        "misconceptions": [
+            "Using the diameter as the radius",
+            "Forgetting the ½ in the triangle area formula"
+        ],
+    },
+    {
+        "code": "amc8.counting",
+        "track": "amc8",
+        "name": "AMC 8 counting and logic",
+        "grade_band": 8,
+        "order": 2,
+        "prereq": "amc8.geometry",
+        "dot_target": 3,
+        "intro": (
+            "Organise by cases or by size. Count small squares before big ones, and remove double "
+            "counting whenever two lists overlap."
+        ),
+        "misconceptions": [
+            "Counting only unit squares in a grid question",
+            "Forgetting to subtract the overlap in 'divisible by 3 or 5' problems"
+        ],
+    },
+
+    # ------------------------------------------------------------------- AMC 10
+    {
+        "code": "amc10.algebra",
+        "track": "amc10",
+        "name": "AMC 10 algebra",
+        "grade_band": 10,
+        "order": 1,
+        "prereq": None,
+        "dot_target": 3,
+        "intro": (
+            "Work with the expression the question asks about rather than solving for x. Squaring "
+            "a sum like x + 1/x, and Vieta's sum −b/a, do most of the work."
+        ),
+        "misconceptions": [
+            "Squaring a sum without the cross term",
+            "Using b instead of −b/a for the sum of roots"
+        ],
+    },
+    {
+        "code": "amc10.geometry",
+        "track": "amc10",
+        "name": "AMC 10 geometry",
+        "grade_band": 10,
+        "order": 2,
+        "prereq": "amc10.algebra",
+        "dot_target": 3,
+        "intro": (
+            "Drop a perpendicular: a chord of a circle becomes a right triangle with half the chord "
+            "as one leg. Split regular hexagons into six equilateral triangles."
+        ),
+        "misconceptions": [
+            "Using half the chord as the distance to the centre",
+            "Using the side length as the height of an equilateral triangle"
+        ],
+    },
+
+    # ------------------------------------------------------------------- AMC 12
+    {
+        "code": "amc12.functions",
+        "track": "amc12",
+        "name": "AMC 12 functions and trig",
+        "grade_band": 12,
+        "order": 1,
+        "prereq": None,
+        "dot_target": 3,
+        "intro": (
+            "Function questions are about structure: sin(kx) has period 2π/k, a quadratic's minimum "
+            "sits at its vertex, and an inverse undoes the original equation."
+        ),
+        "misconceptions": [
+            "Reading f⁻¹(7) as f(7)",
+            "Multiplying the period by k instead of dividing"
+        ],
+    },
+    {
+        "code": "amc12.combinatorics",
+        "track": "amc12",
+        "name": "AMC 12 combinatorics",
+        "grade_band": 12,
+        "order": 2,
+        "prereq": "amc12.functions",
+        "dot_target": 3,
+        "intro": (
+            "Choose whether order matters before you compute anything, and use 'at least one' = "
+            "'all' − 'none' when the direct count is messy."
+        ),
+        "misconceptions": [
+            "Using permutations when only the group matters",
+            "Counting each handshake twice"
         ],
     },
 ]

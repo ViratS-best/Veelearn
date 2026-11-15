@@ -184,6 +184,51 @@ ok('prerequisites point at real skills', seed.skills.every((s) => !s.prereq || s
 const tracks = new Set(seed.skills.map((s) => s.track));
 ok('all four tracks are seeded', tracks.size >= 4, [...tracks].join(','));
 
+// --------------------------------------------------- (d) growing the bank
+// A database seeded months ago still has to receive new subjects. The seeder
+// therefore inserts on every boot and leaves existing rows alone, which only
+// works because skills.code and qbank_items.stem_hash are unique.
+const { seedSessionData } = require('./session-schema');
+
+async function runSeeder(script) {
+    const calls = [];
+    const counts = { skills: script.skillsBefore, items: script.itemsBefore };
+    const query = async (sql, params) => {
+        calls.push({ sql, params });
+        if (/SELECT id, code, prereq_id FROM skills/.test(sql)) {
+            return seed.skills.map((s, i) => ({ id: i + 1, code: s.code, prereq_id: null }));
+        }
+        if (/SELECT COUNT\(\*\) AS c FROM skills/.test(sql)) return [{ c: counts.skills }];
+        if (/SELECT COUNT\(\*\) AS c FROM qbank_items/.test(sql)) return [{ c: counts.items }];
+        if (/INSERT IGNORE INTO skills/.test(sql)) counts.skills += 1;
+        if (/INSERT IGNORE INTO qbank_items/.test(sql)) counts.items += String(params[4] || '').length ? params.length / 11 : 0;
+        return { insertId: 0, affectedRows: 1 };
+    };
+    const result = await seedSessionData({ query, log: { info() {}, warn() {} } });
+    return { calls, result };
+}
+
+(async () => {
+    const grown = await runSeeder({ skillsBefore: 23, itemsBefore: 92 });
+const skillInserts = grown.calls.filter((c) => /INSERT IGNORE INTO skills/.test(c.sql));
+const itemInserts = grown.calls.filter((c) => /INSERT IGNORE INTO qbank_items/.test(c.sql));
+ok('a populated database still receives every seeded skill', skillInserts.length === seed.skills.length, `${skillInserts.length} inserts`);
+ok('a populated database still receives the question bank', itemInserts.length >= 1, `${itemInserts.length} chunk(s)`);
+ok(
+    'the seeder reports what the boot added',
+    grown.result.added && grown.result.added.skills > 0 && grown.result.added.questions > 0,
+    JSON.stringify(grown.result.added)
+);
+ok('the seeder never rewrites existing rows', !grown.calls.some((c) => /UPDATE qbank_items|DELETE FROM/.test(c.sql)));
+
+const amcSkill = skillInserts.find((c) => String(c.params[0] || '').includes('amc10.'));
+ok('the AMC bank is part of the seeded set', !!amcSkill, amcSkill ? String(amcSkill.params[0]) : 'missing');
+    report();
+})().catch((err) => {
+    failures.push(`the seed growth check threw — ${err.message}`);
+    report();
+});
+
 // --------------------------------------------- the card must not leak answers
 const stubQBank = createQBank({ query: async () => [] });
 const sample = seed.questions[0];
@@ -221,9 +266,11 @@ eq(
 );
 
 // ------------------------------------------------------------------ report
-if (failures.length) {
-    console.error(`\n${failures.length} FAILED of ${pass + failures.length}:`);
-    for (const f of failures) console.error(`  ✗ ${f}`);
-    process.exit(1);
+function report() {
+    if (failures.length) {
+        console.error(`\n${failures.length} FAILED of ${pass + failures.length}:`);
+        for (const f of failures) console.error(`  ✗ ${f}`);
+        process.exit(1);
+    }
+    console.log(`\nAll ${pass} checks passed.`);
 }
-console.log(`\nAll ${pass} checks passed.`);

@@ -4,6 +4,27 @@
 
 ---
 
+### ✅ QUESTION BANK: STEM · ENGLISH · SAT R&W · ACT · MATHCOUNTS · AMC 8/10/12
+
+**Status**: COMPLETE (offline-verified: seed validates, 357 tests green; live rows land on the next API boot)
+
+**What was added** (`seed/qbank_exams.py`, `seed/skill_tree.py`)
+- Eight new tracks with two to three skills each: `stem.sci`, `english`, `sat.rw`, `act`, `mathcounts`, `amc8`, `amc10`, `amc12` (plus `act.science.data` for ACT data questions).
+- 68 authored questions, four per skill, every one built to the same anatomy as the rest of the bank: four options, a specific `why` on each distractor, a two-step hint ladder, solution steps, and a tier-1 opener per skill.
+- **Original content only.** Nothing is copied from MAA (AMC), College Board (SAT), ACT or MATHCOUNTS: contest and admissions items are copyrighted and the AMC problems are still used for scoring. Questions are written in the style of each exam instead.
+- Diagrams: 12 authored SVGs (cell diagram, right triangles, chord-in-circle, lattices, number line, ACT data table) plus the preset board diagrams already in the bank. `visual = {"svg": ..., "alt": ...}` renders as a figure on the question card and as a thumbnail in the outline creator's bank picker.
+- `build_session_seed.py` now validates SVG visuals as well as presets: must start with `<svg`, carry alt text, stay under 20 KB, and contain no `<script>`, `<foreignObject>`, `<iframe>` or inline `on*=` handlers.
+
+**Bank growth** (`session-schema.js`)
+- `seedSessionData` no longer stops once `skills` is populated. Every boot re-runs `INSERT IGNORE` against `skills.code` and `qbank_items.stem_hash`, so a database seeded months ago picks up new subjects, and reports `added: {skills, questions}` in the log.
+- `skill_pool` is refreshed **after** the inserts, so a new skill is visible to the planner in the same boot that creates it.
+
+**Seed totals**: 40 skills, 160 questions, 15 diagrams across 12 tracks (`python build_session_seed.py`).
+
+**Tests**: `test-session-core.js` 64 (adds a fake-DB check that a populated database still receives every seeded skill and the question chunks, and that nothing is rewritten) · `test-visual-teaching.js` 84 (adds SVG safety, exam-track coverage of ≥4 questions per skill, tier-1 openers, and answer-key integrity) · `test-phase45.js` 85 · `test-ai-session.js` 124.
+
+---
+
 ### ✅ PHASE 4 + 5 - PEER-COURSE TEACHING & QUALITY OF LIFE
 
 **Status**: COMPLETE (offline-verified; live run pending a Render deploy)

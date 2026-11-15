@@ -372,35 +372,36 @@ async function ensureSessionSchema({ query, log } = {}) {
 
 /**
  * Load seed/session_seed.json into skills + qbank_items.
- * Idempotent: uses INSERT IGNORE (ON CONFLICT DO NOTHING) and skips entirely
- * once the skill tree exists.
+ * Idempotent and incremental: INSERT IGNORE (ON CONFLICT DO NOTHING) against
+ * `skills.code` and `qbank_items.stem_hash`, so a boot adds only the skills and
+ * questions that are new to the database. That is how new banks (exam subjects,
+ * extra authoring passes) reach a database that was seeded months ago.
  */
 async function seedSessionData({ query, log } = {}) {
     const info = (log && log.info) || (() => {});
     const warn = (log && log.warn) || ((m) => console.warn(m));
 
-    // Materialised counts first: planning uses them to skip skills that have no
-    // live item at any tier, and it must stay correct after items are added.
-    try {
-        await query(
-            `INSERT INTO skill_pool (skill_id, tier, live_count)
-             SELECT skill_id, tier, COUNT(*) FROM qbank_items WHERE live = 1
-             GROUP BY skill_id, tier
-             ON CONFLICT (skill_id, tier)
-             DO UPDATE SET live_count = EXCLUDED.live_count, updated_at = NOW()`
-        );
-    } catch (e) {
-        warn(`[session-seed] skill pool refresh skipped: ${e.message}`);
-    }
+    // Refresh the materialised pool after the inserts (below): planning skips
+    // skills whose live_count is zero, so a new skill must be counted in the same
+    // boot that created it.
+    const refreshPool = async () => {
+        try {
+            await query(
+                `INSERT INTO skill_pool (skill_id, tier, live_count)
+                 SELECT skill_id, tier, COUNT(*) FROM qbank_items WHERE live = 1
+                 GROUP BY skill_id, tier
+                 ON CONFLICT (skill_id, tier)
+                 DO UPDATE SET live_count = EXCLUDED.live_count, updated_at = NOW()`
+            );
+        } catch (e) {
+            warn(`[session-seed] skill pool refresh skipped: ${e.message}`);
+        }
+    };
 
-    const existing = await query('SELECT COUNT(*) AS c FROM skills');
-    const skillCount = Number(existing[0]?.c || 0);
-    if (skillCount > 0) {
-        const qcount = await query('SELECT COUNT(*) AS c FROM qbank_items');
-        info(`[session-seed] already seeded: ${skillCount} skills, ${Number(qcount[0]?.c || 0)} questions`);
-        return { seeded: false, skills: skillCount, questions: Number(qcount[0]?.c || 0) };
-    }
-
+    // Growth, not just first boot: the bank gains skills and questions over time
+    // (new subjects, authoring passes), so every boot re-runs the inserts. Both
+    // tables have the unique keys that make this a no-op for rows already there
+    // (`skills.code`, `qbank_items.stem_hash`).
     const seed = loadSeed();
     if (!seed) {
         warn('[session-seed] no seed/session_seed.json found — run: python build_session_seed.py');
@@ -410,6 +411,17 @@ async function seedSessionData({ query, log } = {}) {
         warn(`[session-seed] seed file is not valid JSON: ${seed.__error}`);
         return { seeded: false, skills: 0, questions: 0 };
     }
+
+    const countRows = async (sql) => {
+        try {
+            const rows = await query(sql);
+            return Number(rows[0]?.c || 0);
+        } catch (_) {
+            return 0;
+        }
+    };
+    const skillsBefore = await countRows('SELECT COUNT(*) AS c FROM skills');
+    const itemsBefore = await countRows('SELECT COUNT(*) AS c FROM qbank_items');
 
     // ---- skills ---------------------------------------------------------
     for (const s of seed.skills || []) {
@@ -483,8 +495,22 @@ async function seedSessionData({ query, log } = {}) {
         inserted += chunk.length;
     }
 
-    info(`[session-seed] seeded ${byCode.size} skills and ${inserted} questions`);
-    return { seeded: true, skills: byCode.size, questions: inserted };
+    await refreshPool();
+
+    const skillsAfter = await countRows('SELECT COUNT(*) AS c FROM skills');
+    const itemsAfter = await countRows('SELECT COUNT(*) AS c FROM qbank_items');
+    const addedSkills = Math.max(0, skillsAfter - skillsBefore);
+    const addedItems = Math.max(0, itemsAfter - itemsBefore);
+    info(
+        `[session-seed] ${skillsAfter} skills, ${itemsAfter} questions ` +
+            `(added ${addedSkills} skills, ${addedItems} questions from ${inserted} seed rows)`
+    );
+    return {
+        seeded: addedSkills + addedItems > 0,
+        skills: skillsAfter,
+        questions: itemsAfter,
+        added: { skills: addedSkills, questions: addedItems }
+    };
 }
 
 module.exports = { ensureSessionSchema, seedSessionData, TABLES, SEED_PATH };
