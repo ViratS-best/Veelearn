@@ -1452,6 +1452,18 @@
 
     let text = '';
     let typesetAt = 0;
+    // Typed out as the words arrive, not in one block when the stream ends.
+    let shown = 0;
+    let revealing = true;
+    const reveal = () => {
+      if (!revealing) return;
+      if (shown < text.length) {
+        shown = Math.min(text.length, shown + 3);
+        answer.textContent = text.slice(0, shown);
+      }
+      setTimeout(reveal, 14);
+    };
+    setTimeout(reveal, 14);
     try {
       const res = await fetch(`${API_BASE_URL}/api/session/${state.id}/teach`, {
         method: 'POST',
@@ -1482,14 +1494,12 @@
           }
           if (event === 'delta' && data.t) {
             text += data.t;
-            answer.textContent = text;
             if (Date.now() - typesetAt > 700) {
               typesetAt = Date.now();
               typesetContent();
             }
           } else if (event === 'done' && data.text) {
             text = data.text;
-            answer.textContent = text;
           }
         }
       }
@@ -1497,6 +1507,7 @@
       if (!text) answer.textContent = 'I could not reach Vee just now. Try again in a moment.';
     }
 
+    revealing = false;
     answer.classList.remove('is-streaming');
     const table = renderTables(answer, cleanAskText(text));
     typesetContent();
