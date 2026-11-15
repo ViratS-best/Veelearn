@@ -299,7 +299,11 @@
 
     box.classList.remove('is-streaming');
     el('sx-teach-status').hidden = true;
+    const table = renderTables(box, text);
     typesetContent();
+    if (table && state.visualReady && window.Mascot) {
+      Promise.resolve(Mascot.pointAt(table)).catch(() => {});
+    }
     return text;
   }
 
@@ -1333,6 +1337,73 @@
   // ---------------------------------------------------------------- ask Vee
   let asking = false;
 
+  /**
+   * Vee writes tables as markdown pipes. Show them as real tables instead of a
+   * wall of "|" characters, and hand the table back so the mascot can point at it.
+   */
+  function renderTables(host, text) {
+    if (!host) return null;
+    const raw = String(text || '');
+    const isRow = (line) => /^\s*\|.*\|\s*$/.test(line);
+    if (!raw.split('\n').some(isRow)) {
+      host.textContent = raw;
+      return null;
+    }
+    const lines = raw.split('\n');
+    const parts = [];
+    let firstTable = null;
+    let run = [];
+    const flushRun = () => {
+      if (!run.length) return;
+      const block = document.createElement('div');
+      block.className = 'sx-ask-p';
+      block.textContent = run.join('\n').trim();
+      if (block.textContent) parts.push(block);
+      run = [];
+    };
+    for (let i = 0; i < lines.length; ) {
+      if (!isRow(lines[i])) {
+        run.push(lines[i]);
+        i += 1;
+        continue;
+      }
+      const block = [];
+      while (i < lines.length && isRow(lines[i])) block.push(lines[i++]);
+      const rows = block
+        .map((line) =>
+          line
+            .trim()
+            .replace(/^\|/, '')
+            .replace(/\|$/, '')
+            .split('|')
+            .map((cell) => cell.trim())
+        )
+        .filter((cells) => !cells.every((cell) => cell === '' || /^:?-{2,}:?$/.test(cell)));
+      if (rows.length < 2) {
+        run.push(...block);
+        continue;
+      }
+      flushRun();
+      const table = document.createElement('table');
+      table.className = 'sx-table';
+      rows.forEach((cells, r) => {
+        const tr = document.createElement('tr');
+        cells.forEach((c) => {
+          const cell = document.createElement(r === 0 ? 'th' : 'td');
+          cell.textContent = c;
+          tr.appendChild(cell);
+        });
+        table.appendChild(tr);
+      });
+      if (!firstTable) firstTable = table;
+      parts.push(table);
+    }
+    flushRun();
+    host.textContent = '';
+    parts.forEach((part) => host.appendChild(part));
+    return firstTable;
+  }
+
   async function askVee() {
     const input = el('sx-ask-input');
     const btn = el('sx-ask-btn');
@@ -1408,7 +1479,12 @@
     }
 
     answer.classList.remove('is-streaming');
+    const table = renderTables(answer, text);
     typesetContent();
+    if (table && state.visualReady && window.Mascot) {
+      Mascot.mood('happy');
+      Promise.resolve(Mascot.pointAt(table)).catch(() => {});
+    }
     asking = false;
     if (btn) btn.disabled = false;
   }
