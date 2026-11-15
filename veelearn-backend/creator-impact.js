@@ -779,15 +779,25 @@ function createCreatorImpact({ query, log } = {}) {
         const report = await readiness(courseId, { persist: true });
         const units = splitUnits(course.content);
         const unitSkills = new Map();
+        // Best-effort unit per skill, used only to give a topped-up card the right
+        // lesson text; it is never treated as a topic match.
+        const unitHints = new Map();
         for (const unit of units) {
             const tokens = tokensOf(`${unit.title} ${unit.text}`);
             for (const skill of report.skills) {
                 const nameTokens = tokensOf(skill.name);
+                const titleTokens = tokensOf(unit.title);
                 let hits = 0;
-                for (const t of nameTokens) if (tokens.has(t)) hits += 1;
+                let inTitle = 0;
+                for (const t of nameTokens) {
+                    if (tokens.has(t)) hits += 1;
+                    if (titleTokens.has(t)) inTitle += 1;
+                }
                 if (!hits) continue;
                 const prev = unitSkills.get(skill.id);
-                if (!prev || hits > prev.hits) unitSkills.set(skill.id, { hits, unit });
+                if (!prev || hits > prev.hits) unitSkills.set(skill.id, { hits, inTitle, unit });
+                const hint = unitHints.get(skill.id);
+                if (!hint || hits > hint.hits) unitHints.set(skill.id, { hits, unit });
             }
         }
 
@@ -810,8 +820,21 @@ function createCreatorImpact({ query, log } = {}) {
         const ordered = report.skills
             .map((skill) => {
                 const hit = unitSkills.get(skill.id);
+                const hint = unitHints.get(skill.id);
                 const m = masteryMap.get(skill.id) || { p: 0, level: 0 };
-                return { skill, unitOrd: hit ? hit.unit.ord : 99, unit: hit ? hit.unit : null, p: m.p, level: m.level };
+                // One shared word is not a lesson: an AP Calculus unit that mentions
+                // "work" used to pull in a physics skill, so a unit needs two token
+                // hits, or one that appears in its own heading.
+                const matched = Boolean(hit) && (hit.hits >= 2 || hit.inTitle >= 1);
+                return {
+                    skill,
+                    matched,
+                    unitOrd: matched ? hit.unit.ord : 99,
+                    unit: matched ? hit.unit : null,
+                    unitHint: hint ? hint.unit : null,
+                    p: m.p,
+                    level: m.level
+                };
             })
             .filter((row) => !hitIsMastered(row))
             .sort((a, b) => (a.unitOrd - b.unitOrd) || (a.p - b.p));
@@ -829,8 +852,21 @@ function createCreatorImpact({ query, log } = {}) {
         // card could sit under partial fractions. Plan real bank skills instead.
         const isPlaceholder = (row) => /^course\./.test(String(row.skill.code || ''));
         const realSkills = ordered.filter((row) => !isPlaceholder(row));
-        const withQuestions = realSkills.filter((row) => (countById.get(Number(row.skill.id)) || 0) > 0);
-        const picked = (withQuestions.length ? withQuestions : realSkills).slice(0, count);
+        const has = (row) => (countById.get(Number(row.skill.id)) || 0) > 0;
+        const qualified = realSkills.filter((row) => row.matched && has(row));
+        let picked = qualified.slice(0, count);
+        if (picked.length < count) {
+            // Topped up from the rest of the bank so the session still fills its
+            // time budget when a unit has no matching skill with questions.
+            const chosen = new Set(picked.map((row) => Number(row.skill.id)));
+            for (const row of realSkills) {
+                if (picked.length >= count) break;
+                if (chosen.has(Number(row.skill.id)) || !has(row)) continue;
+                picked.push(row);
+                chosen.add(Number(row.skill.id));
+            }
+        }
+        if (!picked.length) picked = realSkills.slice(0, count);
         const items = picked.map((row, i) => ({
             ord: i,
             skillId: row.skill.id,
@@ -838,8 +874,8 @@ function createCreatorImpact({ query, log } = {}) {
             isReview: 0,
             targetDots: 2,
             startTier: row.level >= 2 ? 3 : row.level >= 1 ? 2 : 1,
-            unitIndex: row.unit ? row.unit.ord : 0,
-            frame: frameFor(row.unit)
+            unitIndex: (row.unit || row.unitHint) ? (row.unit || row.unitHint).ord : 0,
+            frame: frameFor(row.unit || row.unitHint)
         }));
 
         return { course, report, items };
