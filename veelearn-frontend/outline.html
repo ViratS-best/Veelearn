@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Course Outline · Veelearn</title>
+    <link rel="icon" href="VEELEARN.png" />
+    <style>
+        :root {
+            --ink: #26221f;
+            --muted: #7c736c;
+            --line: #ecdfd2;
+            --card: #fffdf9;
+            --accent: #ea580c;
+            --accent-soft: #fde7d4;
+            --green: #15803d;
+            --red: #b91c1c;
+            --page: #fbf6ef;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+            background: var(--page);
+            color: var(--ink);
+        }
+        a { color: var(--accent); }
+        button { font: inherit; cursor: pointer; }
+        .bar {
+            display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+            padding: 12px 20px; background: #fff; border-bottom: 1px solid var(--line);
+            position: sticky; top: 0; z-index: 20;
+        }
+        .brand { font-weight: 800; font-size: 18px; letter-spacing: -0.01em; }
+        .brand span { color: var(--accent); }
+        .bar select {
+            padding: 7px 10px; border-radius: 9px; border: 1px solid var(--line);
+            background: #fffdf9; font: inherit; max-width: 320px;
+        }
+        .spacer { flex: 1; }
+        .btn {
+            border: 1px solid var(--line); background: #fff; border-radius: 9px;
+            padding: 7px 12px; color: var(--ink);
+        }
+        .btn:hover { border-color: var(--accent); }
+        .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+        .btn.ghost { background: transparent; }
+        .btn.small { padding: 4px 8px; font-size: 13px; }
+        .status { font-size: 13px; color: var(--muted); }
+
+        .wrap { display: grid; grid-template-columns: 230px 1fr; gap: 18px; padding: 18px 20px 60px; }
+        @media (max-width: 860px) { .wrap { grid-template-columns: 1fr; } }
+
+        .panel { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 16px; }
+        .panel h2 { margin: 0 0 10px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+
+        .pages { display: flex; flex-direction: column; gap: 6px; }
+        .page-item {
+            display: flex; align-items: center; gap: 8px;
+            padding: 9px 10px; border-radius: 10px; border: 1px solid transparent;
+            background: #fffdf9; cursor: pointer; text-align: left;
+        }
+        .page-item:hover { border-color: var(--line); }
+        .page-item.is-active { background: var(--accent-soft); border-color: #f7c39a; font-weight: 700; }
+        .page-item .n { color: var(--muted); font-size: 12px; min-width: 16px; }
+        .page-item .t { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        .map-head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+        .unit-title {
+            font-size: 22px; font-weight: 800; border: none; background: transparent;
+            padding: 2px 4px; width: 100%; letter-spacing: -0.01em;
+        }
+        .unit-title:focus { outline: 2px solid var(--accent-soft); border-radius: 6px; }
+        .unit-summary {
+            width: 100%; min-height: 44px; border: 1px solid var(--line); border-radius: 10px;
+            padding: 8px 10px; font: inherit; font-size: 14px; background: #fffdf9; resize: vertical;
+        }
+
+        .circles { display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0 6px; }
+        .skill {
+            position: relative; width: 54px; height: 54px; border-radius: 50%;
+            border: 2px solid #e7dccf; background: #f6efe6; display: grid; place-items: center;
+            font-weight: 700; color: #8a7d72; transition: transform .12s ease, border-color .12s ease;
+        }
+        .skill:hover, .skill:focus-visible { transform: translateY(-2px); border-color: var(--accent); outline: none; }
+        .skill.has-q { background: #fff; color: var(--ink); border-color: #d9c8b5; }
+        .skill.is-active { box-shadow: 0 0 0 3px var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+        .skill .count {
+            position: absolute; bottom: -6px; right: -6px; background: var(--accent); color: #fff;
+            font-size: 10.5px; padding: 1px 5px; border-radius: 999px; font-weight: 700;
+        }
+        .skill-tip {
+            position: fixed; z-index: 60; background: #2b2724; color: #fff; padding: 7px 10px;
+            border-radius: 8px; font-size: 13px; max-width: 260px; pointer-events: none;
+            box-shadow: 0 8px 20px rgba(0,0,0,.18); display: none;
+        }
+        .skill-tip.is-on { display: block; }
+        .dots-hint { font-size: 13px; color: var(--muted); }
+
+        .skill-editor { margin-top: 20px; border-top: 1px dashed var(--line); padding-top: 16px; }
+        .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        label.field { display: block; margin-bottom: 10px; }
+        label.field span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+        input[type="text"], textarea, select {
+            width: 100%; border: 1px solid var(--line); border-radius: 9px; padding: 8px 10px;
+            font: inherit; background: #fffdf9; color: var(--ink);
+        }
+        textarea { resize: vertical; }
+        .q-card { border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 10px; background: #fffdf9; }
+        .q-card .q-head { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+        .q-card .q-head strong { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+        .opt-row { display: grid; grid-template-columns: 28px 1fr 34px; gap: 6px; align-items: center; margin-bottom: 5px; }
+        .opt-row .k { font-weight: 800; color: var(--accent); text-align: center; }
+        .opt-row input[type="radio"] { accent-color: var(--accent); }
+        .visual-slot img, .visual-slot svg { max-width: 220px; max-height: 120px; border-radius: 8px; border: 1px solid var(--line); background: #fff; }
+        .visual-cap { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+        .modal { position: fixed; inset: 0; background: rgba(30,24,18,.42); display: none; place-items: center; z-index: 80; padding: 20px; }
+        .modal.is-on { display: grid; }
+        .modal-card { background: #fff; border-radius: 16px; width: min(860px, 100%); max-height: 86vh; overflow: auto; padding: 18px; }
+        .bank-item { display: grid; grid-template-columns: 1fr 130px; gap: 12px; border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 10px; }
+        .bank-item .stem { font-size: 14.5px; margin: 0 0 6px; }
+        .bank-item .meta { font-size: 12px; color: var(--muted); }
+        .bank-item .thumb { display: grid; place-items: center; }
+        .bank-item .thumb img, .bank-item .thumb svg { max-width: 120px; max-height: 90px; }
+        .hintline { font-size: 12.5px; color: var(--muted); margin: 4px 0 0; }
+        .empty { color: var(--muted); font-size: 14px; padding: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="bar">
+        <a href="index.html" class="btn ghost small">← Dashboard</a>
+        <div class="brand">Vee<span>learn</span> outlines</div>
+        <select id="course-select" aria-label="Choose a course"></select>
+        <span class="status" id="status"></span>
+        <div class="spacer"></div>
+        <button class="btn" id="new-unit">+ Unit page</button>
+        <button class="btn primary" id="save">Save outline</button>
+    </div>
+
+    <div class="wrap">
+        <aside class="panel">
+            <h2>Unit pages</h2>
+            <div class="pages" id="pages"></div>
+            <p class="dots-hint" style="margin:12px 0 0">Each page is a topic. Skills are circles; hover to see them.</p>
+        </aside>
+
+        <main class="panel" id="map-panel">
+            <div id="unit-empty" class="empty">Pick a course, then add a unit page to start the map.</div>
+            <div id="unit-view" hidden>
+                <div class="map-head">
+                    <input class="unit-title" id="unit-title" placeholder="Unit title" />
+                    <button class="btn small ghost" id="delete-unit">Delete page</button>
+                </div>
+                <textarea class="unit-summary" id="unit-summary" placeholder="What this page covers (the AI uses this as the topic brief)"></textarea>
+
+                <div class="circles" id="circles"></div>
+                <div class="row">
+                    <button class="btn small" id="add-skill">+ Skill circle</button>
+                    <span class="dots-hint" id="unit-stats"></span>
+                </div>
+
+                <section class="skill-editor" id="skill-editor" hidden>
+                    <div class="row" style="justify-content:space-between">
+                        <label class="field" style="flex:1;margin:0">
+                            <span>Skill</span>
+                            <input type="text" id="skill-name" placeholder="e.g. Integration by parts" />
+                        </label>
+                        <button class="btn small ghost" id="delete-skill" style="align-self:flex-end">Delete skill</button>
+                    </div>
+                    <label class="field" style="margin-top:10px">
+                        <span>Teaching instructions (the AI follows these)</span>
+                        <textarea id="skill-teach" rows="4" placeholder="Explain with the tabular method, start from a tiny example, then let them try one. Never jump to the formula first."></textarea>
+                    </label>
+
+                    <div class="row" style="justify-content:space-between;margin:6px 0 8px">
+                        <strong style="font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)">Questions</strong>
+                        <div class="row">
+                            <button class="btn small" id="pull-bank">Pull from question bank</button>
+                            <button class="btn small" id="add-question">+ Write question</button>
+                        </div>
+                    </div>
+                    <div id="questions"></div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <div class="skill-tip" id="skill-tip"></div>
+
+    <div class="modal" id="bank-modal">
+        <div class="modal-card">
+            <div class="row" style="justify-content:space-between;margin-bottom:10px">
+                <strong>Question bank</strong>
+                <button class="btn small ghost" id="bank-close">Close</button>
+            </div>
+            <div class="row" style="margin-bottom:12px">
+                <input type="text" id="bank-q" placeholder="Search a topic, e.g. partial fractions" style="flex:1" />
+                <button class="btn primary small" id="bank-search">Search</button>
+            </div>
+            <div id="bank-results"><p class="empty">Search the bank to pull questions with their diagrams.</p></div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            'use strict';
+            const API = (() => {
+                const host = location.hostname;
+                if (host === 'localhost' || host === '127.0.0.1') return 'http://localhost:5000';
+                return 'https://api.veelearn.org';
+            })();
+            const token = localStorage.getItem('token');
+            const el = (id) => document.getElementById(id);
+
+            let outline = { version: 1, units: [] };
+            let courseId = null;
+            let unitIndex = -1;
+            let skillIndex = -1;
+
+            const status = (msg, bad) => {
+                el('status').textContent = msg || '';
+                el('status').style.color = bad ? 'var(--red)' : 'var(--muted)';
+            };
+
+            async function api(path, options) {
+                const opts = options || {};
+                const res = await fetch(API + path, {
+                    method: opts.body ? 'POST' : 'GET',
+                    headers: Object.assign(
+                        { Authorization: 'Bearer ' + (token || '') },
+                        opts.body ? { 'Content-Type': 'application/json' } : {}
+                    ),
+                    body: opts.body ? JSON.stringify(opts.body) : undefined,
+                    credentials: 'include'
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.success === false) throw new Error(data.message || 'Request failed');
+                return data.data;
+            }
+
+            // ------------------------------------------------------------- courses
+            async function loadCourses() {
+                const data = await api('/api/my-courses');
+                const list = (data && (data.courses || data)) || [];
+                const select = el('course-select');
+                select.innerHTML = '';
+                if (!list.length) {
+                    select.innerHTML = '<option value="">No courses yet</option>';
+                    el('unit-empty').textContent = 'Create a course first, then draw its outline here.';
+                    return;
+                }
+                list.forEach((c) => {
+                    const opt = document.createElement('option');
+                    opt.value = c.id;
+                    opt.textContent = c.title;
+                    select.appendChild(opt);
+                });
+                courseId = Number(list[0].id);
+                select.value = String(courseId);
+                await loadOutline();
+            }
+
+            async function loadOutline() {
+                if (!courseId) return;
+                status('Loading outline…');
+                try {
+                    const data = await api('/api/courses/' + courseId + '/outline');
+                    outline = data.outline && data.outline.units ? data.outline : { version: 1, units: [] };
+                    unitIndex = outline.units.length ? 0 : -1;
+                    skillIndex = -1;
+                    renderAll();
+                    status(data.canEdit ? 'Ready' : 'Read-only (not your course)');
+                } catch (err) {
+                    status(err.message, true);
+                }
+            }
+
+            async function save() {
+                if (!courseId) return;
+                status('Saving…');
+                try {
+                    const data = await api('/api/courses/' + courseId + '/outline', { body: { outline } });
+                    outline = data.outline;
+                    status('Saved · ' + data.skills + ' skills · ' + data.questions + ' questions');
+                } catch (err) {
+                    status(err.message, true);
+                }
+            }
+
+            // ------------------------------------------------------------- renders
+            function renderPages() {
+                const pages = el('pages');
+                pages.innerHTML = '';
+                outline.units.forEach((unit, i) => {
+                    const b = document.createElement('button');
+                    b.type = 'button';
+                    b.className = 'page-item' + (i === unitIndex ? ' is-active' : '');
+                    b.innerHTML = '<span class="n">' + (i + 1) + '</span><span class="t"></span>';
+                    b.querySelector('.t').textContent = unit.title || 'Untitled page';
+                    b.addEventListener('click', () => {
+                        unitIndex = i;
+                        skillIndex = -1;
+                        renderAll();
+                    });
+                    pages.appendChild(b);
+                });
+                if (!outline.units.length) {
+                    pages.innerHTML = '<p class="empty">No pages yet.</p>';
+                }
+            }
+
+            function renderUnit() {
+                const unit = outline.units[unitIndex];
+                el('unit-view').hidden = !unit;
+                el('unit-empty').hidden = Boolean(unit);
+                if (!unit) return;
+                el('unit-title').value = unit.title || '';
+                el('unit-summary').value = unit.summary || '';
+                const totalQ = unit.skills.reduce((n, s) => n + (s.questions ? s.questions.length : 0), 0);
+                el('unit-stats').textContent =
+                    unit.skills.length + ' skills · ' + totalQ + ' questions on this page';
+                renderCircles();
+                renderSkillEditor();
+            }
+
+            function renderCircles() {
+                const unit = outline.units[unitIndex];
+                const box = el('circles');
+                box.innerHTML = '';
+                if (!unit) return;
+                if (!unit.skills.length) {
+                    box.innerHTML = '<p class="empty">No skills yet — add a circle.</p>';
+                    return;
+                }
+                unit.skills.forEach((skill, i) => {
+                    const b = document.createElement('button');
+                    b.type = 'button';
+                    const qn = skill.questions ? skill.questions.length : 0;
+                    b.className = 'skill' + (qn ? ' has-q' : '') + (i === skillIndex ? ' is-active' : '');
+                    b.textContent = String(i + 1);
+                    if (qn) {
+                        const c = document.createElement('span');
+                        c.className = 'count';
+                        c.textContent = qn;
+                        b.appendChild(c);
+                    }
+                    b.addEventListener('mouseenter', (e) => showTip(e, skill.name + (qn ? ' · ' + qn + ' questions' : ' · no questions yet')));
+                    b.addEventListener('mousemove', (e) => showTip(e, skill.name + (qn ? ' · ' + qn + ' questions' : ' · no questions yet')));
+                    b.addEventListener('mouseleave', hideTip);
+                    b.addEventListener('click', () => {
+                        skillIndex = i;
+                        renderCircles();
+                        renderSkillEditor();
+                    });
+                    b.setAttribute('aria-label', skill.name);
+                    box.appendChild(b);
+                });
+            }
+
+            function showTip(e, text) {
+                const tip = el('skill-tip');
+                tip.textContent = text;
+                tip.classList.add('is-on');
+                tip.style.left = Math.min(window.innerWidth - 280, e.clientX + 12) + 'px';
+                tip.style.top = Math.max(8, e.clientY - 36) + 'px';
+            }
+            function hideTip() {
+                el('skill-tip').classList.remove('is-on');
+            }
+
+            function visualNode(visual) {
+                if (!visual || typeof visual !== 'object') return null;
+                const src = visual.image || visual.image_url || visual.url || visual.src;
+                if (typeof src === 'string' && src) {
+                    const img = document.createElement('img');
+                    img.src = src;
+                    img.alt = visual.alt || 'Diagram';
+                    return img;
+                }
+                if (typeof visual.svg === 'string' && visual.svg.trim().toLowerCase().startsWith('<svg')) {
+                    const box = document.createElement('div');
+                    box.innerHTML = visual.svg;
+                    return box;
+                }
+                return null;
+            }
+
+            function renderSkillEditor() {
+                const unit = outline.units[unitIndex];
+                const skill = unit && unit.skills[skillIndex];
+                el('skill-editor').hidden = !skill;
+                if (!skill) return;
+                el('skill-name').value = skill.name || '';
+                el('skill-teach').value = skill.teach || '';
+                renderQuestions();
+            }
+
+            function renderQuestions() {
+                const unit = outline.units[unitIndex];
+                const skill = unit && unit.skills[skillIndex];
+                const box = el('questions');
+                box.innerHTML = '';
+                if (!skill) return;
+                if (!skill.questions.length) {
+                    box.innerHTML = '<p class="empty">No questions yet. Write one or pull from the bank.</p>';
+                    return;
+                }
+                skill.questions.forEach((q, qi) => {
+                    const card = document.createElement('div');
+                    card.className = 'q-card';
+
+                    const head = document.createElement('div');
+                    head.className = 'q-head';
+                    const strong = document.createElement('strong');
+                    strong.textContent = 'Question ' + (qi + 1) + (q.bankId ? ' · from bank' : '');
+                    const del = document.createElement('button');
+                    del.className = 'btn small ghost';
+                    del.textContent = 'Delete';
+                    del.style.marginLeft = 'auto';
+                    del.addEventListener('click', () => {
+                        skill.questions.splice(qi, 1);
+                        renderQuestions();
+                        renderCircles();
+                    });
+                    head.appendChild(strong);
+                    head.appendChild(del);
+                    card.appendChild(head);
+
+                    const stem = document.createElement('textarea');
+                    stem.rows = 2;
+                    stem.value = q.stem || '';
+                    stem.placeholder = 'Question text (LaTeX allowed with $...$)';
+                    stem.addEventListener('input', () => {
+                        q.stem = stem.value;
+                    });
+                    card.appendChild(stem);
+
+                    q.options.forEach((opt, oi) => {
+                        const row = document.createElement('div');
+                        row.className = 'opt-row';
+                        const k = document.createElement('span');
+                        k.className = 'k';
+                        k.textContent = opt.k;
+                        const input = document.createElement('input');
+                        input.type = 'text';
+                        input.value = opt.t;
+                        input.addEventListener('input', () => {
+                            opt.t = input.value;
+                        });
+                        const radio = document.createElement('input');
+                        radio.type = 'radio';
+                        radio.name = 'answer-' + qi;
+                        radio.title = 'Correct answer';
+                        radio.checked = q.answer === opt.k;
+                        radio.addEventListener('change', () => {
+                            q.answer = opt.k;
+                        });
+                        row.appendChild(k);
+                        row.appendChild(input);
+                        row.appendChild(radio);
+                        card.appendChild(row);
+                    });
+
+                    const hint = document.createElement('input');
+                    hint.type = 'text';
+                    hint.placeholder = 'Hint (a nudge, never the answer)';
+                    hint.value = q.hint || '';
+                    hint.addEventListener('input', () => {
+                        q.hint = hint.value;
+                    });
+                    const why = document.createElement('input');
+                    why.type = 'text';
+                    why.placeholder = 'Why the right answer works';
+                    why.value = q.why || '';
+                    why.addEventListener('input', () => {
+                        q.why = why.value;
+                    });
+                    card.appendChild(hint);
+                    card.appendChild(why);
+
+                    const vis = visualNode(q.visual);
+                    if (vis) {
+                        const slot = document.createElement('div');
+                        slot.className = 'visual-slot';
+                        slot.style.marginTop = '8px';
+                        slot.appendChild(vis);
+                        const cap = document.createElement('div');
+                        cap.className = 'visual-cap';
+                        cap.textContent = q.visual.caption || q.visual.alt || 'Diagram attached';
+                        slot.appendChild(cap);
+                        card.appendChild(slot);
+                    }
+
+                    box.appendChild(card);
+                });
+            }
+
+            // ------------------------------------------------------------- editing
+            function blankQuestion() {
+                return {
+                    id: 'q' + Math.random().toString(36).slice(2, 8),
+                    stem: '',
+                    options: [
+                        { k: 'A', t: '' },
+                        { k: 'B', t: '' },
+                        { k: 'C', t: '' },
+                        { k: 'D', t: '' }
+                    ],
+                    answer: 'A',
+                    hint: '',
+                    why: '',
+                    visual: null
+                };
+            }
+
+            function blankSkill() {
+                return { id: 's' + Math.random().toString(36).slice(2, 8), name: 'New skill', teach: '', questions: [blankQuestion()] };
+            }
+
+            el('new-unit').addEventListener('click', () => {
+                outline.units.push({
+                    id: 'u' + Math.random().toString(36).slice(2, 8),
+                    title: 'Unit ' + (outline.units.length + 1),
+                    summary: '',
+                    skills: [blankSkill()]
+                });
+                unitIndex = outline.units.length - 1;
+                skillIndex = 0;
+                renderAll();
+            });
+
+            el('add-skill').addEventListener('click', () => {
+                const unit = outline.units[unitIndex];
+                if (!unit) return;
+                unit.skills.push(blankSkill());
+                skillIndex = unit.skills.length - 1;
+                renderCircles();
+                renderSkillEditor();
+            });
+
+            el('delete-unit').addEventListener('click', () => {
+                if (unitIndex < 0) return;
+                if (!confirm('Delete this unit page and its skills?')) return;
+                outline.units.splice(unitIndex, 1);
+                unitIndex = outline.units.length ? 0 : -1;
+                skillIndex = -1;
+                renderAll();
+            });
+
+            el('delete-skill').addEventListener('click', () => {
+                const unit = outline.units[unitIndex];
+                if (!unit || skillIndex < 0) return;
+                unit.skills.splice(skillIndex, 1);
+                skillIndex = Math.min(skillIndex, unit.skills.length - 1);
+                renderCircles();
+                renderSkillEditor();
+            });
+
+            el('add-question').addEventListener('click', () => {
+                const unit = outline.units[unitIndex];
+                const skill = unit && unit.skills[skillIndex];
+                if (!skill) return;
+                skill.questions.push(blankQuestion());
+                renderQuestions();
+                renderCircles();
+            });
+
+            el('unit-title').addEventListener('input', (e) => {
+                const unit = outline.units[unitIndex];
+                if (!unit) return;
+                unit.title = e.target.value;
+                renderPages();
+            });
+            el('unit-summary').addEventListener('input', (e) => {
+                const unit = outline.units[unitIndex];
+                if (unit) unit.summary = e.target.value;
+            });
+            el('skill-name').addEventListener('input', (e) => {
+                const unit = outline.units[unitIndex];
+                const skill = unit && unit.skills[skillIndex];
+                if (!skill) return;
+                skill.name = e.target.value;
+                renderCircles();
+            });
+            el('skill-teach').addEventListener('input', (e) => {
+                const unit = outline.units[unitIndex];
+                const skill = unit && unit.skills[skillIndex];
+                if (skill) skill.teach = e.target.value;
+            });
+
+            el('save').addEventListener('click', save);
+            el('course-select').addEventListener('change', (e) => {
+                courseId = Number(e.target.value);
+                loadOutline();
+            });
+
+            // --------------------------------------------------------- bank modal
+            function openBank() {
+                el('bank-modal').classList.add('is-on');
+                el('bank-q').focus();
+            }
+            function closeBank() {
+                el('bank-modal').classList.remove('is-on');
+            }
+            el('pull-bank').addEventListener('click', openBank);
+            el('bank-close').addEventListener('click', closeBank);
+            el('bank-modal').addEventListener('click', (e) => {
+                if (e.target === el('bank-modal')) closeBank();
+            });
+
+            async function searchBank() {
+                const q = el('bank-q').value.trim();
+                const results = el('bank-results');
+                results.innerHTML = '<p class="empty">Searching…</p>';
+                try {
+                    const list = await api('/api/question-bank/search?q=' + encodeURIComponent(q) + '&limit=12');
+                    results.innerHTML = '';
+                    if (!list.length) {
+                        results.innerHTML = '<p class="empty">Nothing in the bank for that yet.</p>';
+                        return;
+                    }
+                    list.forEach((item) => {
+                        const card = document.createElement('div');
+                        card.className = 'bank-item';
+                        const left = document.createElement('div');
+                        const stem = document.createElement('p');
+                        stem.className = 'stem';
+                        stem.textContent = item.stem;
+                        const meta = document.createElement('div');
+                        meta.className = 'meta';
+                        meta.textContent = (item.skill || 'bank') + ' · ' + item.options.map((o) => o.k + ') ' + o.t).join('  ');
+                        left.appendChild(stem);
+                        left.appendChild(meta);
+                        const hint = document.createElement('p');
+                        hint.className = 'hintline';
+                        hint.textContent = item.hint || '';
+                        left.appendChild(hint);
+                        const add = document.createElement('button');
+                        add.className = 'btn small primary';
+                        add.textContent = 'Add to skill';
+                        add.style.marginTop = '8px';
+                        add.addEventListener('click', () => addFromBank(item));
+                        left.appendChild(add);
+
+                        const thumb = document.createElement('div');
+                        thumb.className = 'thumb';
+                        const vis = visualNode(item.visual);
+                        thumb.appendChild(vis || document.createTextNode(''));
+
+                        card.appendChild(left);
+                        card.appendChild(thumb);
+                        results.appendChild(card);
+                    });
+                } catch (err) {
+                    results.innerHTML = '<p class="empty">' + err.message + '</p>';
+                }
+            }
+            el('bank-search').addEventListener('click', searchBank);
+            el('bank-q').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') searchBank();
+            });
+
+            function addFromBank(item) {
+                const unit = outline.units[unitIndex];
+                const skill = unit && unit.skills[skillIndex];
+                if (!skill) return;
+                skill.questions.push({
+                    id: 'q' + Math.random().toString(36).slice(2, 8),
+                    bankId: item.id,
+                    stem: item.stem,
+                    options: item.options.map((o) => ({ k: o.k, t: o.t })),
+                    answer: item.answer,
+                    hint: item.hint || '',
+                    why: item.why || '',
+                    visual: item.visual || null
+                });
+                renderQuestions();
+                renderCircles();
+                status('Pulled a bank question into ' + skill.name);
+            }
+
+            function renderAll() {
+                renderPages();
+                renderUnit();
+            }
+
+            if (!token) {
+                status('Please sign in first.', true);
+            } else {
+                loadCourses().catch((err) => status(err.message, true));
+            }
+        })();
+    </script>
+</body>
+</html>

@@ -65,6 +65,12 @@ const TABLES = [
         INDEX idx_qbank_pick (skill_id, tier, calibration_p)
     )`,
 
+    `CREATE TABLE IF NOT EXISTS course_outlines (
+        course_id INT PRIMARY KEY,
+        outline_json LONGTEXT NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`,
+
     `CREATE TABLE IF NOT EXISTS course_skills (
         id INT AUTO_INCREMENT PRIMARY KEY,
         course_id INT NOT NULL,
@@ -104,7 +110,8 @@ const TABLES = [
         correct_count SMALLINT DEFAULT 0,
         attempts SMALLINT DEFAULT 0,
         question_ids LONGTEXT NULL,
-        frame_md LONGTEXT NULL,
+        frame_md LONGTEXT NULL,
+
         unit_index SMALLINT DEFAULT 0,
         started_at TIMESTAMP NULL,
         completed_at TIMESTAMP NULL,
@@ -294,7 +301,8 @@ const ALTERS = [
     'ALTER TABLE courses ADD COLUMN IF NOT EXISTS sessions_taught INT DEFAULT 0',
     'ALTER TABLE courses ADD COLUMN IF NOT EXISTS readiness_score SMALLINT DEFAULT 0',
     'ALTER TABLE courses ADD COLUMN IF NOT EXISTS readiness_json LONGTEXT NULL',
-    'ALTER TABLE session_focus_items ADD COLUMN IF NOT EXISTS frame_md LONGTEXT NULL',
+    'ALTER TABLE session_focus_items ADD COLUMN IF NOT EXISTS frame_md LONGTEXT NULL',
+
     'ALTER TABLE session_focus_items ADD COLUMN IF NOT EXISTS unit_index SMALLINT DEFAULT 0',
     'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS rating SMALLINT NULL',
     'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS sprint SMALLINT DEFAULT 0',

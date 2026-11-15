@@ -777,6 +777,19 @@ function createCreatorImpact({ query, log } = {}) {
             throw err;
         }
         const report = await readiness(courseId, { persist: true });
+
+        // A creator's map outranks keyword matching: walk its units and skills in
+        // the order they were drawn, then review each unit before moving on.
+        try {
+            const outlines = require('./outline')({ query, log: { warn } });
+            const outlineItems = await outlines.planFromOutline(course, { maxItems: 40 });
+            if (outlineItems.length) {
+                return { course, report, items: outlineItems, unit: null, outline: true };
+            }
+        } catch (err) {
+            warn(`[creator-impact] outline plan skipped: ${err.message}`);
+        }
+
         const units = splitUnits(course.content);
         const unitSkills = new Map();
         // Best-effort unit per skill, used only to give a topped-up card the right

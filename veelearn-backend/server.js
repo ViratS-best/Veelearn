@@ -1273,6 +1273,8 @@ const aiNotesCoursePollLimiter = rateLimit({
 const createAiTutorHandlers = require('./ai-tutor-handlers');
 const aiTutorHandlers = createAiTutorHandlers({ query, aiChatCompletion, apiResponse });
 const createSessionRoutes = require('./session-routes');
+
+const createOutlineRoutes = require('./outline-routes');
 const sessionRoutes = createSessionRoutes({ query, apiResponse, log: { info, warn }, sendEmail });
 
 const createAiEditorHelpHandlers = require('./ai-editor-help-handlers');
@@ -1364,6 +1366,15 @@ const trackResponseTime = (req, res, next) => {
 app.use(trackResponseTime);
 
 // Apply generic rate limiter to all /api/ routes
+app.use(
+    createOutlineRoutes({
+        query,
+        authenticateToken,
+        writeLimiter,
+        log: { info, warn, error }
+    })
+);
+
 app.use('/api/', generalLimiter);
 
 // ===== ROUTES =====

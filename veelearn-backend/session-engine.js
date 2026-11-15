@@ -768,7 +768,9 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
         }
 
         const raw = await qbank.getRaw(questionId);
-        if (!raw || Number(raw.skill_id) !== Number(item.skill_id)) {
+        // A review item deliberately mixes the unit's skills, so its questions do not
+        // have to belong to the review's own synthetic skill.
+        if (!raw || (!Number(item.is_review) && Number(raw.skill_id) !== Number(item.skill_id))) {
             return { error: 400, message: 'Unknown question for this skill' };
         }
         const servedIds = parseJson(item.question_ids, []).map(Number);
@@ -805,7 +807,11 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
         const m = await applyMastery(userId, raw.skill_id, { correct, tier: raw.tier, assistance });
 
         // ---- item progression
-        const need = mastery.correctsNeeded(Number(item.target_dots || 2));
+        // A review item stores the number of correct answers it wants (about 90% of
+        // its pool) rather than a dot target, so it can ask for ~18 of 20.
+        const need = Number(item.is_review)
+            ? Math.max(1, Number(item.target_dots || 18))
+            : mastery.correctsNeeded(Number(item.target_dots || 2));
         const correctCount = Number(item.correct_count || 0) + (correct ? 1 : 0);
         const attempts = Number(item.attempts || 0) + 1;
         let itemDone = correct && correctCount >= need;
@@ -813,9 +819,47 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
         let next = 'retry';
         let nextQuestion = null;
 
+        // A review that ends under 90% puts the unit's skills back and asks for the
+        // review again, so a lucky guess never counts as knowing the unit.
+        let reviewRetry = false;
+        if (correct && itemDone && Number(item.is_review)) {
+            const accuracy = attempts ? correctCount / attempts : 1;
+            if (accuracy < 0.9) {
+                reviewRetry = true;
+                try {
+                    await query(
+                        `UPDATE session_focus_items
+                         SET status = 'pending', correct_count = 0, attempts = 0, completed_at = NULL
+                         WHERE session_id = ? AND unit_index = ? AND is_review = 0`,
+                        [sessionId, Number(item.unit_index || 0)]
+                    );
+                    const maxRows = await query('SELECT COALESCE(MAX(ord), 0) AS m FROM session_focus_items WHERE session_id = ?', [
+                        sessionId
+                    ]);
+                    const nextOrd = Number(maxRows[0] && maxRows[0].m ? maxRows[0].m : 0) + 1;
+                    await query(
+                        `INSERT INTO session_focus_items
+                            (session_id, skill_id, ord, is_review, target_dots, status, correct_count, attempts, question_ids, frame_md, unit_index)
+                         VALUES (?, ?, ?, 1, ?, 'pending', 0, 0, ?, ?, ?)`,
+                        [
+                            sessionId,
+                            item.skill_id,
+                            nextOrd,
+                            Number(item.target_dots || 18),
+                            item.question_ids,
+                            item.frame_md,
+                            Number(item.unit_index || 0)
+                        ]
+                    );
+                } catch (err) {
+                    info(`[session] review reset skipped: ${err.message}`);
+                }
+            }
+        }
+
         if (correct) {
             if (itemDone) {
-                next = 'advance';
+                next = reviewRetry ? 'review' : 'advance';
             } else {
                 next = 'more';
                 const tier = Math.min(4, Number(raw.tier) + 1);
