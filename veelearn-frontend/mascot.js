@@ -104,8 +104,10 @@
   function readRects() {
     const stage = stageRect();
     state.rects.stage = stage;
-    const l = state.parts.pupilL && state.parts.pupilL.getBoundingClientRect();
-    const r = state.parts.pupilR && state.parts.pupilR.getBoundingClientRect();
+    // Anchor on the eye (the white sclera), not the pupil: the pupil moves as it
+    // looks, so measuring it feeds its own offset back into the aim.
+    const l = state.parts.eyeL && state.parts.eyeL.getBoundingClientRect();
+    const r = state.parts.eyeR && state.parts.eyeR.getBoundingClientRect();
     state.rects.l = l;
     state.rects.r = r;
     const opts = document.getElementById('sx-options');
