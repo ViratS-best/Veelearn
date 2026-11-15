@@ -29,6 +29,21 @@ function parseJson(value, fallback) {
     }
 }
 
+/**
+ * Some replies arrive as drafted sentences with word counts ("..." (11) = 26)
+ * because the model did its arithmetic out loud. When that pattern shows up,
+ * keep the finished sentences and drop the working.
+ */
+function stripDrafting(text) {
+    const raw = String(text || '');
+    const quoted = raw.match(/"([^"]{8,})"\s*\(\d+\)/g) || [];
+    if (quoted.length < 2) return raw;
+    const kept = quoted
+        .map((m) => m.replace(/"\s*\(\d+\)$/, '').replace(/^"/, '').trim())
+        .filter(Boolean);
+    return kept.length ? kept.join(' ') : raw;
+}
+
 function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
     const info = (log && log.info) || (() => {});
 
@@ -426,12 +441,14 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
         if (typeof chatStream !== 'function') return { ok: true, text: fallback, fallback: true };
 
         const task = asked
-            ? `Answer this question in under 160 words: "${asked}"\n` +
+            ? `Answer this question in at most three short sentences: "${asked}"\n` +
               (cardBlock ? `Context (do not repeat or quote it back):\n${cardBlock}\n` : '') +
               'Speak straight to the learner, in the second person. Explain the idea behind the card, ' +
               'never state which choice is correct, and use $...$ for math. ' +
               'If the learner asks for a table or a diagram, include a small GitHub-style markdown ' +
-              'table and finish it — the table is drawn for them.'
+              'table and finish it — the table is drawn for them. ' +
+              'Write only the words the learner should read: no planning, no counting words, ' +
+              'no drafts in quotes.'
             : 'Teach this unit in under 120 words: the one idea, why it works, and a tiny worked example. ' +
               'Do not ask a question and do not give the answer to any practice question. Use $...$ for math.';
 
@@ -472,7 +489,7 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
         } catch (err) {
             info(`[session] teach fallback: ${err.message}`);
         }
-        return { ok: true, text: String(text || fallback).trim(), fallback: !text };
+        return { ok: true, text: stripDrafting(String(text || fallback).trim()), fallback: !text };
     }
 
     /** More time on the clock, without losing the plan. */

@@ -1404,6 +1404,25 @@
     return firstTable;
   }
 
+  /**
+   * The tutor sometimes drafts out loud ("sentence" (11) = 26). Keep the
+   * finished sentences and drop the word-count working before it is shown.
+   */
+  function cleanAskText(text) {
+    const raw = String(text || '');
+    const quoted = raw.match(/"([^"]{8,})"\s*\(\d+\)/g) || [];
+    if (quoted.length < 2) return raw;
+    const kept = quoted
+      .map((m) =>
+        m
+          .replace(/"\s*\(\d+\)$/, '')
+          .replace(/^"/, '')
+          .trim()
+      )
+      .filter(Boolean);
+    return kept.length ? kept.join(' ') : raw;
+  }
+
   async function askVee() {
     const input = el('sx-ask-input');
     const btn = el('sx-ask-btn');
@@ -1479,7 +1498,7 @@
     }
 
     answer.classList.remove('is-streaming');
-    const table = renderTables(answer, text);
+    const table = renderTables(answer, cleanAskText(text));
     typesetContent();
     if (table && state.visualReady && window.Mascot) {
       Mascot.mood('happy');
