@@ -540,8 +540,12 @@
   z-index: 5;
   opacity: 0;
   transform: translateY(10px);
-  transition: opacity 180ms ease, transform 180ms ease;
+  /* A faded board still ate every click on the question card it covers. */
+  pointer-events: none;
+  visibility: hidden;
+  transition: opacity 180ms ease, transform 180ms ease, visibility 0s linear 180ms;
 }
+.sx-board.is-open { pointer-events: auto; visibility: visible; }
 .sx-board.is-in { opacity: 1; transform: translateY(0); }
 .sx-board-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .sx-board-title { margin: 0; font-size: 15px; letter-spacing: 0.02em; }
