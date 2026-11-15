@@ -289,9 +289,15 @@
     picks.forEach((sentence, i) => {
       const clean = sentence.replace(/\$[^$]*\$/g, ' ').replace(/\s+/g, ' ').trim();
       const words = clean.split(' ').filter(Boolean);
+      // Start on something worth underlining, not on "It" or "So".
+      const lead = /^(it|this|that|they|so|and|but|then)$/i.test(words[0] || '') ? 1 : 0;
+      const body = words.slice(lead);
       let phrase = '';
-      for (let n = Math.min(7, words.length); n >= 3; n -= 1) {
-        const cand = words.slice(0, n).join(' ').replace(/[,;:]$/, '');
+      for (let n = Math.min(7, body.length); n >= 3; n -= 1) {
+        const slice = body.slice(0, n);
+        // Do not end a passage on a preposition or a joining word.
+        if (/^(from|of|to|in|for|with|and|or|but|so|the|a|an)$/i.test(slice[slice.length - 1] || '')) continue;
+        const cand = slice.join(' ').replace(/[,;:]$/, '');
         if (cand.length >= 8 && shown.includes(cand)) {
           phrase = cand;
           break;
