@@ -34,36 +34,66 @@ const CAPS = {
     summaryBudgetMs: Number(process.env.SESSION_SUMMARY_BUDGET_MS) || 9000,
     /** A fallback is deterministic; remember it briefly instead of stalling again. */
     fallbackTtlMs: 5 * 60 * 1000,
-    maxTokens: 320
+    maxTokens: 700
 };
 
 const AI_KINDS = ['teach', 'reteach', 'explain_again', 'ask', 'summary'];
 
 function parseJsonLoose(text) {
     if (!text || typeof text !== 'string') return null;
-    let s = text
-        .replace(/```(?:json)?/gi, '')
-        .replace(/^\s*[^{[]*/, '')
-        .trim();
-    const first = s.search(/[[{]/);
-    if (first > 0) s = s.slice(first);
+    const s = text.replace(/```(?:json)?/gi, '').trim();
+    const wanted = ['say', 'script', 'mood', 'ask', 'next', 'questions'];
+
+    // Walk every balanced object/array in the reply, ignoring braces inside
+    // strings. A chatty model often says a sentence first, or emits two objects;
+    // taking the outermost first slice missed the real one.
     const candidates = [];
-    for (const open of ['{', '[']) {
-        const start = s.indexOf(open);
-        const end = s.lastIndexOf(open === '{' ? '}' : ']');
-        if (start >= 0 && end > start) candidates.push(s.slice(start, end + 1));
-    }
-    candidates.push(s);
-    for (const c of candidates) {
-        try {
-            const parsed = JSON.parse(c);
-            if (Array.isArray(parsed)) return parsed.find((x) => x && typeof x === 'object') || null;
-            if (parsed && typeof parsed === 'object') return parsed;
-        } catch (_) {
-            /* try the next slice */
+    const stack = [];
+    let inString = false;
+    let escaped = false;
+    for (let i = 0; i < s.length; i += 1) {
+        const ch = s[i];
+        if (inString) {
+            if (escaped) escaped = false;
+            else if (ch === '\\') escaped = true;
+            else if (ch === '"') inString = false;
+            continue;
+        }
+        if (ch === '"') {
+            inString = true;
+            continue;
+        }
+        if (ch === '{' || ch === '[') {
+            stack.push({ ch, at: i });
+            continue;
+        }
+        if ((ch === '}' || ch === ']') && stack.length) {
+            const open = stack.pop();
+            if ((open.ch === '{' && ch === '}') || (open.ch === '[' && ch === ']')) {
+                if (!stack.length) candidates.push(s.slice(open.at, i + 1));
+            }
         }
     }
-    return null;
+
+    const parsed = [];
+    for (const c of candidates) {
+        try {
+            parsed.push(JSON.parse(c));
+        } catch (_) {
+            /* not JSON, keep looking */
+        }
+    }
+    if (!parsed.length) {
+        try {
+            parsed.push(JSON.parse(s.slice(s.search(/[[{]/))));
+        } catch (_) {
+            return null;
+        }
+    }
+
+    const flat = parsed.flatMap((p) => (Array.isArray(p) ? p : [p]));
+    const best = flat.find((p) => p && typeof p === 'object' && wanted.some((k) => k in p));
+    return best || flat.find((p) => p && typeof p === 'object') || null;
 }
 
 /** Numbers in a string, ignoring option letters and footnote-ish noise. */

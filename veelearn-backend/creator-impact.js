@@ -824,8 +824,13 @@ function createCreatorImpact({ query, log } = {}) {
         // the shared bank, chosen for the skill its unit actually teaches. This is
         // what stops a photosynthesis question appearing under partial fractions.
         const countById = new Map(report.skills.map((row) => [Number(row.id), Number(row.questions || 0)]));
-        const withQuestions = ordered.filter((row) => (countById.get(Number(row.skill.id)) || 0) > 0);
-        const picked = (withQuestions.length ? withQuestions : ordered).slice(0, count);
+        // `course.<id>.uN` skills are unit placeholders from the old ingestion: their
+        // questions were spread across units by index, which is why an arc-length
+        // card could sit under partial fractions. Plan real bank skills instead.
+        const isPlaceholder = (row) => /^course\./.test(String(row.skill.code || ''));
+        const realSkills = ordered.filter((row) => !isPlaceholder(row));
+        const withQuestions = realSkills.filter((row) => (countById.get(Number(row.skill.id)) || 0) > 0);
+        const picked = (withQuestions.length ? withQuestions : realSkills).slice(0, count);
         const items = picked.map((row, i) => ({
             ord: i,
             skillId: row.skill.id,
