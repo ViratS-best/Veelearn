@@ -885,7 +885,7 @@ function createSessionEngine({ query, qbank, log } = {}) {
         const n = mastery.clamp(limit || 20, 1, 50);
         const term = String(q || '').trim();
         const base = `SELECT se.id, se.minutes, se.status, se.started_at, se.ended_at, se.xp_awarded,
-                             se.mode, se.rating, se.course_id, su.summary, su.next_step
+                             se.mode, se.rating, se.course_id, se.goal_text, su.summary, su.next_step
                       FROM sessions se
                       LEFT JOIN session_summaries su ON su.session_id = se.id
                       WHERE se.user_id = ?`;
@@ -905,6 +905,7 @@ function createSessionEngine({ query, qbank, log } = {}) {
             minutes: Number(r.minutes || 0),
             status: r.status,
             mode: r.mode || 'focus',
+            goal: r.goal_text || '',
             rating: r.rating != null ? Number(r.rating) : null,
             courseId: r.course_id != null ? Number(r.course_id) : null,
             startedAt: r.started_at,

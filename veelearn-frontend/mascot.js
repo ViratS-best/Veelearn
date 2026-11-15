@@ -79,8 +79,6 @@
     lastNarration: performance.now(),
     bubbleEl: null,
     bubbleTimer: null,
-    leaderEl: null,
-    leaderTimer: null,
     blinkAt: 0,
     reduced: false,
     lite: false,
@@ -303,40 +301,12 @@
   }
 
   // --------------------------------------------------------------- pointing
-  function leaderTo(anchorEl) {
-    const line = state.leaderEl;
-    if (!line) return;
-    const el = q(anchorEl);
-    const stage = state.rects.stage || stageRect();
-    if (!el) {
-      line.hidden = true;
-      return;
-    }
-    const r = el.getBoundingClientRect();
-    const fromX = state.target.x + (state.targetFlip > 0 ? 0 : 112);
-    const fromY = state.target.y + 56;
-    const toX = r.left - stage.left + (state.targetFlip > 0 ? 0 : r.width);
-    const toY = r.top - stage.top + r.height / 2;
-
-    const dx = toX - fromX;
-    const dy = toY - fromY;
-    const len = Math.hypot(dx, dy);
-    const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
-
-    line.hidden = false;
-    line.style.width = `${Math.max(0, len)}px`;
-    line.style.transform = `translate(${fromX}px, ${fromY}px) rotate(${angle}deg)`;
-    clearTimeout(state.leaderTimer);
-    state.leaderTimer = setTimeout(() => {
-      line.hidden = true;
-    }, 600);
-  }
-
   function pointAt(anchorEl, opts) {
     const options = opts || {};
     setMood('pointing');
+    // No leader arrow: it read as a stray stroke and the mascot's pose already
+    // shows where it is looking.
     return moveTo(anchorEl, options).then(() => {
-      leaderTo(anchorEl);
       if (options.text) return say(options.text, options.ms);
       return undefined;
     });
@@ -462,15 +432,9 @@
     bubble.setAttribute('role', 'status');
     mount.appendChild(bubble);
 
-    const leader = document.createElement('div');
-    leader.className = 'sx-mascot-leader';
-    leader.hidden = true;
-    mount.appendChild(leader);
-
     state.dock = dock;
     state.bobEl = bob;
     state.bubbleEl = bubble;
-    state.leaderEl = leader;
 
     const src = options.src || 'assets/learner/mascot-rig.svg';
 

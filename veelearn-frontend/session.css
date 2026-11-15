@@ -497,29 +497,6 @@
 }
 .sx-mascot-bubble.is-in { opacity: 1; transform: translateY(0); }
 
-.sx-mascot-leader {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 2px;
-  width: 0;
-  background: linear-gradient(90deg, rgba(234, 88, 12, 0.55), rgba(234, 88, 12, 0.16));
-  transform-origin: left center;
-  border-radius: 2px;
-}
-/* The pointing end: without this the line read as a stray stroke. */
-.sx-mascot-leader::after {
-  content: '';
-  position: absolute;
-  right: -1px;
-  top: 50%;
-  width: 0;
-  height: 0;
-  border-left: 8px solid rgba(234, 88, 12, 0.6);
-  border-top: 5px solid transparent;
-  border-bottom: 5px solid transparent;
-  transform: translateY(-50%);
-}
 
 /* ------------------------------------------------------------ annotations */
 .annot-layer {
@@ -769,3 +746,35 @@
 .sx-digest h3 { font-size: 15px; margin: 0 0 4px; }
 .sx-check { display: flex; gap: 8px; align-items: center; font-size: 13px; margin: 10px 0; }
 
+
+/* ------------------------------------------------------------ session motion */
+@keyframes sxRiseIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes sxPopIn {
+  0% { opacity: 0; transform: scale(.97); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.sx-question-card.is-in { animation: sxRiseIn 320ms cubic-bezier(.22,.68,0,1) both; }
+.sx-option { animation: sxRiseIn 260ms cubic-bezier(.22,.68,0,1) both; }
+.sx-option:nth-child(1) { animation-delay: 30ms; }
+.sx-option:nth-child(2) { animation-delay: 70ms; }
+.sx-option:nth-child(3) { animation-delay: 110ms; }
+.sx-option:nth-child(4) { animation-delay: 150ms; }
+.sx-option:nth-child(5) { animation-delay: 190ms; }
+.sx-option:nth-child(6) { animation-delay: 230ms; }
+.sx-option:hover:not(:disabled) { transform: translateY(-1px); }
+.sx-option:active:not(:disabled) { transform: translateY(0) scale(.995); }
+.sx-feedback:not([hidden]) { animation: sxPopIn 220ms ease-out both; }
+.sx-toast {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+  background: var(--sx-ink); color: var(--sx-card);
+  padding: 8px 14px; border-radius: 999px; font-size: 13px;
+  box-shadow: var(--sx-shadow); z-index: 60;
+  animation: sxPopIn 200ms ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sx-question-card.is-in, .sx-option, .sx-feedback:not([hidden]), .sx-toast { animation: none !important; }
+  .sx-option:hover:not(:disabled) { transform: none; }
+}
