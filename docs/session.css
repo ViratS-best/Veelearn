@@ -902,3 +902,15 @@
   color: var(--sx-muted, #78716c);
   text-align: center;
 }
+
+/* ---------------------------------------------------- confetti on correct */
+.sx-confetti { position: fixed; inset: 0; pointer-events: none; z-index: 70; overflow: hidden; }
+.sx-confetti i {
+  position: absolute;
+  width: 8px; height: 8px; border-radius: 2px;
+  animation: sxConfetti 900ms cubic-bezier(.2,.7,.3,1) forwards;
+}
+@keyframes sxConfetti {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  100% { transform: translate(var(--dx), calc(var(--dy) + 60px)) rotate(320deg); opacity: 0; }
+}

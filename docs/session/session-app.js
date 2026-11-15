@@ -902,6 +902,29 @@
     }
   }
 
+  /** A quick confetti puff for every correct answer: fun, cheap, no canvas. */
+  function confettiBurst() {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const colors = ['#ea580c', '#f59e0b', '#22c55e', '#3b82f6', '#ec4899'];
+    const host = document.createElement('div');
+    host.className = 'sx-confetti';
+    host.setAttribute('aria-hidden', 'true');
+    for (let i = 0; i < 26; i += 1) {
+      const bit = document.createElement('i');
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 60 + Math.random() * 120;
+      bit.style.background = colors[i % colors.length];
+      bit.style.left = 50 + '%';
+      bit.style.top = 40 + '%';
+      bit.style.setProperty('--dx', Math.cos(angle) * dist + 'px');
+      bit.style.setProperty('--dy', Math.sin(angle) * dist + 'px');
+      bit.style.animationDelay = Math.random() * 90 + 'ms';
+      host.appendChild(bit);
+    }
+    document.body.appendChild(host);
+    setTimeout(() => host.remove(), 1100);
+  }
+
   /** Play a validated script, saying the line first so the ink lands on speech. */
   function playAI(payload) {
     if (!window.Annotate || !Array.isArray(payload.script)) return false;
@@ -952,6 +975,7 @@
 
     if (good) {
       if (window.Mascot) Mascot.mood('happy');
+      confettiBurst();
       ink(() => Annotate.stamp({ anchor: optionEl, mark: 'v', ms: 300 }));
       if (result.mastery && result.mastery.levelUp && window.Celebrate) {
         const filled = (result.mastery.dots || []).filter(Boolean).length;

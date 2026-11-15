@@ -38,9 +38,7 @@
       </g>
 
       <!-- body: a soft bean, with tiny feet -->
-      <ellipse cx="51" cy="112" rx="7.6" ry="4.6" fill="#F97316" opacity="0.9"/>
-      <ellipse cx="77" cy="112" rx="7.6" ry="4.6" fill="#F97316" opacity="0.9"/>
-      <path id="m-torso" d="M64 62 c20 0 31 12 31 26 c0 13 -13 20 -31 20 c-18 0 -31 -7 -31 -20 c0 -14 11 -26 31 -26 z"
+      <path id="m-torso" d="M64 62 c21 0 32 12 32 26 c0 14 -14 22 -32 22 c-18 0 -32 -8 -32 -22 c0 -14 11 -26 32 -26 z"
             fill="url(#rigGradDark)" filter="url(#rigSoft)"/>
 
       <!-- head: big and round, the cute part -->
