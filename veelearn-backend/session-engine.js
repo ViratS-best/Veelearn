@@ -235,6 +235,12 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
         const open = items.filter((i) => i.status === 'active' || i.status === 'pending');
         const active = open.find((i) => i.status === 'active');
         if (active && !reviewBlocked(active, items)) return active;
+        // A unit review that is ready comes before the next unit's skills, so a
+        // retake cannot be skipped by walking on.
+        const retake = open.find(
+            (i) => i.status === 'pending' && Number(i.is_review) && !reviewBlocked(i, items)
+        );
+        if (retake) return retake;
         const pending = open.find((i) => i.status === 'pending' && !reviewBlocked(i, items));
         if (pending) return pending;
         // Blocked reviews only happen when their unit is already out of order; never
