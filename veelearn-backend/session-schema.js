@@ -110,6 +110,7 @@ const TABLES = [
         correct_count SMALLINT DEFAULT 0,
         attempts SMALLINT DEFAULT 0,
         question_ids LONGTEXT NULL,
+        review_pool LONGTEXT NULL,
         frame_md LONGTEXT NULL,
 
         unit_index SMALLINT DEFAULT 0,
@@ -302,6 +303,7 @@ const ALTERS = [
     'ALTER TABLE courses ADD COLUMN IF NOT EXISTS readiness_score SMALLINT DEFAULT 0',
     'ALTER TABLE courses ADD COLUMN IF NOT EXISTS readiness_json LONGTEXT NULL',
     'ALTER TABLE session_focus_items ADD COLUMN IF NOT EXISTS frame_md LONGTEXT NULL',
+    'ALTER TABLE session_focus_items ADD COLUMN IF NOT EXISTS review_pool LONGTEXT NULL',
 
     'ALTER TABLE session_focus_items ADD COLUMN IF NOT EXISTS unit_index SMALLINT DEFAULT 0',
     'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS rating SMALLINT NULL',

@@ -210,7 +210,7 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
     async function focusItems(sessionId) {
         return query(
             `SELECT f.id, f.session_id, f.skill_id, f.ord, f.is_review, f.target_dots, f.status,
-                    f.correct_count, f.attempts, f.question_ids, f.frame_md, f.unit_index, f.started_at, f.completed_at,
+                    f.correct_count, f.attempts, f.question_ids, f.review_pool, f.frame_md, f.unit_index, f.started_at, f.completed_at,
                     s.name AS skill_name, s.code AS skill_code, s.track, s.intro_md
              FROM session_focus_items f
              JOIN skills s ON s.id = f.skill_id
@@ -288,6 +288,21 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
 
     async function ensureQuestion(item, userId) {
         const ids = parseJson(item.question_ids, []);
+        if (Number(item.is_review)) {
+            const pool = parseJson(item.review_pool, []).map(Number);
+            const fresh = pool.find((id) => !ids.map(Number).includes(Number(id)));
+            if (fresh) {
+                const raw = await qbank.getRaw(fresh);
+                if (raw) {
+                    await query('UPDATE session_focus_items SET question_ids = ? WHERE id = ?', [
+                        JSON.stringify([...ids.map(Number), Number(fresh)]),
+                        item.id
+                    ]);
+                    item.question_ids = JSON.stringify([...ids.map(Number), Number(fresh)]);
+                    return qbank.toCard(raw);
+                }
+            }
+        }
         const lastId = ids.length ? ids[ids.length - 1] : null;
         if (lastId) {
             const raw = await qbank.getRaw(lastId);
@@ -509,7 +524,7 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
                     isReview: !!Number(i.is_review),
                     unitIndex: Number(i.unit_index || 0),
                     targetDots: Number(i.target_dots || 2),
-                    poolSize: parseJson(i.question_ids, []).length,
+                    poolSize: (parseJson(i.review_pool, []).length || parseJson(i.question_ids, []).length),
                     correctCount: Number(i.correct_count || 0),
                     dots: mastery.dots(level),
                     level
@@ -660,15 +675,16 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
             const frameDigest = p.frame && p.frame.digest ? String(p.frame.digest) : null;
             await query(
                 `INSERT INTO session_focus_items
-                    (session_id, skill_id, ord, is_review, target_dots, status, correct_count, attempts, question_ids, frame_md, unit_index)
-                 VALUES (?, ?, ?, ?, ?, 'pending', 0, 0, ?, ?, ?)`,
+                    (session_id, skill_id, ord, is_review, target_dots, status, correct_count, attempts, question_ids, review_pool, frame_md, unit_index)
+                 VALUES (?, ?, ?, ?, ?, 'pending', 0, 0, ?, ?, ?, ?)`,
                 [
                     sessionId,
                     p.skillId,
                     i,
                     p.isReview ? 1 : 0,
                     p.targetDots,
-                    JSON.stringify(seeded.length ? seeded.map(Number) : q ? [Number(q.id)] : []),
+                    JSON.stringify(p.isReview ? [] : seeded.length ? seeded.map(Number) : q ? [Number(q.id)] : []),
+                    p.isReview && seeded.length ? JSON.stringify(seeded.map(Number)) : null,
                     frameDigest,
                     Number(p.unitIndex || 0)
                 ]
@@ -855,7 +871,8 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
             } else if (Number(item.is_review)) {
                 // A review walks its own pool, so twenty correct answers mean twenty
                 // different questions instead of one skill on repeat.
-                const pool = parseJson(item.question_ids, []).map(Number);
+                const storedPool = parseJson(item.review_pool, []).map(Number);
+                const pool = storedPool.length ? storedPool : parseJson(item.question_ids, []).map(Number);
                 const unserved = pool.filter((id) => !servedIds.includes(Number(id)));
                 if (unserved.length) {
                     const rawNext = await qbank.getRaw(unserved[0]);
@@ -951,13 +968,14 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
                         );
                         await query(
                             `INSERT INTO session_focus_items
-                                (session_id, skill_id, ord, is_review, target_dots, status, correct_count, attempts, question_ids, frame_md, unit_index)
-                             VALUES (?, ?, ?, 1, ?, 'pending', 0, 0, ?, ?, ?)`,
+                                (session_id, skill_id, ord, is_review, target_dots, status, correct_count, attempts, question_ids, review_pool, frame_md, unit_index)
+                             VALUES (?, ?, ?, 1, ?, 'pending', 0, 0, ?, ?, ?, ?)`,
                             [
                                 sessionId,
                                 item.skill_id,
                                 nextOrd,
                                 retakeTarget,
+                                JSON.stringify([]),
                                 JSON.stringify(retakePool),
                                 item.frame_md,
                                 unitIndex
