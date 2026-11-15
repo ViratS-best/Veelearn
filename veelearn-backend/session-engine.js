@@ -435,6 +435,8 @@ function createSessionEngine({ query, qbank, log, chatStream } = {}) {
     }
 
     async function start(userId, { minutes, track, courseId, intent, mode } = {}) {
+        const startedAt = Date.now();
+        const timings = {};
         const mins = mastery.clamp(minutes || 20, 5, 90);
         const wantCourse = courseId ? Number(courseId) : null;
         const wantSprint = String(mode || '') === 'sprint';
@@ -482,6 +484,7 @@ function createSessionEngine({ query, qbank, log, chatStream } = {}) {
             const createImpact = require('./creator-impact');
             const planned = await createImpact({ query, log }).plan({ userId, courseId: wantCourse, minutes: mins });
             plan = planned.items;
+            timings.plan = Date.now() - startedAt;
             courseFrame = {
                 courseId: wantCourse,
                 title: planned.course.title,
@@ -533,6 +536,7 @@ function createSessionEngine({ query, qbank, log, chatStream } = {}) {
                 courseFrame ? JSON.stringify(courseFrame) : null
             ]
         );
+        timings.sessionRow = Date.now() - startedAt;
         const sessionId = inserted.insertId || (await latestSessionId(userId));
         if (!sessionId) throw new Error('Could not create session');
 
@@ -564,7 +568,8 @@ function createSessionEngine({ query, qbank, log, chatStream } = {}) {
 
         // No generation here: opening a session must not wait on the model.
         const fresh = await state(userId, sessionId, { ensure: false });
-        return { ...fresh, resumed: false };
+        timings.state = Date.now() - startedAt;
+        return { ...fresh, resumed: false, timings };
     }
 
     async function latestSessionId(userId) {

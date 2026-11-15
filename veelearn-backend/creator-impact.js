@@ -548,7 +548,17 @@ function createCreatorImpact({ query, log } = {}) {
         return ids;
     }
 
+    // Opening a session re-ingested a whole course every time (every question was
+    // re-INSERTed and UPDATEd, which is ~100 round trips). The questions are the
+    // same for every learner, so keep them briefly.
+    const ingestCache = new Map();
+    const INGEST_TTL_MS = 5 * 60 * 1000;
+
     async function ingestCourseQuestions(course, units, { maxUnits } = {}) {
+        const signature = `${course.id}:${String(course.content || '').length}:${course.title || ''}`;
+        const cached = ingestCache.get(signature);
+        if (cached && Date.now() - cached.at < INGEST_TTL_MS) return cached.items;
+
         let rows = [];
         try {
             rows = await query(
@@ -702,6 +712,7 @@ function createCreatorImpact({ query, log } = {}) {
                 questionIds: [bucket[0].questionId]
             });
         });
+        ingestCache.set(signature, { at: Date.now(), items });
         return items;
     }
 
