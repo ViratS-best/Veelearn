@@ -794,8 +794,11 @@ function createCreatorImpact({ query, log } = {}) {
                     if (titleTokens.has(t)) inTitle += 1;
                 }
                 if (!hits) continue;
+                const coverage = hits / Math.max(1, nameTokens.size);
                 const prev = unitSkills.get(skill.id);
-                if (!prev || hits > prev.hits) unitSkills.set(skill.id, { hits, inTitle, unit });
+                if (!prev || coverage > prev.coverage || hits > prev.hits) {
+                    unitSkills.set(skill.id, { hits, inTitle, coverage, unit });
+                }
                 const hint = unitHints.get(skill.id);
                 if (!hint || hits > hint.hits) unitHints.set(skill.id, { hits, unit });
             }
@@ -825,7 +828,10 @@ function createCreatorImpact({ query, log } = {}) {
                 // One shared word is not a lesson: an AP Calculus unit that mentions
                 // "work" used to pull in a physics skill, so a unit needs two token
                 // hits, or one that appears in its own heading.
-                const matched = Boolean(hit) && (hit.hits >= 2 || hit.inTitle >= 1);
+                // Most of the skill's own name has to live in the unit. Two common
+                // words ("equations", "variables") used to drag an algebra skill
+                // into a calculus unit and the lesson beneath it made no sense.
+                const matched = Boolean(hit) && hit.coverage >= 0.6 && (hit.hits >= 2 || hit.inTitle >= 1);
                 return {
                     skill,
                     matched,
