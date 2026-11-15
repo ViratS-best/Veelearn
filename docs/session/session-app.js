@@ -236,6 +236,72 @@
    * static `item.intro` is only the seed: the learner watches it being written
    * instead of being handed the finished paragraph after a spinner.
    */
+  /**
+   * The lesson is written one sentence at a time so Vee has something specific to
+   * point at while it talks, instead of a paragraph it can only aim at as a whole.
+   */
+  function paintSentences(box, text) {
+    const raw = String(text || '');
+    const parts = raw.match(/[^.!?\n]*[.!?]+[\s]*|\n+|.+$/g) || [];
+    box.textContent = '';
+    const spans = [];
+    parts.forEach((part) => {
+      if (!part) return;
+      const span = document.createElement('span');
+      span.className = 'sx-sent';
+      span.textContent = part;
+      box.appendChild(span);
+      spans.push(span);
+    });
+    return spans;
+  }
+
+  let lastPointAt = 0;
+  let lastPointed = null;
+
+  /** Keep Vee beside the sentence it is currently writing, not the whole block. */
+  function pointAtSentence(spans) {
+    if (!state.visualReady || !window.Mascot || !spans.length) return;
+    const target = spans[spans.length - 1];
+    if (!target || target === lastPointed) return;
+    if (Date.now() - lastPointAt < 600) return;
+    lastPointAt = Date.now();
+    lastPointed = target;
+    Mascot.mood('talking');
+    Promise.resolve(Mascot.pointAt(target)).catch(() => {});
+  }
+
+  /** A phrase that is really in the sentence, shortened until it matches. */
+  function keyPhrase(sentence) {
+    const clean = String(sentence).replace(/\$[^$]*\$/g, ' ').replace(/\s+/g, ' ').trim();
+    const words = clean.split(' ').filter(Boolean);
+    for (let n = Math.min(7, words.length); n >= 3; n -= 1) {
+      const phrase = words.slice(0, n).join(' ').replace(/[,;:]$/, '');
+      if (phrase.length >= 8 && String(sentence).includes(phrase)) return phrase;
+    }
+    return '';
+  }
+
+  /** Once the lesson is on screen, underline the parts worth remembering. */
+  function underlineKeyParts(box) {
+    if (!state.visualReady || !window.Annotate || !box) return;
+    const spans = [...box.querySelectorAll('.sx-sent')].filter((s) => s.textContent.trim().length > 24);
+    if (!spans.length) return;
+    const math = spans.find((s) => /\$[^$]+\$/.test(s.textContent));
+    const rule = spans.find((s) => /\b(because|means|remember|rule|key|notice|so)\b/i.test(s.textContent));
+    const picks = [math || rule || spans[0]];
+    const second = spans.find((s) => s !== picks[0] && /\$[^$]+\$/.test(s.textContent));
+    if (second) picks.push(second);
+    picks.forEach((span, i) => {
+      const phrase = keyPhrase(span.textContent);
+      if (!phrase) return;
+      setTimeout(() => {
+        ink(() => Annotate.underline({ anchor: span, text: phrase, ms: 420 }));
+        if (i === 0 && window.Mascot) Promise.resolve(Mascot.pointAt(span)).catch(() => {});
+      }, 240 + i * 340);
+    });
+  }
+
   async function streamTeach(container, { silent } = {}) {
     if (!state.id) return '';
     const box = container || el('sx-intro-text');
@@ -243,9 +309,11 @@
     box.textContent = '';
     box.classList.add('is-streaming');
     el('sx-teach-status').hidden = !silent;
+    lastPointed = null;
 
     let text = '';
     let typesetAt = 0;
+    let lastPaint = 0;
     try {
       const res = await fetch(`${API_BASE_URL}/api/session/${state.id}/teach`, {
         method: 'POST',
@@ -278,14 +346,17 @@
           if (event === 'delta' && data.t) {
             // One chunk at a time: this is the model's own token, not a replay.
             text += data.t;
-            box.textContent = text;
+            if (Date.now() - lastPaint > 90) {
+              lastPaint = Date.now();
+              pointAtSentence(paintSentences(box, text));
+            }
             if (Date.now() - typesetAt > 700) {
               typesetAt = Date.now();
               typesetContent();
             }
           } else if (event === 'done' && data.text) {
             text = data.text;
-            box.textContent = text;
+            pointAtSentence(paintSentences(box, text));
           }
         }
       }
@@ -294,7 +365,7 @@
     }
     if (!String(text).trim() && state.item && state.item.intro) {
       text = state.item.intro;
-      box.textContent = text;
+      paintSentences(box, text);
     }
 
     box.classList.remove('is-streaming');
@@ -303,6 +374,8 @@
     typesetContent();
     if (table && state.visualReady && window.Mascot) {
       Promise.resolve(Mascot.pointAt(table)).catch(() => {});
+    } else {
+      underlineKeyParts(box);
     }
     return text;
   }
@@ -1040,6 +1113,36 @@
     playAI(payload);
   }
 
+  /** Does the learner's question ask Vee to show something rather than say it? */
+  function wantsDrawing(question) {
+    return /(^|\s)(draw|sketch|plot|graph|diagram|simulate|simulation|visuali[sz]e|number line|picture)\b/i.test(
+      String(question || '')
+    );
+  }
+
+  function boardPresetFor(question) {
+    const s = String(question || '').toLowerCase();
+    if (/number line/.test(s)) return 'number_line';
+    if (/unit circle|sine|cosine|trig/.test(s)) return 'unit_circle';
+    if (/triangle|angle|area of|geometry/.test(s)) return 'triangle_lab';
+    if (/projectile|velocity|throw|launch/.test(s)) return 'projectile';
+    if (/graph|plot|parabola|function|curve|slope|line/.test(s)) return 'function_plot';
+    return 'geometry_board';
+  }
+
+  /** Vee draws a small interactive sketch when the question asks to be shown. */
+  function openQuickDraw(question) {
+    if (!window.Board) return;
+    const spec = (state.question && state.question.visual) || {};
+    const preset = spec.preset || boardPresetFor(question);
+    if (window.Mascot) Mascot.mood('writing');
+    Board.open({ title: 'Vee’s sketch', steps: [], preset, params: spec.params })
+      .then(() => {
+        if (state.visualReady && window.Mascot) Mascot.pointAt('#board').catch(() => {});
+      })
+      .catch(() => {});
+  }
+
   /** Board mode: the worked steps, plus the item's diagram preset when it has one. */
   function drawBoard() {
     if (!window.Board) return;
@@ -1070,6 +1173,13 @@
           Mascot.mood('idle');
         })
         .catch(() => {});
+      // Clicking Vee is a shortcut for "show me on the board".
+      const host = document.querySelector('#sx-mascot-host');
+      if (host) {
+        host.style.cursor = 'pointer';
+        host.title = 'Click Vee to draw this on the board';
+        host.addEventListener('click', () => drawBoard());
+      }
     }
   }
 
@@ -1528,6 +1638,7 @@
       Mascot.mood('happy');
       Promise.resolve(Mascot.pointAt(table)).catch(() => {});
     }
+    if (wantsDrawing(question)) openQuickDraw(question);
     asking = false;
     if (btn) btn.disabled = false;
   }
