@@ -380,10 +380,10 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
         if (typeof chatStream !== 'function') return { ok: true, text: fallback, fallback: true };
 
         const task = asked
-            ? `The learner asks: "${asked}"\n` +
-              (cardBlock ? `${cardBlock}\n` : '') +
-              'Answer their question about that card in under 120 words. Explain the idea behind it, ' +
-              'not which choice is correct. Use $...$ for math.'
+            ? `Answer this question in under 120 words: "${asked}"\n` +
+              (cardBlock ? `Context (do not repeat or quote it back):\n${cardBlock}\n` : '') +
+              'Speak straight to the learner, in the second person. Explain the idea behind the card, ' +
+              'never state which choice is correct, and use $...$ for math.'
             : 'Teach this unit in under 120 words: the one idea, why it works, and a tiny worked example. ' +
               'Do not ask a question and do not give the answer to any practice question. Use $...$ for math.';
 

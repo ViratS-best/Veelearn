@@ -880,7 +880,9 @@ function createCreatorImpact({ query, log } = {}) {
                 doneRows = [];
             }
             const doneBy = new Map(doneRows.map((r) => [Number(r.unit_index), Number(r.done || 0)]));
-            unitTarget = units.find((u) => (doneBy.get(Number(u.ord)) || 0) === 0) || null;
+            // Unit indexes are stored 1-based: rows written before the column existed
+            // default to 0, and a 0 must not look like "the first unit is finished".
+            unitTarget = units.find((u) => (doneBy.get(Number(u.ord) + 1) || 0) === 0) || null;
         }
 
         const qualified = realSkills.filter((row) => row.matched && has(row));
@@ -947,7 +949,7 @@ function createCreatorImpact({ query, log } = {}) {
                 isReview: 0,
                 targetDots: 2,
                 startTier: row.level >= 2 ? 3 : row.level >= 1 ? 2 : 1,
-                unitIndex: (row.unit || row.unitHint) ? (row.unit || row.unitHint).ord : 0,
+                unitIndex: ((row.unit || row.unitHint) ? (row.unit || row.unitHint).ord : 0) + 1,
                 unitLabel,
                 frame
             };
