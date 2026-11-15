@@ -182,14 +182,14 @@
       objective: 'Drag the point, or slide it — the readout follows.',
       state: { point: 2 },
       inputs: [
-        { key: 'point', label: 'Point on the line', type: 'slider', min: -10, max: 10, step: 0.5 }
+        { key: 'point', label: 'Point on the line', type: 'slider', min: -10, max: 10, step: 0.1 }
       ],
       outputs: [{ key: 'point', label: 'position' }]
     },
     unit_circle: {
       objective: 'Drag the point around the circle, or set the angle.',
       state: { angle: 45 },
-      inputs: [{ key: 'angle', label: 'Angle (degrees)', type: 'slider', min: 0, max: 360, step: 5 }],
+      inputs: [{ key: 'angle', label: 'Angle (degrees)', type: 'slider', min: 0, max: 360, step: 1 }],
       outputs: [{ key: 'angle', label: 'angle' }]
     },
     function_plot: {
@@ -201,7 +201,7 @@
   };
 
   const NUDGE = {
-    number_line: { key: 'point', step: 0.5, min: -10, max: 10 },
+    number_line: { key: 'point', step: 0.1, min: -10, max: 10 },
     unit_circle: { key: 'angle', step: 15, min: 0, max: 360 },
     function_plot: { key: 'a', step: 0.1, min: -2, max: 2 }
   };
