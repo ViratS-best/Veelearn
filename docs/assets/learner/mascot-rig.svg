@@ -37,7 +37,7 @@
         <rect x="107" y="98" width="4.2" height="3" rx="1.4" fill="#F59E0B"/>
       </g>
 
-      <!-- body: a soft bean, with tiny feet -->
+      <!-- body: a soft bean, no legs or feet -->
       <path id="m-torso" d="M64 62 c21 0 32 12 32 26 c0 14 -14 22 -32 22 c-18 0 -32 -8 -32 -22 c0 -14 11 -26 32 -26 z"
             fill="url(#rigGradDark)" filter="url(#rigSoft)"/>
 
