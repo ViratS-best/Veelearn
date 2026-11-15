@@ -420,6 +420,36 @@
       });
   }
 
+  function renderFigure(question) {
+    const box = el('sx-figure');
+    if (!box) return;
+    box.innerHTML = '';
+    box.hidden = true;
+    const v = question && question.visual;
+    if (!v || typeof v !== 'object') return;
+
+    const src = v.image || v.image_url || v.url || v.src;
+    if (typeof src === 'string' && src) {
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = String(v.alt || v.caption || 'Question diagram');
+      img.loading = 'lazy';
+      box.appendChild(img);
+    } else if (typeof v.svg === 'string' && v.svg.trim().toLowerCase().startsWith('<svg')) {
+      // Bank diagrams are authored SVGs, so they can go in as-is; scripts are not.
+      box.innerHTML = String(v.svg).replace(/<script[\s\S]*?<\/script>/gi, '');
+    }
+
+    const caption = v.caption || v.alt || v.description || v.label;
+    if (caption) {
+      const p = document.createElement('p');
+      p.className = 'sx-figure-cap';
+      p.textContent = String(caption);
+      box.appendChild(p);
+    }
+    box.hidden = box.childElementCount === 0;
+  }
+
   function showQuestion(question, item) {
     if (window.Annotate) Annotate.clear();
     if (state.visualReady && window.Mascot) {
@@ -443,6 +473,7 @@
     el('sx-q-skill').textContent = item.name;
     el('sx-q-tier').textContent = `tier ${question.tier} · ${TIER_LABEL[question.tier] || 'practice'}`;
     el('sx-stem').textContent = question.stem;
+    renderFigure(question);
     const card = el('sx-question-card');
     if (card) {
       card.classList.remove('is-in');
@@ -461,6 +492,12 @@
     const hintbox = el('sx-hintbox');
     hintbox.hidden = true;
     hintbox.textContent = '';
+
+    const askLog = el('sx-ask-log');
+    if (askLog) {
+      askLog.innerHTML = '';
+      askLog.hidden = true;
+    }
 
     const hintBtn = el('sx-hint-btn');
     hintBtn.hidden = false;
@@ -1291,6 +1328,7 @@
     entry.appendChild(asked);
     entry.appendChild(answer);
     log.appendChild(entry);
+    while (log.children.length > 4) log.removeChild(log.firstChild);
     entry.scrollIntoView({ block: 'nearest' });
 
     let text = '';
