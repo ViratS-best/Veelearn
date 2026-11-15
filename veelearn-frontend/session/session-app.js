@@ -596,6 +596,15 @@
     }
     typesetContent();
 
+    // Vee is still on the job when a saved session reopens: point at the question
+    // on screen and underline the part of it that carries the ask.
+    if (state.visualReady) {
+      setTimeout(() => {
+        if (window.Mascot) Promise.resolve(Mascot.pointAt('#sx-stem')).catch(() => {});
+        underlineKeyParts(el('sx-stem'), question.stem);
+      }, 320);
+    }
+
     renderOptions(question.options);
     setOptionsEnabled(true);
 
