@@ -213,6 +213,23 @@ RATE_BARS = svg(
     "Bar model comparing 60 minutes paid at 12 dollars with 50 minutes of unknown pay",
 )
 
+MAGNET_DIAGRAM = svg(
+    "<text x='16' y='24' font-size='13' fill='" + INK + "'>A magnet only pulls on iron and steel</text>"
+    "<g stroke='" + INK + "' stroke-width='1' fill='none' stroke-dasharray='4 4'>"
+    "<path d='M120 84 C170 40 210 40 240 84'/>"
+    "<path d='M120 116 C170 160 210 160 240 116'/></g>"
+    "<rect x='40' y='76' width='44' height='48' rx='4' fill='#f87171' stroke='" + INK + "' stroke-width='2'/>"
+    "<rect x='84' y='76' width='44' height='48' rx='4' fill='#93c5fd' stroke='" + INK + "' stroke-width='2'/>"
+    "<text x='52' y='106' font-size='14' fill='#fff' font-weight='700'>N</text>"
+    "<text x='96' y='106' font-size='14' fill='#1e293b' font-weight='700'>S</text>"
+    "<rect x='208' y='70' width='56' height='60' rx='8' fill='#e2e8f0' stroke='" + INK + "' stroke-width='2'/>"
+    "<rect x='220' y='84' width='32' height='32' rx='16' fill='none' stroke='" + INK + "' stroke-width='3'/>"
+    "<g font-size='11' fill='" + INK + "'>"
+    "<text x='40' y='152'>magnet</text>"
+    "<text x='204' y='152'>steel belt buckle</text></g>",
+    "A bar magnet with field lines reaching a steel belt buckle",
+)
+
 
 QUESTIONS = [
     # ======================================================== STEM: cell biology
@@ -1040,6 +1057,7 @@ QUESTIONS = [
        "Magnets attract iron and steel."],
       ["A belt buckle is typically steel or another iron alloy.",
        "The other three are wood, plastic and paper."],
+      visual=MAGNET_DIAGRAM,
       source=OBQA),
 
     Q("sci.elem.concepts", 2,
