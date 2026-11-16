@@ -300,6 +300,18 @@ ok('an unknown source with a credit line is credited', provenance.isThirdParty({
         ok('the card renders provenance for every question', /renderProvenance\(question\)/.test(sessionApp));
         ok('the chip is hidden for originals', /if \(!third\)/.test(sessionApp));
 
+        // The start button must win the hit test at its own coordinates: the
+        // stage's cards, Vee's clickable dock (z-index 3) and the board (5)
+        // share a stacking context, so controls are lifted above them and a
+        // hidden card can never paint over a button.
+        const sessionCss = fs.readFileSync(path.join(__dirname, '..', 'veelearn-frontend', 'session.css'), 'utf8');
+        ok('a hidden stage card never paints', /\.sx-stage > \[hidden\] \{\s*display: none !important;/.test(sessionCss));
+        ok(
+            'card controls sit above the mascot dock',
+            ['.sx-intro-actions', '.sx-q-actions', '.sx-options'].every((sel) => sessionCss.includes(sel)) &&
+                /z-index: 4;/.test(sessionCss)
+        );
+
         const serverProv = require('./provenance');
         [
             { source: 'authored', attribution: AUTHORED_ATTRIBUTION },
