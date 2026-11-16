@@ -564,6 +564,42 @@
     box.hidden = box.childElementCount === 0;
   }
 
+  /**
+   * The source chip on the card.
+   *
+   * Only a third-party question is credited: an OpenBookQA or GSM8K item shows
+   * "OpenBookQA · Apache-2.0" (tap or hover for the full author/licence line); a
+   * question Veelearn wrote shows nothing at all. Called from showQuestion, so a
+   * fresh card and a resumed one render identically.
+   */
+  function renderProvenance(question) {
+    const chip = el('sx-q-src');
+    const credit = el('sx-q-src-credit');
+    if (!chip) return;
+    const prov = window.QBankProvenance;
+    const third = prov ? prov.isThirdParty(question) : Boolean(question && question.source && question.source !== 'authored');
+    if (!third) {
+      chip.hidden = true;
+      chip.textContent = '';
+      chip.removeAttribute('title');
+      if (credit) {
+        credit.hidden = true;
+        credit.textContent = '';
+      }
+      return;
+    }
+    const label = prov ? prov.label(question) : String(question.source || 'Third-party');
+    const detail = prov ? prov.detail(question) : String(question.attribution || '');
+    chip.hidden = false;
+    chip.textContent = label;
+    if (detail) chip.title = detail;
+    else chip.removeAttribute('title');
+    if (credit) {
+      credit.hidden = true;
+      credit.textContent = detail || label;
+    }
+  }
+
   function showQuestion(question, item) {
     if (window.Annotate) Annotate.clear();
     if (state.visualReady && window.Mascot) {
@@ -587,6 +623,7 @@
     el('sx-q-skill').textContent = item.name;
     el('sx-q-tier').textContent = `tier ${question.tier} · ${TIER_LABEL[question.tier] || 'practice'}`;
     el('sx-stem').textContent = question.stem;
+    renderProvenance(question);
     renderFigure(question);
     const card = el('sx-question-card');
     if (card) {
@@ -1789,6 +1826,13 @@
     }
     el('sx-hint-btn').addEventListener('click', askHint);
     el('sx-skip-btn').addEventListener('click', skip);
+    // Tapping the source chip reveals the full credit (hover shows it as a title).
+    if (el('sx-q-src')) {
+      el('sx-q-src').addEventListener('click', () => {
+        const credit = el('sx-q-src-credit');
+        if (credit) credit.hidden = !credit.hidden;
+      });
+    }
     el('sx-end-btn').addEventListener('click', () => finish('quit'));
 
     const mapToggle = el('sx-map-toggle');
