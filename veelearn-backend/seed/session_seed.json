@@ -7316,7 +7316,10 @@
     "Stars are huge, hot spheres of gas.",
     "The best choice says exactly that."
    ],
-   "visual": null,
+   "visual": {
+    "svg": "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 200' role='img' aria-label='A star drawn as a hot gas sphere: a very hot core inside outer gas layers' font-family='Nunito, Arial, sans-serif'><text x='16' y='24' font-size='13' fill='#334155'>A star is a huge ball of hot gas</text><circle cx='160' cy='118' r='70' fill='#fde68a' stroke='#f59e0b' stroke-width='2'/><circle cx='160' cy='118' r='48' fill='#fbbf24' stroke='#f59e0b' stroke-width='1.5'/><circle cx='160' cy='118' r='26' fill='#fb923c'/><g font-size='11' fill='#334155'><text x='214' y='116'>photosphere (surface)</text><text x='214' y='136'>outer gas layers</text><text x='222' y='160'>core: millions of K</text></g><g stroke='#334155' stroke-width='1' fill='none'><path d='M160 118 L210 112'/><path d='M160 118 L210 132'/><path d='M160 118 L218 156'/></g></svg>",
+    "alt": "A star drawn as a hot gas sphere: a very hot core inside outer gas layers"
+   },
    "source": "openbookqa",
    "attribution": "OpenBookQA (Mihaylov et al. 2018), Allen Institute for AI — Apache-2.0"
   },
@@ -7644,7 +7647,10 @@
     "May: 48 ÷ 2 = 24 clips.",
     "Total: 48 + 24 = 72."
    ],
-   "visual": null,
+   "visual": {
+    "svg": "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 200' role='img' aria-label='Two bars: April 48 clips and May half of that, with the total left to work out' font-family='Nunito, Arial, sans-serif'><text x='16' y='24' font-size='13' fill='#334155'>Clips sold</text><g stroke='#334155' stroke-width='2'><rect x='40' y='52' width='220' height='30' fill='#bfdbfe'/><rect x='40' y='94' width='110' height='30' fill='#a7f3d0'/></g><g font-size='12' fill='#334155'><text x='48' y='72'>April: 48 clips</text><text x='48' y='114'>May: half of 48 = 24</text><text x='40' y='152' font-size='13'>Total = 48 + 24 = ?</text><path d='M262 52 v72' stroke='#334155' stroke-width='1.5'/></g></svg>",
+    "alt": "Two bars: April 48 clips and May half of that, with the total left to work out"
+   },
    "source": "gsm8k",
    "attribution": "GSM8K (Cobbe et al. 2021), OpenAI — MIT"
   },
@@ -7685,7 +7691,10 @@
     "Pay = 12 × 5/6.",
     "12 × 5/6 = $10."
    ],
-   "visual": null,
+   "visual": {
+    "svg": "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 200' role='img' aria-label='Bar model comparing 60 minutes paid at 12 dollars with 50 minutes of unknown pay' font-family='Nunito, Arial, sans-serif'><text x='16' y='24' font-size='13' fill='#334155'>Pay is proportional to time</text><g stroke='#334155' stroke-width='2'><rect x='40' y='50' width='240' height='26' fill='#bfdbfe'/><rect x='40' y='96' width='200' height='26' fill='#fde68a'/></g><g font-size='12' fill='#334155'><text x='46' y='68'>60 min ................ $12</text><text x='46' y='114'>50 min ................ ?</text><text x='40' y='152'>50/60 of the hour is worked</text></g></svg>",
+    "alt": "Bar model comparing 60 minutes paid at 12 dollars with 50 minutes of unknown pay"
+   },
    "source": "gsm8k",
    "attribution": "GSM8K (Cobbe et al. 2021), OpenAI — MIT"
   },

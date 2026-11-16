@@ -170,6 +170,50 @@ NUMBER_LINE_ABS = svg(
 )
 
 
+# Diagrams for the openly licensed items. The text of those questions comes from
+# the datasets; these figures are Veelearn's own, which is why they can be
+# redrawn freely (see THIRD_PARTY_NOTICES.txt).
+
+STAR_DIAGRAM = svg(
+    "<text x='16' y='24' font-size='13' fill='" + INK + "'>A star is a huge ball of hot gas</text>"
+    "<circle cx='160' cy='118' r='70' fill='#fde68a' stroke='#f59e0b' stroke-width='2'/>"
+    "<circle cx='160' cy='118' r='48' fill='#fbbf24' stroke='#f59e0b' stroke-width='1.5'/>"
+    "<circle cx='160' cy='118' r='26' fill='#fb923c'/>"
+    "<g font-size='11' fill='" + INK + "'>"
+    "<text x='214' y='116'>photosphere (surface)</text>"
+    "<text x='214' y='136'>outer gas layers</text>"
+    "<text x='222' y='160'>core: millions of K</text></g>"
+    "<g stroke='" + INK + "' stroke-width='1' fill='none'>"
+    "<path d='M160 118 L210 112'/><path d='M160 118 L210 132'/><path d='M160 118 L218 156'/></g>",
+    "A star drawn as a hot gas sphere: a very hot core inside outer gas layers",
+)
+
+CLIP_BARS = svg(
+    "<text x='16' y='24' font-size='13' fill='" + INK + "'>Clips sold</text>"
+    "<g stroke='" + INK + "' stroke-width='2'>"
+    "<rect x='40' y='52' width='220' height='30' fill='#bfdbfe'/>"
+    "<rect x='40' y='94' width='110' height='30' fill='#a7f3d0'/></g>"
+    "<g font-size='12' fill='" + INK + "'>"
+    "<text x='48' y='72'>April: 48 clips</text>"
+    "<text x='48' y='114'>May: half of 48 = 24</text>"
+    "<text x='40' y='152' font-size='13'>Total = 48 + 24 = ?</text>"
+    "<path d='M262 52 v72' stroke='" + INK + "' stroke-width='1.5'/></g>",
+    "Two bars: April 48 clips and May half of that, with the total left to work out",
+)
+
+RATE_BARS = svg(
+    "<text x='16' y='24' font-size='13' fill='" + INK + "'>Pay is proportional to time</text>"
+    "<g stroke='" + INK + "' stroke-width='2'>"
+    "<rect x='40' y='50' width='240' height='26' fill='#bfdbfe'/>"
+    "<rect x='40' y='96' width='200' height='26' fill='#fde68a'/></g>"
+    "<g font-size='12' fill='" + INK + "'>"
+    "<text x='46' y='68'>60 min ................ $12</text>"
+    "<text x='46' y='114'>50 min ................ ?</text>"
+    "<text x='40' y='152'>50/60 of the hour is worked</text></g>",
+    "Bar model comparing 60 minutes paid at 12 dollars with 50 minutes of unknown pay",
+)
+
+
 QUESTIONS = [
     # ======================================================== STEM: cell biology
     Q("sci.bio.cell", 1,
@@ -971,6 +1015,7 @@ QUESTIONS = [
        "It is mostly hydrogen and helium, and it is extremely hot."],
       ["Stars are huge, hot spheres of gas.",
        "The best choice says exactly that."],
+      visual=STAR_DIAGRAM,
       source=OBQA),
 
     Q("sci.elem.concepts", 1,
@@ -1070,6 +1115,7 @@ QUESTIONS = [
        "Half of 48 is 24, and the question asks for both months."],
       ["May: 48 ÷ 2 = 24 clips.",
        "Total: 48 + 24 = 72."],
+      visual=CLIP_BARS,
       source=GSM8K),
 
     Q("mc.wordproblems", 1,
@@ -1082,6 +1128,7 @@ QUESTIONS = [
        "50 minutes is 50/60 = 5/6 of an hour."],
       ["Pay = 12 × 5/6.",
        "12 × 5/6 = $10."],
+      visual=RATE_BARS,
       source=GSM8K),
 
     Q("mc.wordproblems", 2,

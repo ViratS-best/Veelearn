@@ -285,6 +285,66 @@ eq('a third-party row with no credit at all is still named', provenance.label({ 
             searchCall && searchCall.params.every((p) => String(p) === String(p).toLowerCase()),
             searchCall && JSON.stringify(searchCall.params)
         );
+
+        // 7. The learner-facing side: session card + transcript.
+        const sessionHtml = fs.readFileSync(path.join(__dirname, '..', 'veelearn-frontend', 'session.html'), 'utf8');
+        const sessionApp = fs.readFileSync(path.join(__dirname, '..', 'veelearn-frontend', 'session', 'session-app.js'), 'utf8');
+        ok('the session page loads the provenance module', /qbank-provenance\.js/.test(sessionHtml));
+        ok('the question card has a source chip', /id="sx-q-src"/.test(sessionHtml));
+        ok('the card renders provenance for every question', /renderProvenance\(question\)/.test(sessionApp));
+        ok('the chip is hidden for originals', /if \(!third\)/.test(sessionApp));
+
+        const serverProv = require('./provenance');
+        [
+            { source: 'authored', attribution: AUTHORED_ATTRIBUTION },
+            { source: 'openbookqa', attribution: OBQA_ATTRIBUTION },
+            { source: 'gsm8k', attribution: GSM8K_ATTRIBUTION },
+            { source: 'other', attribution: 'Example Bank (2024), Some Org — CC BY 4.0' },
+            { source: 'other' },
+            {}
+        ].forEach((fixture, i) =>
+            eq(`server and browser labels agree #${i}`, serverProv.label(fixture), provenance.label(fixture))
+        );
+        eq('a Veelearn original is not credited', serverProv.shouldCredit({ source: 'authored' }), false);
+        ok('a licensed question is credited', serverProv.shouldCredit({ source: 'gsm8k' }));
+
+        // The transcript is written server-side from the ledger, so it needs the credit too.
+        const createPhase5 = require('./phase5');
+        const transcriptQuery = async (sql) => {
+            const s = String(sql).replace(/\s+/g, ' ').trim();
+            if (/FROM sessions s/.test(s)) return [{ id: 9, started_at: new Date().toISOString(), mode: 'focus' }];
+            if (/FROM session_focus_items f/.test(s)) {
+                return [{ ord: 1, status: 'done', attempts: 2, correct_count: 1, name: 'Everyday science concepts' }];
+            }
+            if (/FROM practice_attempts a/.test(s)) {
+                return [
+                    { question_id: 1, correct: 1, stem: 'Stars are', answer: 'A', source: 'openbookqa', attribution: OBQA_ATTRIBUTION },
+                    { question_id: 2, correct: 0, stem: 'Solve 3x + 5 = 20', answer: 'A', source: 'authored', attribution: AUTHORED_ATTRIBUTION }
+                ];
+            }
+            return [];
+        };
+        const marks = await createPhase5({ query: transcriptQuery, log: { warn() {}, info() {} } }).transcript({
+            userId: 1,
+            sessionId: 9
+        });
+        ok(
+            'the transcript credits the licensed question',
+            /correct — Stars are _\(source: OpenBookQA · Apache-2\.0\)_/.test(marks.markdown),
+            marks.markdown.slice(0, 400)
+        );
+        ok('the transcript leaves the original uncredited', marks.markdown.includes('- wrong — Solve 3x + 5 = 20\n'));
+        ok('the transcript never says "Veelearn original"', !/Veelearn original/.test(marks.markdown));
+
+        // 8. The shipped seed gives licensed questions a diagram, so a learner can
+        // see the figure and the credit at the same time.
+        const seedJson = JSON.parse(fs.readFileSync(path.join(__dirname, 'seed', 'session_seed.json'), 'utf8'));
+        const licensedWithVisual = seedJson.questions.filter((q) => q.source !== 'authored' && q.visual);
+        ok('licensed questions carry diagrams', licensedWithVisual.length >= 2, String(licensedWithVisual.length));
+        ok(
+            'their diagrams are SVGs with alt text',
+            licensedWithVisual.every((q) => typeof q.visual.svg === 'string' && q.visual.svg.startsWith('<svg') && q.visual.alt)
+        );
     } finally {
         server.close();
     }

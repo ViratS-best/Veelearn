@@ -501,6 +501,27 @@ async function seedSessionData({ query, log } = {}) {
         inserted += chunk.length;
     }
 
+    // Existing rows keep their id (INSERT IGNORE skips them), so a diagram or a
+    // licence line added to a question later would never reach a database that
+    // was seeded before it. Refresh those columns for the seeded rows only;
+    // stem_hash identifies a seed row, so creator content is untouched.
+    let refreshed = 0;
+    for (const q of questions) {
+        if (!q.stem_hash || (!q.visual && !q.attribution)) continue;
+        try {
+            await query('UPDATE qbank_items SET visual = ?, attribution = ?, source = ? WHERE stem_hash = ?', [
+                q.visual ? JSON.stringify(q.visual) : null,
+                q.attribution || null,
+                q.source || 'authored',
+                q.stem_hash
+            ]);
+            refreshed += 1;
+        } catch (err) {
+            warn(`[session-seed] media refresh skipped: ${err.message}`);
+            break;
+        }
+    }
+
     await refreshPool();
 
     const skillsAfter = await countRows('SELECT COUNT(*) AS c FROM skills');

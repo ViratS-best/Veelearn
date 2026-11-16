@@ -241,7 +241,22 @@ ok(
     grown.result.added && grown.result.added.skills > 0 && grown.result.added.questions > 0,
     JSON.stringify(grown.result.added)
 );
-ok('the seeder never rewrites existing rows', !grown.calls.some((c) => /UPDATE qbank_items|DELETE FROM/.test(c.sql)));
+ok('the seeder never deletes rows', !grown.calls.some((c) => /DELETE FROM/.test(c.sql)));
+
+// A diagram or licence line added to a seed question later must reach a database
+// that already holds that row, without touching its text or answer key.
+const rowUpdates = grown.calls.filter((c) => /UPDATE qbank_items/.test(c.sql));
+ok(
+    'the seeder only refreshes media and provenance on existing rows',
+    rowUpdates.length > 0 && rowUpdates.every((c) => /SET visual = \?, attribution = \?, source = \?/.test(c.sql)),
+    rowUpdates.map((c) => c.sql).join(' | ').slice(0, 220)
+);
+ok('the seeder never rewrites a stem or an answer key', !grown.calls.some((c) => /UPDATE qbank_items SET stem|DELETE FROM/.test(c.sql)));
+ok(
+    'the refresh carries a licensed diagram to an existing row',
+    rowUpdates.some((c) => String(c.params[2]) === 'openbookqa' && /<svg/.test(String(c.params[0]))),
+    rowUpdates.length + ' updates'
+);
 
 const amcSkill = skillInserts.find((c) => String(c.params[0] || '').includes('amc10.'));
 ok('the AMC bank is part of the seeded set', !!amcSkill, amcSkill ? String(amcSkill.params[0]) : 'missing');

@@ -10,6 +10,8 @@
  * also what makes them trustworthy enough to email a parent.
  */
 
+const provenance = require('./provenance');
+
 const DAY = 24 * 60 * 60 * 1000;
 const EXAM_WINDOW_DAYS = 45;
 const SPRINT_ITEMS = 6;
@@ -185,7 +187,8 @@ function createPhase5({ query, log, sendEmail } = {}) {
             [sessionId]
         );
         const answers = await query(
-            `SELECT a.question_id, a.correct, a.answer_given, a.ms_taken, a.created_at, q.stem, q.answer
+            `SELECT a.question_id, a.correct, a.answer_given, a.ms_taken, a.created_at, q.stem, q.answer,
+                    q.source, q.attribution
              FROM practice_attempts a
              LEFT JOIN qbank_items q ON q.id = a.question_id
              WHERE a.session_id = ? ORDER BY a.id ASC`,
@@ -223,7 +226,10 @@ function createPhase5({ query, log, sendEmail } = {}) {
             for (const a of answers) {
                 const verdict = Number(a.correct) === 1 ? 'correct' : 'wrong';
                 const stem = String(a.stem || `Question ${a.question_id}`).replace(/\s+/g, ' ').slice(0, 140);
-                lines.push(`- ${verdict} — ${stem}`);
+                // Credit travels into the transcript, so a parent or teacher can see
+                // which questions came from a licensed set. Originals stay clean.
+                const credit = provenance.shouldCredit(a) ? ` _(source: ${provenance.label(a)})_` : '';
+                lines.push(`- ${verdict} — ${stem}${credit}`);
             }
         }
         if (events.length) {
