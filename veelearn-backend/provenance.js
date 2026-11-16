@@ -45,7 +45,21 @@ function isThirdParty(item) {
     return sourceOf(item) !== AUTHORED;
 }
 
-/** Only third-party questions are credited; a Veelearn original gets no chip. */
+// Rows written before provenance existed carry sources like 'course' or 'seed'
+// with no credit line. Those are not third-party sets, so they get no label.
+const LICENSED = new Set(Object.keys(KNOWN).filter((id) => id !== AUTHORED));
+
+/**
+ * Only a question we can actually name is credited: one of the licensed sets,
+ * or a row that carries its own credit line. A Veelearn original — and a legacy
+ * row with a bare internal source — shows nothing.
+ */
+function isThirdParty(item) {
+    const source = sourceOf(item);
+    if (source === AUTHORED) return false;
+    return LICENSED.has(source) || Boolean(creditOf(item));
+}
+
 function shouldCredit(item) {
     return isThirdParty(item);
 }

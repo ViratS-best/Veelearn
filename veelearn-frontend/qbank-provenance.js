@@ -52,8 +52,16 @@
         return sourceOf(item) === AUTHORED ? 'Written for Veelearn' : 'Third-party question set';
     }
 
+    // Rows written before provenance existed carry sources like 'course' with no
+    // credit line. Those are not third-party sets, so they get no chip.
+    const LICENSED = Object.keys(KNOWN).filter(function (id) {
+        return id !== AUTHORED;
+    });
+
     function isThirdParty(item) {
-        return sourceOf(item) !== AUTHORED;
+        const source = sourceOf(item);
+        if (source === AUTHORED) return false;
+        return LICENSED.indexOf(source) !== -1 || Boolean(creditOf(item));
     }
 
     return { label: label, detail: detail, isThirdParty: isThirdParty, KNOWN: KNOWN };

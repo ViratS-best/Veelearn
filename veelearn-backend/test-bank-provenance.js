@@ -174,6 +174,12 @@ eq(
     'Example Bank (2024), Some Org · CC BY 4.0'
 );
 eq('a third-party row with no credit at all is still named', provenance.label({ source: 'some-set' }), 'Third-party set');
+// Legacy rows predate provenance: an internal source with no credit line is not
+// a licensed set and must never be labelled as one.
+eq('a legacy internal source gets no chip', provenance.isThirdParty({ source: 'course' }), false);
+eq('an < 16-char internal source with no credit gets no chip', provenance.isThirdParty({ source: 'seed' }), false);
+ok('a licensed source is credited', provenance.isThirdParty({ source: 'openbookqa' }));
+ok('an unknown source with a credit line is credited', provenance.isThirdParty({ source: 'x-set', attribution: 'X — CC BY 4.0' }));
 
 // ------------------------------------------------------ (b) real HTTP flow
 (async () => {
@@ -307,6 +313,12 @@ eq('a third-party row with no credit at all is still named', provenance.label({ 
         );
         eq('a Veelearn original is not credited', serverProv.shouldCredit({ source: 'authored' }), false);
         ok('a licensed question is credited', serverProv.shouldCredit({ source: 'gsm8k' }));
+        eq('the server does not credit a legacy internal source', serverProv.shouldCredit({ source: 'course' }), false);
+        eq(
+            'server and browser agree on a legacy row',
+            serverProv.shouldCredit({ source: 'course' }),
+            provenance.isThirdParty({ source: 'course' })
+        );
 
         // The transcript is written server-side from the ledger, so it needs the credit too.
         const createPhase5 = require('./phase5');
