@@ -29,9 +29,16 @@
 - **GSM8K** (OpenAI, **MIT**) — 4 items in new skill `mc.wordproblems` ("Multi-step word problems", `mathcounts`). Problem text from the dataset; the four choices, hints and steps are ours.
 - Rejected for licence reasons: AMC/AIME/MATHCOUNTS and SAT/ACT (copyrighted, and AMC is still used for scoring), **OpenStax** (now CC BY-NC-SA 4.0 → no commercial use), **AI2 ARC** and **SQuAD** (CC BY-SA 4.0 → share-alike would attach to derivative material), **SciQ** (CC BY-NC 3.0).
 
+**Provenance visible where questions are pulled** (`veelearn-frontend/outline.html`, `qbank-provenance.js`)
+- `qbank-provenance.js` turns `source` + `attribution` into a plain label: `Veelearn original`, `OpenBookQA · Apache-2.0`, `GSM8K · MIT`; unknown sets are shortened from their credit line, and the full attribution rides on the chip's `title`. Browser global `window.QBankProvenance`, same file `require()`-able in tests.
+- The bank picker shows a chip on every result (so the preview itself is labelled) and the skill editor's question card keeps the chip after "Add to skill". `.prov` / `.prov.is-third` reuse the picker's muted/soft-accent styling; nothing else about the card, pin, preview or add behaviour changed.
+- `addFromBank` copies `source` + `attribution` onto the question, `outline.js` `normaliseQuestion` keeps them (16/200 chars), and `ensureQuestions` writes them into the `qbank_items` seed row (`source` defaults to `course` only for questions with no provenance). `qbank.toCard` now exposes `source` + `attribution`, so a served card can be labelled too. Answer keys are still withheld.
+
+**Tests (provenance, end to end)**: `test-bank-provenance.js` 28 — real Express router over HTTP: search returns an OpenBookQA, a GSM8K and an authored row with their credit; the picker-shape questions are saved through `PUT /api/courses/:id/outline`, read back through `GET`, then passed to `planFromOutline`, and the captured `qbank_items` insert params are checked to carry `openbookqa`/`gsm8k`/`authored` + the exact attribution. Also asserts the label module, the chip's third-party flag, and that `toCard` still hides the answer. Removing the provenance fields from `normaliseQuestion` turns eight of these red (checked by mutation).
+
 **Seed totals**: 42 skills, 172 questions (160 authored + 12 licensed), 15 diagrams across 12 tracks (`python build_session_seed.py`).
 
-**Tests**: `test-session-core.js` 69 (adds a fake-DB check that a populated database still receives every seeded skill and the question chunks, and that nothing is rewritten; plus five provenance checks — every question has a source, authored items credit Veelearn, licensed items name a licence, attribution fits the column) · `test-visual-teaching.js` 84 (adds SVG safety, exam-track coverage of ≥4 questions per skill, tier-1 openers, and answer-key integrity) · `test-phase45.js` 85 · `test-ai-session.js` 124.
+**Tests**: `test-bank-provenance.js` 28 · `test-session-core.js` 69 (adds a fake-DB check that a populated database still receives every seeded skill and the question chunks, and that nothing is rewritten; plus five provenance checks — every question has a source, authored items credit Veelearn, licensed items name a licence, attribution fits the column) · `test-visual-teaching.js` 84 (adds SVG safety, exam-track coverage of ≥4 questions per skill, tier-1 openers, and answer-key integrity) · `test-phase45.js` 85 · `test-ai-session.js` 124.
 
 ---
 

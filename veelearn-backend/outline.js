@@ -16,7 +16,8 @@
  *     id, title, summary,
  *     skills: [{
  *       id, name, teach,
- *       questions: [{ id, stem, hint, why, visual, options:[{k,t}], answer }]
+ *       questions: [{ id, stem, hint, why, visual, options:[{k,t}], answer,
+ *                     bankId, source, attribution }]
  *     }]
  *   }]
  * }
@@ -68,7 +69,12 @@ function normaliseQuestion(q, index) {
         hint: text(q?.hint, 400),
         why: text(q?.why, 700),
         visual: q?.visual && typeof q.visual === 'object' ? q.visual : null,
-        bankId: q?.bankId ? Number(q.bankId) : null
+        bankId: q?.bankId ? Number(q.bankId) : null,
+        // Provenance is part of the question: a creator who pulls an OpenBookQA
+        // item keeps "openbookqa" + its licence line all the way to the session
+        // seed, so the bank row it produces can still name its source.
+        source: text(q?.source, 16).toLowerCase() || 'authored',
+        attribution: text(q?.attribution, 200)
     };
 }
 
@@ -189,7 +195,7 @@ function createOutlines({ query, log } = {}) {
 
         for (let i = 0; i < missing.length; i += 30) {
             const chunk = missing.slice(i, i + 30);
-            const values = chunk.map(() => `(?, 1, 'mcq', ?, ?, ?, ?, ?, ?, ?, 'course', ?, 1)`).join(', ');
+            const values = chunk.map(() => `(?, 1, 'mcq', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`).join(', ');
             const params = [];
             chunk.forEach(({ q, hash }) => {
                 params.push(
@@ -201,13 +207,17 @@ function createOutlines({ query, log } = {}) {
                     JSON.stringify(q.hint ? [q.hint] : []),
                     JSON.stringify(q.why ? [q.why] : []),
                     q.visual ? JSON.stringify(q.visual) : null,
+                    // A creator-written question is a course original; a pulled
+                    // open item keeps the source and credit it arrived with.
+                    q.source || 'course',
+                    q.attribution || null,
                     Number(courseId)
                 );
             });
             try {
                 await query(
                     `INSERT IGNORE INTO qbank_items
-                        (skill_id, tier, qtype, stem, stem_hash, options, answer, hints, solution_steps, visual, source, course_id, live)
+                        (skill_id, tier, qtype, stem, stem_hash, options, answer, hints, solution_steps, visual, source, attribution, course_id, live)
                      VALUES ${values}`,
                     params
                 );

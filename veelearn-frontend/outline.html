@@ -121,6 +121,13 @@
         .bank-item { display: grid; grid-template-columns: 1fr 130px; gap: 12px; border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 10px; }
         .bank-item .stem { font-size: 14.5px; margin: 0 0 6px; }
         .bank-item .meta { font-size: 12px; color: var(--muted); }
+        .prov {
+            display: inline-block; font-size: 11px; line-height: 1.5; padding: 1px 8px;
+            margin-bottom: 6px; border-radius: 999px; border: 1px solid var(--line);
+            background: #fff; color: var(--muted); white-space: nowrap; vertical-align: middle;
+        }
+        .prov.is-third { border-color: #f7c39a; background: var(--accent-soft); color: #9a3f0c; }
+        .q-card .q-head .prov { margin-bottom: 0; text-transform: none; letter-spacing: 0; }
         .bank-item .thumb { display: grid; place-items: center; }
         .bank-item .thumb img, .bank-item .thumb svg { max-width: 120px; max-height: 90px; }
         .hintline { font-size: 12.5px; color: var(--muted); margin: 4px 0 0; }
@@ -202,9 +209,25 @@
         </div>
     </div>
 
+    <script src="qbank-provenance.js?v=1"></script>
     <script>
         (function () {
             'use strict';
+            const prov = window.QBankProvenance || {
+                label: () => 'Veelearn original',
+                detail: () => '',
+                isThirdParty: () => false
+            };
+
+            // Small chip naming where a question came from, in plain language.
+            function provChip(item) {
+                const chip = document.createElement('span');
+                chip.className = 'prov' + (prov.isThirdParty(item) ? ' is-third' : '');
+                chip.textContent = prov.label(item);
+                const detail = prov.detail(item);
+                if (detail && detail !== chip.textContent) chip.title = detail;
+                return chip;
+            }
             const API = (() => {
                 const host = location.hostname;
                 if (host === 'localhost' || host === '127.0.0.1') return 'http://localhost:5000';
@@ -417,6 +440,7 @@
                     head.className = 'q-head';
                     const strong = document.createElement('strong');
                     strong.textContent = 'Question ' + (qi + 1) + (q.bankId ? ' · from bank' : '');
+                    // Provenance stays visible after the pull, not just in the picker.
                     const del = document.createElement('button');
                     del.className = 'btn small ghost';
                     del.textContent = 'Delete';
@@ -427,6 +451,7 @@
                         renderCircles();
                     });
                     head.appendChild(strong);
+                    head.appendChild(provChip(q));
                     head.appendChild(del);
                     card.appendChild(head);
 
@@ -513,7 +538,10 @@
                     answer: 'A',
                     hint: '',
                     why: '',
-                    visual: null
+                    visual: null,
+                    // A handwritten question is a Veelearn-side original.
+                    source: 'authored',
+                    attribution: ''
                 };
             }
 
@@ -634,6 +662,7 @@
                         meta.className = 'meta';
                         meta.textContent = (item.skill || 'bank') + ' · ' + item.options.map((o) => o.k + ') ' + o.t).join('  ');
                         left.appendChild(stem);
+                        left.appendChild(provChip(item));
                         left.appendChild(meta);
                         const hint = document.createElement('p');
                         hint.className = 'hintline';
@@ -676,7 +705,10 @@
                     answer: item.answer,
                     hint: item.hint || '',
                     why: item.why || '',
-                    visual: item.visual || null
+                    visual: item.visual || null,
+                    // Provenance travels with the question into the outline.
+                    source: item.source || 'authored',
+                    attribution: item.attribution || ''
                 });
                 renderQuestions();
                 renderCircles();

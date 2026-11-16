@@ -38,7 +38,11 @@ function createQBank({ query }) {
             stem: row.stem,
             options,
             hints: parseJson(row.hints, []),
-            visual: parseJson(row.visual, null)
+            visual: parseJson(row.visual, null),
+            // Where the question came from, so a session can say so in plain
+            // language. Not sensitive: it is the same line the creator saw.
+            source: row.source || 'authored',
+            attribution: row.attribution || ''
         };
     }
 
@@ -73,7 +77,8 @@ function createQBank({ query }) {
      */
     async function getRaw(questionId) {
         const rows = await query(
-            `SELECT id, skill_id, tier, qtype, stem, options, answer, hints, solution_steps, visual, live
+            `SELECT id, skill_id, tier, qtype, stem, options, answer, hints, solution_steps, visual, live,
+                    source, attribution
              FROM qbank_items WHERE id = ? LIMIT 1`,
             [questionId]
         );
@@ -133,7 +138,7 @@ function createQBank({ query }) {
         const t = Math.min(4, Math.max(1, parseInt(tier, 10) || 1));
         const unseenFirst = `
             SELECT q.id, q.skill_id, q.tier, q.qtype, q.stem, q.options, q.answer,
-                   q.hints, q.solution_steps, q.visual
+                   q.hints, q.solution_steps, q.visual, q.source, q.attribution
             FROM qbank_items q
             WHERE q.skill_id = ? AND q.tier = ? AND q.live = TRUE
               AND NOT EXISTS (
@@ -147,7 +152,8 @@ function createQBank({ query }) {
         if (!rows.length) {
             // Any item at this tier, seen or not.
             rows = await query(
-                `SELECT id, skill_id, tier, qtype, stem, options, answer, hints, solution_steps, visual
+                `SELECT id, skill_id, tier, qtype, stem, options, answer, hints, solution_steps, visual,
+                        source, attribution
                  FROM qbank_items
                  WHERE skill_id = ? AND tier = ? AND live = TRUE
                  ORDER BY calibration_p DESC, id ASC
@@ -161,7 +167,8 @@ function createQBank({ query }) {
             for (const alt of order) {
                 if (alt < 1 || alt > 4) continue;
                 rows = await query(
-                    `SELECT id, skill_id, tier, qtype, stem, options, answer, hints, solution_steps, visual
+                    `SELECT id, skill_id, tier, qtype, stem, options, answer, hints, solution_steps, visual,
+                            source, attribution
                      FROM qbank_items
                      WHERE skill_id = ? AND tier = ? AND live = TRUE
                      ORDER BY calibration_p DESC, id ASC
@@ -218,7 +225,7 @@ function createQBank({ query }) {
         const notIn = ids.length ? `AND q.id NOT IN (${ids.map(() => '?').join(',')})` : '';
         const rows = await query(
             `SELECT q.id, q.skill_id, q.tier, q.qtype, q.stem, q.options, q.answer,
-                    q.hints, q.solution_steps, q.visual
+                    q.hints, q.solution_steps, q.visual, q.source, q.attribution
              FROM qbank_items q
              WHERE q.skill_id = ? AND q.live = TRUE ${notIn}
              ORDER BY q.tier ASC, q.calibration_p DESC, q.id ASC
