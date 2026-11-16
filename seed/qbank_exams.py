@@ -16,8 +16,23 @@ session card renders as a figure and the outline creator shows as a thumbnail.
 from __future__ import annotations
 
 
-def Q(skill, tier, stem, options, hints, steps, visual=None):
-    """Same shape as seed/qbank.py: options are (text, is_correct, why)."""
+AUTHORED = ("authored", "Veelearn original \u2014 written for Veelearn")
+
+# Openly licensed sets. The licence and the work it came from travel with every
+# row, so provenance is in the data rather than in a comment somewhere.
+OBQA = ("openbookqa", "OpenBookQA (Mihaylov et al. 2018), Allen Institute for AI \u2014 Apache-2.0")
+GSM8K = ("gsm8k", "GSM8K (Cobbe et al. 2021), OpenAI \u2014 MIT")
+
+
+def Q(skill, tier, stem, options, hints, steps, visual=None, source=None, attribution=None):
+    """Same shape as seed/qbank.py: options are (text, is_correct, why).
+
+    `source` / `attribution` travel into `qbank_items.source` and
+    `qbank_items.attribution`, so every row says where it came from. Anything
+    not authored by Veelearn must name its licence and the work it came from.
+    """
+    src = source or AUTHORED
+    source_id, credit = src if isinstance(src, tuple) else (src, attribution or "")
     return {
         "skill": skill,
         "tier": tier,
@@ -26,6 +41,8 @@ def Q(skill, tier, stem, options, hints, steps, visual=None):
         "hints": hints,
         "steps": steps,
         "visual": visual,
+        "source": source_id,
+        "attribution": credit,
     }
 
 
@@ -939,4 +956,155 @@ QUESTIONS = [
        "Count pairs, not directed greetings."],
       ["C(10, 2) = (10 × 9)/2.",
        "= 45."]),
+
+    # ==================================== OpenBookQA items (Apache-2.0)
+    # Open-book science questions from Allen Institute for AI's OpenBookQA
+    # (Mihaylov et al., 2018), Apache License 2.0. Stems and choices follow the
+    # source; hints, solution steps and option rationales are written by us.
+    Q("sci.elem.concepts", 1,
+      "Stars are",
+      [("great balls of gas burning billions of miles away", 1, ""),
+       ("warm lights that float", 0, "Stars are not floating lamps; they are enormous bodies of hot gas."),
+       ("made out of nitrate", 0, "Nitrate is a chemical group found on Earth, not what stars are made of."),
+       ("lights in the sky", 0, "That describes how they look from here, not what they are.")],
+      ["What is the Sun, the nearest star, made of?",
+       "It is mostly hydrogen and helium, and it is extremely hot."],
+      ["Stars are huge, hot spheres of gas.",
+       "The best choice says exactly that."],
+      source=OBQA),
+
+    Q("sci.elem.concepts", 1,
+      "What happens when mercury is placed in water?",
+      [("It sinks", 1, ""),
+       ("It dissolves", 0, "Liquid mercury does not dissolve in water; the two do not mix."),
+       ("It floats", 0, "Mercury is much denser than water, so it does not float."),
+       ("It hardens", 0, "Mercury stays liquid at room temperature and does not harden in water.")],
+      ["Which is denser: mercury or water?",
+       "A coin-sized amount of mercury is heavier than the same volume of water."],
+      ["Mercury is about 13 times denser than water.",
+       "So it sinks to the bottom."],
+      source=OBQA),
+
+    Q("sci.elem.concepts", 2,
+      "A magnet will stick to",
+      [("a belt buckle", 1, ""),
+       ("a wooden table", 0, "Wood is not magnetic; magnets ignore it."),
+       ("a plastic cup", 0, "Plastic is not magnetic."),
+       ("a paper plate", 0, "Paper is not magnetic.")],
+      ["Which of these objects is made of metal?",
+       "Magnets attract iron and steel."],
+      ["A belt buckle is typically steel or another iron alloy.",
+       "The other three are wood, plastic and paper."],
+      source=OBQA),
+
+    Q("sci.elem.concepts", 2,
+      "Which of these things will supplement a squirrel's caloric needs?",
+      [("Nuts", 1, ""),
+       ("Fish", 0, "Squirrels are not fishers; nuts and seeds are their staple food."),
+       ("Tree bark", 0, "Bark is eaten in hard times but is a poor calorie source compared with nuts."),
+       ("Leaves", 0, "Leaves provide little energy for a squirrel.")],
+      ["What do squirrels spend the autumn collecting?",
+       "Think of the food they bury for winter."],
+      ["Nuts are dense in fat and energy.",
+       "That is exactly what a squirrel caches."],
+      source=OBQA),
+
+    Q("sci.elem.concepts", 2,
+      "A student can scratch a mineral sample with a fingernail. How is that mineral best described?",
+      [("A soft mineral", 1, ""),
+       ("A hard mineral", 0, "If a fingernail scratches it, the mineral is softer than a fingernail, not harder."),
+       ("A liquid mineral", 0, "Scratching is a test of hardness; nothing here suggests a liquid."),
+       ("A mineral melt", 0, "A melt would be molten rock, which a solid sample is not.")],
+      ["A fingernail has a low Mohs hardness (about 2.5).",
+       "What does it mean if a mineral can be scratched by something that soft?"],
+      ["Being scratched by a fingernail puts the mineral below about 2.5 on the Mohs scale.",
+       "That makes it soft."],
+      source=OBQA),
+
+    Q("sci.elem.concepts", 3,
+      "One example of a chemical change is acid breaking down a substance. Which of these is another example of a chemical change?",
+      [("Lemon juice added to milk", 1, ""),
+       ("Flour added to salt", 0, "Mixing two powders is a physical change; nothing new is formed."),
+       ("Milk added to water", 0, "Diluting milk in water leaves both substances unchanged."),
+       ("Corn added to soup", 0, "Stirring corn into soup is mixing, not a reaction.")],
+      ["A chemical change makes a new substance.",
+       "Which pair reacts to form something different (here, curds)?"],
+      ["Acid curdles the protein in milk, forming new material.",
+       "That is a chemical change; mixing powders is not."],
+      source=OBQA),
+
+    Q("sci.elem.concepts", 3,
+      "Matter in the gas phase has",
+      [("a volume that changes with its container", 1, ""),
+       ("a fixed volume but no fixed shape", 0, "That describes a liquid, not a gas."),
+       ("a fixed volume and a fixed shape", 0, "That describes a solid."),
+       ("no particles at all", 0, "Gases are made of particles; they are simply far apart and moving fast.")],
+      ["How does the volume of a gas respond to the container it is in?",
+       "Think of helium filling a whole balloon."],
+      ["Gas particles spread out to fill their container.",
+       "So both shape and volume follow the container."],
+      source=OBQA),
+
+    Q("sci.elem.concepts", 4,
+      "What is most likely to be an effect of acid rain on an aquatic environment?",
+      [("A decrease in plant life", 1, ""),
+       ("An increase in fish population", 0, "Acidified water stresses fish; populations fall rather than rise."),
+       ("An increase in plant growth", 0, "Acid rain damages aquatic plants rather than fertilising them."),
+       ("Cleaner, clearer water", 0, "Acid rain can leach metals into water, which is worse, not cleaner.")],
+      ["Acid rain lowers the pH of lakes and streams.",
+       "How do plants and fish cope with acidic water?"],
+      ["Lower pH harms aquatic plants and animals.",
+       "The best-supported effect is a decline in plant life."],
+      source=OBQA),
+
+    # ========================================== GSM8K items (MIT licence)
+    # Word problems from OpenAI's GSM8K (Cobbe et al., 2021), MIT licence. Stems
+    # follow the source; the multiple-choice options, hints and steps are ours.
+    Q("mc.wordproblems", 1,
+      "Natalia sold clips to 48 of her friends in April, and then she sold half as many clips in May. How many clips did Natalia sell altogether in April and May?",
+      [("72", 1, ""),
+       ("96", 0, "That doubles 48 instead of adding half of it."),
+       ("24", 0, "That is May's sales alone."),
+       ("60", 0, "That adds a quarter of 48 rather than half.")],
+      ["How many did she sell in May?",
+       "Half of 48 is 24, and the question asks for both months."],
+      ["May: 48 ÷ 2 = 24 clips.",
+       "Total: 48 + 24 = 72."],
+      source=GSM8K),
+
+    Q("mc.wordproblems", 1,
+      "Weng earns $12 an hour for babysitting. Yesterday, she did 50 minutes of babysitting. How much did she earn?",
+      [("$10", 1, ""),
+       ("$12", 0, "That is a full hour's pay; she worked less than an hour."),
+       ("$6", 0, "That treats 50 minutes as half an hour."),
+       ("$600", 0, "You multiplied 12 by 50 without converting minutes to hours.")],
+      ["Convert 50 minutes to a fraction of an hour.",
+       "50 minutes is 50/60 = 5/6 of an hour."],
+      ["Pay = 12 × 5/6.",
+       "12 × 5/6 = $10."],
+      source=GSM8K),
+
+    Q("mc.wordproblems", 2,
+      "Julie is reading a 120-page book. Yesterday she read 12 pages and today she read twice as many pages as yesterday. If she wants to read half of the remaining pages tomorrow, how many pages should she read?",
+      [("42", 1, ""),
+       ("84", 0, "That is all the remaining pages, not half of them."),
+       ("48", 0, "That is half of 96, which miscounts today's pages."),
+       ("108", 0, "That is the remaining pages after reading only 12.")],
+      ["How many pages did she read today?",
+       "Then subtract both days from 120."],
+      ["Today: 2 × 12 = 24 pages. Read so far: 36.",
+       "Remaining 84; half is 42."],
+      source=GSM8K),
+
+    Q("mc.wordproblems", 3,
+      "Albert buys 2 large pizzas and 2 small pizzas. A large pizza has 16 slices and a small pizza has 8 slices. If he eats it all, how many slices does he eat that day?",
+      [("48", 1, ""),
+       ("24", 0, "That counts only the large pizzas."),
+       ("40", 0, "That uses one large and three small pizzas."),
+       ("64", 0, "That doubles the total instead of adding the two sizes.")],
+      ["Find the slices from the large pizzas, then from the small ones.",
+       "2 × 16 = 32 and 2 × 8 = 16."],
+      ["32 + 16 = 48.",
+       "So he eats 48 slices."],
+      source=GSM8K),
 ]

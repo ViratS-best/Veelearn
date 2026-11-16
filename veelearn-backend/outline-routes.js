@@ -70,7 +70,8 @@ module.exports = function createOutlineRoutes({ query, authenticateToken, writeL
                 params.push(like, like);
             }
             const rows = await query(
-                `SELECT q.id, q.stem, q.options, q.answer, q.hints, q.solution_steps, q.visual, s.name AS skill_name
+                `SELECT q.id, q.stem, q.options, q.answer, q.hints, q.solution_steps, q.visual,
+                        q.source, q.attribution, s.name AS skill_name
                  FROM qbank_items q
                  LEFT JOIN skills s ON s.id = q.skill_id
                  ${where}
@@ -96,7 +97,11 @@ module.exports = function createOutlineRoutes({ query, authenticateToken, writeL
                     answer: row.answer,
                     hint: (parse(row.hints, []) || [])[0] || '',
                     why: (parse(row.solution_steps, []) || [])[0] || '',
-                    visual: parse(row.visual, null)
+                    visual: parse(row.visual, null),
+                    // Provenance, so a creator can see where a pulled question
+                    // came from before they put it in their outline.
+                    source: row.source || 'authored',
+                    attribution: row.attribution || ''
                 };
             });
             res.json({ success: true, data });

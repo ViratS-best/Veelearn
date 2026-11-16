@@ -462,6 +462,24 @@ SKILLS = [
         ],
     },
 
+    {
+        "code": "sci.elem.concepts",
+        "track": "stem.sci",
+        "name": "Everyday science concepts",
+        "grade_band": 7,
+        "order": 3,
+        "prereq": None,
+        "dot_target": 2,
+        "intro": (
+            "Everyday science asks you to reason from what you already know: what things are made of, "
+            "which changes create a new substance, and how the world behaves."
+        ),
+        "misconceptions": [
+            "Calling a mixture a chemical change",
+            "Judging hardness from how an object looks instead of from a scratch test"
+        ],
+    },
+
     # ------------------------------------------------------------------ English
     {
         "code": "eng.grammar.boundaries",
@@ -621,6 +639,24 @@ SKILLS = [
         "misconceptions": [
             "Counting divisors without adding one to each exponent",
             "Missing the 9s and 27s when counting powers in a factorial"
+        ],
+    },
+
+    {
+        "code": "mc.wordproblems",
+        "track": "mathcounts",
+        "name": "Multi-step word problems",
+        "grade_band": 7,
+        "order": 3,
+        "prereq": "mc.counting",
+        "dot_target": 3,
+        "intro": (
+            "Word problems are a chain of small steps. Name what each sentence asks you to compute, "
+            "keep the units with the numbers, and only then do the arithmetic."
+        ),
+        "misconceptions": [
+            "Answering with the last number computed instead of the quantity requested",
+            "Mixing units such as minutes and hours in the same product"
         ],
     },
 

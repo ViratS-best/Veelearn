@@ -184,6 +184,28 @@ ok('prerequisites point at real skills', seed.skills.every((s) => !s.prereq || s
 const tracks = new Set(seed.skills.map((s) => s.track));
 ok('all four tracks are seeded', tracks.size >= 4, [...tracks].join(','));
 
+// ------------------------------------------------------- (c2) provenance
+// Every question says where it came from. Anything not written by Veelearn must
+// name the work and the licence, so a licence question can be answered from the
+// data alone (and the API can show it to a creator).
+const unattributed = seed.questions.filter(
+    (q) => !q.source || (q.source !== 'authored' && !String(q.attribution || '').trim())
+);
+eq('every question records its source', unattributed.length, 0);
+ok(
+    'authored items credit Veelearn',
+    seed.questions.filter((q) => q.source === 'authored').every((q) => /Veelearn/.test(q.attribution || '')),
+    'an authored item is missing its attribution'
+);
+const licensed = seed.questions.filter((q) => q.source !== 'authored');
+ok('the openly licensed items are in the bank', licensed.length >= 12, `${licensed.length} items`);
+ok(
+    'licensed items name a licence',
+    licensed.every((q) => /(MIT|Apache|CC BY)/i.test(q.attribution)),
+    licensed.filter((q) => !/(MIT|Apache|CC BY)/i.test(q.attribution)).map((q) => q.source).join(',')
+);
+ok('attribution lines fit the column', seed.questions.every((q) => String(q.attribution || '').length <= 200));
+
 // --------------------------------------------------- (d) growing the bank
 // A database seeded months ago still has to receive new subjects. The seeder
 // therefore inserts on every boot and leaves existing rows alone, which only
@@ -201,7 +223,7 @@ async function runSeeder(script) {
         if (/SELECT COUNT\(\*\) AS c FROM skills/.test(sql)) return [{ c: counts.skills }];
         if (/SELECT COUNT\(\*\) AS c FROM qbank_items/.test(sql)) return [{ c: counts.items }];
         if (/INSERT IGNORE INTO skills/.test(sql)) counts.skills += 1;
-        if (/INSERT IGNORE INTO qbank_items/.test(sql)) counts.items += String(params[4] || '').length ? params.length / 11 : 0;
+        if (/INSERT IGNORE INTO qbank_items/.test(sql)) counts.items += String(params[4] || '').length ? params.length / 12 : 0;
         return { insertId: 0, affectedRows: 1 };
     };
     const result = await seedSessionData({ query, log: { info() {}, warn() {} } });

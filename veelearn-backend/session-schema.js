@@ -312,7 +312,10 @@ const ALTERS = [
     'ALTER TABLE users ADD COLUMN IF NOT EXISTS parent_email VARCHAR(190) NULL',
     'ALTER TABLE users ADD COLUMN IF NOT EXISTS digest_opt_in SMALLINT DEFAULT 0',
     'ALTER TABLE users ADD COLUMN IF NOT EXISTS reminder_at TIMESTAMP NULL',
-    "ALTER TABLE user_learning_profile ADD COLUMN IF NOT EXISTS prefs LONGTEXT NULL"
+    "ALTER TABLE user_learning_profile ADD COLUMN IF NOT EXISTS prefs LONGTEXT NULL",
+    // Provenance columns, for databases created before they were in CREATE TABLE.
+    "ALTER TABLE qbank_items ADD COLUMN IF NOT EXISTS source VARCHAR(16) DEFAULT 'authored'",
+    "ALTER TABLE qbank_items ADD COLUMN IF NOT EXISTS attribution VARCHAR(200) NULL"
 ];
 
 function loadSeed() {
@@ -471,7 +474,7 @@ async function seedSessionData({ query, log } = {}) {
         const values = [];
         const params = [];
         for (const q of chunk) {
-            values.push('(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+            values.push('(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
             params.push(
                 byCode.get(q.skill),
                 q.tier,
@@ -483,12 +486,15 @@ async function seedSessionData({ query, log } = {}) {
                 JSON.stringify(q.hints || []),
                 JSON.stringify(q.steps || []),
                 q.visual ? JSON.stringify(q.visual) : null,
-                q.source || 'authored'
+                q.source || 'authored',
+                // Provenance travels with the row: which work it came from and
+                // under which licence, or 'Veelearn original' for our own items.
+                q.attribution || null
             );
         }
         await query(
             `INSERT IGNORE INTO qbank_items
-                (skill_id, tier, qtype, stem, stem_hash, options, answer, hints, solution_steps, visual, source)
+                (skill_id, tier, qtype, stem, stem_hash, options, answer, hints, solution_steps, visual, source, attribution)
              VALUES ${values.join(', ')}`,
             params
         );

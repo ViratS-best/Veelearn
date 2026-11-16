@@ -46,6 +46,14 @@ VISUAL_PRESETS = {
 
 MIN_Q_PER_SKILL = 4
 
+# Provenance. `authored` means Veelearn wrote it; every other id names an
+# openly licensed set, and then `attribution` must say which work and licence.
+SOURCES = {
+    "authored",
+    "openbookqa",  # Allen Institute for AI, Apache-2.0
+    "gsm8k",  # OpenAI, MIT
+}
+
 
 def norm_stem(text: str) -> str:
     """Case/punctuation-insensitive stem key for duplicate detection.
@@ -151,6 +159,17 @@ def main() -> int:
             elif not isinstance(raw_visual.get("params", {}), dict):
                 fail(errors, f"{skill}: visual params must be a dict")
 
+        raw_source = str(raw.get("source") or "authored")
+        raw_attribution = str(raw.get("attribution") or "").strip()
+        if not raw_attribution and raw_source == "authored":
+            raw_attribution = "Veelearn original \u2014 written for Veelearn"
+        if raw_source not in SOURCES:
+            fail(errors, f"{skill}: unknown source {raw_source!r}: {raw['stem'][:50]}")
+        if raw_source != "authored" and not raw_attribution:
+            fail(errors, f"{skill}: source {raw_source!r} needs an attribution line")
+        if len(raw_attribution) > 200:
+            fail(errors, f"{skill}: attribution is too long ({len(raw_attribution)} chars, max 200)")
+
         key = norm_stem(raw["stem"])
         if key in stems:
             fail(errors, f"duplicate stem ({skill}): {raw['stem'][:60]}")
@@ -173,7 +192,8 @@ def main() -> int:
                 "hints": list(raw["hints"]),
                 "steps": list(raw["steps"]),
                 "visual": raw.get("visual"),
-                "source": "authored",
+                "source": raw_source,
+                "attribution": raw_attribution,
             }
         )
 

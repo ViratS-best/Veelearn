@@ -414,6 +414,20 @@
    ]
   },
   {
+   "code": "sci.elem.concepts",
+   "track": "stem.sci",
+   "name": "Everyday science concepts",
+   "grade_band": 7,
+   "order": 3,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Everyday science asks you to reason from what you already know: what things are made of, which changes create a new substance, and how the world behaves.",
+   "misconceptions": [
+    "Calling a mixture a chemical change",
+    "Judging hardness from how an object looks instead of from a scratch test"
+   ]
+  },
+  {
    "code": "eng.grammar.boundaries",
    "track": "english",
    "name": "Commas and sentence boundaries",
@@ -540,6 +554,20 @@
    ]
   },
   {
+   "code": "mc.wordproblems",
+   "track": "mathcounts",
+   "name": "Multi-step word problems",
+   "grade_band": 7,
+   "order": 3,
+   "prereq": "mc.counting",
+   "dot_target": 3,
+   "intro_md": "Word problems are a chain of small steps. Name what each sentence asks you to compute, keep the units with the numbers, and only then do the arithmetic.",
+   "misconceptions": [
+    "Answering with the last number computed instead of the quantity requested",
+    "Mixing units such as minutes and hours in the same product"
+   ]
+  },
+  {
    "code": "amc8.geometry",
    "track": "amc8",
    "name": "AMC 8 geometry",
@@ -663,7 +691,8 @@
     "2³ · 2⁴ = 2⁷."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "g8.exponents",
@@ -703,7 +732,8 @@
     "(x²)⁵ = x¹⁰."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "g8.exponents",
@@ -743,7 +773,8 @@
     "3³ = 27."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "g8.exponents",
@@ -783,7 +814,8 @@
     "Result: 4x⁶y²."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "g8.sci.not",
@@ -823,7 +855,8 @@
     "4.5 × 1000 = 4500."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "g8.sci.not",
@@ -863,7 +896,8 @@
     "So 6.2 × 10⁻⁴."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "g8.sci.not",
@@ -903,7 +937,8 @@
     "= 6 × 10⁸."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "g8.sci.not",
@@ -943,7 +978,8 @@
     "= 6 × 10⁷ km."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "g8.linear.expressions",
@@ -983,7 +1019,8 @@
     "Result: 8x."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "g8.linear.expressions",
@@ -1023,7 +1060,8 @@
     "4 × (−3) = −12, so 8x − 12."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "g8.linear.expressions",
@@ -1063,7 +1101,8 @@
     "6x − 5x = x, so x + 8."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "g8.linear.expressions",
@@ -1103,7 +1142,8 @@
     "Combine the numbers: 11 − 2x."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "g8.linear.equations",
@@ -1143,7 +1183,8 @@
     "x = 3."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "g8.linear.equations",
@@ -1183,7 +1224,8 @@
     "2x = 12, so x = 6."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "g8.linear.equations",
@@ -1223,7 +1265,8 @@
     "16 = 2x, so x = 8."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "g8.linear.equations",
@@ -1263,7 +1306,8 @@
     "2n = 22, so n = 11."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "g8.systems.substitution",
@@ -1303,7 +1347,8 @@
     "x = 3 and y = 2(3) = 6."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "g8.systems.substitution",
@@ -1343,7 +1388,8 @@
     "x = 3 and y = 2."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "g8.systems.substitution",
@@ -1383,7 +1429,8 @@
     "y = 3(2.5) = 7.5."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "g8.systems.substitution",
@@ -1423,7 +1470,8 @@
     "4a = 16, so a = 4."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "g8.pythagoras",
@@ -1463,7 +1511,8 @@
     "c = √25 = 5."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "g8.pythagoras",
@@ -1503,7 +1552,8 @@
     "c = 10."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "g8.pythagoras",
@@ -1543,7 +1593,8 @@
     "a = 12."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "g8.pythagoras",
@@ -1583,7 +1634,8 @@
     "Height = 8 ft."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "alg1.linear.one",
@@ -1623,7 +1675,8 @@
     "x = 28."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "alg1.linear.one",
@@ -1663,7 +1716,8 @@
     "x = 7."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "alg1.linear.one",
@@ -1703,7 +1757,8 @@
     "x = −6."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "alg1.linear.one",
@@ -1743,7 +1798,8 @@
     "x = 13."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "alg1.linear.bothsides",
@@ -1783,7 +1839,8 @@
     "x = 5."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "alg1.linear.bothsides",
@@ -1823,7 +1880,8 @@
     "x = 5."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "alg1.linear.bothsides",
@@ -1863,7 +1921,8 @@
     "x = 10."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "alg1.linear.bothsides",
@@ -1903,7 +1962,8 @@
     "14 = 2x, so x = 7."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "alg1.inequalities",
@@ -1955,7 +2015,8 @@
      ]
     }
    },
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "alg1.inequalities",
@@ -1995,7 +2056,8 @@
     "x ≤ −4."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "alg1.inequalities",
@@ -2035,7 +2097,8 @@
     "x ≥ −6."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "alg1.inequalities",
@@ -2075,7 +2138,8 @@
     "h ≤ 5, so 5 hours."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "alg1.slope",
@@ -2122,7 +2186,8 @@
      ]
     }
    },
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "alg1.slope",
@@ -2162,7 +2227,8 @@
     "b = 4 is the y-intercept."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "alg1.slope",
@@ -2202,7 +2268,8 @@
     "y = 2x + 1."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "alg1.slope",
@@ -2242,7 +2309,8 @@
     "Negate it: −2."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "alg1.systems.substitution",
@@ -2282,7 +2350,8 @@
     "y = 9."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "alg1.systems.substitution",
@@ -2322,7 +2391,8 @@
     "y = 3 and x = 7."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "alg1.systems.substitution",
@@ -2362,7 +2432,8 @@
     "y = 5."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "alg1.systems.substitution",
@@ -2402,7 +2473,8 @@
     "A burger is $5 (and fries are $3)."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "alg1.quadratics.factor",
@@ -2442,7 +2514,8 @@
     "So (x + 3)(x + 4)."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "alg1.quadratics.factor",
@@ -2482,7 +2555,8 @@
     "(x − 2)(x − 3)."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "alg1.quadratics.factor",
@@ -2522,7 +2596,8 @@
     "(x − 3)(x + 3)."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "alg1.quadratics.factor",
@@ -2562,7 +2637,8 @@
     "x = −5 or x = 3."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "apcmech.kinematics.1d",
@@ -2602,7 +2678,8 @@
     "t = 5 s."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "apcmech.kinematics.1d",
@@ -2642,7 +2719,8 @@
     "= 24 m."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "apcmech.kinematics.1d",
@@ -2682,7 +2760,8 @@
     "v = 14 m/s."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "apcmech.kinematics.1d",
@@ -2722,7 +2801,8 @@
     "Total = 250 m."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "apcmech.newton.second",
@@ -2762,7 +2842,8 @@
     "= 6 N."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "apcmech.newton.second",
@@ -2802,7 +2883,8 @@
     "a = 30 / 10 = 3 m/s²."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "apcmech.newton.second",
@@ -2842,7 +2924,8 @@
     "= 9.8 × 0.5 = 4.9 m/s²."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "apcmech.newton.second",
@@ -2882,7 +2965,8 @@
     "132 / 60 = 2.2 m/s² upward."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "apcmech.work.constant",
@@ -2922,7 +3006,8 @@
     "= 30 J."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "apcmech.work.constant",
@@ -2962,7 +3047,8 @@
     "= 30 × 0.5 = 15 J."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "apcmech.work.constant",
@@ -3002,7 +3088,8 @@
     "W = −9.8 × 4 = −39.2 J."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "apcmech.work.constant",
@@ -3042,7 +3129,8 @@
     "v = 5 m/s."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "apcmech.work.variable",
@@ -3093,7 +3181,8 @@
      ]
     }
    },
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "apcmech.work.variable",
@@ -3133,7 +3222,8 @@
     "= 4 J."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "apcmech.work.variable",
@@ -3173,7 +3263,8 @@
     "= 18 J."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "apcmech.work.variable",
@@ -3213,7 +3304,8 @@
     "= 100 × 0.12 = 12 J."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "apcmech.energy.theorem",
@@ -3253,7 +3345,8 @@
     "= +50 J."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "apcmech.energy.theorem",
@@ -3293,7 +3386,8 @@
     "v ≈ 4.4 m/s."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "apcmech.energy.theorem",
@@ -3333,7 +3427,8 @@
     "v = √(2 × 14.6 / 2) = 3.8 m/s."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "apcmech.energy.theorem",
@@ -3373,7 +3468,8 @@
     "= 60 W."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "apcmech.momentum.1d",
@@ -3413,7 +3509,8 @@
     "= 12 kg·m/s."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "apcmech.momentum.1d",
@@ -3453,7 +3550,8 @@
     "= 10 N·s."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "apcmech.momentum.1d",
@@ -3493,7 +3591,8 @@
     "v = 1 m/s."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "apcmech.momentum.1d",
@@ -3533,7 +3632,8 @@
     "The velocities swap."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "sat.math.linear",
@@ -3573,7 +3673,8 @@
     "x = 4."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "sat.math.linear",
@@ -3613,7 +3714,8 @@
     "x = 7."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "sat.math.linear",
@@ -3653,7 +3755,8 @@
     "Slope = 2."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "sat.math.linear",
@@ -3693,7 +3796,8 @@
     "x = 3, and y = 1."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "sat.math.percent",
@@ -3733,7 +3837,8 @@
     "= 12."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "sat.math.percent",
@@ -3773,7 +3878,8 @@
     "or 0.75 × 40 = 30."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "sat.math.percent",
@@ -3813,7 +3919,8 @@
     "= 30%."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "sat.math.percent",
@@ -3853,7 +3960,8 @@
     "Final price $72."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "sat.math.ratios",
@@ -3893,7 +4001,8 @@
     "Larger number = 25."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "sat.math.ratios",
@@ -3933,7 +4042,8 @@
     "= $2.50 each."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "sat.math.ratios",
@@ -3973,7 +4083,8 @@
     "9 cups of flour."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "sat.math.ratios",
@@ -4013,7 +4124,8 @@
     "= 48 mph."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "sat.math.geometry.area",
@@ -4053,7 +4165,8 @@
     "= 54."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "sat.math.geometry.area",
@@ -4093,7 +4206,8 @@
     "= 20."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "sat.math.geometry.area",
@@ -4133,7 +4247,8 @@
     "= 9π."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "sat.math.geometry.area",
@@ -4173,7 +4288,8 @@
     "Total 16 + 2π."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "sat.math.functions",
@@ -4213,7 +4329,8 @@
     "6 + 1 = 7."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "sat.math.functions",
@@ -4253,7 +4370,8 @@
     "= 5."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "sat.math.functions",
@@ -4293,7 +4411,8 @@
     "x = 4."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "sat.math.functions",
@@ -4333,7 +4452,8 @@
     "f(4) = 5."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "sci.bio.cell",
@@ -4376,7 +4496,8 @@
     "svg": "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 200' role='img' aria-label='Diagram of a cell with the nucleus, cell membrane and two mitochondria labelled' font-family='Nunito, Arial, sans-serif'><rect x='24' y='18' width='272' height='164' rx='18' fill='#f8fafc' stroke='#334155' stroke-width='2'/><circle cx='96' cy='100' r='38' fill='#e0e7ff' stroke='#334155' stroke-width='2'/><circle cx='96' cy='100' r='14' fill='#818cf8'/><g fill='#fde68a' stroke='#334155' stroke-width='2'><ellipse cx='212' cy='72' rx='34' ry='17'/><ellipse cx='212' cy='132' rx='34' ry='17'/></g><g fill='none' stroke='#334155' stroke-width='2'><path d='M196 66 q10 8 0 16 q10 8 0 16' /><path d='M196 126 q10 8 0 16'/></g><g fill='#1e293b' font-size='11'><text x='146' y='52'>mitochondria</text><text x='62' y='52'>nucleus</text><text x='40' y='176'>cell membrane</text></g><path d='M96 62 L96 42' stroke='#334155' stroke-width='1'/><path d='M212 55 L212 46' stroke='#334155' stroke-width='1'/></svg>",
     "alt": "Diagram of a cell with the nucleus, cell membrane and two mitochondria labelled"
    },
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "sci.bio.cell",
@@ -4416,7 +4537,8 @@
     "The Golgi then packages it for secretion."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "sci.bio.cell",
@@ -4456,7 +4578,8 @@
     "The rigid wall pushes back, so pressure rises without rupture."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "sci.bio.cell",
@@ -4496,7 +4619,8 @@
     "Without the Golgi they are not modified, sorted or shipped."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "sci.chem.moles",
@@ -4536,7 +4660,8 @@
     "n = 1 mol."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "sci.chem.moles",
@@ -4576,7 +4701,8 @@
     "A nonmetal gains them and becomes an anion — an ionic bond."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "sci.chem.moles",
@@ -4616,7 +4742,8 @@
     "N = 0.50 × 6.0 × 10²³ = 3.0 × 10²³."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "sci.chem.moles",
@@ -4656,7 +4783,8 @@
     "So 1 mol CH₄ holds 5 mol of atoms, the largest of the four."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "eng.grammar.boundaries",
@@ -4696,7 +4824,8 @@
     "Semicolon before 'however', comma after it."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "eng.grammar.boundaries",
@@ -4736,7 +4865,8 @@
     "Replace the comma with a semicolon."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "eng.grammar.boundaries",
@@ -4776,7 +4906,8 @@
     "It takes a comma before 'the technician'."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "eng.grammar.boundaries",
@@ -4816,7 +4947,8 @@
     "So the semicolon is correct."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "eng.read.inference",
@@ -4856,7 +4988,8 @@
     "A fast transfer keeps them frozen."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "eng.read.inference",
@@ -4896,7 +5029,8 @@
     "Asking for more cuts implies material still to remove."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "eng.read.inference",
@@ -4936,7 +5070,8 @@
     "So the increase is best explained by the hours."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "eng.read.inference",
@@ -4976,7 +5111,8 @@
     "The note supplies the consequence of ignoring it."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "sat.rw.words",
@@ -5016,7 +5152,8 @@
     "'Robust' fits."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "sat.rw.words",
@@ -5056,7 +5193,8 @@
     "'Convoluted' means tangled and hard to follow."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "sat.rw.words",
@@ -5096,7 +5234,8 @@
     "'Pronounced' means clearly noticeable."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "sat.rw.words",
@@ -5136,7 +5275,8 @@
     "'Dismiss' is the refusal."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "sat.rw.boundaries",
@@ -5176,7 +5316,8 @@
     "'Only 120 were returned' is complete too — use a semicolon."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "sat.rw.boundaries",
@@ -5216,7 +5357,8 @@
     "Only the first choice keeps it intact."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "sat.rw.boundaries",
@@ -5256,7 +5398,8 @@
     "A period separates them."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "sat.rw.boundaries",
@@ -5296,7 +5439,8 @@
     "The comma is required."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "act.math.rates",
@@ -5336,7 +5480,8 @@
     "15 × 8 = 120."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "act.math.rates",
@@ -5376,7 +5521,8 @@
     "After a further 10%: $54."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "act.math.rates",
@@ -5416,7 +5562,8 @@
     "Average speed is 60 mph."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "act.math.rates",
@@ -5456,7 +5603,8 @@
     "36 litres of acid."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "act.science.data",
@@ -5499,7 +5647,8 @@
     "svg": "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 200' role='img' aria-label='Table of three trials listing volume in millilitres against time in seconds' font-family='Nunito, Arial, sans-serif'><g stroke='#334155' stroke-width='1.5' fill='none'><rect x='40' y='40' width='240' height='120'/><path d='M40 70 H280 M40 100 H280 M40 130 H280'/><path d='M140 40 V160 M200 40 V160'/></g><g fill='#1e293b' font-size='12'><text x='52' y='62'>Trial</text><text x='148' y='62'>Volume (mL)</text><text x='206' y='62'>Time (s)</text><text x='58' y='92'>1</text><text x='164' y='92'>10</text><text x='222' y='92'>20</text><text x='58' y='122'>2</text><text x='164' y='122'>20</text><text x='222' y='122'>40</text><text x='58' y='152'>3</text><text x='164' y='152'>30</text><text x='222' y='152'>60</text></g></svg>",
     "alt": "Table of three trials listing volume in millilitres against time in seconds"
    },
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "act.science.data",
@@ -5542,7 +5691,8 @@
     "svg": "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 200' role='img' aria-label='Table of three trials listing volume in millilitres against time in seconds' font-family='Nunito, Arial, sans-serif'><g stroke='#334155' stroke-width='1.5' fill='none'><rect x='40' y='40' width='240' height='120'/><path d='M40 70 H280 M40 100 H280 M40 130 H280'/><path d='M140 40 V160 M200 40 V160'/></g><g fill='#1e293b' font-size='12'><text x='52' y='62'>Trial</text><text x='148' y='62'>Volume (mL)</text><text x='206' y='62'>Time (s)</text><text x='58' y='92'>1</text><text x='164' y='92'>10</text><text x='222' y='92'>20</text><text x='58' y='122'>2</text><text x='164' y='122'>20</text><text x='222' y='122'>40</text><text x='58' y='152'>3</text><text x='164' y='152'>30</text><text x='222' y='152'>60</text></g></svg>",
     "alt": "Table of three trials listing volume in millilitres against time in seconds"
    },
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "act.science.data",
@@ -5582,7 +5732,8 @@
     "That is the limiting-factor pattern."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "act.science.data",
@@ -5622,7 +5773,8 @@
     "So B is adapted to warmer conditions."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "act.english.usage",
@@ -5662,7 +5814,8 @@
     "'Each … has submitted'."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "act.english.usage",
@@ -5702,7 +5855,8 @@
     "'Team' is singular, so 'its'."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "act.english.usage",
@@ -5742,7 +5896,8 @@
     "One lab → lab's."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "act.english.usage",
@@ -5782,7 +5937,8 @@
     "Comma + but is the conventional join."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "mc.counting",
@@ -5822,7 +5978,8 @@
     "3³ = 27."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "mc.counting",
@@ -5862,7 +6019,8 @@
     "120 ÷ (2 × 2) = 30."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "mc.counting",
@@ -5905,7 +6063,8 @@
     "svg": "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 200' role='img' aria-label='A four by four grid with the start at the lower left and the end at the upper right' font-family='Nunito, Arial, sans-serif'><g fill='none' stroke='#334155' stroke-width='1.5'><path d='M50 160 H250 M50 130 H250 M50 100 H250 M50 70 H250 M50 40 H250'/><path d='M50 40 V160 M100 40 V160 M150 40 V160 M200 40 V160 M250 40 V160'/></g><g fill='#334155' font-size='13'><circle cx='50' cy='160' r='4'/><circle cx='250' cy='40' r='4'/><text x='24' y='182'>start</text><text x='238' y='32'>end</text></g></svg>",
     "alt": "A four by four grid with the start at the lower left and the end at the upper right"
    },
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "mc.counting",
@@ -5945,7 +6104,8 @@
     "So 40 integers qualify."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "mc.numbertheory",
@@ -5985,7 +6145,8 @@
     "91 = 7 × 13, so 7 is smallest."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "mc.numbertheory",
@@ -6025,7 +6186,8 @@
     "(3+1)(2+1)(1+1) = 24."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "mc.numbertheory",
@@ -6065,7 +6227,8 @@
     "3¹⁰⁰ = (3⁴)²⁵ ≡ 1."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "mc.numbertheory",
@@ -6105,7 +6268,8 @@
     "16 + 5 + 1 = 22, so 3²²."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "amc8.geometry",
@@ -6148,7 +6312,8 @@
     "svg": "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 200' role='img' aria-label='Right triangle with legs 6 and 8 and an unknown hypotenuse' font-family='Nunito, Arial, sans-serif'><g fill='none' stroke='#334155' stroke-width='2'><path d='M60 160 L60 76 L220 160 Z'/><path d='M60 148 L72 148 L72 160' stroke-width='1.5'/></g><g fill='#334155' font-size='14'><text x='34' y='122'>6</text><text x='132' y='182'>8</text><text x='150' y='104'>?</text></g></svg>",
     "alt": "Right triangle with legs 6 and 8 and an unknown hypotenuse"
    },
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "amc8.geometry",
@@ -6191,7 +6356,8 @@
     "svg": "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 200' role='img' aria-label='Rectangle 12 wide and 5 tall with a dashed diagonal' font-family='Nunito, Arial, sans-serif'><g fill='none' stroke='#334155' stroke-width='2'><path d='M40 154 H244 V74 H40 Z'/><path d='M40 154 L244 74' stroke-dasharray='6 5'/></g><g fill='#334155' font-size='14'><text x='132' y='176'>12</text><text x='252' y='120'>5</text><text x='128' y='104'>?</text></g></svg>",
     "alt": "Rectangle 12 wide and 5 tall with a dashed diagonal"
    },
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "amc8.geometry",
@@ -6234,7 +6400,8 @@
     "svg": "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 200' role='img' aria-label='Triangle with base 10 and a dashed height of 7' font-family='Nunito, Arial, sans-serif'><g fill='none' stroke='#334155' stroke-width='2'><path d='M50 160 H250 L120 62 Z'/><path d='M120 62 V160' stroke-dasharray='6 5' stroke-width='1.5'/></g><g fill='#334155' font-size='14'><text x='144' y='182'>10</text><text x='128' y='118'>7</text></g></svg>",
     "alt": "Triangle with base 10 and a dashed height of 7"
    },
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "amc8.geometry",
@@ -6274,7 +6441,8 @@
     "C = 6π."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "amc8.counting",
@@ -6314,7 +6482,8 @@
     "So 47 integers."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "amc8.counting",
@@ -6357,7 +6526,8 @@
     "svg": "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 200' role='img' aria-label='A three by three grid of unit squares' font-family='Nunito, Arial, sans-serif'><g fill='none' stroke='#334155' stroke-width='1.5'><path d='M60 160 H220 M60 120 H220 M60 80 H220 M60 40 H220'/><path d='M60 40 V160 M100 40 V160 M140 40 V160 M180 40 V160 M220 40 V160'/></g><g fill='#334155' font-size='13'><text x='90' y='184'>3 × 3 grid of unit squares</text></g></svg>",
     "alt": "A three by three grid of unit squares"
    },
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "amc8.counting",
@@ -6397,7 +6567,8 @@
     "That is 9 splits."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "amc8.counting",
@@ -6437,7 +6608,8 @@
     "That is P(5, 3)."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "amc10.algebra",
@@ -6477,7 +6649,8 @@
     "So x² + 1/x² = 7."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "amc10.algebra",
@@ -6520,7 +6693,8 @@
     "svg": "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 200' role='img' aria-label='Number line showing the points 7 and −7 around 0' font-family='Nunito, Arial, sans-serif'><g fill='none' stroke='#334155' stroke-width='2'><path d='M30 110 H290'/><path d='M284 104 L296 110 L284 116'/></g><g fill='#334155' font-size='13'><path d='M160 100 V120' stroke-width='2'/><text x='154' y='138'>0</text><circle cx='230' cy='110' r='4'/><text x='222' y='94'>7</text><circle cx='90' cy='110' r='4'/><text x='82' y='94'>−7</text></g></svg>",
     "alt": "Number line showing the points 7 and −7 around 0"
    },
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "amc10.algebra",
@@ -6560,7 +6734,8 @@
     "The roots are 1 and 3, which sum to 4."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "amc10.algebra",
@@ -6600,7 +6775,8 @@
     "(Indeed a = 2, b = 3.)"
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "amc10.geometry",
@@ -6643,7 +6819,8 @@
     "svg": "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 200' role='img' aria-label='Circle of radius 5 with a chord of length 8 and an unknown distance from the centre' font-family='Nunito, Arial, sans-serif'><g fill='none' stroke='#334155' stroke-width='2'><circle cx='160' cy='104' r='66'/><path d='M114 60 H206'/><path d='M160 104 L114 60' stroke-dasharray='6 5' stroke-width='1.5'/><path d='M160 104 V82' stroke-dasharray='4 4' stroke-width='1.5'/><path d='M152 82 H160 V90' stroke-width='1.2'/></g><g fill='#334155' font-size='13'><text x='152' y='52'>8</text><text x='168' y='94'>5</text><text x='166' y='120'>?</text></g></svg>",
     "alt": "Circle of radius 5 with a chord of length 8 and an unknown distance from the centre"
    },
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "amc10.geometry",
@@ -6683,7 +6860,8 @@
     "Area = 9√3."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "amc10.geometry",
@@ -6723,7 +6901,8 @@
     "Area = 6√3."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "amc10.geometry",
@@ -6766,7 +6945,8 @@
     "svg": "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 200' role='img' aria-label='Right triangle with one leg 5 and hypotenuse 13' font-family='Nunito, Arial, sans-serif'><g fill='none' stroke='#334155' stroke-width='2'><path d='M64 158 L64 66 L222 158 Z'/><path d='M64 146 L76 146 L76 158' stroke-width='1.5'/></g><g fill='#334155' font-size='14'><text x='40' y='116'>5</text><text x='196' y='140'>13</text><text x='128' y='182'>?</text></g></svg>",
     "alt": "Right triangle with one leg 5 and hypotenuse 13"
    },
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "amc12.functions",
@@ -6806,7 +6986,8 @@
     "x = 2."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "amc12.functions",
@@ -6846,7 +7027,8 @@
     "The graph completes one cycle in that interval."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "amc12.functions",
@@ -6886,7 +7068,8 @@
     "Minimum value is 3."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "amc12.functions",
@@ -6926,7 +7109,8 @@
     "4 = 2x, so x = 2."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "amc12.combinatorics",
@@ -6966,7 +7150,8 @@
     "So 65 strings contain at least one A."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "amc12.combinatorics",
@@ -7006,7 +7191,8 @@
     "= 56."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "amc12.combinatorics",
@@ -7049,7 +7235,8 @@
     "svg": "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 200' role='img' aria-label='A four by four grid with the start at the lower left and the end at the upper right' font-family='Nunito, Arial, sans-serif'><g fill='none' stroke='#334155' stroke-width='1.5'><path d='M50 160 H250 M50 130 H250 M50 100 H250 M50 70 H250 M50 40 H250'/><path d='M50 40 V160 M100 40 V160 M150 40 V160 M200 40 V160 M250 40 V160'/></g><g fill='#334155' font-size='13'><circle cx='50' cy='160' r='4'/><circle cx='250' cy='40' r='4'/><text x='24' y='182'>start</text><text x='238' y='32'>end</text></g></svg>",
     "alt": "A four by four grid with the start at the lower left and the end at the upper right"
    },
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
   },
   {
    "skill": "amc12.combinatorics",
@@ -7089,7 +7276,500 @@
     "= 45."
    ],
    "visual": null,
-   "source": "authored"
+   "source": "authored",
+   "attribution": "Veelearn original — written for Veelearn"
+  },
+  {
+   "skill": "sci.elem.concepts",
+   "tier": 1,
+   "qtype": "mcq",
+   "stem": "Stars are",
+   "stem_hash": "37cb19857a0b1841b8bd236d8ac28b975235ed735a0e30cac33c6051fd56a3be",
+   "options": [
+    {
+     "k": "A",
+     "t": "great balls of gas burning billions of miles away",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "warm lights that float",
+     "why": "Stars are not floating lamps; they are enormous bodies of hot gas."
+    },
+    {
+     "k": "C",
+     "t": "made out of nitrate",
+     "why": "Nitrate is a chemical group found on Earth, not what stars are made of."
+    },
+    {
+     "k": "D",
+     "t": "lights in the sky",
+     "why": "That describes how they look from here, not what they are."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "What is the Sun, the nearest star, made of?",
+    "It is mostly hydrogen and helium, and it is extremely hot."
+   ],
+   "steps": [
+    "Stars are huge, hot spheres of gas.",
+    "The best choice says exactly that."
+   ],
+   "visual": null,
+   "source": "openbookqa",
+   "attribution": "OpenBookQA (Mihaylov et al. 2018), Allen Institute for AI — Apache-2.0"
+  },
+  {
+   "skill": "sci.elem.concepts",
+   "tier": 1,
+   "qtype": "mcq",
+   "stem": "What happens when mercury is placed in water?",
+   "stem_hash": "ea03c9750864e4eaafecdf88be0124e0a45759de8d662ef524a88f3af9c354e6",
+   "options": [
+    {
+     "k": "A",
+     "t": "It sinks",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "It dissolves",
+     "why": "Liquid mercury does not dissolve in water; the two do not mix."
+    },
+    {
+     "k": "C",
+     "t": "It floats",
+     "why": "Mercury is much denser than water, so it does not float."
+    },
+    {
+     "k": "D",
+     "t": "It hardens",
+     "why": "Mercury stays liquid at room temperature and does not harden in water."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Which is denser: mercury or water?",
+    "A coin-sized amount of mercury is heavier than the same volume of water."
+   ],
+   "steps": [
+    "Mercury is about 13 times denser than water.",
+    "So it sinks to the bottom."
+   ],
+   "visual": null,
+   "source": "openbookqa",
+   "attribution": "OpenBookQA (Mihaylov et al. 2018), Allen Institute for AI — Apache-2.0"
+  },
+  {
+   "skill": "sci.elem.concepts",
+   "tier": 2,
+   "qtype": "mcq",
+   "stem": "A magnet will stick to",
+   "stem_hash": "c4ce9f0ebfa00cc1d99cce2c9a94cccddc3b41ceb5ed1d3117b61cbb2c7b98a0",
+   "options": [
+    {
+     "k": "A",
+     "t": "a belt buckle",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "a wooden table",
+     "why": "Wood is not magnetic; magnets ignore it."
+    },
+    {
+     "k": "C",
+     "t": "a plastic cup",
+     "why": "Plastic is not magnetic."
+    },
+    {
+     "k": "D",
+     "t": "a paper plate",
+     "why": "Paper is not magnetic."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Which of these objects is made of metal?",
+    "Magnets attract iron and steel."
+   ],
+   "steps": [
+    "A belt buckle is typically steel or another iron alloy.",
+    "The other three are wood, plastic and paper."
+   ],
+   "visual": null,
+   "source": "openbookqa",
+   "attribution": "OpenBookQA (Mihaylov et al. 2018), Allen Institute for AI — Apache-2.0"
+  },
+  {
+   "skill": "sci.elem.concepts",
+   "tier": 2,
+   "qtype": "mcq",
+   "stem": "Which of these things will supplement a squirrel's caloric needs?",
+   "stem_hash": "3024697a1c30774aadddc011f2e0b06aa2c3af03e5378e096a06bded14f2ab8e",
+   "options": [
+    {
+     "k": "A",
+     "t": "Nuts",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "Fish",
+     "why": "Squirrels are not fishers; nuts and seeds are their staple food."
+    },
+    {
+     "k": "C",
+     "t": "Tree bark",
+     "why": "Bark is eaten in hard times but is a poor calorie source compared with nuts."
+    },
+    {
+     "k": "D",
+     "t": "Leaves",
+     "why": "Leaves provide little energy for a squirrel."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "What do squirrels spend the autumn collecting?",
+    "Think of the food they bury for winter."
+   ],
+   "steps": [
+    "Nuts are dense in fat and energy.",
+    "That is exactly what a squirrel caches."
+   ],
+   "visual": null,
+   "source": "openbookqa",
+   "attribution": "OpenBookQA (Mihaylov et al. 2018), Allen Institute for AI — Apache-2.0"
+  },
+  {
+   "skill": "sci.elem.concepts",
+   "tier": 2,
+   "qtype": "mcq",
+   "stem": "A student can scratch a mineral sample with a fingernail. How is that mineral best described?",
+   "stem_hash": "d16c39ddea27155745e676fc478e3ccf254b3d36b6e7fc428d38e120af141f12",
+   "options": [
+    {
+     "k": "A",
+     "t": "A soft mineral",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "A hard mineral",
+     "why": "If a fingernail scratches it, the mineral is softer than a fingernail, not harder."
+    },
+    {
+     "k": "C",
+     "t": "A liquid mineral",
+     "why": "Scratching is a test of hardness; nothing here suggests a liquid."
+    },
+    {
+     "k": "D",
+     "t": "A mineral melt",
+     "why": "A melt would be molten rock, which a solid sample is not."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "A fingernail has a low Mohs hardness (about 2.5).",
+    "What does it mean if a mineral can be scratched by something that soft?"
+   ],
+   "steps": [
+    "Being scratched by a fingernail puts the mineral below about 2.5 on the Mohs scale.",
+    "That makes it soft."
+   ],
+   "visual": null,
+   "source": "openbookqa",
+   "attribution": "OpenBookQA (Mihaylov et al. 2018), Allen Institute for AI — Apache-2.0"
+  },
+  {
+   "skill": "sci.elem.concepts",
+   "tier": 3,
+   "qtype": "mcq",
+   "stem": "One example of a chemical change is acid breaking down a substance. Which of these is another example of a chemical change?",
+   "stem_hash": "92d11afe9ba7668c9f57819bc7f229ec5ff27e0db97aa1f7ad64932dbc89d20f",
+   "options": [
+    {
+     "k": "A",
+     "t": "Lemon juice added to milk",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "Flour added to salt",
+     "why": "Mixing two powders is a physical change; nothing new is formed."
+    },
+    {
+     "k": "C",
+     "t": "Milk added to water",
+     "why": "Diluting milk in water leaves both substances unchanged."
+    },
+    {
+     "k": "D",
+     "t": "Corn added to soup",
+     "why": "Stirring corn into soup is mixing, not a reaction."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "A chemical change makes a new substance.",
+    "Which pair reacts to form something different (here, curds)?"
+   ],
+   "steps": [
+    "Acid curdles the protein in milk, forming new material.",
+    "That is a chemical change; mixing powders is not."
+   ],
+   "visual": null,
+   "source": "openbookqa",
+   "attribution": "OpenBookQA (Mihaylov et al. 2018), Allen Institute for AI — Apache-2.0"
+  },
+  {
+   "skill": "sci.elem.concepts",
+   "tier": 3,
+   "qtype": "mcq",
+   "stem": "Matter in the gas phase has",
+   "stem_hash": "2a01be87c8504db02b0082526d124e8cc61614f6b1e8e3af68047b93611efcec",
+   "options": [
+    {
+     "k": "A",
+     "t": "a volume that changes with its container",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "a fixed volume but no fixed shape",
+     "why": "That describes a liquid, not a gas."
+    },
+    {
+     "k": "C",
+     "t": "a fixed volume and a fixed shape",
+     "why": "That describes a solid."
+    },
+    {
+     "k": "D",
+     "t": "no particles at all",
+     "why": "Gases are made of particles; they are simply far apart and moving fast."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "How does the volume of a gas respond to the container it is in?",
+    "Think of helium filling a whole balloon."
+   ],
+   "steps": [
+    "Gas particles spread out to fill their container.",
+    "So both shape and volume follow the container."
+   ],
+   "visual": null,
+   "source": "openbookqa",
+   "attribution": "OpenBookQA (Mihaylov et al. 2018), Allen Institute for AI — Apache-2.0"
+  },
+  {
+   "skill": "sci.elem.concepts",
+   "tier": 4,
+   "qtype": "mcq",
+   "stem": "What is most likely to be an effect of acid rain on an aquatic environment?",
+   "stem_hash": "15804789b3be9fe69fc4ac335f1ea6d7cda54c3fe09aa5eba4c04c1223488329",
+   "options": [
+    {
+     "k": "A",
+     "t": "A decrease in plant life",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "An increase in fish population",
+     "why": "Acidified water stresses fish; populations fall rather than rise."
+    },
+    {
+     "k": "C",
+     "t": "An increase in plant growth",
+     "why": "Acid rain damages aquatic plants rather than fertilising them."
+    },
+    {
+     "k": "D",
+     "t": "Cleaner, clearer water",
+     "why": "Acid rain can leach metals into water, which is worse, not cleaner."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Acid rain lowers the pH of lakes and streams.",
+    "How do plants and fish cope with acidic water?"
+   ],
+   "steps": [
+    "Lower pH harms aquatic plants and animals.",
+    "The best-supported effect is a decline in plant life."
+   ],
+   "visual": null,
+   "source": "openbookqa",
+   "attribution": "OpenBookQA (Mihaylov et al. 2018), Allen Institute for AI — Apache-2.0"
+  },
+  {
+   "skill": "mc.wordproblems",
+   "tier": 1,
+   "qtype": "mcq",
+   "stem": "Natalia sold clips to 48 of her friends in April, and then she sold half as many clips in May. How many clips did Natalia sell altogether in April and May?",
+   "stem_hash": "1cfeb3aa3aa8986d3267e7b90e9fa55b3318ad4b976d8a055e8d31f12fe599e5",
+   "options": [
+    {
+     "k": "A",
+     "t": "72",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "96",
+     "why": "That doubles 48 instead of adding half of it."
+    },
+    {
+     "k": "C",
+     "t": "24",
+     "why": "That is May's sales alone."
+    },
+    {
+     "k": "D",
+     "t": "60",
+     "why": "That adds a quarter of 48 rather than half."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "How many did she sell in May?",
+    "Half of 48 is 24, and the question asks for both months."
+   ],
+   "steps": [
+    "May: 48 ÷ 2 = 24 clips.",
+    "Total: 48 + 24 = 72."
+   ],
+   "visual": null,
+   "source": "gsm8k",
+   "attribution": "GSM8K (Cobbe et al. 2021), OpenAI — MIT"
+  },
+  {
+   "skill": "mc.wordproblems",
+   "tier": 1,
+   "qtype": "mcq",
+   "stem": "Weng earns $12 an hour for babysitting. Yesterday, she did 50 minutes of babysitting. How much did she earn?",
+   "stem_hash": "d5c770c6fa9492cea65b28d4573ed6d477b53f9945d4451984f5a5f102a06c15",
+   "options": [
+    {
+     "k": "A",
+     "t": "$10",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "$12",
+     "why": "That is a full hour's pay; she worked less than an hour."
+    },
+    {
+     "k": "C",
+     "t": "$6",
+     "why": "That treats 50 minutes as half an hour."
+    },
+    {
+     "k": "D",
+     "t": "$600",
+     "why": "You multiplied 12 by 50 without converting minutes to hours."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Convert 50 minutes to a fraction of an hour.",
+    "50 minutes is 50/60 = 5/6 of an hour."
+   ],
+   "steps": [
+    "Pay = 12 × 5/6.",
+    "12 × 5/6 = $10."
+   ],
+   "visual": null,
+   "source": "gsm8k",
+   "attribution": "GSM8K (Cobbe et al. 2021), OpenAI — MIT"
+  },
+  {
+   "skill": "mc.wordproblems",
+   "tier": 2,
+   "qtype": "mcq",
+   "stem": "Julie is reading a 120-page book. Yesterday she read 12 pages and today she read twice as many pages as yesterday. If she wants to read half of the remaining pages tomorrow, how many pages should she read?",
+   "stem_hash": "5f484fa85d7a02a986a2ed683d6f3afb200f4606647e4e946109681ef1c10f98",
+   "options": [
+    {
+     "k": "A",
+     "t": "42",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "84",
+     "why": "That is all the remaining pages, not half of them."
+    },
+    {
+     "k": "C",
+     "t": "48",
+     "why": "That is half of 96, which miscounts today's pages."
+    },
+    {
+     "k": "D",
+     "t": "108",
+     "why": "That is the remaining pages after reading only 12."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "How many pages did she read today?",
+    "Then subtract both days from 120."
+   ],
+   "steps": [
+    "Today: 2 × 12 = 24 pages. Read so far: 36.",
+    "Remaining 84; half is 42."
+   ],
+   "visual": null,
+   "source": "gsm8k",
+   "attribution": "GSM8K (Cobbe et al. 2021), OpenAI — MIT"
+  },
+  {
+   "skill": "mc.wordproblems",
+   "tier": 3,
+   "qtype": "mcq",
+   "stem": "Albert buys 2 large pizzas and 2 small pizzas. A large pizza has 16 slices and a small pizza has 8 slices. If he eats it all, how many slices does he eat that day?",
+   "stem_hash": "4fd25cdfebe7c2a9bd9a4ed81328662dd8b797e58214060e999724fb446413a7",
+   "options": [
+    {
+     "k": "A",
+     "t": "48",
+     "why": ""
+    },
+    {
+     "k": "B",
+     "t": "24",
+     "why": "That counts only the large pizzas."
+    },
+    {
+     "k": "C",
+     "t": "40",
+     "why": "That uses one large and three small pizzas."
+    },
+    {
+     "k": "D",
+     "t": "64",
+     "why": "That doubles the total instead of adding the two sizes."
+    }
+   ],
+   "answer": "A",
+   "hints": [
+    "Find the slices from the large pizzas, then from the small ones.",
+    "2 × 16 = 32 and 2 × 8 = 16."
+   ],
+   "steps": [
+    "32 + 16 = 48.",
+    "So he eats 48 slices."
+   ],
+   "visual": null,
+   "source": "gsm8k",
+   "attribution": "GSM8K (Cobbe et al. 2021), OpenAI — MIT"
   }
  ]
 }

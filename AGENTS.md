@@ -6,7 +6,7 @@
 
 ### ✅ QUESTION BANK: STEM · ENGLISH · SAT R&W · ACT · MATHCOUNTS · AMC 8/10/12
 
-**Status**: COMPLETE (offline-verified: seed validates, 357 tests green; live rows land on the next API boot)
+**Status**: COMPLETE (offline-verified: seed validates, 362 tests green; live rows land on the next API boot)
 
 **What was added** (`seed/qbank_exams.py`, `seed/skill_tree.py`)
 - Eight new tracks with two to three skills each: `stem.sci`, `english`, `sat.rw`, `act`, `mathcounts`, `amc8`, `amc10`, `amc12` (plus `act.science.data` for ACT data questions).
@@ -19,9 +19,19 @@
 - `seedSessionData` no longer stops once `skills` is populated. Every boot re-runs `INSERT IGNORE` against `skills.code` and `qbank_items.stem_hash`, so a database seeded months ago picks up new subjects, and reports `added: {skills, questions}` in the log.
 - `skill_pool` is refreshed **after** the inserts, so a new skill is visible to the planner in the same boot that creates it.
 
-**Seed totals**: 40 skills, 160 questions, 15 diagrams across 12 tracks (`python build_session_seed.py`).
+**Provenance lives in the data** — no attribution in a comment somewhere
+- `qbank_items.source` + `qbank_items.attribution` are written for every row. `authored` = written for Veelearn ("Veelearn original — written for Veelearn"); any other id names an openly licensed set and must carry the work and the licence.
+- Plumbing: `seed/qbank_exams.py` `Q(..., source=..., attribution=...)` → `build_session_seed.py` (allowlist `SOURCES`, length ≤ 200, hard error when a non-`authored` item has no attribution) → `session_seed.json` → `session-schema.js` `seedSessionData` (12-column insert) → `GET /api/question-bank/search` returns `source` and `attribution`, so a creator sees the provenance before pulling a question.
+- Adding a set: put its id in `SOURCES`, give each row a source and an attribution naming work + licence, and add its licence text to `seed/THIRD_PARTY_NOTICES.txt`.
 
-**Tests**: `test-session-core.js` 64 (adds a fake-DB check that a populated database still receives every seeded skill and the question chunks, and that nothing is rewritten) · `test-visual-teaching.js` 84 (adds SVG safety, exam-track coverage of ≥4 questions per skill, tier-1 openers, and answer-key integrity) · `test-phase45.js` 85 · `test-ai-session.js` 124.
+**Openly licensed sets added** (12 items; licence texts in `seed/THIRD_PARTY_NOTICES.txt`)
+- **OpenBookQA** (Allen Institute for AI, **Apache-2.0**) — 8 items in new skill `sci.elem.concepts` ("Everyday science concepts", `stem.sci`). Stems and choices from the dataset; hints, steps and distractor rationales are ours.
+- **GSM8K** (OpenAI, **MIT**) — 4 items in new skill `mc.wordproblems` ("Multi-step word problems", `mathcounts`). Problem text from the dataset; the four choices, hints and steps are ours.
+- Rejected for licence reasons: AMC/AIME/MATHCOUNTS and SAT/ACT (copyrighted, and AMC is still used for scoring), **OpenStax** (now CC BY-NC-SA 4.0 → no commercial use), **AI2 ARC** and **SQuAD** (CC BY-SA 4.0 → share-alike would attach to derivative material), **SciQ** (CC BY-NC 3.0).
+
+**Seed totals**: 42 skills, 172 questions (160 authored + 12 licensed), 15 diagrams across 12 tracks (`python build_session_seed.py`).
+
+**Tests**: `test-session-core.js` 69 (adds a fake-DB check that a populated database still receives every seeded skill and the question chunks, and that nothing is rewritten; plus five provenance checks — every question has a source, authored items credit Veelearn, licensed items name a licence, attribution fits the column) · `test-visual-teaching.js` 84 (adds SVG safety, exam-track coverage of ≥4 questions per skill, tier-1 openers, and answer-key integrity) · `test-phase45.js` 85 · `test-ai-session.js` 124.
 
 ---
 
