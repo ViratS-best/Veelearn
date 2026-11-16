@@ -11,6 +11,8 @@
  * source and attribution the whole way; a Veelearn original must keep saying so.
  */
 
+const fs = require('fs');
+const path = require('path');
 const express = require('express');
 const createOutlineRoutes = require('./outline-routes');
 const createOutlines = require('./outline');
@@ -73,12 +75,13 @@ const BANK_ROWS = [
 
 // ---------------------------------------------------------- fake database
 function makeDb() {
-    const state = { outline: null, items: [], skills: new Map(), inserts: [] };
+    const state = { outline: null, items: [], skills: new Map(), inserts: [], queries: [] };
     let skillSeq = 100;
     let itemSeq = 900;
 
     async function query(sql, params = []) {
         const s = String(sql).replace(/\s+/g, ' ').trim();
+        state.queries.push({ sql: s, params: params.slice() });
 
         if (/FROM qbank_items q LEFT JOIN skills/.test(s)) return BANK_ROWS;
         if (/SELECT id, creator_id, title FROM courses/.test(s)) {
@@ -268,6 +271,20 @@ eq('a third-party row with no credit at all is still named', provenance.label({ 
         eq('the served card carries the source', card.source, 'openbookqa');
         eq('the served card carries the attribution', card.attribution, OBQA_ATTRIBUTION);
         ok('the served card still hides the answer key', !('answer' in card));
+
+        // 6. The two defects the live site turned up.
+        const page = fs.readFileSync(path.join(__dirname, '..', 'veelearn-frontend', 'outline.html'), 'utf8');
+        ok('the outline page lets a caller choose the verb', /method:\s*opts\.method \|\|/.test(page));
+        ok('saving an outline sends PUT', /\/outline',\s*\{\s*method:\s*'PUT'/.test(page));
+        ok('the always-POST helper is gone', !/method:\s*opts\.body \? 'POST' : 'GET'/.test(page));
+
+        const searchCall = db.state.queries.find((q) => /FROM qbank_items q LEFT JOIN skills/.test(q.sql));
+        ok('bank search is case-insensitive', searchCall && /LOWER\(q\.stem\) LIKE \?/.test(searchCall.sql), searchCall && searchCall.sql.slice(0, 140));
+        ok(
+            'the search term is lower-cased',
+            searchCall && searchCall.params.every((p) => String(p) === String(p).toLowerCase()),
+            searchCall && JSON.stringify(searchCall.params)
+        );
     } finally {
         server.close();
     }

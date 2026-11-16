@@ -65,8 +65,10 @@ module.exports = function createOutlineRoutes({ query, authenticateToken, writeL
             const params = [];
             let where = 'WHERE q.live = 1';
             if (q) {
-                where += ' AND (q.stem LIKE ? OR s.name LIKE ?)';
-                const like = `%${q.replace(/[%_]/g, '')}%`;
+                // Postgres LIKE is case-sensitive, so "stars" would miss "Stars
+                // are". Lower both sides (portable across MySQL and Postgres).
+                where += ' AND (LOWER(q.stem) LIKE ? OR LOWER(s.name) LIKE ?)';
+                const like = `%${q.replace(/[%_]/g, '').toLowerCase()}%`;
                 params.push(like, like);
             }
             const rows = await query(

@@ -249,7 +249,8 @@
             async function api(path, options) {
                 const opts = options || {};
                 const res = await fetch(API + path, {
-                    method: opts.body ? 'POST' : 'GET',
+                    // Writers pick their verb: the outline is saved with PUT.
+                    method: opts.method || (opts.body ? 'POST' : 'GET'),
                     headers: Object.assign(
                         { Authorization: 'Bearer ' + (token || '') },
                         opts.body ? { 'Content-Type': 'application/json' } : {}
@@ -306,7 +307,7 @@
                 if (!courseId) return;
                 status('Saving…');
                 try {
-                    const data = await api('/api/courses/' + courseId + '/outline', { body: { outline } });
+                    const data = await api('/api/courses/' + courseId + '/outline', { method: 'PUT', body: { outline } });
                     outline = data.outline;
                     status('Saved · ' + data.skills + ' skills · ' + data.questions + ' questions');
                 } catch (err) {

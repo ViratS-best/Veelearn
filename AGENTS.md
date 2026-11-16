@@ -38,7 +38,11 @@
 
 **Seed totals**: 42 skills, 172 questions (160 authored + 12 licensed), 15 diagrams across 12 tracks (`python build_session_seed.py`).
 
-**Tests**: `test-bank-provenance.js` 28 · `test-session-core.js` 69 (adds a fake-DB check that a populated database still receives every seeded skill and the question chunks, and that nothing is rewritten; plus five provenance checks — every question has a source, authored items credit Veelearn, licensed items name a licence, attribution fits the column) · `test-visual-teaching.js` 84 (adds SVG safety, exam-track coverage of ≥4 questions per skill, tier-1 openers, and answer-key integrity) · `test-phase45.js` 85 · `test-ai-session.js` 124.
+**Two live defects found by testing veelearn.org** (fixed same day)
+- **Save outline never worked in production.** `outline.html`'s `api()` helper hardcoded `method: opts.body ? 'POST' : 'GET'`, so "Save outline" POSTed to `/api/courses/:id/outline` and got a 404. It now takes `opts.method` and the save sends `PUT`.
+- **Bank search was case-sensitive on Postgres.** `LIKE '%stars%'` misses "Stars are" (MySQL is case-insensitive, Postgres is not), so the OpenBookQA items were unfindable unless the user matched the case exactly. The endpoint now compares `LOWER(q.stem) LIKE ?` with a lower-cased term.
+
+**Tests**: `test-bank-provenance.js` 33 (adds the two live defects: `outline.html` must choose its verb and save with PUT, and the search SQL must lower both sides) · `test-session-core.js` 69 (adds a fake-DB check that a populated database still receives every seeded skill and the question chunks, and that nothing is rewritten; plus five provenance checks — every question has a source, authored items credit Veelearn, licensed items name a licence, attribution fits the column) · `test-visual-teaching.js` 84 (adds SVG safety, exam-track coverage of ≥4 questions per skill, tier-1 openers, and answer-key integrity) · `test-phase45.js` 85 · `test-ai-session.js` 124.
 
 ---
 
