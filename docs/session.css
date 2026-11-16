@@ -188,6 +188,29 @@
 /* ------------------------------------------------------------------ stage */
 .sx-stage { min-height: 340px; position: relative; }
 
+/* A hidden card must never paint, whatever a later rule says about display. */
+.sx-stage > [hidden] { display: none !important; }
+
+/*
+ * The stage stacks three things: the cards (auto), Vee's 112px clickable dock
+ * (z-index 3) and the board overlay (z-index 5). Vee's dock travels over the
+ * card as it points at text, so without this the start button could sit under
+ * the dock and a real click would land on the mascot instead. Controls inside a
+ * card take part in the stage's stacking context (the cards themselves have no
+ * z-index, so no stacking context) and always win the hit test at their own
+ * coordinates.
+ */
+.sx-intro-actions,
+.sx-q-actions,
+.sx-options,
+.sx-src,
+.sx-src-credit,
+.sx-btn,
+.sx-ghost {
+  position: relative;
+  z-index: 4;
+}
+
 .sx-loading {
   color: var(--sx-muted);
   font-size: 14px;
