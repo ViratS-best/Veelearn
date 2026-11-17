@@ -210,7 +210,7 @@ app.use(cookieParser());
 // request borrows from and returns immediately. See db.js for the pool and the
 // MySQL-compatibility translation of the SQL used across this file.
 const { db, query, poolStatus } = require('./db');
-const { ensureSessionSchema, seedSessionData } = require('./session-schema');
+const { ensureSessionSchema, seedSessionData, importOpenBank } = require('./session-schema');
 const dbConfig = {
     host: process.env.PGHOST || 'localhost',
     port: process.env.PGPORT || 5432,
@@ -1101,6 +1101,14 @@ const initializeDatabase = async () => {
         try {
             await ensureSessionSchema({ query, log: { info, warn } });
             await seedSessionData({ query, log: { info, warn } });
+            // The bulk bank (open datasets + generated practice, ~47k rows) is too
+            // big to seed synchronously: import it once per version, after the boot
+            // has finished, so a cold start is not held up by 200 batched inserts.
+            setTimeout(() => {
+                importOpenBank({ query, log: { info, warn } }).catch((e) =>
+                    warn(`[open-bank] import failed: ${e.message}`)
+                );
+            }, 5000).unref();
             const { runRetention, scheduleRetention } = require('./retention');
             await runRetention({ query, log: { info, warn } });
             scheduleRetention({ query, log: { info, warn } });

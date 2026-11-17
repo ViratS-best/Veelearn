@@ -197,12 +197,19 @@ def main() -> int:
             }
         )
 
+    # Bulk skills (`bulk: True`, from seed/open_skills.py) are served from the
+    # imported bank in seed/open_bank.jsonl.gz, not from this curated seed, so the
+    # per-skill minimum does not apply to them.
     for s in SKILLS:
+        if s.get("bulk"):
+            continue
         if per_skill[s["code"]] < MIN_Q_PER_SKILL:
             fail(errors, f"{s['code']}: only {per_skill[s['code']]} questions (min {MIN_Q_PER_SKILL})")
 
     # every tier should exist somewhere per skill's target depth
     for s in SKILLS:
+        if s.get("bulk"):
+            continue
         tiers = {q["tier"] for q in items if q["skill"] == s["code"]}
         if tiers and 1 not in tiers:
             fail(errors, f"{s['code']}: no tier-1 question")
@@ -229,6 +236,7 @@ def main() -> int:
                 "dot_target": s["dot_target"],
                 "intro_md": s["intro"],
                 "misconceptions": s["misconceptions"],
+                "bulk": bool(s.get("bulk")),
             }
             for s in SKILLS
         ],

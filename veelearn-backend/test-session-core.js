@@ -178,7 +178,17 @@ for (const q of seed.questions) {
     if (opts.some((o) => String(o.k).toUpperCase() !== String(q.answer).toUpperCase() && !o.why)) badQuestion += 1;
 }
 eq('every question is well formed', badQuestion, 0);
-ok('every skill has questions', [...skillIds].every((code) => perSkill.get(code) > 0));
+// Bulk skills (the imported/generated families) are served from
+// seed/open_bank.jsonl.gz, so they legitimately have no curated questions here.
+const bulkSkills = new Set(seed.skills.filter((s) => s.bulk).map((s) => s.code));
+ok(
+    'every curated skill has questions',
+    [...skillIds].filter((code) => !bulkSkills.has(code)).every((code) => perSkill.get(code) > 0)
+);
+const openMetaPath = path.join(__dirname, 'seed', 'open_bank_meta.json');
+const openMeta = fs.existsSync(openMetaPath) ? JSON.parse(fs.readFileSync(openMetaPath, 'utf8')) : { bySkill: {} };
+const thinBulk = [...bulkSkills].filter((code) => (openMeta.bySkill || {})[code] < 4);
+eq('every bulk skill has at least four bank questions', thinBulk.length, 0, thinBulk.slice(0, 5).join(','));
 ok('prerequisites point at real skills', seed.skills.every((s) => !s.prereq || skillIds.has(s.prereq)));
 
 const tracks = new Set(seed.skills.map((s) => s.track));

@@ -1603,3 +1603,15 @@ SKILLS = [
         ],
     },
 ]
+
+
+# --------------------------------------------------------------------------- #
+# Bulk bank: skills for the imported datasets (MMLU, OpenBookQA, GSM8K) and the
+# procedurally generated practice families. They are defined as data in
+# seed/open_skills.py so this file stays readable.
+# --------------------------------------------------------------------------- #
+
+from seed.open_skills import TRACKS as _OPEN_TRACKS, SKILLS as _OPEN_SKILLS  # noqa: E402
+
+TRACKS = TRACKS + _OPEN_TRACKS
+SKILLS = SKILLS + _OPEN_SKILLS

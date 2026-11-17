@@ -209,11 +209,18 @@ const seedSkills = new Map(seed.skills.map((s) => [s.code, s]));
 const perSkill = new Map();
 for (const q of seed.questions) perSkill.set(q.skill, (perSkill.get(q.skill) || 0) + 1);
 
+// Bulk skills get their questions from seed/open_bank.jsonl.gz, not the curated seed.
+const openMetaPath = path.join(__dirname, 'seed', 'open_bank_meta.json');
+const openMeta = fs.existsSync(openMetaPath) ? JSON.parse(fs.readFileSync(openMetaPath, 'utf8')) : { bySkill: {} };
+const bulkCount = (code) => Number((openMeta.bySkill || {})[code] || 0);
+
 for (const track of EXAM_TRACKS) {
     const skills = seed.skills.filter((s) => s.track === track);
     ok(`${track} has skills in the bank`, skills.length >= 2, `${skills.length} skills`);
-    const thin = skills.filter((s) => (perSkill.get(s.code) || 0) < 4);
-    ok(`${track} skills carry at least four questions`, thin.length === 0, thin.map((s) => s.code).join(','));
+    const thin = skills.filter((s) => !s.bulk && (perSkill.get(s.code) || 0) < 4);
+    ok(`${track} curated skills carry at least four questions`, thin.length === 0, thin.map((s) => s.code).join(','));
+    const thinBulk = skills.filter((s) => s.bulk && bulkCount(s.code) < 4);
+    ok(`${track} bulk skills carry at least four bank questions`, thinBulk.length === 0, thinBulk.map((s) => s.code).join(','));
 }
 
 const badKeys = seed.questions.filter((q) => {
@@ -225,7 +232,8 @@ eq('every bank question keys to one of its four options', badKeys.length, 0);
 const tierOne = new Set(seed.questions.filter((q) => q.tier === 1).map((q) => q.skill));
 const missingTierOne = [...seedSkills.keys()].filter((code) => {
     const skill = seedSkills.get(code);
-    return EXAM_TRACKS.includes(skill.track) && !tierOne.has(code);
+    // Bulk skills are reached from the open bank, whose rows are tier 1-4 by family.
+    return EXAM_TRACKS.includes(skill.track) && !skill.bulk && !tierOne.has(code);
 });
 eq('every exam skill opens with a recall item', missingTierOne.length, 0);
 

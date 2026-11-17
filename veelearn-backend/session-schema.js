@@ -14,8 +14,15 @@
 
 const fs = require('fs');
 const path = require('path');
+const readline = require('readline');
+const zlib = require('zlib');
 
 const SEED_PATH = path.join(__dirname, 'seed', 'session_seed.json');
+// The bulk bank (open datasets + generated practice) is far too large for the
+// curated seed: it ships gzipped, one JSON question per line, and is loaded once
+// per version by importOpenBank() after boot.
+const BANK_PATH = path.join(__dirname, 'seed', 'open_bank.jsonl.gz');
+const BANK_META_PATH = path.join(__dirname, 'seed', 'open_bank_meta.json');
 
 const TABLES = [
     `CREATE TABLE IF NOT EXISTS skills (
@@ -63,6 +70,14 @@ const TABLES = [
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE KEY uniq_qbank_hash (stem_hash),
         INDEX idx_qbank_pick (skill_id, tier, calibration_p)
+    )`,
+
+    `CREATE TABLE IF NOT EXISTS bank_imports (
+        version VARCHAR(32) NOT NULL PRIMARY KEY,
+        source_count INT DEFAULT 0,
+        item_count INT DEFAULT 0,
+        meta LONGTEXT NULL,
+        imported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`,
 
     `CREATE TABLE IF NOT EXISTS course_outlines (
@@ -540,4 +555,158 @@ async function seedSessionData({ query, log } = {}) {
     };
 }
 
-module.exports = { ensureSessionSchema, seedSessionData, TABLES, SEED_PATH };
+/**
+ * Import seed/open_bank.jsonl.gz into qbank_items, once per bank version.
+ *
+ * The curated seed stays small; the bulk bank (openly licensed datasets plus the
+ * generated practice families) is ~47k rows, so it is streamed in batches of 250
+ * and guarded by `bank_imports`. A crash mid-import is safe: INSERT IGNORE makes a
+ * re-run add only what is missing, and the version is recorded after the stream
+ * finishes. `skill_pool` is refreshed once at the end rather than per row.
+ *
+ * Every row carries its own `source` and `attribution`, so the licence line that
+ * provenance.js shows in the UI is the same one the loader wrote.
+ */
+async function importOpenBank({ query, log, batchSize = 250 } = {}) {
+    const info = (log && log.info) || (() => {});
+    const warn = (log && log.warn) || ((m) => console.warn(m));
+
+    let meta;
+    try {
+        meta = JSON.parse(fs.readFileSync(BANK_META_PATH, 'utf8'));
+    } catch (e) {
+        warn(`[open-bank] no usable ${path.basename(BANK_META_PATH)} (${e.message}) — run: python tools/build_open_bank.py`);
+        return { imported: false, reason: 'no-meta' };
+    }
+    if (!fs.existsSync(BANK_PATH)) {
+        warn('[open-bank] no seed/open_bank.jsonl.gz — run: python tools/build_open_bank.py');
+        return { imported: false, reason: 'no-bank' };
+    }
+
+    let done;
+    try {
+        done = await query('SELECT version FROM bank_imports WHERE version = ?', [meta.version]);
+    } catch (e) {
+        // Without the guard table every boot would re-stream the whole bank.
+        warn(`[open-bank] could not check bank_imports: ${e.message}`);
+        return { imported: false, reason: 'no-table' };
+    }
+    if (done && done.length) {
+        return { imported: false, version: meta.version, already: true };
+    }
+
+    const skillRows = await query('SELECT id, code FROM skills');
+    const byCode = new Map(skillRows.map((r) => [r.code, Number(r.id)]));
+    const wanted = new Set(Object.keys(meta.bySkill || {}));
+    if (![...wanted].some((code) => byCode.has(code))) {
+        warn('[open-bank] none of the bank skills exist yet; leaving the import for the next boot');
+        return { imported: false, reason: 'no-skills' };
+    }
+
+    const started = Date.now();
+    let rows = 0;
+    let inserted = 0;
+    let unknownSkill = 0;
+    let batch = [];
+
+    const flush = async () => {
+        if (!batch.length) return;
+        const values = [];
+        const params = [];
+        for (const q of batch) {
+            values.push('(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+            params.push(
+                q.skill_id,
+                q.tier,
+                'mcq',
+                q.stem,
+                q.stem_hash,
+                q.options,
+                q.answer,
+                q.hints,
+                q.steps,
+                null,
+                q.source,
+                q.attribution
+            );
+        }
+        await query(
+            `INSERT IGNORE INTO qbank_items
+                (skill_id, tier, qtype, stem, stem_hash, options, answer, hints, solution_steps, visual, source, attribution)
+             VALUES ${values.join(', ')}`,
+            params
+        );
+        inserted += batch.length;
+        batch = [];
+    };
+
+    const stream = fs.createReadStream(BANK_PATH).pipe(zlib.createGunzip());
+    const lines = readline.createInterface({ input: stream, crlfDelay: Infinity });
+    for await (const line of lines) {
+        if (!line.trim()) continue;
+        let item;
+        try {
+            item = JSON.parse(line);
+        } catch (e) {
+            continue;
+        }
+        rows += 1;
+        const skillId = byCode.get(item.skill);
+        if (!skillId) {
+            unknownSkill += 1;
+            continue;
+        }
+        batch.push({
+            skill_id: skillId,
+            tier: item.tier || 1,
+            stem: item.stem,
+            stem_hash: item.stem_hash,
+            options: JSON.stringify(item.options || []),
+            answer: String(item.answer),
+            hints: JSON.stringify(item.hints || []),
+            steps: JSON.stringify(item.steps || []),
+            source: item.source || 'authored',
+            attribution: item.attribution || null
+        });
+        if (batch.length >= batchSize) await flush();
+    }
+    await flush();
+
+    if (!inserted) {
+        warn(`[open-bank] nothing importable in ${meta.version} (${rows} rows, ${unknownSkill} unknown skills)`);
+        return { imported: false, version: meta.version, rows };
+    }
+
+    try {
+        await query(
+            `INSERT INTO skill_pool (skill_id, tier, live_count)
+             SELECT skill_id, tier, COUNT(*) FROM qbank_items WHERE live = 1
+             GROUP BY skill_id, tier
+             ON CONFLICT (skill_id, tier)
+             DO UPDATE SET live_count = EXCLUDED.live_count, updated_at = NOW()`
+        );
+    } catch (e) {
+        warn(`[open-bank] skill pool refresh skipped: ${e.message}`);
+    }
+
+    try {
+        await query('INSERT INTO bank_imports (version, source_count, item_count, meta) VALUES (?, ?, ?, ?)', [
+            meta.version,
+            Object.keys(meta.bySource || {}).length,
+            meta.total || inserted,
+            JSON.stringify({ builtAt: meta.builtAt, bySource: meta.bySource, datasets: meta.datasets })
+        ]);
+    } catch (e) {
+        // Not fatal: rows are in, and INSERT IGNORE makes the next boot harmless.
+        warn(`[open-bank] could not record version ${meta.version}: ${e.message}`);
+    }
+
+    info(
+        `[open-bank] imported ${inserted} of ${rows} rows for version ${meta.version} ` +
+            `in ${Math.round((Date.now() - started) / 1000)}s` +
+            (unknownSkill ? ` (${unknownSkill} rows belong to skills this seed does not have)` : '')
+    );
+    return { imported: true, version: meta.version, rows, inserted, unknownSkill };
+}
+
+module.exports = { ensureSessionSchema, seedSessionData, importOpenBank, TABLES, SEED_PATH, BANK_PATH };

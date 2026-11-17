@@ -56,3 +56,6 @@ manim_grade8/voice/
 *.key
 *.pem
 *.p8
+
+# Python build cache (tools/build_open_bank.py downloads parquet here)
+.cache/

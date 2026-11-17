@@ -14,7 +14,8 @@ const AUTHORED_LABEL = 'Veelearn original';
 const KNOWN = {
     authored: AUTHORED_LABEL,
     openbookqa: 'OpenBookQA · Apache-2.0',
-    gsm8k: 'GSM8K · MIT'
+    gsm8k: 'GSM8K · MIT',
+    mmlu: 'MMLU · MIT'
 };
 
 function sourceOf(item) {

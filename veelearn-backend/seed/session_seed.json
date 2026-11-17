@@ -110,6 +110,21 @@
    "id": "coding",
    "name": "Coding",
    "order": 22
+  },
+  {
+   "id": "ap.math",
+   "name": "AP & college math (open bank)",
+   "order": 23
+  },
+  {
+   "id": "ap.sci",
+   "name": "AP & college science (open bank)",
+   "order": 24
+  },
+  {
+   "id": "ap.humanities",
+   "name": "AP humanities & social science (open bank)",
+   "order": 25
   }
  ],
  "skills": [
@@ -125,7 +140,8 @@
    "misconceptions": [
     "Multiplying the exponents when multiplying powers",
     "Applying the exponent to the coefficient only"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "g8.sci.not",
@@ -139,7 +155,8 @@
    "misconceptions": [
     "Keeping the decimal in the wrong place (the first factor must be 1 to 10)",
     "Sign error when moving the decimal to the right"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "g8.linear.expressions",
@@ -153,7 +170,8 @@
    "misconceptions": [
     "Distributing to the first term only",
     "Dropping the sign in front of a subtracted bracket"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "g8.linear.equations",
@@ -167,7 +185,8 @@
    "misconceptions": [
     "Moving a term without changing its sign",
     "Dividing only one side by the coefficient"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "g8.systems.substitution",
@@ -181,7 +200,8 @@
    "misconceptions": [
     "Substituting into the same equation instead of the other one",
     "Stopping after finding one variable and forgetting the other"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "g8.pythagoras",
@@ -195,7 +215,8 @@
    "misconceptions": [
     "Putting a leg where the hypotenuse belongs",
     "Adding the squares instead of subtracting to find a missing leg"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "alg1.linear.one",
@@ -209,7 +230,8 @@
    "misconceptions": [
     "Dividing before undoing the constant",
     "Losing the negative sign when dividing"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "alg1.linear.bothsides",
@@ -223,7 +245,8 @@
    "misconceptions": [
     "Distributing to only one term in the bracket",
     "Sign errors when a bracket is subtracted"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "alg1.inequalities",
@@ -237,7 +260,8 @@
    "misconceptions": [
     "Forgetting to flip the sign when dividing by a negative",
     "Treating 'at most' as a strict inequality"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "alg1.slope",
@@ -251,7 +275,8 @@
    "misconceptions": [
     "Putting the change in x on top",
     "Reading the intercept as a point instead of the y-value"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "alg1.systems.substitution",
@@ -265,7 +290,8 @@
    "misconceptions": [
     "Substituting back into the rearranged equation",
     "Reporting only one of the two values"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "alg1.quadratics.factor",
@@ -279,7 +305,8 @@
    "misconceptions": [
     "Choosing numbers that multiply to b instead of c",
     "Losing a sign when c is negative"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "apcmech.kinematics.1d",
@@ -293,7 +320,8 @@
    "misconceptions": [
     "Using a constant-acceleration equation when the acceleration changes",
     "Sign errors from mixing up v and v₀"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "apcmech.newton.second",
@@ -307,7 +335,8 @@
    "misconceptions": [
     "Using the applied force instead of the net force",
     "Forgetting that the normal force is not always mg"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "apcmech.work.constant",
@@ -321,7 +350,8 @@
    "misconceptions": [
     "Ignoring the angle and using F·d",
     "Counting friction as positive work"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "apcmech.work.variable",
@@ -335,7 +365,8 @@
    "misconceptions": [
     "Using the final force for the whole distance",
     "Treating a triangular area as a rectangle"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "apcmech.energy.theorem",
@@ -349,7 +380,8 @@
    "misconceptions": [
     "Using only one force's work for W_net",
     "Forgetting that friction does negative work"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "apcmech.momentum.1d",
@@ -363,7 +395,8 @@
    "misconceptions": [
     "Forgetting that momentum is a vector",
     "Using kinetic energy conservation for every collision"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "sat.math.linear",
@@ -377,7 +410,8 @@
    "misconceptions": [
     "Solving for x when the question asks for an expression",
     "One solution when the system has two unknowns"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "sat.math.percent",
@@ -391,7 +425,8 @@
    "misconceptions": [
     "Dividing by the new value instead of the original",
     "Adding successive percentages instead of multiplying the factors"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "sat.math.ratios",
@@ -405,7 +440,8 @@
    "misconceptions": [
     "Mixing units in the two sides of a proportion",
     "Treating a part-to-part ratio as part-to-whole"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "sat.math.geometry.area",
@@ -419,7 +455,8 @@
    "misconceptions": [
     "Using the diameter instead of the radius",
     "Forgetting to halve for a triangle's area"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "sat.math.functions",
@@ -433,7 +470,8 @@
    "misconceptions": [
     "Multiplying f by the input instead of substituting",
     "Evaluating the outer function first in a composition"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "sci.bio.cell",
@@ -447,7 +485,8 @@
    "misconceptions": [
     "Treating the ribosome as the cell's energy source",
     "Forgetting that a plant cell has both a membrane and a wall"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "sci.chem.moles",
@@ -461,7 +500,8 @@
    "misconceptions": [
     "Multiplying mass by molar mass instead of dividing",
     "Confusing the number of molecules with the number of atoms"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "sci.elem.concepts",
@@ -475,7 +515,8 @@
    "misconceptions": [
     "Calling a mixture a chemical change",
     "Judging hardness from how an object looks instead of from a scratch test"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "eng.grammar.boundaries",
@@ -489,7 +530,8 @@
    "misconceptions": [
     "Joining two complete sentences with only a comma",
     "Putting a semicolon before a coordinating conjunction"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "eng.read.inference",
@@ -503,7 +545,8 @@
    "misconceptions": [
     "Choosing a statement the passage never implies",
     "Confusing what happened with why it happened"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "sat.rw.words",
@@ -517,7 +560,8 @@
    "misconceptions": [
     "Picking a word that sounds impressive but ignores the contrast",
     "Using a familiar meaning that does not fit this sentence"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "sat.rw.boundaries",
@@ -531,7 +575,8 @@
    "misconceptions": [
     "Choosing a colon after a fragment",
     "Splitting a subject from its verb with a semicolon"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "act.math.rates",
@@ -545,7 +590,8 @@
    "misconceptions": [
     "Adding successive percentages instead of multiplying factors",
     "Dividing distance by the wrong time"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "act.science.data",
@@ -559,7 +605,8 @@
    "misconceptions": [
     "Reading a data table as if the rows were time order when the header says otherwise",
     "Answering from general science knowledge instead of the figure"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "act.english.usage",
@@ -573,7 +620,8 @@
    "misconceptions": [
     "Matching the verb to the nearest noun instead of the subject",
     "Putting the apostrophe in the wrong place for a plural possessive"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "mc.counting",
@@ -587,7 +635,8 @@
    "misconceptions": [
     "Forgetting to divide by repeated letters",
     "Adding counts for overlapping sets instead of subtracting the overlap"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "mc.numbertheory",
@@ -601,7 +650,8 @@
    "misconceptions": [
     "Counting divisors without adding one to each exponent",
     "Missing the 9s and 27s when counting powers in a factorial"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "mc.wordproblems",
@@ -615,7 +665,8 @@
    "misconceptions": [
     "Answering with the last number computed instead of the quantity requested",
     "Mixing units such as minutes and hours in the same product"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "amc8.geometry",
@@ -629,7 +680,8 @@
    "misconceptions": [
     "Using the diameter as the radius",
     "Forgetting the ½ in the triangle area formula"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "amc8.counting",
@@ -643,7 +695,8 @@
    "misconceptions": [
     "Counting only unit squares in a grid question",
     "Forgetting to subtract the overlap in 'divisible by 3 or 5' problems"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "amc10.algebra",
@@ -657,7 +710,8 @@
    "misconceptions": [
     "Squaring a sum without the cross term",
     "Using b instead of −b/a for the sum of roots"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "amc10.geometry",
@@ -671,7 +725,8 @@
    "misconceptions": [
     "Using half the chord as the distance to the centre",
     "Using the side length as the height of an equilateral triangle"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "amc12.functions",
@@ -685,7 +740,8 @@
    "misconceptions": [
     "Reading f⁻¹(7) as f(7)",
     "Multiplying the period by k instead of dividing"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "amc12.combinatorics",
@@ -699,7 +755,8 @@
    "misconceptions": [
     "Using permutations when only the group matters",
     "Counting each handshake twice"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "me.place",
@@ -713,7 +770,8 @@
    "misconceptions": [
     "Reading a digit as its face value instead of its place value",
     "Rounding up when the next digit is 4 or less"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "me.multdiv",
@@ -727,7 +785,8 @@
    "misconceptions": [
     "Adding the groups instead of multiplying",
     "Mixing up the divisor with the quotient"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "me.fractions",
@@ -741,7 +800,8 @@
    "misconceptions": [
     "Thinking a bigger denominator means a bigger fraction",
     "Adding numerators and denominators separately"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "me.decpercent",
@@ -755,7 +815,8 @@
    "misconceptions": [
     "Subtracting a percent as if it were a dollar amount",
     "Dividing the change by the new price"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "me.ratio",
@@ -769,7 +830,8 @@
    "misconceptions": [
     "Adding the same amount to both parts of a ratio",
     "Using the wrong base when scaling"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "me.geometry",
@@ -783,7 +845,8 @@
    "misconceptions": [
     "Using base × height for a triangle without halving",
     "Confusing area with perimeter"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "hs.quadratics",
@@ -797,7 +860,8 @@
    "misconceptions": [
     "Reading the vertex sign from (x − h)² the wrong way",
     "Forgetting the quadratic has two roots"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "hs.functions",
@@ -811,7 +875,8 @@
    "misconceptions": [
     "Composing in the wrong order (g(f(x)) instead of f(g(x)))",
     "Shifting left/right when the change is outside the function"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "hs.logs",
@@ -825,7 +890,8 @@
    "misconceptions": [
     "Thinking log(a + b) = log a + log b",
     "Multiplying logs instead of adding them"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "hs.sequences",
@@ -839,7 +905,8 @@
    "misconceptions": [
     "Treating a geometric sequence as arithmetic",
     "Forgetting the a in a/(1 − r)"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "hs.trig",
@@ -853,7 +920,8 @@
    "misconceptions": [
     "Swapping sine and cosine ratios",
     "Using degrees when radians are required"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "hs.vectors",
@@ -867,7 +935,8 @@
    "misconceptions": [
     "Adding lengths instead of components",
     "Confusing the dot product with multiplication"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "apc.limits",
@@ -881,7 +950,8 @@
    "misconceptions": [
     "Reading 0/0 as zero",
     "Assuming a limit exists when the two sides disagree"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "apc.deriv",
@@ -895,7 +965,8 @@
    "misconceptions": [
     "Differentiating a product as the product of derivatives",
     "Forgetting the inner derivative in the chain rule"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "apc.opt",
@@ -909,7 +980,8 @@
    "misconceptions": [
     "Checking only f′ = 0 and ignoring endpoints",
     "Differentiating a related-rates equation with respect to the wrong variable"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "apc.integrals",
@@ -923,7 +995,8 @@
    "misconceptions": [
     "Forgetting +C on an indefinite integral",
     "Substituting limits before finding the antiderivative"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "apc.series",
@@ -937,7 +1010,8 @@
    "misconceptions": [
     "Assuming terms going to zero makes a series converge",
     "Summing a geometric series without checking |r| < 1"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "aps.describe",
@@ -951,7 +1025,8 @@
    "misconceptions": [
     "Confusing the median with the mean",
     "Thinking standard deviation is a centre"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "aps.prob",
@@ -965,7 +1040,8 @@
    "misconceptions": [
     "Adding probabilities for 'and' events",
     "Forgetting that without replacement changes the total"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "aime.nt",
@@ -979,7 +1055,8 @@
    "misconceptions": [
     "Counting divisors without the (a + 1)(b + 1) rule",
     "Adding counts in an inclusion-exclusion problem without subtracting the overlap"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "aime.combo",
@@ -993,7 +1070,8 @@
    "misconceptions": [
     "Using permutations when only the set matters",
     "Forgetting to divide out rotational symmetry"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "aime.geo",
@@ -1007,7 +1085,8 @@
    "misconceptions": [
     "Using the hypotenuse as a leg",
     "Forgetting that a tangent is perpendicular to the radius"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "usamo.algebra",
@@ -1021,7 +1100,8 @@
    "misconceptions": [
     "Squaring a sum and ignoring the 2ab term",
     "Forgetting that a factored product is prime only when one factor is 1"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "usamo.nt",
@@ -1035,7 +1115,8 @@
    "misconceptions": [
     "Counting factors of 2 instead of 5 for trailing zeros",
     "Assuming n² − 1 is never divisible by 8"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "imo.geo",
@@ -1049,7 +1130,8 @@
    "misconceptions": [
     "Treating every cyclic quadrilateral as a rectangle",
     "Confusing interior and exterior angle sums"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "imo.ineq",
@@ -1063,7 +1145,8 @@
    "misconceptions": [
     "Applying AM-GM to numbers that are not positive",
     "Assuming equality can happen with unequal numbers"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "mc.sprint",
@@ -1077,7 +1160,8 @@
    "misconceptions": [
     "Adding percentages instead of applying them to a base",
     "Counting a digit twice in a 'contains' question"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "mc.target",
@@ -1091,7 +1175,8 @@
    "misconceptions": [
     "Using 5 choices per digit when only odd digits are allowed",
     "Counting trailing zeros from multiples of 10 only"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "amc8.geo",
@@ -1105,7 +1190,8 @@
    "misconceptions": [
     "Adding sides instead of squaring them for a diagonal",
     "Using the radius where the diameter is given"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "amc10.count",
@@ -1119,7 +1205,8 @@
    "misconceptions": [
     "Counting orderings when only the group matters",
     "Forgetting that a subset can be empty"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "amc12.trig",
@@ -1133,7 +1220,8 @@
    "misconceptions": [
     "Ignoring the quadrant sign",
     "Using 2π as the period regardless of the coefficient"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "sci.living",
@@ -1147,7 +1235,8 @@
    "misconceptions": [
     "Thinking anything that moves is alive",
     "Believing fungi are plants"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "sci.matter",
@@ -1161,7 +1250,8 @@
    "misconceptions": [
     "Mixing up the Celsius and Fahrenheit freezing points",
     "Calling dissolving a chemical change"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "sci.force",
@@ -1175,7 +1265,8 @@
    "misconceptions": [
     "Confusing mass with weight",
     "Thinking a moving object needs a constant force"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "sci.earth",
@@ -1189,7 +1280,8 @@
    "misconceptions": [
     "Explaining seasons with distance from the Sun",
     "Thinking the Moon makes its own light"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "sci.energy",
@@ -1203,7 +1295,8 @@
    "misconceptions": [
     "Thinking energy disappears when something stops",
     "Confusing energy with force"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "sci.waves",
@@ -1217,7 +1310,8 @@
    "misconceptions": [
     "Thinking sound can travel through a vacuum",
     "Confusing volume with pitch"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "eng.statics",
@@ -1231,7 +1325,8 @@
    "misconceptions": [
     "Checking forces but forgetting moments",
     "Using the total load as one support reaction"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "eng.circuits",
@@ -1245,7 +1340,8 @@
    "misconceptions": [
     "Adding parallel resistances directly",
     "Using V = IR as the power formula"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "eng.thermo",
@@ -1259,7 +1355,8 @@
    "misconceptions": [
     "Computing efficiency as T_cold/T_hot",
     "Thinking heat flows from cold to hot on its own"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "eng.materials",
@@ -1273,7 +1370,8 @@
    "misconceptions": [
     "Multiplying stress by area",
     "Calling yielding a reversible change"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "eng.fluids",
@@ -1287,7 +1385,8 @@
    "misconceptions": [
     "Thinking pressure depends on container shape",
     "Believing heavier objects always sink"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "code.vars",
@@ -1301,7 +1400,8 @@
    "misconceptions": [
     "Expecting 3 / 2 to be integer division",
     "Thinking a tuple assignment overwrites one value at a time"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "code.loops",
@@ -1315,7 +1415,8 @@
    "misconceptions": [
     "Including the stop value of a range",
     "Miscounting the passes of a while loop with a step larger than 1"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "code.funcs",
@@ -1329,7 +1430,8 @@
    "misconceptions": [
     "Assuming a function returns 0 by default",
     "Expecting a local variable to exist outside its function"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "code.lists",
@@ -1343,7 +1445,8 @@
    "misconceptions": [
     "Assuming lists are 1-indexed",
     "Including the end index of a slice"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "code.recursion",
@@ -1357,7 +1460,8 @@
    "misconceptions": [
     "Writing the recursive call without shrinking the input",
     "Tracing from the top instead of from the base case"
-   ]
+   ],
+   "bulk": false
   },
   {
    "code": "code.complexity",
@@ -1371,7 +1475,1193 @@
    "misconceptions": [
     "Counting two sequential loops as O(n²)",
     "Thinking a hash lookup is linear"
-   ]
+   ],
+   "bulk": false
+  },
+  {
+   "code": "gen.k5.arith",
+   "track": "math.elem",
+   "name": "Whole-number arithmetic (practice)",
+   "grade_band": 3,
+   "order": 90,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Addition, subtraction, multiplication and division with whole numbers. Work from the place values; check a division by multiplying back.",
+   "misconceptions": [
+    "Adding the digits of a product instead of multiplying",
+    "Borrowing without changing the next column"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "gen.k5.fractions",
+   "track": "math.elem",
+   "name": "Fraction practice",
+   "grade_band": 4,
+   "order": 90,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Rename fractions to a common denominator before adding or comparing them, and simplify by the greatest common factor.",
+   "misconceptions": [
+    "Adding numerators and denominators separately",
+    "Comparing fractions by denominator size alone"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "gen.mid.percent",
+   "track": "math.elem",
+   "name": "Percent practice",
+   "grade_band": 6,
+   "order": 90,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Percent means per hundred. Find the part, the whole or the rate, and for a change divide by the *original* amount.",
+   "misconceptions": [
+    "Subtracting a percent as a flat amount",
+    "Dividing the change by the new value"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "gen.mid.ratio",
+   "track": "math.elem",
+   "name": "Rate and proportion practice",
+   "grade_band": 6,
+   "order": 90,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Find the unit rate first, then scale it. In a proportion, cross-multiply or divide both sides by the same factor.",
+   "misconceptions": [
+    "Scaling only one side of a proportion",
+    "Using the wrong base for a rate"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "gen.geometry.mensuration",
+   "track": "math.elem",
+   "name": "Area, perimeter and volume practice",
+   "grade_band": 6,
+   "order": 90,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Pick the formula that matches the shape: rectangle lw, triangle ½bh, circle πr², and volume = base area × height.",
+   "misconceptions": [
+    "Using base × height for a triangle",
+    "Confusing radius and diameter"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "gen.probability.basic",
+   "track": "math.elem",
+   "name": "Probability practice",
+   "grade_band": 6,
+   "order": 90,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Probability is favourable outcomes over total outcomes. Independent events multiply; 'not A' is 1 − P(A).",
+   "misconceptions": [
+    "Adding probabilities for 'and'",
+    "Forgetting to subtract from 1 for 'not'"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "gen.algebra.linear",
+   "track": "algebra1",
+   "name": "Linear equations and slope (practice)",
+   "grade_band": 9,
+   "order": 90,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Undo operations in reverse order to isolate the variable, and remember slope = change in y over change in x.",
+   "misconceptions": [
+    "Doing the same operation to only one side",
+    "Flipping the slope ratio"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "gen.sat.math",
+   "track": "sat.math",
+   "name": "SAT-style math practice",
+   "grade_band": 11,
+   "order": 90,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "SAT math rewards clean setup: translate the sentence into an equation, then solve the equation you wrote.",
+   "misconceptions": [
+    "Answering the wrong quantity",
+    "Forgetting to convert units"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "gen.act.math",
+   "track": "act",
+   "name": "ACT-style math practice",
+   "grade_band": 11,
+   "order": 90,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "ACT math is fast: estimate first, then check the exact answer. Watch units and averages.",
+   "misconceptions": [
+    "Averaging averages of unequal groups",
+    "Using the wrong time conversion"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "gen.contest.amc8",
+   "track": "amc8",
+   "name": "AMC 8-style practice",
+   "grade_band": 8,
+   "order": 90,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "AMC 8 problems are short but exact: count carefully, look for a pattern, and check the answer against the question asked.",
+   "misconceptions": [
+    "Counting the same item twice",
+    "Solving for a quantity nobody asked for"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "gen.contest.amc10",
+   "track": "amc10",
+   "name": "AMC 10-style practice",
+   "grade_band": 10,
+   "order": 90,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Choose counting tools by whether order matters, and use modular arithmetic for remainders.",
+   "misconceptions": [
+    "Using combinations when order matters",
+    "Forgetting that 0 and 1 are special cases"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "gen.contest.amc12",
+   "track": "amc12",
+   "name": "AMC 12-style practice",
+   "grade_band": 12,
+   "order": 90,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Logs turn products into sums, and sequences need the right formula before any numbers go in.",
+   "misconceptions": [
+    "Treating a geometric sequence as arithmetic",
+    "Using log base 10 where base 2 is required"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "gen.contest.aime",
+   "track": "aime",
+   "name": "AIME-style practice",
+   "grade_band": 10,
+   "order": 90,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "AIME answers are integers: factor, count with inclusion–exclusion, and reduce every step to a whole number.",
+   "misconceptions": [
+    "Counting divisors without the exponent rule",
+    "Adding counts without removing overlap"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "gen.contest.usamo",
+   "track": "usamo",
+   "name": "USAMO-style practice",
+   "grade_band": 11,
+   "order": 90,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Olympiad algebra is about structure: symmetric expressions in sums and products, and careful case counts.",
+   "misconceptions": [
+    "Squaring a sum without the cross term",
+    "Forgetting the negative case in an absolute value"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "gen.contest.imo",
+   "track": "imo",
+   "name": "IMO-style practice",
+   "grade_band": 12,
+   "order": 90,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Use AM-GM for minimums with equality at equal terms, and angle/circle facts for geometry.",
+   "misconceptions": [
+    "Applying AM-GM to non-positive numbers",
+    "Assuming equality away from the equal case"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "gen.code.python",
+   "track": "coding",
+   "name": "Python output and semantics",
+   "grade_band": 13,
+   "order": 90,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Trace the code with real values, one line at a time. Watch integer division, slicing and 0-based indexing.",
+   "misconceptions": [
+    "Assuming / is integer division",
+    "Forgetting that slices exclude the end index"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "gen.code.cpp",
+   "track": "coding",
+   "name": "C++ output and semantics",
+   "grade_band": 13,
+   "order": 90,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "C++ integer division truncates toward zero, and arrays are 0-based. Trace the loop bounds exactly.",
+   "misconceptions": [
+    "Expecting integer division to produce a decimal",
+    "Using <= where the loop needs <"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "gen.code.java",
+   "track": "coding",
+   "name": "Java output and semantics",
+   "grade_band": 13,
+   "order": 90,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "In Java, int division truncates and + concatenates when either side is a String. Trace types as well as values.",
+   "misconceptions": [
+    "Adding a String and an int numerically",
+    "Expecting int division to round"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "gen.sat.rw.grammar",
+   "track": "sat.rw",
+   "name": "SAT-style grammar and usage",
+   "grade_band": 11,
+   "order": 90,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Check the subject and verb agree, keep commas from joining two sentences, and make pronouns point at one clear noun.",
+   "misconceptions": [
+    "Matching a verb to the nearest noun",
+    "Joining two sentences with a comma"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "gen.act.english",
+   "track": "act",
+   "name": "ACT-style English usage",
+   "grade_band": 11,
+   "order": 90,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Read the whole sentence before choosing: agreement, tense and punctuation are where ACT English lives.",
+   "misconceptions": [
+    "Changing tense without a time cue",
+    "Using an apostrophe for a plural"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.math.college_mathematics",
+   "track": "ap.math",
+   "name": "College mathematics",
+   "grade_band": 13,
+   "order": 1,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "College mathematics: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.math.abstract_algebra",
+   "track": "ap.math",
+   "name": "Abstract algebra",
+   "grade_band": 13,
+   "order": 2,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Abstract algebra: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.math.high_school_mathematics",
+   "track": "ap.math",
+   "name": "High-school mathematics",
+   "grade_band": 13,
+   "order": 3,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "High-school mathematics: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.math.elementary_mathematics",
+   "track": "ap.math",
+   "name": "Elementary mathematics",
+   "grade_band": 13,
+   "order": 4,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Elementary mathematics: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.math.high_school_statistics",
+   "track": "ap.math",
+   "name": "High-school statistics",
+   "grade_band": 13,
+   "order": 5,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "High-school statistics: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.math.formal_logic",
+   "track": "ap.math",
+   "name": "Formal logic",
+   "grade_band": 13,
+   "order": 6,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Formal logic: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.sci.college_physics",
+   "track": "ap.sci",
+   "name": "College physics",
+   "grade_band": 13,
+   "order": 1,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "College physics: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.sci.high_school_physics",
+   "track": "ap.sci",
+   "name": "High-school physics",
+   "grade_band": 13,
+   "order": 2,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "High-school physics: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.sci.conceptual_physics",
+   "track": "ap.sci",
+   "name": "Conceptual physics",
+   "grade_band": 13,
+   "order": 3,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Conceptual physics: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.sci.college_chemistry",
+   "track": "ap.sci",
+   "name": "College chemistry",
+   "grade_band": 13,
+   "order": 4,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "College chemistry: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.sci.high_school_chemistry",
+   "track": "ap.sci",
+   "name": "High-school chemistry",
+   "grade_band": 13,
+   "order": 5,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "High-school chemistry: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.sci.college_biology",
+   "track": "ap.sci",
+   "name": "College biology",
+   "grade_band": 13,
+   "order": 6,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "College biology: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.sci.high_school_biology",
+   "track": "ap.sci",
+   "name": "High-school biology",
+   "grade_band": 13,
+   "order": 7,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "High-school biology: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.sci.astronomy",
+   "track": "ap.sci",
+   "name": "Astronomy",
+   "grade_band": 13,
+   "order": 8,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Astronomy: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.sci.anatomy",
+   "track": "ap.sci",
+   "name": "Anatomy",
+   "grade_band": 13,
+   "order": 9,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Anatomy: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.sci.clinical_knowledge",
+   "track": "ap.sci",
+   "name": "Clinical knowledge",
+   "grade_band": 13,
+   "order": 10,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Clinical knowledge: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.sci.college_medicine",
+   "track": "ap.sci",
+   "name": "College medicine",
+   "grade_band": 13,
+   "order": 11,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "College medicine: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.sci.professional_medicine",
+   "track": "ap.sci",
+   "name": "Professional medicine",
+   "grade_band": 13,
+   "order": 12,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Professional medicine: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.sci.medical_genetics",
+   "track": "ap.sci",
+   "name": "Medical genetics",
+   "grade_band": 13,
+   "order": 13,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Medical genetics: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.sci.nutrition",
+   "track": "ap.sci",
+   "name": "Nutrition",
+   "grade_band": 13,
+   "order": 14,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Nutrition: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.sci.virology",
+   "track": "ap.sci",
+   "name": "Virology",
+   "grade_band": 13,
+   "order": 15,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Virology: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.sci.human_aging",
+   "track": "ap.sci",
+   "name": "Human ageing",
+   "grade_band": 13,
+   "order": 16,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Human ageing: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.hum.high_school_psychology",
+   "track": "ap.humanities",
+   "name": "High-school psychology",
+   "grade_band": 12,
+   "order": 1,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "High-school psychology: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.hum.professional_psychology",
+   "track": "ap.humanities",
+   "name": "Professional psychology",
+   "grade_band": 12,
+   "order": 2,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Professional psychology: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.hum.high_school_macroeconomics",
+   "track": "ap.humanities",
+   "name": "High-school macroeconomics",
+   "grade_band": 12,
+   "order": 3,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "High-school macroeconomics: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.hum.high_school_microeconomics",
+   "track": "ap.humanities",
+   "name": "High-school microeconomics",
+   "grade_band": 12,
+   "order": 4,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "High-school microeconomics: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.hum.econometrics",
+   "track": "ap.humanities",
+   "name": "Econometrics",
+   "grade_band": 12,
+   "order": 5,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Econometrics: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.hum.high_school_us_history",
+   "track": "ap.humanities",
+   "name": "US history",
+   "grade_band": 12,
+   "order": 6,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "US history: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.hum.high_school_world_history",
+   "track": "ap.humanities",
+   "name": "World history",
+   "grade_band": 12,
+   "order": 7,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "World history: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.hum.high_school_european_history",
+   "track": "ap.humanities",
+   "name": "European history",
+   "grade_band": 12,
+   "order": 8,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "European history: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.hum.high_school_geography",
+   "track": "ap.humanities",
+   "name": "Geography",
+   "grade_band": 12,
+   "order": 9,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Geography: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.hum.high_school_government_and_politics",
+   "track": "ap.humanities",
+   "name": "Government and politics",
+   "grade_band": 12,
+   "order": 10,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Government and politics: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.hum.philosophy",
+   "track": "ap.humanities",
+   "name": "Philosophy",
+   "grade_band": 12,
+   "order": 11,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Philosophy: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.hum.moral_disputes",
+   "track": "ap.humanities",
+   "name": "Moral disputes",
+   "grade_band": 12,
+   "order": 12,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Moral disputes: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.hum.moral_scenarios",
+   "track": "ap.humanities",
+   "name": "Moral scenarios",
+   "grade_band": 12,
+   "order": 13,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Moral scenarios: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.hum.world_religions",
+   "track": "ap.humanities",
+   "name": "World religions",
+   "grade_band": 12,
+   "order": 14,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "World religions: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.hum.sociology",
+   "track": "ap.humanities",
+   "name": "Sociology",
+   "grade_band": 12,
+   "order": 15,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Sociology: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.hum.prehistory",
+   "track": "ap.humanities",
+   "name": "Prehistory",
+   "grade_band": 12,
+   "order": 16,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Prehistory: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.hum.security_studies",
+   "track": "ap.humanities",
+   "name": "Security studies",
+   "grade_band": 12,
+   "order": 17,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Security studies: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.hum.public_relations",
+   "track": "ap.humanities",
+   "name": "Public relations",
+   "grade_band": 12,
+   "order": 18,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Public relations: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.hum.international_law",
+   "track": "ap.humanities",
+   "name": "International law",
+   "grade_band": 12,
+   "order": 19,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "International law: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.hum.jurisprudence",
+   "track": "ap.humanities",
+   "name": "Jurisprudence",
+   "grade_band": 12,
+   "order": 20,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Jurisprudence: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.hum.logical_fallacies",
+   "track": "ap.humanities",
+   "name": "Logical fallacies",
+   "grade_band": 12,
+   "order": 21,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Logical fallacies: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.hum.management",
+   "track": "ap.humanities",
+   "name": "Management",
+   "grade_band": 12,
+   "order": 22,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Management: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.hum.marketing",
+   "track": "ap.humanities",
+   "name": "Marketing",
+   "grade_band": 12,
+   "order": 23,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Marketing: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.hum.business_ethics",
+   "track": "ap.humanities",
+   "name": "Business ethics",
+   "grade_band": 12,
+   "order": 24,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Business ethics: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.hum.professional_accounting",
+   "track": "ap.humanities",
+   "name": "Professional accounting",
+   "grade_band": 12,
+   "order": 25,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Professional accounting: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.hum.professional_law",
+   "track": "ap.humanities",
+   "name": "Professional law",
+   "grade_band": 12,
+   "order": 26,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Professional law: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.hum.human_sexuality",
+   "track": "ap.humanities",
+   "name": "Human sexuality",
+   "grade_band": 12,
+   "order": 27,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Human sexuality: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.hum.miscellaneous",
+   "track": "ap.humanities",
+   "name": "General knowledge",
+   "grade_band": 12,
+   "order": 28,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "General knowledge: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.hum.global_facts",
+   "track": "ap.humanities",
+   "name": "Global facts",
+   "grade_band": 12,
+   "order": 29,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Global facts: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.hum.us_foreign_policy",
+   "track": "ap.humanities",
+   "name": "US foreign policy",
+   "grade_band": 12,
+   "order": 30,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "US foreign policy: multiple-choice questions from the MMLU bank (MIT licence). Read the stem once for the subject, then eliminate the options that misstate a definition or a fact.",
+   "misconceptions": [
+    "Recognising a term but not checking it answers the question",
+    "Choosing the most familiar option instead of the correct one"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.eng.electrical_engineering",
+   "track": "college.eng",
+   "name": "Electrical engineering",
+   "grade_band": 13,
+   "order": 95,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Electrical engineering: multiple-choice questions from the MMLU bank (MIT licence). Work from the definition, then check the option against the units or the specific mechanism the stem describes.",
+   "misconceptions": [
+    "Matching a keyword without checking the mechanism",
+    "Mixing up two related quantities"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.eng.college_computer_science",
+   "track": "coding",
+   "name": "College computer science",
+   "grade_band": 13,
+   "order": 95,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "College computer science: multiple-choice questions from the MMLU bank (MIT licence). Work from the definition, then check the option against the units or the specific mechanism the stem describes.",
+   "misconceptions": [
+    "Matching a keyword without checking the mechanism",
+    "Mixing up two related quantities"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.eng.high_school_computer_science",
+   "track": "coding",
+   "name": "High-school computer science",
+   "grade_band": 13,
+   "order": 95,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "High-school computer science: multiple-choice questions from the MMLU bank (MIT licence). Work from the definition, then check the option against the units or the specific mechanism the stem describes.",
+   "misconceptions": [
+    "Matching a keyword without checking the mechanism",
+    "Mixing up two related quantities"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.eng.machine_learning",
+   "track": "coding",
+   "name": "Machine learning",
+   "grade_band": 13,
+   "order": 95,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Machine learning: multiple-choice questions from the MMLU bank (MIT licence). Work from the definition, then check the option against the units or the specific mechanism the stem describes.",
+   "misconceptions": [
+    "Matching a keyword without checking the mechanism",
+    "Mixing up two related quantities"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "mmlu.eng.computer_security",
+   "track": "coding",
+   "name": "Computer security",
+   "grade_band": 13,
+   "order": 95,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Computer security: multiple-choice questions from the MMLU bank (MIT licence). Work from the definition, then check the option against the units or the specific mechanism the stem describes.",
+   "misconceptions": [
+    "Matching a keyword without checking the mechanism",
+    "Mixing up two related quantities"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "open.word.problems",
+   "track": "math.elem",
+   "name": "Multi-step word problems (GSM8K)",
+   "grade_band": 6,
+   "order": 96,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Word problems from the GSM8K set, written in plain everyday contexts. Name each step before computing it.",
+   "misconceptions": [
+    "Skipping the second step of the problem",
+    "Answering a quantity the question did not ask for"
+   ],
+   "bulk": true
+  },
+  {
+   "code": "open.elem.science",
+   "track": "science.all",
+   "name": "Everyday science (OpenBookQA)",
+   "grade_band": 5,
+   "order": 96,
+   "prereq": null,
+   "dot_target": 2,
+   "intro_md": "Short science questions about the everyday world, from the OpenBookQA set. Eliminate the options that contradict what you know.",
+   "misconceptions": [
+    "Choosing a true statement that does not answer the question",
+    "Confusing cause with effect"
+   ],
+   "bulk": true
   }
  ],
  "questions": [
