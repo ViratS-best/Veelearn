@@ -75,7 +75,7 @@ const BANK_ROWS = [
 
 // ---------------------------------------------------------- fake database
 function makeDb() {
-    const state = { outline: null, items: [], skills: new Map(), inserts: [], queries: [] };
+    const state = { outline: null, items: [], skills: new Map(), inserts: [], queries: [], courseInserts: [], courseStatus: 'draft' };
     let skillSeq = 100;
     let itemSeq = 900;
 
@@ -84,10 +84,22 @@ function makeDb() {
         state.queries.push({ sql: s, params: params.slice() });
 
         if (/FROM qbank_items q LEFT JOIN skills/.test(s)) return BANK_ROWS;
-        if (/SELECT id, creator_id, title FROM courses/.test(s)) {
-            return [{ id: Number(params[0]), creator_id: 1, title: 'Stars and Cells' }];
+        if (/SELECT id, creator_id, title(, status, feedback)? FROM courses/.test(s)) {
+            return [{ id: Number(params[0]), creator_id: 1, title: 'Stars and Cells', status: state.courseStatus, feedback: '' }];
+        }
+        if (/SELECT id, creator_id, status FROM courses/.test(s)) {
+            return [{ id: Number(params[0]), creator_id: 1, status: state.courseStatus }];
         }
         if (/SELECT id, creator_id FROM courses/.test(s)) return [{ id: Number(params[0]), creator_id: 1 }];
+        // Outline-first creation: the row is a draft course with no body.
+        if (/^INSERT INTO courses/.test(s)) {
+            state.courseInserts.push({ sql: s, params: params.slice() });
+            return { insertId: 4242, affectedRows: 1 };
+        }
+        if (/^UPDATE courses SET status = 'pending'/.test(s)) {
+            state.courseStatus = 'pending';
+            return { affectedRows: 1 };
+        }
         if (/SELECT outline_json FROM course_outlines/.test(s)) {
             return state.outline ? [{ outline_json: state.outline }] : [];
         }
@@ -97,7 +109,9 @@ function makeDb() {
             return [{ affectedRows: had ? 1 : 0, rowCount: had ? 1 : 0 }];
         }
         if (/^INSERT INTO course_outlines/.test(s)) {
-            state.outline = params[1];
+            // Creating a brand-new outline pre-creates an empty map; the fake keeps
+            // the one saved above so the two flow tests stay independent.
+            if (!state.outline) state.outline = params[1];
             return { affectedRows: 1 };
         }
         if (/^INSERT IGNORE INTO skills/.test(s)) {
@@ -369,6 +383,41 @@ ok('an unknown source with a credit line is credited', provenance.isThirdParty({
             'their diagrams are SVGs with alt text',
             licensedWithVisual.every((q) => typeof q.visual.svg === 'string' && q.visual.svg.startsWith('<svg') && q.visual.alt)
         );
+
+        // 9. Outlines are the thing a creator makes now, and they go through the
+        // same review queue a course used.
+        const create = await call(base, 'POST', '/api/outlines', { title: '  Stars and Cells  ', gradeLevel: 8 });
+        eq('creating an outline answers 201', create.status, 201);
+        eq('the new outline starts as a draft', create.json.data && create.json.data.status, 'draft');
+        eq('the new outline gets the id the database returned', create.json.data && create.json.data.id, 4242);
+        const courseRow = db.state.courseInserts[0];
+        ok(
+            'the outline row has a title, an empty body and draft status',
+            courseRow && /'draft'/.test(courseRow.sql) && courseRow.params[0] === 'Stars and Cells',
+            courseRow && JSON.stringify(courseRow.params)
+        );
+
+        const noTitle = await call(base, 'POST', '/api/outlines', {});
+        eq('an untitled outline is refused', noTitle.status, 400);
+
+        const submit = await call(base, 'POST', '/api/outlines/7/submit');
+        eq('submitting a complete map answers 200', submit.status, 200);
+        eq('submission moves the outline into review', db.state.courseStatus, 'pending');
+        eq('the review payload counts the map', submit.json.data && submit.json.data.questions, 3);
+
+        const emptyOutline = db.state.outline;
+        db.state.outline = null;
+        db.state.courseStatus = 'draft';
+        const empty = await call(base, 'POST', '/api/outlines/7/submit');
+        eq('an empty map is not submittable', empty.status, 400);
+        db.state.outline = emptyOutline;
+
+        const scriptSrc = fs.readFileSync(path.join(__dirname, '..', 'veelearn-frontend', 'script.js'), 'utf8');
+        ok('the review queue marks outlines with the map they carry', /AS has_outline/.test(fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8')));
+        ok('an admin opens the map instead of an empty course body', /openOutlineForReview/.test(scriptSrc));
+        ok('the outline page can start a new outline', /id="new-outline"/.test(page) && /\/api\/outlines'/.test(page));
+        ok('the outline page can submit for approval', /\/submit'/.test(page) && /Submit for approval/.test(page));
+        ok('a submitted outline locks its editor', /review\.status === 'pending'/.test(page));
     } finally {
         server.close();
     }

@@ -198,7 +198,13 @@ ok('the card carries an authored SVG figure', !!(svgCard.visual && svgCard.visua
 // The STEM / English / SAT R&W / ACT / MATHCOUNTS / AMC banks must stay complete
 // enough for a session to teach them: four questions per skill, a tier-1 item,
 // and an answer keyed to a real option.
-const EXAM_TRACKS = ['stem.sci', 'english', 'sat.rw', 'act', 'mathcounts', 'amc8', 'amc10', 'amc12'];
+const EXAM_TRACKS = [
+    'stem.sci', 'english', 'sat.rw', 'act', 'mathcounts', 'amc8', 'amc10', 'amc12',
+    // The wider bank: grades 1-8 and high-school math, AP Calculus and AP
+    // Statistics, the olympiad ladder, all-grade science, engineering, coding.
+    'math.elem', 'math.hs', 'apcalc', 'apstats', 'aime', 'usamo', 'imo',
+    'science.all', 'college.eng', 'coding'
+];
 const seedSkills = new Map(seed.skills.map((s) => [s.code, s]));
 const perSkill = new Map();
 for (const q of seed.questions) perSkill.set(q.skill, (perSkill.get(q.skill) || 0) + 1);

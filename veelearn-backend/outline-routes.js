@@ -3,6 +3,8 @@
 /**
  * Outline + question-bank endpoints for the creator and the session planner.
  *
+ *   POST /api/outlines                         start a map (no course body)
+ *   POST /api/outlines/:courseId/submit        send the map for superadmin review
  *   GET  /api/courses/:courseId/outline        the saved map (creator or learner)
  *   PUT  /api/courses/:courseId/outline        creator saves the map
  *   GET  /api/question-bank/search?q=...       questions (with diagrams) to pull in
@@ -15,10 +17,90 @@ module.exports = function createOutlineRoutes({ query, authenticateToken, writeL
     const createOutlines = require('./outline');
     const outlines = createOutlines({ query, log });
 
+    const cleanTitle = (v) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, 160);
+
+    /**
+     * An outline is the thing a creator makes. There is no course body to write:
+     * the row exists so the map, the sessions built from it and the review queue
+     * all hang off one id, and it starts as a private draft.
+     */
+    router.post('/api/outlines', authenticateToken, writeLimiter, async (req, res) => {
+        try {
+            const body = req.body || {};
+            const title = cleanTitle(body.title);
+            if (!title) return res.status(400).json({ success: false, message: 'Give the outline a title first' });
+            const description = String(body.description || '').trim().slice(0, 600);
+            const rawGrade = Number(body.gradeLevel != null ? body.gradeLevel : body.grade_level);
+            const gradeLevel = Number.isFinite(rawGrade) && rawGrade >= 1 && rawGrade <= 13 ? Math.round(rawGrade) : null;
+
+            const created = await query(
+                `INSERT INTO courses (title, description, content, blocks, creator_id, status, creation_time, grade_level, course_type)
+                 VALUES (?, ?, '', '[]', ?, 'draft', 0, ?, 'single')`,
+                [title, description, req.user.id, gradeLevel]
+            );
+            const courseId = Number((created && created.insertId) || 0);
+            if (!courseId) throw new Error('the outline row was not created');
+            try {
+                await query('INSERT INTO course_outlines (course_id, outline_json) VALUES (?, ?)', [
+                    courseId,
+                    JSON.stringify({ version: 1, units: [] })
+                ]);
+            } catch (err) {
+                // The map is created lazily by the first save if this insert loses a race.
+                if (log && log.warn) log.warn(`[outline] empty map not pre-created: ${err.message}`);
+            }
+            res.status(201).json({
+                success: true,
+                message: 'Outline created',
+                data: { id: courseId, title, description, status: 'draft' }
+            });
+        } catch (err) {
+            res.status(500).json({ success: false, message: 'Could not create the outline', error: err.message });
+        }
+    });
+
+    /**
+     * Submission is the only gate: the same review queue and the same approve /
+     * reject endpoint a course used, so a superadmin sees an outline exactly
+     * where they used to see a course.
+     */
+    router.post('/api/outlines/:courseId/submit', authenticateToken, writeLimiter, async (req, res) => {
+        try {
+            const courseId = Number(req.params.courseId);
+            const rows = await query('SELECT id, creator_id, status FROM courses WHERE id = ? LIMIT 1', [courseId]);
+            if (!rows.length) return res.status(404).json({ success: false, message: 'Outline not found' });
+            if (Number(rows[0].creator_id) !== Number(req.user.id)) {
+                return res.status(403).json({ success: false, message: 'You can only submit your own outline' });
+            }
+            const status = String(rows[0].status || 'draft');
+            if (status === 'pending') return res.status(400).json({ success: false, message: 'This outline is already waiting for review' });
+            if (status === 'approved') return res.status(400).json({ success: false, message: 'This outline is already approved' });
+
+            const outline = (await outlines.load(courseId)) || { units: [] };
+            const units = Array.isArray(outline.units) ? outline.units.length : 0;
+            const skills = outlines.skillCount(outline);
+            const questions = outlines.questionCount(outline);
+            if (!units) return res.status(400).json({ success: false, message: 'Add at least one unit page before submitting' });
+            if (!skills) return res.status(400).json({ success: false, message: 'Add at least one skill circle before submitting' });
+            if (questions < 3) {
+                return res.status(400).json({ success: false, message: 'Put at least three questions in the map before submitting' });
+            }
+
+            await query("UPDATE courses SET status = 'pending', feedback = NULL WHERE id = ?", [courseId]);
+            res.json({
+                success: true,
+                message: 'Outline submitted for approval',
+                data: { status: 'pending', units, skills, questions }
+            });
+        } catch (err) {
+            res.status(500).json({ success: false, message: 'Could not submit the outline', error: err.message });
+        }
+    });
+
     router.get('/api/courses/:courseId/outline', authenticateToken, async (req, res) => {
         try {
             const courseId = Number(req.params.courseId);
-            const rows = await query('SELECT id, creator_id, title FROM courses WHERE id = ? LIMIT 1', [courseId]);
+            const rows = await query('SELECT id, creator_id, title, status, feedback FROM courses WHERE id = ? LIMIT 1', [courseId]);
             if (!rows.length) return res.status(404).json({ success: false, message: 'Course not found' });
             const outline = (await outlines.load(courseId)) || { version: 1, units: [] };
             res.json({
@@ -26,6 +108,10 @@ module.exports = function createOutlineRoutes({ query, authenticateToken, writeL
                 data: {
                     courseId,
                     title: rows[0].title,
+                    // Review state travels with the map, so the creator can see a
+                    // rejection reason without opening the dashboard.
+                    status: String(rows[0].status || 'draft'),
+                    feedback: rows[0].feedback || '',
                     canEdit: Number(rows[0].creator_id) === Number(req.user.id),
                     outline,
                     skills: outlines.skillCount(outline),

@@ -4,6 +4,30 @@
 
 ---
 
+### ✅ OUTLINES ONLY + A MUCH BIGGER QUESTION BANK
+
+**Status**: COMPLETE (offline-verified: seed validates, 457 tests green; new skills and bank rows land on the next API boot)
+
+**Creators make an outline, not a course** (`outline-routes.js`, `outline.html`)
+- `POST /api/outlines {title, description?, gradeLevel?}` creates the map itself: a `courses` row with `status='draft'`, an empty body and an empty `course_outlines` row, and returns its id. There is no course form to fill in first — the unit pages, skill circles, teaching instructions and questions are the work.
+- `POST /api/outlines/:courseId/submit` is the review gate. It refuses an empty map (needs at least one unit, one skill and three questions), then sets `status='pending', feedback=NULL`. After that the editor locks: `review.status` in `outline.html` disables saving and editing until the review comes back.
+- Review reuses the course queue exactly: `GET /api/admin/courses/pending` now also returns `has_outline` (a `course_outlines` subselect), `PUT /api/admin/courses/:id/status` approves/rejects with the same feedback + 100-shells behaviour, and the admin list shows "🗺 Outline" with a **Review outline** button that opens `outline.html?id=` (read-only for the admin) instead of an empty course preview.
+- `GET /api/courses/:id/outline` returns `status` and `feedback` with the map, so a rejection reason is visible in the creator's bar (`Draft · not submitted yet` / `⏳ Waiting for a superadmin to review` / `✅ Approved` / `✋ Rejected · reason`).
+- `outline.html` handles the empty case by opening the create card ("Start a new outline" → title + optional grade band); `+ New outline` is always in the bar. The dashboard's existing `+ New outline` link and "Your outlines" list keep working because an outline is still one `courses` row.
+
+**The bank grew 2.4×** (`seed/qbank_more.py`, `seed/qbank_more2.py`, `seed/skill_tree.py`)
+- 411 questions over 90 skills and 22 tracks (was 172 / 42 / 12). 239 new items, all `authored` (original), all with four options, a `why` on every distractor, two hints and solution steps.
+- New tracks: `math.elem` (grades 1-8: place value, multiplication/division, fractions, decimals & percent, ratio, area/perimeter/volume), `math.hs` (quadratics, functions, logs, sequences, trig, vectors), `apcalc` (limits, derivatives, optimisation/related rates, integrals, BC series), `apstats` (describing data, probability & independence), `aime`, `usamo`, `imo`, `science.all` (living things, matter, forces, Earth & space, energy, waves), `college.eng` (statics, circuits, thermodynamics, materials, fluids) and `coding` (variables, loops, functions, lists, recursion, Big-O).
+- Existing exam tracks were extended rather than duplicated: `mathcounts` gains sprint + target rounds, `amc8` geometry, `amc10` counting, `amc12` trigonometry.
+- **Original content only.** Nothing is copied from MAA (AMC/AIME/USAMO/IMO), MATHCOUNTS, College Board (SAT/PSAT) or ACT: those problems are copyrighted and the contests are still used for scoring. Items are written in each exam's style and stick to its difficulty ladder (tier 1 recall → tier 4 contest).
+- Diagrams: authored SVGs built from parameterised helpers (`frac_bars`, `bars`, `numline`, `table`, `grid`, `triangle_right`, `rect_labelled`, `circle_r`, `parabola`, `area_under`, `wave_diagram`, `circuit`, `beam`, `stress_strain`, `force_arrow`, `phases`, `cell_diagram`, `code_block`), so a picture always uses the numbers in its stem. `code_block` renders Python with escaped text — no scripts, no inline handlers.
+- `test-visual-teaching.js` now covers all 17 exam/subject tracks: every skill has ≥4 questions and a tier-1 opener, every key matches an option, every SVG passes the safety checks.
+
+**Tests**: `test-bank-provenance.js` 72 (adds the outline-first flow: create answers 201 with a draft row, an untitled outline is refused, submitting a complete map moves it to `pending`, an empty map is refused, the editor locks while waiting, and admins get `has_outline` + a map link) · `test-visual-teaching.js` 104 · `test-phase45.js` 85 · `test-session-core.js` 72 · `test-ai-session.js` 124.
+
+---
+
+
 ### ✅ QUESTION BANK: STEM · ENGLISH · SAT R&W · ACT · MATHCOUNTS · AMC 8/10/12
 
 **Status**: COMPLETE (offline-verified: seed validates, 362 tests green; live rows land on the next API boot)

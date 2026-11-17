@@ -3604,22 +3604,36 @@ function renderPendingCourses(courses) {
 
     list.innerHTML = courses
         .map(
-            (course) => `
+            (course) => {
+                // An outline has no course body: the reviewer opens the map itself.
+                const isOutline = Boolean(course.has_outline);
+                const kind = isOutline
+                    ? "🗺 Outline"
+                    : course.course_type === "master"
+                        ? "🎓 Master Course"
+                        : course.parent_master_title
+                            ? `📄 Unit of ${escapeHtml(course.parent_master_title)}`
+                            : "📄 Single Course";
+                const review = isOutline
+                    ? `<button onclick="openOutlineForReview(${course.id})">Review outline</button>`
+                    : `<button onclick="previewCourse(${course.id})">Preview</button>`;
+                return `
         <li>
             <strong>${escapeHtml(course.title)}</strong>
-            <p>${course.course_type === "master"
-                ? "🎓 Master Course"
-                : course.parent_master_title
-                    ? `📄 Unit of ${escapeHtml(course.parent_master_title)}`
-                    : "📄 Single Course"}</p>
+            <p>${kind}</p>
             <p>${escapeHtml(course.description || "No description")}</p>
-            <button onclick="previewCourse(${course.id})">Preview</button>
+            ${review}
             <button onclick="approveCourse(${course.id})">Approve</button>
             <button onclick="rejectCourse(${course.id})">Reject</button>
         </li>
-    `
+    `;
+            }
         )
         .join("");
+}
+
+function openOutlineForReview(courseId) {
+    window.open(`outline.html?id=${courseId}`, "_blank", "noopener");
 }
 
 function previewCourse(courseId) {

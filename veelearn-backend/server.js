@@ -4865,6 +4865,7 @@ app.get('/api/admin/courses/pending', authenticateToken, authorize('admin', 'sup
     const query = `
         SELECT c.id, c.title, c.description, c.content, c.blocks, c.creator_id, u.email as creator_email,
                c.created_at, c.grade_level, c.video_url, c.course_type,
+               (SELECT 1 FROM course_outlines co WHERE co.course_id = c.id LIMIT 1) AS has_outline,
                (SELECT p.title FROM course_units cu JOIN courses p ON p.id = cu.parent_course_id
                 WHERE cu.child_course_id = c.id ORDER BY cu.id ASC LIMIT 1) AS parent_master_title
         FROM courses c

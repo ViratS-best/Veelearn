@@ -901,5 +901,9 @@ QUESTIONS = [
 # MATHCOUNTS, AMC 8/10/12) live in their own module so this file stays readable.
 # They are appended here so build_session_seed.py validates one list.
 from seed.qbank_exams import QUESTIONS as _EXAM_QUESTIONS  # noqa: E402
+# Grades 1-8 and high-school math, AP Calculus/Statistics, the olympiad ladder,
+# all-grade science, college engineering and coding live in their own modules.
+from seed.qbank_more import QUESTIONS as _MORE_QUESTIONS  # noqa: E402
+from seed.qbank_more2 import QUESTIONS as _MORE2_QUESTIONS  # noqa: E402
 
-QUESTIONS = QUESTIONS + _EXAM_QUESTIONS
+QUESTIONS = QUESTIONS + _EXAM_QUESTIONS + _MORE_QUESTIONS + _MORE2_QUESTIONS
