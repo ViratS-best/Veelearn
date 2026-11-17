@@ -305,11 +305,21 @@
 
             // ------------------------------------------------------------- courses
             async function loadCourses() {
-                const data = await api('/api/my-courses');
-                const list = (data && (data.courses || data)) || [];
+                // outline.html?id=<courseId> opens that exact map, so the dashboard
+                // can link straight in — including a superadmin reviewing a map
+                // someone else wrote.
+                const wanted = Number(new URLSearchParams(location.search).get('id') || 0);
+                let list = [];
+                try {
+                    const data = await api('/api/my-courses');
+                    list = (data && (data.courses || data)) || [];
+                } catch (err) {
+                    // A reviewer's own list is irrelevant to the map they opened.
+                    if (!wanted) throw err;
+                }
                 const select = el('course-select');
                 select.innerHTML = '';
-                if (!list.length) {
+                if (!list.length && !wanted) {
                     select.innerHTML = '<option value="">No outlines yet</option>';
                     el('unit-empty').textContent = 'Start a new outline to draw your first map.';
                     el('review-state').textContent = '';
@@ -322,10 +332,16 @@
                     opt.textContent = c.title;
                     select.appendChild(opt);
                 });
-                // outline.html?id=<courseId> opens that outline, so the dashboard can link straight in.
-                const wanted = Number(new URLSearchParams(location.search).get('id') || 0);
-                const match = wanted && list.find((c) => Number(c.id) === wanted);
-                courseId = Number(match ? match.id : list[0].id);
+                // ?id= wins over the viewer's own list: a superadmin reviewing a
+                // submitted outline is not its creator, so the id is never in
+                // their list and must not fall back to one of their own courses.
+                courseId = Number(wanted || list[0].id);
+                if (!select.querySelector('option[value="' + courseId + '"]')) {
+                    const opt = document.createElement('option');
+                    opt.value = String(courseId);
+                    opt.textContent = 'Loading outline…';
+                    select.appendChild(opt);
+                }
                 select.value = String(courseId);
                 await loadOutline();
             }
@@ -337,6 +353,11 @@
                     const data = await api('/api/courses/' + courseId + '/outline');
                     outline = data.outline && data.outline.units ? data.outline : { version: 1, units: [] };
                     review = { status: data.status || 'draft', feedback: data.feedback || '', canEdit: Boolean(data.canEdit) };
+                    // Name the map that is actually open, so a reviewer never has
+                    // to guess which outline the id resolved to.
+                    const opt = el('course-select').querySelector('option[value="' + courseId + '"]');
+                    if (opt && data.title) opt.textContent = data.title;
+                    document.title = (data.title ? data.title + ' · ' : '') + 'Course Outline · Veelearn';
                     unitIndex = outline.units.length ? 0 : -1;
                     skillIndex = -1;
                     renderAll();
@@ -349,7 +370,8 @@
 
             // The review state has its own line so a save message never hides it.
             function reviewLine() {
-                if (!review.canEdit) return 'Read-only · not your outline';
+                if (!review.canEdit) return '👀 Review mode · read-only';
+
                 if (review.status === 'pending') return '⏳ Waiting for a superadmin to review';
                 if (review.status === 'approved') return '✅ Approved';
                 if (review.status === 'rejected') return '✋ Rejected · ' + (review.feedback || 'edit the map and submit again');
@@ -366,7 +388,10 @@
                     if (node) node.disabled = locked;
                 });
                 el('submit').disabled = locked;
-                el('submit').textContent = review.status === 'draft' ? 'Submit for approval' : 'Resubmit for approval';
+                // A reviewer is not the creator: there is nothing for them to submit.
+                el('submit').textContent = !review.canEdit
+                    ? 'Submit for approval'
+                    : review.status === 'draft' ? 'Submit for approval' : 'Resubmit for approval';
             }
 
             function openCreate() {
