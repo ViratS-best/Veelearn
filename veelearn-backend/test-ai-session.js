@@ -144,6 +144,28 @@ ok('a canvas scene is accepted', Boolean(goodScene.scene && goodScene.scene.code
 ok('its sliders survive', goodScene.scene.controls.length === 1 && goodScene.scene.controls[0].key === 'a');
 ok('its steps survive', goodScene.scene.steps.length === 2);
 
+const PLAIN_REPLY = [
+    'TITLE: Undoing the subtraction',
+    'STEPS:',
+    '- y is 4 too big, so add 4 to both sides.',
+    '- 9 + 4 = 13.',
+    'CONTROLS:',
+    '- a | Add to both sides | 0 | 8 | 1 | 4',
+    'CODE:',
+    '```js',
+    'function draw(ctx, W, H, S, t) {',
+    '  ctx.fillStyle = "#ea580c";',
+    '  ctx.fillText("y = " + (9 + S.a), 24, 40);',
+    '}',
+    '```'
+].join('\n');
+const plainParsed = boardScene.parseSceneText(PLAIN_REPLY);
+ok('a plain-text scene parses', Boolean(plainParsed), JSON.stringify(plainParsed));
+ok('its code keeps its newlines and quotes', plainParsed && /fillText\("y = "/.test(plainParsed.code) && plainParsed.code.split('\n').length >= 4);
+ok('its steps and slider parse', plainParsed && plainParsed.steps.length === 2 && plainParsed.controls[0].key === 'a');
+const sanitizedPlain = boardScene.sanitizeScene(plainParsed);
+ok('the parsed scene passes the safety gate', Boolean(sanitizedPlain.scene && sanitizedPlain.scene.code));
+
 const UNSAFE_CODE = [
     'function draw(){ fetch("https://evil.test") }',
     'function draw(){ document.body.innerHTML = "x" }',

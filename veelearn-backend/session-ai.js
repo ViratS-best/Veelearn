@@ -655,6 +655,10 @@ function createSessionAI({ query, qbank, chat, log } = {}) {
      * authored method rather than an unrelated stock graph.
      */
     const boardCache = new Map();
+    /** Plain-text first (code travels verbatim), JSON only if the model ignored it. */
+    function sanitizeBoardReply(sceneModule, text) {
+        return sceneModule.parseSceneText(text) || parseJsonLoose(text);
+    }
     async function boardScene({ userId, sessionId, questionId, ask } = {}) {
         if (!questionId) return { ok: false, error: 400, message: 'questionId is required' };
         const raw = await qbank.getRaw(questionId);
@@ -699,7 +703,7 @@ function createSessionAI({ query, qbank, chat, log } = {}) {
                           {
                               role: 'user',
                               content:
-                                  'Your previous reply was not one valid JSON object. Reply again with ONE compact JSON object: no code fence, no comments, code under 70 lines, no newlines inside strings.'
+                                  'Your previous reply did not follow the format. Reply again using ONLY the TITLE / STEPS / CONTROLS / CODE headers, plain text, code under 70 lines and no comments.'
                           }
                       ]);
             try {
@@ -707,9 +711,11 @@ function createSessionAI({ query, qbank, chat, log } = {}) {
                     max_tokens: attempt === 0 ? 2600 : 2200,
                     temperature: attempt === 0 ? 0.45 : 0.3,
                     budgetMs: CAPS.boardBudgetMs,
-                    jsonMust: true
+                    // The scene protocol is plain text on purpose: code with
+                    // newlines and quotes cannot survive a JSON string.
+                    jsonMust: false
                 });
-                const verdict = sceneModule.sanitizeScene(parseJsonLoose(text));
+                const verdict = sceneModule.sanitizeScene(sanitizeBoardReply(sceneModule, text));
                 dropped = verdict.dropped;
                 scene = verdict.scene;
                 if (!scene) info(`[session.ai] board reply ${attempt + 1} unusable: ${String(text || '').slice(0, 160)}`);

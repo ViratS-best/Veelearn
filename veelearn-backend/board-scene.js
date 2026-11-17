@@ -46,8 +46,16 @@ const PALETTE = 'ink #26221f, accent #ea580c, green #15803d, blue #2563eb, muted
 
 const SYSTEM_PROMPT = `You draw on Veelearn's teaching board while a tutor explains one question. You receive the question card (the correct option is withheld), the skill and the authored method. Make the idea visible and touchable — this is the part a paragraph cannot do.
 
-Return ONE JSON object and nothing else:
-{"title":"...","steps":["..."],"preset":"","params":{},"controls":[{"key":"a","label":"...","min":0,"max":10,"step":0.1,"value":2}],"code":"function draw(ctx, W, H, S, t) { ... }"}
+Reply in EXACTLY this plain-text format — no JSON, no preamble:
+TITLE: <a specific title, at most 60 characters>
+STEPS:
+- <one short step>
+- <another step>
+CONTROLS:
+- a | Shade | 0 | 4 | 0.1 | 1
+CODE:
+function draw(ctx, W, H, S, t) { ... }
+Every header sits on its own line. STEPS and CONTROLS use "- " bullets; CONTROLS lines are key | label | min | max | step | value. CODE is the last section and runs to the end of the reply; do not wrap it in fence markers. Omit PRESET/PARAMS unless you use a preset, and omit the CODE section only when you do use one.
 
 DRAW WITH CODE (preferred):
 - "code" is exactly one function: function draw(ctx, W, H, S, t) { ... }
@@ -140,6 +148,83 @@ function validCode(raw) {
     return { code, dropped };
 }
 
+function numberPair(raw) {
+    if (!raw) return {};
+    const out = {};
+    String(raw)
+        .split(/[,;]\s*/)
+        .forEach((pair) => {
+            const m = /^\s*([a-z][a-z0-9_]{0,23})\s*[=:]\s*(-?\d+(?:\.\d+)?)\s*$/i.exec(pair);
+            if (m) out[m[1]] = Number(m[2]);
+        });
+    return out;
+}
+
+/**
+ * The plain-text scene protocol.
+ *
+ * Canvas code carries newlines and quotes, which is exactly what a model fails
+ * to escape inside a JSON string. Headers plus a CODE section let the code
+ * travel verbatim, so the scene is parsed instead of salvaged.
+ */
+function parseSceneText(text) {
+    const src = String(text || '').replace(/\r\n/g, '\n').trim();
+    if (!src) return null;
+    // Some models answer in JSON anyway; let the caller try that separately.
+    if (/^\s*\{/.test(src)) return null;
+
+    const HEADER = /^(TITLE|STEPS|CONTROLS|PRESET|PARAMS|CODE)\s*:\s*(.*)$/i;
+    const scene = { title: '', steps: [], controls: [], preset: '', params: {}, code: '' };
+    const controlLines = [];
+    let paramsRaw = '';
+    let mode = null;
+    const codeLines = [];
+
+    for (const rawLine of src.split('\n')) {
+        const line = rawLine.replace(/\s+$/, '');
+        const head = HEADER.exec(line.trim());
+        if (head) {
+            mode = head[1].toLowerCase();
+            const rest = head[2] ? head[2].trim() : '';
+            if (mode === 'title') scene.title = rest;
+            else if (mode === 'preset') scene.preset = rest;
+            else if (mode === 'params') paramsRaw = rest;
+            else if (mode === 'code' && rest) codeLines.push(rest);
+            continue;
+        }
+        if (mode === 'steps') {
+            const item = line.replace(/^\s*[-*•]\s*/, '').trim();
+            if (item) scene.steps.push(item);
+        } else if (mode === 'controls') {
+            const item = line.replace(/^\s*[-*•]\s*/, '').trim();
+            if (item) controlLines.push(item);
+        } else if (mode === 'code') {
+            if (/^```/.test(line.trim())) continue;
+            codeLines.push(line);
+        }
+    }
+
+    scene.code = codeLines.join('\n').trim();
+    scene.params = numberPair(paramsRaw);
+    scene.controls = controlLines
+        .map((item) => {
+            const bits = item.split('|').map((b) => b.trim());
+            if (bits.length < 6) return null;
+            return {
+                key: bits[0],
+                label: bits[1],
+                min: Number(bits[2]),
+                max: Number(bits[3]),
+                step: Number(bits[4]),
+                value: Number(bits[5])
+            };
+        })
+        .filter(Boolean);
+
+    if (!scene.title && !scene.steps.length && !scene.code && !scene.preset) return null;
+    return scene;
+}
+
 function sanitizeScene(raw) {
     const dropped = [];
     if (!raw || typeof raw !== 'object') return { scene: null, dropped: ['not an object'] };
@@ -228,7 +313,7 @@ function buildMessages({ question, skill, solution, ask } = {}) {
     return [
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'system', content: lines.join('\n\n') },
-        { role: 'user', content: 'Design the board scene for this question. JSON only.' }
+        { role: 'user', content: 'Design the board scene for this question in the plain-text format above.' }
     ];
 }
 
@@ -241,5 +326,7 @@ module.exports = {
     buildMessages,
     clampText,
     fallbackScene,
+    numberPair,
+    parseSceneText,
     sanitizeScene
 };
