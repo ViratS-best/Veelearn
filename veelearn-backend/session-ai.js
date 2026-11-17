@@ -33,7 +33,7 @@ const CAPS = {
     budgetMs: Number(process.env.SESSION_AI_BUDGET_MS) || 18000,
     summaryBudgetMs: Number(process.env.SESSION_SUMMARY_BUDGET_MS) || 9000,
     /** A scene is drawn once per question and cached, so it can afford a moment. */
-    boardBudgetMs: Number(process.env.SESSION_BOARD_BUDGET_MS) || 16000,
+    boardBudgetMs: Number(process.env.SESSION_BOARD_BUDGET_MS) || 24000,
     /** A fallback is deterministic; remember it briefly instead of stalling again. */
     fallbackTtlMs: 5 * 60 * 1000,
     maxTokens: 700
@@ -688,20 +688,37 @@ function createSessionAI({ query, qbank, chat, log } = {}) {
 
         let scene = null;
         let dropped = [];
-        try {
-            const text = await chat(sceneModule.buildMessages({ question: card, skill, solution, ask }), {
-                max_tokens: 1400,
-                temperature: 0.5,
-                budgetMs: CAPS.boardBudgetMs,
-                jsonMust: true
-            });
-            const verdict = sceneModule.sanitizeScene(parseJsonLoose(text));
-            dropped = verdict.dropped;
-            scene = verdict.scene;
-            if (!scene && dropped.length) info(`[session.ai] board scene rejected: ${dropped.slice(0, 3).join('; ')}`);
-        } catch (e) {
-            info(`[session.ai] board scene unavailable: ${(e && e.message) || e}`);
+        const messages = sceneModule.buildMessages({ question: card, skill, solution, ask });
+        // A scene carries code, so a truncated reply is the common failure. Two
+        // attempts: the second asks for a shorter, compact object.
+        for (let attempt = 0; attempt < 2 && !scene; attempt += 1) {
+            const nudge =
+                attempt === 0
+                    ? messages
+                    : messages.concat([
+                          {
+                              role: 'user',
+                              content:
+                                  'Your previous reply was not one valid JSON object. Reply again with ONE compact JSON object: no code fence, no comments, code under 70 lines, no newlines inside strings.'
+                          }
+                      ]);
+            try {
+                const text = await chat(nudge, {
+                    max_tokens: attempt === 0 ? 2600 : 2200,
+                    temperature: attempt === 0 ? 0.45 : 0.3,
+                    budgetMs: CAPS.boardBudgetMs,
+                    jsonMust: true
+                });
+                const verdict = sceneModule.sanitizeScene(parseJsonLoose(text));
+                dropped = verdict.dropped;
+                scene = verdict.scene;
+                if (!scene) info(`[session.ai] board reply ${attempt + 1} unusable: ${String(text || '').slice(0, 160)}`);
+            } catch (e) {
+                info(`[session.ai] board scene unavailable: ${(e && e.message) || e}`);
+                break; // a transport failure will not improve on a retry
+            }
         }
+        if (!scene && dropped.length) info(`[session.ai] board scene rejected: ${dropped.slice(0, 3).join('; ')}`);
 
         if (!scene) {
             const fallback = sceneModule.fallbackScene({ question: card, skill, solution, hint });

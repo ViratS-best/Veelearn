@@ -56,7 +56,7 @@ DRAW WITH CODE (preferred):
 - Vector shapes only: lines, arcs, rectangles, polygons, text, gradients. No images, no external fonts.
 - Label what matters with ctx.fillText (axis names, the value being changed, the point the question asks about).
 - Palette: ${PALETTE}. The canvas is white; a pale panel is fine, a full-bleed dark background is not.
-- Keep it under 120 lines, and never draw a stock parabola unless the question is actually about that parabola.
+- Keep it under 90 lines, compact, with no comments, and never draw a stock parabola unless the question is actually about that parabola.
 - Forbidden (the scene will be rejected): document, window, parent, fetch, XMLHttpRequest, WebSocket, eval, new Function, import, localStorage, cookies, location, postMessage, timers, alerts.
 
 OR USE A PRESET:
