@@ -44,42 +44,32 @@ const BANNED = [
 
 const PALETTE = 'ink #26221f, accent #ea580c, green #15803d, blue #2563eb, muted #a8a29e, pale #f6efe6';
 
-const SYSTEM_PROMPT = `You draw on Veelearn's teaching board while a tutor explains one question. You receive the question card (the correct option is withheld), the skill and the authored method. Make the idea visible and touchable — this is the part a paragraph cannot do.
+const SYSTEM_PROMPT = `You write one small interactive canvas drawing for a Veelearn question. You get the question card (the answer is withheld), the skill and the authored method.
 
-Reply in EXACTLY this plain-text format — no JSON, no preamble:
-TITLE: <a specific title, at most 60 characters>
-STEPS:
-- <one short step>
-- <another step>
-CONTROLS:
-- a | Shade | 0 | 4 | 0.1 | 1
-CODE:
-function draw(ctx, W, H, S, t) { ... }
-Every header sits on its own line. STEPS and CONTROLS use "- " bullets; CONTROLS lines are key | label | min | max | step | value. CODE is the last section and runs to the end of the reply; do not wrap it in fence markers. Omit PRESET/PARAMS unless you use a preset, and omit the CODE section only when you do use one.
+Output EXACTLY these three things and nothing else. No preamble, no plan, no explanation, no markdown fences.
 
-DRAW WITH CODE (preferred):
-- "code" is exactly one function: function draw(ctx, W, H, S, t) { ... }
-- ctx is a canvas 2D context, W and H are pixels, S holds your slider values by key, t is seconds since the board opened.
-- Animate from t only. Draw the actual quantities in THIS question with its numbers and labels.
-- Vector shapes only: lines, arcs, rectangles, polygons, text, gradients. No images, no external fonts.
-- Label what matters with ctx.fillText (axis names, the value being changed, the point the question asks about).
-- Palette: ${PALETTE}. The canvas is white; a pale panel is fine, a full-bleed dark background is not.
-- Keep it under 90 lines, compact, with no comments, and never draw a stock parabola unless the question is actually about that parabola.
-- Forbidden (the scene will be rejected): document, window, parent, fetch, XMLHttpRequest, WebSocket, eval, new Function, import, localStorage, cookies, location, postMessage, timers, alerts.
+1) TITLE: <specific title, at most 60 characters>
+2) CONTROLS: key | label | min | max | step | value, key | label | ...   (0 to 3 sliders)
+3) JavaScript beginning with: function draw(ctx, W, H, S, t) { ... }
 
-OR USE A PRESET:
-- Only when the generic engine is genuinely the better drawing, set "preset" to one of: ${prompts.PRESETS.join(', ')} and put numbers in "params". Leave "code" as "".
+The JavaScript is the answer, so start it immediately after the CONTROLS line. Never describe the drawing in words.
 
-CONTROLS:
-- 1 to 3 sliders at most. Each key is read in draw through S.key and must visibly change something.
-- min/max/step/value are numbers; keep the span under 1000.
-- Omit controls entirely when a slider would not teach anything.
+THE DRAWING
+- ctx is a canvas 2D context, W and H are pixels, S holds slider values (S.a), t is seconds since the board opened.
+- Draw the actual quantities in THIS question with its numbers, not a generic graph.
+- Animate from t only: shapes, arrows, parts that fill or move.
+- Vector shapes and text only. Label what matters with ctx.fillText.
+- Palette: ${PALETTE}. White canvas.
+- Under 90 lines, no comments.
+- Never use: document, window, parent, fetch, XMLHttpRequest, eval, new Function, import, localStorage, location, postMessage, alerts, images, timers.
 
-STEPS:
-- 0 to 3 short sentences (<= 140 characters each) that walk the method beside the drawing.
-- Plain words, no markdown, never state or hint at the answer.
+CONTROLS
+- One line, key | label | min | max | step | value, groups separated by commas.
+- Each key must visibly change the drawing through S.key. Omit the line when no slider helps.
 
-TITLE: at most 60 characters, specific to this question ("Halving the bar", not "Diagram").`;
+Only if a stock diagram is genuinely the better drawing, output instead:
+PRESET: <one of ${prompts.PRESETS.join(', ')}>
+PARAMS: key=value, key=value`;
 
 function clampText(value, max) {
     const text = String(value == null ? '' : value)
@@ -160,12 +150,28 @@ function numberPair(raw) {
     return out;
 }
 
+function parseControlLine(item) {
+    const bits = String(item || '')
+        .split('|')
+        .map((b) => b.trim());
+    if (bits.length < 6) return null;
+    return {
+        key: bits[0],
+        label: bits[1],
+        min: Number(bits[2]),
+        max: Number(bits[3]),
+        step: Number(bits[4]),
+        value: Number(bits[5])
+    };
+}
+
 /**
  * The plain-text scene protocol.
  *
  * Canvas code carries newlines and quotes, which is exactly what a model fails
- * to escape inside a JSON string. Headers plus a CODE section let the code
- * travel verbatim, so the scene is parsed instead of salvaged.
+ * to escape inside a JSON string, so the code is taken verbatim from the first
+ * `function draw` to the end of the reply. A model that chats first still works:
+ * the TITLE and CONTROLS lines are found anywhere, and the prose is ignored.
  */
 function parseSceneText(text) {
     const src = String(text || '').replace(/\r\n/g, '\n').trim();
@@ -173,54 +179,70 @@ function parseSceneText(text) {
     // Some models answer in JSON anyway; let the caller try that separately.
     if (/^\s*\{/.test(src)) return null;
 
-    const HEADER = /^(TITLE|STEPS|CONTROLS|PRESET|PARAMS|CODE)\s*:\s*(.*)$/i;
     const scene = { title: '', steps: [], controls: [], preset: '', params: {}, code: '' };
-    const controlLines = [];
-    let paramsRaw = '';
-    let mode = null;
+    const CONTROL = /^\s*(-\s*)?(TITLE|STEPS?|CONTROLS?|PRESET|PARAMS|CODE)\s*:\s*(.*)$/i;
+    const MODE = {
+        title: 'title',
+        step: 'steps',
+        steps: 'steps',
+        control: 'controls',
+        controls: 'controls',
+        preset: 'preset',
+        params: 'params',
+        code: 'code'
+    };
     const codeLines = [];
+    let mode = null;
+    let inCode = false;
 
     for (const rawLine of src.split('\n')) {
         const line = rawLine.replace(/\s+$/, '');
-        const head = HEADER.exec(line.trim());
+        const head = inCode ? null : CONTROL.exec(line);
         if (head) {
-            mode = head[1].toLowerCase();
-            const rest = head[2] ? head[2].trim() : '';
-            if (mode === 'title') scene.title = rest;
-            else if (mode === 'preset') scene.preset = rest;
-            else if (mode === 'params') paramsRaw = rest;
-            else if (mode === 'code' && rest) codeLines.push(rest);
+            mode = MODE[head[2].toLowerCase()] || null;
+            const rest = (head[3] || '').trim();
+            if (mode === 'title' && rest && !scene.title) scene.title = rest.replace(/^["'`]|["'`]$/g, '');
+            else if (mode === 'preset' && rest) scene.preset = rest.split(/\s+/)[0];
+            else if (mode === 'params' && rest) scene.params = Object.assign(scene.params, numberPair(rest));
+            else if (mode === 'controls' && rest) {
+                rest.split(/\s*,\s*/)
+                    .map(parseControlLine)
+                    .filter(Boolean)
+                    .forEach((control) => scene.controls.push(control));
+            } else if (mode === 'code' && rest) {
+                inCode = true;
+                codeLines.push(rest);
+            }
+            continue;
+        }
+
+        // Code starts at the first draw function even if the model forgot the
+        // CODE header; everything from there is taken verbatim.
+        if (!inCode && /function\s+draw\s*\(/.test(line)) {
+            inCode = true;
+            mode = 'code';
+        }
+        if (inCode) {
+            if (/^\s*```/.test(line)) continue;
+            codeLines.push(line);
             continue;
         }
         if (mode === 'steps') {
             const item = line.replace(/^\s*[-*•]\s*/, '').trim();
-            if (item) scene.steps.push(item);
+            if (item && !/^```/.test(item)) scene.steps.push(item);
         } else if (mode === 'controls') {
             const item = line.replace(/^\s*[-*•]\s*/, '').trim();
-            if (item) controlLines.push(item);
-        } else if (mode === 'code') {
-            if (/^```/.test(line.trim())) continue;
-            codeLines.push(line);
+            if (item) {
+                item.split(/\s*,\s*/)
+                    .map(parseControlLine)
+                    .filter(Boolean)
+                    .forEach((control) => scene.controls.push(control));
+            }
         }
     }
 
+    scene.steps = scene.steps.slice(0, MAX_STEPS);
     scene.code = codeLines.join('\n').trim();
-    scene.params = numberPair(paramsRaw);
-    scene.controls = controlLines
-        .map((item) => {
-            const bits = item.split('|').map((b) => b.trim());
-            if (bits.length < 6) return null;
-            return {
-                key: bits[0],
-                label: bits[1],
-                min: Number(bits[2]),
-                max: Number(bits[3]),
-                step: Number(bits[4]),
-                value: Number(bits[5])
-            };
-        })
-        .filter(Boolean);
-
     if (!scene.title && !scene.steps.length && !scene.code && !scene.preset) return null;
     return scene;
 }

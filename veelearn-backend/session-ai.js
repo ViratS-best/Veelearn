@@ -729,6 +729,15 @@ function createSessionAI({ query, qbank, chat, log } = {}) {
             }
         }
         if (!scene && dropped.length) info(`[session.ai] board scene rejected: ${dropped.slice(0, 3).join('; ')}`);
+        // A scene may arrive with code only: pair it with the authored method so
+        // the board still reads like a worked example.
+        if (scene && !scene.steps.length) {
+            scene.steps = (solution && Array.isArray(solution.steps) ? solution.steps : [])
+                .slice(0, 3)
+                .map((step) => sceneModule.clampText(step, 140))
+                .filter(Boolean);
+            if (!scene.steps.length && hint) scene.steps = [sceneModule.clampText(hint, 140)];
+        }
 
         if (!scene) {
             const fallback = sceneModule.fallbackScene({ question: card, skill, solution, hint });
