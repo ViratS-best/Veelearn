@@ -3636,7 +3636,28 @@ function openOutlineForReview(courseId) {
     window.open(`outline.html?id=${courseId}`, "_blank", "noopener");
 }
 
+// An outline has no course body to view: the map is the course, and a session
+// built from it is how a learner actually studies it.
+function editOutline(courseId) {
+    window.location.href = `outline.html?id=${encodeURIComponent(courseId)}`;
+}
+
+function startOutlineSession(courseId) {
+    window.location.href = `session.html?course=${encodeURIComponent(courseId)}&minutes=15`;
+}
+
+window.editOutline = editOutline;
+window.startOutlineSession = startOutlineSession;
+
+function findKnownCourse(courseId) {
+    return [...myCourses, ...availableCourses, ...allApprovedCourses].find(
+        (c) => Number(c.id) === Number(courseId)
+    );
+}
+
 function previewCourse(courseId) {
+    const course = findKnownCourse(courseId);
+    if (course && course.has_outline) return editOutline(courseId);
     viewCourse(courseId);
 }
 
@@ -3925,6 +3946,9 @@ function renderUserCourses(searchText) {
             const li = document.createElement("li");
             const timeStr = formatCreationTime(course.creation_time);
             const likeCount = course.like_count || 0;
+            // Outlines have no body: their map is the editor, their session is the course.
+            const isOutline = Boolean(course.has_outline);
+            const openAction = isOutline ? `editOutline(${course.id})` : `previewCourse(${course.id})`;
 
             li.className = "course-card";
             li.style.display = "block";
@@ -3935,7 +3959,7 @@ function renderUserCourses(searchText) {
             li.innerHTML = `
         <div class="course-card-image" style="font-size: 40px; height: 120px;">
           🎓
-          <button type="button" class="course-card-play" aria-label="Preview ${escapeHtml(course.title)}" onclick="event.stopPropagation(); previewCourse(${course.id})">▶</button>
+          <button type="button" class="course-card-play" aria-label="Open ${escapeHtml(course.title)}" onclick="event.stopPropagation(); ${openAction}">▶</button>
         </div>
         <div class="course-card-content">
           <div class="course-card-title">${escapeHtml(course.title)}</div>
@@ -3958,8 +3982,11 @@ function renderUserCourses(searchText) {
               ` : ''}
           </div>
           <div class="course-card-actions">
-              <button onclick="editCourse(${course.id})" class="course-action-btn course-action-primary">Edit</button>
-              <button onclick="viewCourse(${course.id})" class="course-action-btn course-action-secondary">View</button>
+              ${isOutline
+                ? `<button onclick="editOutline(${course.id})" class="course-action-btn course-action-primary">Edit map</button>
+                   <button onclick="startOutlineSession(${course.id})" class="course-action-btn course-action-secondary">Start learning</button>`
+                : `<button onclick="editCourse(${course.id})" class="course-action-btn course-action-primary">Edit</button>
+                   <button onclick="viewCourse(${course.id})" class="course-action-btn course-action-secondary">View</button>`}
               <button onclick="deleteCourse(${course.id})" class="course-action-btn course-action-danger">Delete</button>
           </div>
         </div>
@@ -4199,13 +4226,15 @@ function renderCourseCard(course) {
          <div class="course-card-content">
             <div class="course-card-title">${escapeHtml(course.title)}</div>
             <div class="course-card-status" style="background: rgba(102,126,234,0.1); color: var(--primary);">
-              📚 ${gradeLevelText} ${course.course_type === 'master' ? '| 🎓 Master' : ''}
+              ${course.has_outline ? '🗺 Outline' : `📚 ${gradeLevelText}`} ${course.course_type === 'master' ? '| 🎓 Master' : ''}
             </div>
             <div class="course-progress">
               <div class="progress-text" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 8px;">${escapeHtml(course.description || "No description")}</div>
             </div>
             <div class="course-card-actions">
-              <button onclick="viewCourse(${course.id})" class="course-action-btn course-action-secondary">View</button>
+              ${course.has_outline
+                ? `<button onclick="startOutlineSession(${course.id})" class="course-action-btn course-action-secondary">Start learning</button>`
+                : `<button onclick="viewCourse(${course.id})" class="course-action-btn course-action-secondary">View</button>`}
               ${course.course_type === 'master' 
                 ? `<button onclick="enrollInMasterCourse(${course.id})" data-enroll-course="${course.id}" class="course-action-btn course-action-primary">Enroll (${course.units_count || 'Multi'})</button>`
                 : `<button onclick="enrollInCourse(${course.id})" data-enroll-course="${course.id}" class="course-action-btn course-action-primary">Enroll</button>`

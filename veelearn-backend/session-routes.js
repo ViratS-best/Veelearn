@@ -216,6 +216,28 @@ function createSessionRoutes({
         },
 
         /**
+         * POST /api/session/:sessionId/board { questionId, ask }
+         *
+         * The board is generated per question: a preset with real parameters or a
+         * small canvas scene the learner can move. A failure returns the authored
+         * method, never an unrelated stock graph.
+         */
+        async board(req, res) {
+            try {
+                const out = await ai.boardScene({
+                    userId: req.user.id,
+                    sessionId: sessionIdFrom(req),
+                    questionId: req.body?.questionId,
+                    ask: req.body?.ask
+                });
+                if (out.ok === false) return apiResponse(res, out.error || 400, out.message || 'Could not draw that');
+                return apiResponse(res, 200, 'Board scene', out);
+            } catch (e) {
+                return fail(res, e, 'Could not draw that');
+            }
+        },
+
+        /**
          * POST /api/session/:sessionId/ai { kind, questionId, distractor, attempts, correct }
          *
          * The model proposes a line and a script; this route returns something

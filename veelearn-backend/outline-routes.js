@@ -11,6 +11,7 @@
  */
 
 const express = require('express');
+const courseQuality = require('./course-quality');
 
 module.exports = function createOutlineRoutes({ query, authenticateToken, writeLimiter, log }) {
     const router = express.Router();
@@ -29,6 +30,14 @@ module.exports = function createOutlineRoutes({ query, authenticateToken, writeL
             const body = req.body || {};
             const title = cleanTitle(body.title);
             if (!title) return res.status(400).json({ success: false, message: 'Give the outline a title first' });
+            // "a", "test", "Outline Test 1794761977545": these used to be saved and
+            // then recommended to learners. Refuse them at the door.
+            if (courseQuality.isTestTitle(title)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Give the outline a real title — a placeholder like "test" or "a" cannot be published.'
+                });
+            }
             const description = String(body.description || '').trim().slice(0, 600);
             const rawGrade = Number(body.gradeLevel != null ? body.gradeLevel : body.grade_level);
             const gradeLevel = Number.isFinite(rawGrade) && rawGrade >= 1 && rawGrade <= 13 ? Math.round(rawGrade) : null;

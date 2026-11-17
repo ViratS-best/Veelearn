@@ -28,6 +28,37 @@
 
 ---
 
+### 🗺 OUTLINES, HONEST RECOMMENDATIONS, AND A BOARD THAT DRAWS THE QUESTION
+
+**Status**: COMPLETE (591 checks green across six suites)
+
+**Placeholders can no longer be recommended** (`course-quality.js`)
+- A test outline is an approved `courses` row like any other, so it reached the tutor's catalog and could be recommended. `course-quality.isTestTitle()` now rejects `a`, pure numbers/timestamps, `test`, `Outline Test 1794761977545`, and harness names like `Gate Test 1794768162860` / `Picture Test 1794`. Real titles survive, including non-Latin ones (`/\p{L}/u`, not `\W`).
+- `isRecommendableCourse(row, outlineJson)` also requires substance: an outline needs one unit, one skill and three questions (the same gate submission uses); a legacy course needs a body or a real description.
+- `ai-tutor-handlers.js` filters the catalog through it before the grade gate, and the prompt says never to name a placeholder. `POST /api/outlines` refuses a placeholder title at creation.
+- **Deleted from the live database** (via `DELETE /api/courses/:id` as superadmin): `a` (#833), `Outline Test 1794761977545` (#815), 14 `Gate Test …` / 2 `Picture Test …` rows. **One real course was deleted by mistake in that sweep**: #799, an Arabic-titled course (`مهارات توظيف أجهزة المحاكاة والمختبرات الافتراضية في التدريس`) matched an early `\W`-based rule. The rule is fixed and the deletion is recorded here; the row could not be recovered.
+- `DELETE /api/courses/:id` now cleans up what the course owns (outline row, enrollments, quiz rows, unit links, `sessions.course_id`, and `qbank_items.live = 0`), so a deleted map cannot linger as `has_outline` or stay recommendable.
+- `purge_test_outlines.js` is the maintenance equivalent: dry-run by default, `--apply` deletes placeholder-titled rows, and it skips any course with enrollments or classroom assignments.
+
+**An outline now opens as a session, not a blank course**
+- `GET /api/courses`, `/api/my-courses` and `/api/courses/:id` return `has_outline`. The catalog card labels it `🗺 Outline` and its action is **Start learning** → `session.html?course=<id>&minutes=15`; the creator's card gets **Edit map** (outline editor) and **Start learning** instead of Edit/View, and `previewCourse` opens the map.
+- `planner.plan` already preferred `outlines.planFromOutline`; the blank viewer was the missing link.
+
+**Outline editor** (`outline.html`)
+- Drafts autosave 1.5 s after the last edit (and on Ctrl/Cmd+S), with `Unsaved changes` → `Saving…` → `Draft saved · 14:32` in the bar. Autosave is disabled while the map waits for review.
+- A **Before you submit** checklist mirrors the server gate: unit pages, skills, 3 questions, teaching instructions on every skill, a question on every skill. A **Try this map in a session** link appears once the map is runnable, so a creator can hear their own map before review.
+- Unit pages and skill circles can be moved up/down and duplicated (questions get fresh ids; `stem_hash = courseId|stem` keeps the bank idempotent).
+
+**The board draws this question** (`board-scene.js`, `session-ai.boardScene`, `board.js`)
+- `POST /api/session/:sessionId/board {questionId, ask}` asks the model for a scene scoped to the current card: `{title, steps, preset, params, controls, code}`. Cached per question + ask (15 min), with a deterministic fallback that is the authored method and the card's own preset — never a stock graph.
+- The model may write `function draw(ctx, W, H, S, t)` using canvas 2D and 1–3 sliders. `board-scene.sanitizeScene` caps length, requires one `draw` function, and rejects `fetch`, `XMLHttpRequest`, `WebSocket`, `eval`, `new Function`, `import`, `document`, `window`, `parent`, storage, `location`, `postMessage` and markup; tags are also escaped.
+- The page runs that code in an iframe with `sandbox="allow-scripts"` and its own `default-src 'none'` CSP: no DOM access to the app, no network, no storage. Sliders post state into the frame; `Board.scene()` mounts a drawing without retyping the steps.
+- `session-app.js` no longer picks `function_plot` for every unknown ask: a card with a preset opens that preset, otherwise the method is shown immediately and the generated scene upgrades the open board. A `board` step in an AI turn now opens the drawing instead of being fed to the annotation player.
+
+**Tests**: `test-bank-provenance.js` 100 (quality rules incl. the Arabic title regression, junk-title refusal at creation, autosave/checklist/reorder wiring, `has_outline` in the list queries, delete cleanup) · `test-ai-session.js` 141 (scene sanitisation, unsafe-code rejection, slider clamping, fallback honesty, sandbox + CSP wiring, no parabola fallback) · `test-session-core.js` 73 · `test-visual-teaching.js` 122 · `test-phase45.js` 85 · `test-open-bank.js` 70.
+
+---
+
 
 ### ✅ QUESTION BANK: STEM · ENGLISH · SAT R&W · ACT · MATHCOUNTS · AMC 8/10/12
 

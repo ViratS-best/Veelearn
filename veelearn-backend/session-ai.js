@@ -32,6 +32,8 @@ const CAPS = {
      */
     budgetMs: Number(process.env.SESSION_AI_BUDGET_MS) || 18000,
     summaryBudgetMs: Number(process.env.SESSION_SUMMARY_BUDGET_MS) || 9000,
+    /** A scene is drawn once per question and cached, so it can afford a moment. */
+    boardBudgetMs: Number(process.env.SESSION_BOARD_BUDGET_MS) || 16000,
     /** A fallback is deterministic; remember it briefly instead of stalling again. */
     fallbackTtlMs: 5 * 60 * 1000,
     maxTokens: 700
@@ -647,8 +649,81 @@ function createSessionAI({ query, qbank, chat, log } = {}) {
         }
     }
 
+    /**
+     * A board scene for one question. The model writes a small canvas scene; the
+     * validator only lets a safe one through, and any failure returns the
+     * authored method rather than an unrelated stock graph.
+     */
+    const boardCache = new Map();
+    async function boardScene({ userId, sessionId, questionId, ask } = {}) {
+        if (!questionId) return { ok: false, error: 400, message: 'questionId is required' };
+        const raw = await qbank.getRaw(questionId);
+        if (!raw) return { ok: false, error: 404, message: 'Question not found' };
+
+        if (typeof query === 'function' && userId && sessionId) {
+            const owned = await query(
+                `SELECT f.id FROM session_focus_items f
+                 JOIN sessions s ON s.id = f.session_id
+                 WHERE f.session_id = ? AND s.user_id = ? AND f.skill_id = ? LIMIT 1`,
+                [sessionId, userId, raw.skill_id]
+            );
+            if (!owned.length) return { ok: false, error: 404, message: 'That question is not part of this session' };
+        }
+
+        const key = `${raw.id}|${String(ask || '').slice(0, 120)}`.toLowerCase();
+        const cached = boardCache.get(key);
+        if (cached && cached.expiresAt > Date.now()) return Object.assign({}, cached.value, { cached: true });
+        if (boardCache.size > 300) boardCache.clear();
+
+        const skill = await qbank.getSkill(raw.skill_id);
+        const card = qbank.toCard(raw);
+        const solution = raw.solution_steps ? qbank.solutionFor(raw) : null;
+        let hint = '';
+        try {
+            hint = typeof qbank.hintFor === 'function' ? qbank.hintFor(raw, 0) || '' : '';
+        } catch (_) {
+            hint = '';
+        }
+        const sceneModule = require('./board-scene');
+
+        let scene = null;
+        let dropped = [];
+        try {
+            const text = await chat(sceneModule.buildMessages({ question: card, skill, solution, ask }), {
+                max_tokens: 1400,
+                temperature: 0.5,
+                budgetMs: CAPS.boardBudgetMs,
+                jsonMust: true
+            });
+            const verdict = sceneModule.sanitizeScene(parseJsonLoose(text));
+            dropped = verdict.dropped;
+            scene = verdict.scene;
+            if (!scene && dropped.length) info(`[session.ai] board scene rejected: ${dropped.slice(0, 3).join('; ')}`);
+        } catch (e) {
+            info(`[session.ai] board scene unavailable: ${(e && e.message) || e}`);
+        }
+
+        if (!scene) {
+            const fallback = sceneModule.fallbackScene({ question: card, skill, solution, hint });
+            fallback.dropped = dropped;
+            boardCache.set(key, { value: fallback, expiresAt: Date.now() + CAPS.fallbackTtlMs });
+            return fallback;
+        }
+
+        const out = { ok: true, fallback: false, cached: false, dropped, scene };
+        boardCache.set(key, { value: out, expiresAt: Date.now() + 15 * 60 * 1000 });
+        await recordTurn(sessionId, {
+            kind: 'board',
+            skillId: raw.skill_id,
+            questionId: raw.id,
+            payload: { kind: 'board', code: scene.code ? scene.code.length : 0, preset: scene.preset || null }
+        });
+        return out;
+    }
+
     return {
         CAPS,
+        boardScene,
         counts: () => ({ entries: cache.size, calls: Object.fromEntries(local.calls) }),
         decideMode,
         decideNext,

@@ -610,6 +610,32 @@
   overflow: auto;
 }
 .sx-board-canvas { min-width: 0; }
+.sx-board-frame {
+  display: block;
+  width: 100%;
+  height: 240px;
+  border: 0;
+  border-radius: 12px;
+  background: #fffdf9;
+}
+.sx-board-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin: 8px 0 2px;
+}
+.sx-board-control {
+  display: grid;
+  grid-template-columns: auto minmax(90px, 1fr) 44px;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--sx-muted);
+  min-width: 190px;
+  flex: 1 1 190px;
+}
+.sx-board-control input[type="range"] { width: 100%; accent-color: var(--sx-accent); }
+.sx-board-control output { font-variant-numeric: tabular-nums; text-align: right; color: var(--sx-ink); }
 .sx-board-canvas .vl-widget-host { min-height: 220px; }
 .sx-board-canvas .vl-widget-view { max-height: 240px; }
 /* The sketch carries its own pointer drag: no page scroll while dragging a point. */

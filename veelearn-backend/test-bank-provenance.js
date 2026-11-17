@@ -17,6 +17,7 @@ const express = require('express');
 const createOutlineRoutes = require('./outline-routes');
 const createOutlines = require('./outline');
 const createQBank = require('./qbank');
+const courseQuality = require('./course-quality');
 const provenance = require('../veelearn-frontend/qbank-provenance');
 
 let pass = 0;
@@ -174,6 +175,38 @@ async function call(base, method, path, body) {
     const json = await res.json();
     return { status: res.status, json };
 }
+
+// ---------------------------------------------------- (a0) real courses only
+// Test outlines used to be recommendable: they are approved `courses` rows.
+const REAL_MAP = { units: [{ skills: [{ questions: [{}, {}, {}] }] }] };
+ok('a placeholder title is a test title', courseQuality.isTestTitle('a') && courseQuality.isTestTitle('Outline Test 1794761977545'));
+ok(
+    'a harness timestamp is a test title',
+    courseQuality.isTestTitle('Gate Test 1794768162860') && courseQuality.isTestTitle('Picture Test 1794768529760')
+);
+ok('a real exam title survives', !courseQuality.isTestTitle('AP Calculus Unit 4: Sequences & Series Tests'));
+ok(
+    'a non-Latin title is a real title',
+    !courseQuality.isTestTitle('مهارات توظيف أجهزة المحاكاة والمختبرات الافتراضية في التدريس'),
+    'Arabic letters must count as letters'
+);
+ok('a filled outline is recommendable', courseQuality.isRecommendableCourse({ title: 'Stars and Cells' }, REAL_MAP));
+ok(
+    'an outline with fewer than three questions is not',
+    !courseQuality.isRecommendableCourse({ title: 'Stars and Cells' }, { units: [{ skills: [{ questions: [{}] }] }] })
+);
+ok(
+    'a placeholder title is never recommendable, however full the map',
+    !courseQuality.isRecommendableCourse({ title: 'Outline Test 1794761977545' }, REAL_MAP)
+);
+ok(
+    'an empty legacy course is not recommendable',
+    !courseQuality.isRecommendableCourse({ title: 'Blank Course', description: '', content_length: 0 }, null)
+);
+ok(
+    'a legacy course with a real body is recommendable',
+    courseQuality.isRecommendableCourse({ title: 'Waves and Sound', content_length: 240 }, null)
+);
 
 // ---------------------------------------------------- (a) picker labels
 eq('an OpenBookQA row is labelled with its licence', provenance.label({ source: 'openbookqa', attribution: OBQA_ATTRIBUTION }), 'OpenBookQA · Apache-2.0');
@@ -400,6 +433,14 @@ ok('an unknown source with a credit line is credited', provenance.isThirdParty({
         const noTitle = await call(base, 'POST', '/api/outlines', {});
         eq('an untitled outline is refused', noTitle.status, 400);
 
+        const junkTitle = await call(base, 'POST', '/api/outlines', { title: 'a' });
+        eq('a one-letter outline title is refused', junkTitle.status, 400);
+        const timestampTitle = await call(base, 'POST', '/api/outlines', {
+            title: 'Outline Test 1794761977545'
+        });
+        eq('a timestamped test outline is refused', timestampTitle.status, 400);
+        eq('the refused outlines never reach the database', db.state.courseInserts.length, 1);
+
         const submit = await call(base, 'POST', '/api/outlines/7/submit');
         eq('submitting a complete map answers 200', submit.status, 200);
         eq('submission moves the outline into review', db.state.courseStatus, 'pending');
@@ -445,6 +486,22 @@ ok('an unknown source with a credit line is credited', provenance.isThirdParty({
         ok('the outline page can start a new outline', /id="new-outline"/.test(page) && /\/api\/outlines'/.test(page));
         ok('the outline page can submit for approval', /\/submit'/.test(page) && /Submit for approval/.test(page));
         ok('a submitted outline locks its editor', /review\.status === 'pending'/.test(page));
+        ok('the outline page autosaves drafts', /setTimeout\(autoSave, 1500\)/.test(page));
+        ok('the page shows the review checklist before submitting', /id="checks"/.test(page) && /renderReadiness\(\)/.test(page));
+        ok('the map can be tried as a session', /session\.html\?course=/.test(page));
+        ok(
+            'pages and skills can be reordered and duplicated',
+            /move-unit-up/.test(page) && /move-skill-down/.test(page) && /duplicate-skill/.test(page)
+        );
+
+        const serverSrc = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+        ok('the catalog tells the UI which courses are outlines', /AS has_outline/.test(serverSrc));
+        ok(
+            'my-courses exposes the same flag',
+            /AS has_outline FROM courses WHERE creator_id/.test(serverSrc),
+            'the dashboard needs it to route an outline to a session'
+        );
+        ok('deleting a course removes its map too', /DELETE FROM course_outlines WHERE course_id = \?/.test(serverSrc));
     } finally {
         server.close();
     }

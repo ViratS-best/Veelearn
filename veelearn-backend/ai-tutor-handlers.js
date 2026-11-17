@@ -4,6 +4,7 @@
  */
 
 const gradeGate = require('./grade-gate');
+const courseQuality = require('./course-quality');
 
 const WIDGET_PRESETS = new Set([
     'function_plot',
@@ -93,6 +94,7 @@ Course recommendations (required when relevant):
 - When the learner asks for a course, says what they want to learn, mentions a grade/level, or is clearly looking for where to start, you MUST recommend 1–3 courses from AVAILABLE_COURSES (or 1 if only one fits).
 - Fit the prompt FIRST. Then, among courses that actually fit, prefer the highest like_count. Never recommend a more-liked off-topic course (e.g. do not recommend Algebra or Mathcounts for "1st grade math").
 - AVAILABLE_COURSES already omits units that belong to a Master Course. Recommend the master, not its child units. Standalone courses that are not part of a master are OK.
+- Never recommend a placeholder. A title like "Outline Test 1794761977545", "test", "a" or an empty draft is not a course; the list is filtered for this, but if one slips through, do not name it.
 - Always end those turns with a new line exactly:
 VEELEARN_RECOMMEND_JSON:
 followed by a single JSON array like [{"courseId":123,"title":"Exact title from list","reason":"one short sentence"}].
@@ -1065,7 +1067,9 @@ function createAiTutorHandlers({ query, aiChatCompletion, apiResponse }) {
 
             const catalog = await query(
                 `SELECT c.id, c.title, c.course_type, c.grade_level, IFNULL(c.like_count, 0) AS like_count,
-                        LEFT(IFNULL(c.description,''), 220) AS desc_preview
+                        LEFT(IFNULL(c.description,''), 220) AS desc_preview,
+                        LEFT(IFNULL(c.description,''), 400) AS description,
+                        CHAR_LENGTH(IFNULL(c.content,'')) AS content_length
                  FROM courses c
                  WHERE c.status = 'approved'
                  AND c.id NOT IN (SELECT course_id FROM enrollments WHERE user_id = ?)
@@ -1078,6 +1082,31 @@ function createAiTutorHandlers({ query, aiChatCompletion, apiResponse }) {
                  LIMIT 250`,
                 [userId]
             );
+
+            // A test outline is an approved `courses` row like any other, so the
+            // catalog has to be filtered by what it actually contains before the
+            // model is allowed to name it.
+            let recommendable = catalog;
+            try {
+                const ids = catalog.map((c) => Number(c.id)).filter(Boolean);
+                const outlineRows = ids.length
+                    ? await query(
+                          `SELECT course_id, outline_json FROM course_outlines WHERE course_id IN (${ids
+                              .map(() => '?')
+                              .join(', ')})`,
+                          ids
+                      )
+                    : [];
+                const outlineById = new Map(outlineRows.map((r) => [Number(r.course_id), r.outline_json]));
+                recommendable = catalog.filter((c) =>
+                    courseQuality.isRecommendableCourse(c, outlineById.has(Number(c.id)) ? outlineById.get(Number(c.id)) : null)
+                );
+            } catch (err) {
+                // The outline table is optional on very old databases: fall back to
+                // the title check so a placeholder can still never be recommended.
+                recommendable = catalog.filter((c) => !courseQuality.isTestTitle(c.title));
+                console.warn('Recommendation quality filter skipped:', err.message);
+            }
 
             const quizRow = await query(
                 `SELECT COUNT(*) AS total, SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) AS correct
@@ -1114,7 +1143,7 @@ function createAiTutorHandlers({ query, aiChatCompletion, apiResponse }) {
                 message,
                 declaredGrade: learnerPrefs && learnerPrefs.declared_grade
             });
-            const gate = gradeGate.filterCatalog(catalog, { grade: learnerGrade.grade, message });
+            const gate = gradeGate.filterCatalog(recommendable, { grade: learnerGrade.grade, message });
             const visibleCatalog = gate.allowed;
 
             const historyRows = await query(

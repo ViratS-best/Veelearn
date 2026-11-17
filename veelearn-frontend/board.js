@@ -32,6 +32,8 @@
     panel: null,
     host: null,
     widget: null,
+    frame: null,
+    controls: null,
     typing: null,
     enginePromise: null,
     reduced: false,
@@ -98,6 +100,7 @@
       </header>
       <div class="sx-board-body">
         <div class="sx-board-canvas" hidden></div>
+        <div class="sx-board-controls" hidden></div>
         <ol class="sx-board-steps"></ol>
       </div>
       <p class="sx-board-note" hidden></p>
@@ -108,6 +111,8 @@
     panel.querySelector('#sx-board-close').addEventListener('click', () => api.close());
     panel.addEventListener('click', (e) => {
       if (e.target.closest && e.target.closest('#sx-board-close')) return;
+      // A slider drag or a click inside the scene is input, not "skip the typing".
+      if (e.target.closest && e.target.closest('input, iframe, .sx-board-controls')) return;
       api.skip();
     });
 
@@ -270,8 +275,158 @@
     }
   }
 
+  /** Remove whatever is mounted (widget or sandboxed scene) without touching the steps. */
+  function clearScene() {
+    if (state.widget && typeof state.widget.destroy === 'function') {
+      try {
+        state.widget.destroy();
+      } catch (_) {
+        /* widget already gone */
+      }
+    }
+    state.widget = null;
+    if (state.frame && state.frame.parentNode) state.frame.parentNode.removeChild(state.frame);
+    state.frame = null;
+    state.controls = null;
+    if (state.panel) {
+      const controls = state.panel.querySelector('.sx-board-controls');
+      if (controls) {
+        controls.innerHTML = '';
+        controls.hidden = true;
+      }
+    }
+  }
+
   /**
-   * @param {{title?:string, steps?:string[], preset?:string, params?:object}} payload
+   * The scene document. The model's code is untrusted: it runs in an iframe with
+   * `sandbox="allow-scripts"` (opaque origin, no parent access), and its own CSP
+   * allows inline script and nothing else — no network, no images, no frames.
+   */
+  function sceneDocument(code, initial) {
+    const body = String(code || '').replace(/<\/script/gi, '<\\/script');
+    const seed = JSON.stringify(initial || {}).replace(/</g, '\\u003c');
+    return [
+      '<!doctype html><html><head><meta charset="utf-8">',
+      '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; script-src \'unsafe-inline\'; style-src \'unsafe-inline\'">',
+      '<style>html,body{margin:0;height:100%;background:#fffdf9;overflow:hidden}canvas{display:block;width:100%;height:100%}</style>',
+      '</head><body><canvas id="c"></canvas><script>',
+      '(function(){',
+      "var canvas=document.getElementById('c'),ctx=canvas.getContext('2d');",
+      `var S=${seed};`,
+      'var W=0,H=0,t0=performance.now(),lastT=0,paused=false;',
+      'function fit(){var r=canvas.getBoundingClientRect();var dpr=Math.min(2,window.devicePixelRatio||1);W=r.width||520;H=r.height||260;canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);}',
+      "window.addEventListener('resize',fit);fit();",
+      'var draw=null;',
+      'try{',
+      `draw=(function(){${body}\nreturn typeof draw === 'function' ? draw : null;})();`,
+      "}catch(e){try{parent.postMessage({type:'board-error',message:String(e&&e.message||e)},'*');}catch(_){}}",
+      'function frame(now){',
+      '  if(!paused) lastT=(now-t0)/1000;',
+      '  try{ctx.clearRect(0,0,W,H); if(typeof draw===\'function\') draw(ctx,W,H,S,lastT);}',
+      "  catch(e){if(!frame.broken){frame.broken=true;try{parent.postMessage({type:'board-error',message:String(e&&e.message||e)},'*');}catch(_){}}}",
+      '  requestAnimationFrame(frame);',
+      '}',
+      "window.addEventListener('message',function(e){var d=e.data||{};if(d.type==='board-state'&&d.state){for(var k in d.state){if(Object.prototype.hasOwnProperty.call(d.state,k))S[k]=d.state[k];}}if(d.type==='board-pause'){paused=!!d.paused;}});",
+      "window.addEventListener('error',function(e){try{parent.postMessage({type:'board-error',message:String(e.message)},'*');}catch(_){}});",
+      'requestAnimationFrame(frame);',
+      '})();',
+      '</script></body></html>'
+    ].join('\n');
+  }
+
+  /** Sliders from the generated scene: each one re-renders the iframe. */
+  function mountControls(controls, values) {
+    const host = state.panel && state.panel.querySelector('.sx-board-controls');
+    if (!host) return;
+    host.innerHTML = '';
+    if (!Array.isArray(controls) || !controls.length) {
+      host.hidden = true;
+      return;
+    }
+    host.hidden = false;
+    controls.forEach((cfg) => {
+      const wrap = document.createElement('label');
+      wrap.className = 'sx-board-control';
+      const name = document.createElement('span');
+      name.textContent = cfg.label || cfg.key;
+      const input = document.createElement('input');
+      input.type = 'range';
+      input.min = String(cfg.min);
+      input.max = String(cfg.max);
+      input.step = String(cfg.step);
+      input.value = String(values[cfg.key] != null ? values[cfg.key] : cfg.value != null ? cfg.value : cfg.min);
+      input.setAttribute('aria-label', cfg.label || cfg.key);
+      const out = document.createElement('output');
+      out.textContent = input.value;
+      input.addEventListener('input', () => {
+        values[cfg.key] = Number(input.value);
+        out.textContent = input.value;
+        if (state.frame && state.frame.contentWindow) {
+          state.frame.contentWindow.postMessage({ type: 'board-state', state: values }, '*');
+        }
+      });
+      wrap.appendChild(name);
+      wrap.appendChild(input);
+      wrap.appendChild(out);
+      host.appendChild(wrap);
+    });
+  }
+
+  /** A generated canvas scene: the model's drawing code, sandboxed, with sliders. */
+  function mountCode(canvas, code, controls, params) {
+    if (!code || typeof code !== 'string') return false;
+    const values = Object.assign({}, params || {});
+    (controls || []).forEach((cfg) => {
+      values[cfg.key] = Number(cfg.value != null ? cfg.value : cfg.min);
+    });
+    const frame = document.createElement('iframe');
+    frame.className = 'sx-board-frame';
+    frame.setAttribute('sandbox', 'allow-scripts');
+    frame.setAttribute('title', 'Interactive diagram');
+    frame.setAttribute('aria-label', 'Interactive diagram');
+    frame.srcdoc = sceneDocument(code, values);
+    canvas.appendChild(frame);
+    state.frame = frame;
+    state.controls = values;
+    mountControls(controls, values);
+    return true;
+  }
+
+  /**
+   * Mount a scene without re-typing the steps. Used to upgrade a board that is
+   * already open once the generated drawing arrives.
+   */
+  async function scene(payload) {
+    const data = payload || {};
+    const panel = ensurePanel();
+    const canvas = panel.querySelector('.sx-board-canvas');
+    const note = panel.querySelector('.sx-board-note');
+    clearScene();
+    canvas.innerHTML = '';
+    canvas.hidden = true;
+    if (note) note.hidden = true;
+
+    let mounted = false;
+    if (data.code) {
+      canvas.hidden = false;
+      mounted = mountCode(canvas, data.code, data.controls, data.params);
+    } else if (data.preset) {
+      canvas.hidden = false;
+      mounted = await mountPreset(canvas, data.preset, data.params);
+    }
+    if (!mounted && data.preset) {
+      canvas.hidden = true;
+      canvas.innerHTML = '';
+      if (note) {
+        note.textContent = 'The diagram could not load, so this is the written method.';
+        note.hidden = false;
+      }
+    }
+    return { ok: mounted };
+  }
+
+  /**
+   * @param {{title?:string, steps?:string[], preset?:string, params?:object, code?:string, controls?:Array}} payload
    */
   async function open(payload) {
     const data = payload || {};
@@ -287,19 +442,15 @@
     panel.classList.add('is-open');
     requestAnimationFrame(() => panel.classList.add('is-in'));
 
-    if (state.widget && typeof state.widget.destroy === 'function') {
-      try {
-        state.widget.destroy();
-      } catch (_) {
-        /* widget already gone */
-      }
-      state.widget = null;
-    }
+    clearScene();
     canvas.innerHTML = '';
     canvas.hidden = true;
     note.hidden = true;
 
-    if (data.preset) {
+    if (data.code) {
+      canvas.hidden = false;
+      mountCode(canvas, data.code, data.controls, data.params);
+    } else if (data.preset) {
       canvas.hidden = false;
       const mounted = await mountPreset(canvas, data.preset, data.params);
       if (!mounted) {
@@ -322,14 +473,7 @@
 
   function close() {
     skip();
-    if (state.widget && typeof state.widget.destroy === 'function') {
-      try {
-        state.widget.destroy();
-      } catch (_) {
-        /* ignore */
-      }
-      state.widget = null;
-    }
+    clearScene();
     if (state.panel) {
       state.panel.classList.remove('is-in', 'is-open');
       state.panel.hidden = true;
@@ -343,6 +487,7 @@
 
   const api = {
     open,
+    scene,
     close,
     skip,
     supported: SUPPORTED,

@@ -4418,7 +4418,8 @@ app.get('/api/courses/:id', authenticateToken, (req, res) => {
     debug('  Database:', dbConfig.database);
 
     const query = `
-        SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time, grade_level, video_url, course_type, gamification_json
+        SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time, grade_level, video_url, course_type, gamification_json,
+               (SELECT 1 FROM course_outlines co WHERE co.course_id = courses.id LIMIT 1) AS has_outline
         FROM courses
         WHERE id = ?
     `;
@@ -4617,15 +4618,12 @@ app.put('/api/courses/:id', authenticateToken, writeLimiter, (req, res) => {
 });
 
 // Delete course
-app.delete('/api/courses/:id', authenticateToken, (req, res) => {
+app.delete('/api/courses/:id', authenticateToken, async (req, res) => {
     const courseId = req.params.id;
     const userId = req.user.id;
 
-    db.query('SELECT creator_id FROM courses WHERE id = ?', [courseId], (err, results) => {
-        if (err) {
-            console.error('Error fetching course:', err);
-            return apiResponse(res, 500, 'Server error');
-        }
+    try {
+        const results = await db.query('SELECT creator_id FROM courses WHERE id = ?', [courseId]);
         if (results.length === 0) {
             return apiResponse(res, 404, 'Course not found');
         }
@@ -4637,14 +4635,30 @@ app.delete('/api/courses/:id', authenticateToken, (req, res) => {
             return apiResponse(res, 403, 'You can only delete your own courses');
         }
 
-        db.query('DELETE FROM courses WHERE id = ?', [courseId], (err, result) => {
-            if (err) {
-                console.error('Error deleting course:', err);
-                return apiResponse(res, 500, 'Server error deleting course');
+        // An outline is a course row plus its map. Leaving the map behind makes
+        // the deleted course reappear in the review queue (has_outline) and keeps
+        // its questions recommendable, so everything it owns goes with it.
+        const cleanup = [
+            ['DELETE FROM course_outlines WHERE course_id = ?', [courseId]],
+            ['UPDATE sessions SET course_id = NULL WHERE course_id = ?', [courseId]],
+            ['DELETE FROM enrollments WHERE course_id = ?', [courseId]],
+            ['DELETE FROM course_questions WHERE course_id = ?', [courseId]],
+            ['UPDATE qbank_items SET live = 0 WHERE course_id = ?', [courseId]],
+            ['DELETE FROM course_units WHERE parent_course_id = ? OR child_course_id = ?', [courseId, courseId]]
+        ];
+        for (const [sql, params] of cleanup) {
+            try {
+                await db.query(sql, params);
+            } catch (cleanupErr) {
+                console.warn('Course cleanup skipped:', cleanupErr.message);
             }
-            apiResponse(res, 200, 'Course deleted successfully');
-        });
-    });
+        }
+        await db.query('DELETE FROM courses WHERE id = ?', [courseId]);
+        apiResponse(res, 200, 'Course deleted successfully');
+    } catch (err) {
+        console.error('Error deleting course:', err);
+        apiResponse(res, 500, 'Server error deleting course');
+    }
 });
 
 app.get('/api/courses', authenticateToken, (req, res) => {
@@ -4668,6 +4682,7 @@ app.get('/api/courses', authenticateToken, (req, res) => {
 SELECT c.id, c.title, c.description, c.creator_id, c.status, c.is_paid, c.shells_cost, c.creation_time, c.grade_level, c.video_url,
        c.like_count, c.course_type, u.email as creator_email,
        CASE WHEN cl.user_id IS NOT NULL THEN true ELSE false END as is_liked,
+       (SELECT 1 FROM course_outlines co WHERE co.course_id = c.id LIMIT 1) as has_outline,
        (SELECT COUNT(*) FROM course_units WHERE parent_course_id = c.id AND is_draft = FALSE) as units_count
 FROM courses c
 LEFT JOIN users u ON c.creator_id = u.id
@@ -4805,7 +4820,7 @@ app.get('/api/users/:userId/courses', authenticateToken, (req, res) => {
             // Fallback if created_at / course_type columns missing on older DBs
             if (/Unknown column/i.test(String(err.message || err))) {
                 const legacy =
-                    'SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time, grade_level, video_url FROM courses WHERE creator_id = ?';
+                    "SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time, grade_level, video_url, (SELECT 1 FROM course_outlines co WHERE co.course_id = courses.id LIMIT 1) AS has_outline FROM courses WHERE creator_id = ?";
                 return db.query(legacy, [userId], (err2, results2) => {
                     if (err2) {
                         console.error('Error fetching user courses:', err2);
@@ -4831,12 +4846,12 @@ app.get('/api/users/:userId/courses', authenticateToken, (req, res) => {
 app.get('/api/my-courses', authenticateToken, (req, res) => {
     const userId = req.user.id;
     const query =
-        'SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time, created_at, grade_level, video_url, course_type, gamification_json FROM courses WHERE creator_id = ? ORDER BY COALESCE(created_at, to_timestamp(NULLIF(creation_time, 0))) DESC';
+        "SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time, created_at, grade_level, video_url, course_type, gamification_json, (SELECT 1 FROM course_outlines co WHERE co.course_id = courses.id LIMIT 1) AS has_outline FROM courses WHERE creator_id = ? ORDER BY COALESCE(created_at, to_timestamp(NULLIF(creation_time, 0))) DESC";
     db.query(query, [userId], (err, results) => {
         if (err) {
             if (/Unknown column/i.test(String(err.message || err))) {
                 const legacy =
-                    'SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time, grade_level, video_url FROM courses WHERE creator_id = ?';
+                    "SELECT id, title, description, content, blocks, creator_id, status, is_paid, shells_cost, feedback, creation_time, grade_level, video_url, (SELECT 1 FROM course_outlines co WHERE co.course_id = courses.id LIMIT 1) AS has_outline FROM courses WHERE creator_id = ?";
                 return db.query(legacy, [userId], (err2, results2) => {
                     if (err2) {
                         console.error('Error fetching my courses:', err2);
@@ -8224,6 +8239,9 @@ app.post('/api/session/:sessionId/hint', writeLimiter, authenticateToken, (req, 
 app.post('/api/session/:sessionId/skip', writeLimiter, authenticateToken, (req, res) => sessionRoutes.skip(req, res));
 app.post('/api/session/:sessionId/ai', writeLimiter, authenticateToken, (req, res) =>
     sessionRoutes.aiTurn(req, res)
+);
+app.post('/api/session/:sessionId/board', writeLimiter, authenticateToken, (req, res) =>
+    sessionRoutes.board(req, res)
 );
 app.post('/api/session/:sessionId/summary', writeLimiter, authenticateToken, (req, res) =>
     sessionRoutes.summary(req, res)

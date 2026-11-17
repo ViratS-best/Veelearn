@@ -123,6 +123,81 @@ ok(
     `${boardPresets.join(',')} vs ${prompts.PRESETS.join(',')}`
 );
 
+// ------------------------------------------------------- generated board scenes
+// The board used to fall back to a stock parabola for every question without a
+// preset. Scenes are now generated per question: validated here, run sandboxed
+// on the page.
+const boardScene = require('./board-scene');
+const sessionAppSrc = fs.readFileSync(path.join(FRONTEND, 'session', 'session-app.js'), 'utf8');
+
+ok('the AI loop exposes a board scene', typeof createSessionAI({}).boardScene === 'function');
+
+const GOOD_CODE =
+    'function draw(ctx, W, H, S, t) { ctx.fillStyle = "#ea580c"; ctx.fillRect(20, 20, S.a * 20, 30); ctx.fillText("a", 20, 80); }';
+const goodScene = boardScene.sanitizeScene({
+    title: 'Halving the bar',
+    steps: ['Split the bar into two equal parts.', 'Shade one part.'],
+    controls: [{ key: 'a', label: 'Shade', min: 0, max: 4, step: 0.1, value: 1 }],
+    code: GOOD_CODE
+});
+ok('a canvas scene is accepted', Boolean(goodScene.scene && goodScene.scene.code.includes('function draw')));
+ok('its sliders survive', goodScene.scene.controls.length === 1 && goodScene.scene.controls[0].key === 'a');
+ok('its steps survive', goodScene.scene.steps.length === 2);
+
+const UNSAFE_CODE = [
+    'function draw(){ fetch("https://evil.test") }',
+    'function draw(){ document.body.innerHTML = "x" }',
+    'function draw(){ window.parent.location = "https://evil.test" }',
+    'function draw(){ eval("1") }',
+    'function draw(){ var x = new Function("return 1") }',
+    'function draw(){ localStorage.setItem("a","b") }'
+];
+ok(
+    'unsafe scene code is refused',
+    UNSAFE_CODE.every((code) => !boardScene.sanitizeScene({ code }).scene),
+    UNSAFE_CODE.filter((code) => boardScene.sanitizeScene({ code }).scene).join(' | ')
+);
+ok('code without a draw function is refused', !boardScene.sanitizeScene({ code: 'console.log(1)' }).scene);
+ok('a scene with neither code, preset nor steps is refused', !boardScene.sanitizeScene({ title: 'x' }).scene);
+const tagScene = boardScene.sanitizeScene({ code: 'function draw(){ /* </script> */ }' });
+ok(
+    'a tag-closing sequence never reaches the scene document',
+    !tagScene.scene || !/<\/script/i.test(tagScene.scene.code),
+    tagScene.scene ? tagScene.scene.code.slice(0, 80) : 'scene rejected'
+);
+
+const clamped = boardScene.sanitizeScene({
+    steps: ['x'],
+    controls: [{ key: 'k', min: 0, max: 10, step: 1, value: 99 }]
+});
+ok('a slider value is clamped into range', clamped.scene.controls[0].value === 10);
+ok(
+    'at most three sliders survive',
+    boardScene.sanitizeScene({
+        steps: ['x'],
+        controls: Array.from({ length: 6 }, (_, i) => ({ key: `k${i}`, min: 0, max: 5, value: 1 }))
+    }).scene.controls.length === 3
+);
+
+const sceneFallback = boardScene.fallbackScene({
+    question: { stem: 'Solve 2x + 5 > 17', options: [] },
+    skill: { name: 'Inequalities' },
+    solution: { steps: ['Subtract 5 from both sides.', 'Divide both sides by 2.'] }
+});
+ok('the fallback shows the authored method', sceneFallback.scene.steps.length === 2);
+ok('the fallback invents no graph', sceneFallback.scene.preset === '' && sceneFallback.scene.code === '');
+
+ok('generated scenes run in a sandboxed frame', /setAttribute\('sandbox', 'allow-scripts'\)/.test(boardSrc));
+ok(
+    'the scene document has its own deny-all CSP',
+    /Content-Security-Policy/.test(boardSrc) &&
+        /default-src/.test(boardSrc) &&
+        /'none'/.test(boardSrc.replace(/\\'/g, "'"))
+);
+ok('a scene can upgrade an open board without retyping the steps', /async function scene\(payload\)/.test(boardSrc));
+ok('the session asks the server to draw this question', /\/board`/.test(sessionAppSrc) && /requestBoardScene/.test(sessionAppSrc));
+ok('the stock-parabola fallback is gone', !/return 'function_plot';/.test(sessionAppSrc));
+
 const mascotSrc = fs.readFileSync(path.join(FRONTEND, 'mascot.js'), 'utf8');
 const mouthBlock = mascotSrc.slice(mascotSrc.indexOf('const MOUTH'), mascotSrc.indexOf('};', mascotSrc.indexOf('const MOUTH')));
 const mouthKeys = [...mouthBlock.matchAll(/^\s{4}(\w+):/gm)].map((m) => m[1]);
