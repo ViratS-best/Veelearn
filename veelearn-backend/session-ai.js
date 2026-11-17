@@ -289,6 +289,11 @@ function decideNext({ requested, correct, attempts = 0, itemsDone = false } = {}
     return { action: 'more', overridden: want !== 'more' };
 }
 
+// The default chain starts with a reasoning model, which spends the whole token
+// budget thinking and never reaches the drawing. The board wants a fast model
+// that answers, so it is pinned while the tutor keeps the default chain.
+const BOARD_MODEL = String(process.env.VEELEARN_BOARD_MODEL || '').trim() || 'google/gemini-3.5-flash-lite';
+
 function createSessionAI({ query, qbank, chat, log } = {}) {
     const info = (log && log.info) || (() => {});
     const cache = new Map();
@@ -705,11 +710,12 @@ function createSessionAI({ query, qbank, chat, log } = {}) {
                           {
                               role: 'user',
                               content:
-                                  'Your previous reply did not follow the format. Reply again using ONLY the TITLE / STEPS / CONTROLS / CODE headers, plain text, code under 70 lines and no comments.'
+                                  'Your previous reply did not follow the format. Reply again with TITLE, CONTROLS and the JavaScript only. No prose, no reasoning, no markdown fences.'
                           }
                       ]);
             try {
                 const text = await chat(nudge, {
+                    model: BOARD_MODEL,
                     max_tokens: attempt === 0 ? 2600 : 2200,
                     temperature: attempt === 0 ? 0.45 : 0.3,
                     budgetMs: CAPS.boardBudgetMs,
