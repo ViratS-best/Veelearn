@@ -692,6 +692,7 @@ function createSessionAI({ query, qbank, chat, log } = {}) {
 
         let scene = null;
         let dropped = [];
+        let lastText = '';
         const messages = sceneModule.buildMessages({ question: card, skill, solution, ask });
         // A scene carries code, so a truncated reply is the common failure. Two
         // attempts: the second asks for a shorter, compact object.
@@ -715,6 +716,7 @@ function createSessionAI({ query, qbank, chat, log } = {}) {
                     // newlines and quotes cannot survive a JSON string.
                     jsonMust: false
                 });
+                lastText = String(text || '');
                 const verdict = sceneModule.sanitizeScene(sanitizeBoardReply(sceneModule, text));
                 dropped = verdict.dropped;
                 scene = verdict.scene;
@@ -729,6 +731,8 @@ function createSessionAI({ query, qbank, chat, log } = {}) {
         if (!scene) {
             const fallback = sceneModule.fallbackScene({ question: card, skill, solution, hint });
             fallback.dropped = dropped;
+            // Capped, so a malformed reply can be diagnosed without a log dive.
+            if (lastText) fallback.preview = lastText.slice(0, 400);
             boardCache.set(key, { value: fallback, expiresAt: Date.now() + CAPS.fallbackTtlMs });
             return fallback;
         }
