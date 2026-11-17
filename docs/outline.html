@@ -50,6 +50,13 @@
 
         .wrap { display: grid; grid-template-columns: 230px 1fr; gap: 18px; padding: 18px 20px 60px; }
         @media (max-width: 860px) { .wrap { grid-template-columns: 1fr; } }
+        .side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+        .checks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+        .checks li { display: flex; gap: 8px; font-size: 13px; color: var(--muted); line-height: 1.35; }
+        .checks li span { flex: 0 0 14px; }
+        .checks li.is-ok { color: var(--ink); }
+        .checks li.is-ok span { color: var(--green); font-weight: 700; }
+        .checks li.is-todo span { color: var(--accent); }
 
         .panel { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 16px; }
         .panel h2 { margin: 0 0 10px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
@@ -149,10 +156,19 @@
     </div>
 
     <div class="wrap">
-        <aside class="panel">
-            <h2>Unit pages</h2>
-            <div class="pages" id="pages"></div>
-            <p class="dots-hint" style="margin:12px 0 0">Each page is a topic. Skills are circles; hover to see them.</p>
+        <aside class="side">
+            <div class="panel">
+                <h2>Unit pages</h2>
+                <div class="pages" id="pages"></div>
+                <p class="dots-hint" style="margin:12px 0 0">Each page is a topic. Skills are circles; hover to see them.</p>
+            </div>
+            <div class="panel">
+                <h2>Before you submit</h2>
+                <ul class="checks" id="checks"></ul>
+                <p class="dots-hint" id="readiness-hint" style="margin:10px 0 0"></p>
+                <a class="btn primary" id="start-learning" href="#" target="_blank" rel="noopener"
+                   style="margin-top:10px;width:100%;text-align:center;display:block" hidden>Try this map in a session</a>
+            </div>
         </aside>
 
         <main class="panel" id="map-panel">
@@ -160,6 +176,9 @@
             <div id="unit-view" hidden>
                 <div class="map-head">
                     <input class="unit-title" id="unit-title" placeholder="Unit title" />
+                    <button class="btn small ghost" id="move-unit-up" title="Move this page earlier" aria-label="Move this page earlier">↑</button>
+                    <button class="btn small ghost" id="move-unit-down" title="Move this page later" aria-label="Move this page later">↓</button>
+                    <button class="btn small ghost" id="duplicate-unit">Duplicate page</button>
                     <button class="btn small ghost" id="delete-unit">Delete page</button>
                 </div>
                 <textarea class="unit-summary" id="unit-summary" placeholder="What this page covers (the AI uses this as the topic brief)"></textarea>
@@ -176,6 +195,9 @@
                             <span>Skill</span>
                             <input type="text" id="skill-name" placeholder="e.g. Integration by parts" />
                         </label>
+                        <button class="btn small ghost" id="move-skill-up" title="Move this skill earlier" aria-label="Move this skill earlier" style="align-self:flex-end">↑</button>
+                        <button class="btn small ghost" id="move-skill-down" title="Move this skill later" aria-label="Move this skill later" style="align-self:flex-end">↓</button>
+                        <button class="btn small ghost" id="duplicate-skill" style="align-self:flex-end">Duplicate</button>
                         <button class="btn small ghost" id="delete-skill" style="align-self:flex-end">Delete skill</button>
                     </div>
                     <label class="field" style="margin-top:10px">
@@ -392,6 +414,155 @@
                 el('submit').textContent = !review.canEdit
                     ? 'Submit for approval'
                     : review.status === 'draft' ? 'Submit for approval' : 'Resubmit for approval';
+                renderReadiness();
+            }
+
+            // -------------------------------------------------------- readiness
+            // The same bar the submit endpoint enforces, shown before the click so
+            // a creator never learns the rules from a rejection.
+            function renderReadiness() {
+                const list = el('checks');
+                if (!list) return;
+                const units = outline.units.length;
+                const skills = outline.units.reduce((n, u) => n + u.skills.length, 0);
+                const questions = outline.units.reduce(
+                    (n, u) => n + u.skills.reduce((m, s) => m + (s.questions ? s.questions.length : 0), 0),
+                    0
+                );
+                const noTeach = outline.units.reduce(
+                    (n, u) => n + u.skills.filter((s) => !String(s.teach || '').trim()).length,
+                    0
+                );
+                const noQuestion = outline.units.reduce(
+                    (n, u) => n + u.skills.filter((s) => !s.questions || !s.questions.length).length,
+                    0
+                );
+                const checks = [
+                    { ok: units > 0, text: units ? `${units} unit page${units === 1 ? '' : 's'}` : 'Add a unit page' },
+                    { ok: skills > 0, text: skills ? `${skills} skill${skills === 1 ? '' : 's'}` : 'Add a skill circle to a page' },
+                    { ok: questions >= 3, text: questions >= 3 ? `${questions} questions` : `${questions} of 3 questions` },
+                    {
+                        ok: skills > 0 && noTeach === 0,
+                        text: noTeach
+                            ? `${noTeach} skill${noTeach === 1 ? '' : 's'} without teaching instructions`
+                            : 'Every skill tells the tutor how to teach it'
+                    },
+                    {
+                        ok: skills > 0 && noQuestion === 0,
+                        text: noQuestion ? `${noQuestion} skill${noQuestion === 1 ? '' : 's'} with no question` : 'Every skill has at least one question'
+                    }
+                ];
+                list.innerHTML = '';
+                checks.forEach((c) => {
+                    const li = document.createElement('li');
+                    li.className = c.ok ? 'is-ok' : 'is-todo';
+                    const mark = document.createElement('span');
+                    mark.textContent = c.ok ? '✓' : '○';
+                    li.appendChild(mark);
+                    li.appendChild(document.createTextNode(c.text));
+                    list.appendChild(li);
+                });
+                const ready = units > 0 && skills > 0 && questions >= 3;
+                const go = el('start-learning');
+                if (go) {
+                    go.hidden = !(ready && courseId && review.canEdit);
+                    go.href = courseId ? `session.html?course=${courseId}&minutes=15` : '#';
+                }
+                el('readiness-hint').textContent = ready
+                    ? 'Runs as a 15-minute session in the order you drew. You can try a draft before review.'
+                    : 'Review needs one unit, one skill and three questions.';
+            }
+
+            // ----------------------------------------------------------- autosave
+            // A map is a lot of typing to lose to a closed tab. Drafts save
+            // themselves 1.5 s after the last change; the Save button still works.
+            let saveTimer = null;
+            let saving = false;
+
+            function canWrite() {
+                return Boolean(review.canEdit) && review.status !== 'pending' && review.status !== 'approved';
+            }
+
+            function markChanged() {
+                renderReadiness();
+                if (!courseId || !canWrite()) return;
+                status('Unsaved changes');
+                clearTimeout(saveTimer);
+                saveTimer = setTimeout(autoSave, 1500);
+            }
+
+            async function autoSave() {
+                if (!courseId || !canWrite() || saving) return;
+                saving = true;
+                status('Saving…');
+                try {
+                    const data = await api('/api/courses/' + courseId + '/outline', { method: 'PUT', body: { outline } });
+                    outline = data.outline;
+                    status('Draft saved · ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+                } catch (err) {
+                    status('Could not save: ' + err.message, true);
+                } finally {
+                    saving = false;
+                }
+            }
+
+            function moveUnit(dir) {
+                const to = unitIndex + dir;
+                if (unitIndex < 0 || to < 0 || to >= outline.units.length) return;
+                const [unit] = outline.units.splice(unitIndex, 1);
+                outline.units.splice(to, 0, unit);
+                unitIndex = to;
+                renderAll();
+                markChanged();
+            }
+
+            function duplicateUnit() {
+                const unit = outline.units[unitIndex];
+                if (!unit) return;
+                const copy = JSON.parse(JSON.stringify(unit));
+                copy.id = 'u' + Math.random().toString(36).slice(2, 8);
+                copy.title = (unit.title || 'Unit') + ' copy';
+                copy.skills.forEach((skill) => {
+                    skill.id = 's' + Math.random().toString(36).slice(2, 8);
+                    (skill.questions || []).forEach((q) => {
+                        q.id = 'q' + Math.random().toString(36).slice(2, 8);
+                    });
+                });
+                outline.units.splice(unitIndex + 1, 0, copy);
+                unitIndex += 1;
+                skillIndex = -1;
+                renderAll();
+                markChanged();
+            }
+
+            function moveSkill(dir) {
+                const unit = outline.units[unitIndex];
+                if (!unit || skillIndex < 0) return;
+                const to = skillIndex + dir;
+                if (to < 0 || to >= unit.skills.length) return;
+                const [skill] = unit.skills.splice(skillIndex, 1);
+                unit.skills.splice(to, 0, skill);
+                skillIndex = to;
+                renderCircles();
+                renderSkillEditor();
+                markChanged();
+            }
+
+            function duplicateSkill() {
+                const unit = outline.units[unitIndex];
+                const skill = unit && unit.skills[skillIndex];
+                if (!skill) return;
+                const copy = JSON.parse(JSON.stringify(skill));
+                copy.id = 's' + Math.random().toString(36).slice(2, 8);
+                copy.name = (skill.name || 'Skill') + ' copy';
+                (copy.questions || []).forEach((q) => {
+                    q.id = 'q' + Math.random().toString(36).slice(2, 8);
+                });
+                unit.skills.splice(skillIndex + 1, 0, copy);
+                skillIndex += 1;
+                renderCircles();
+                renderSkillEditor();
+                markChanged();
             }
 
             function openCreate() {
@@ -589,6 +760,7 @@
                         skill.questions.splice(qi, 1);
                         renderQuestions();
                         renderCircles();
+                        markChanged();
                     });
                     head.appendChild(strong);
                     head.appendChild(provChip(q));
@@ -699,6 +871,7 @@
                 unitIndex = outline.units.length - 1;
                 skillIndex = 0;
                 renderAll();
+                markChanged();
             });
 
             el('add-skill').addEventListener('click', () => {
@@ -708,6 +881,7 @@
                 skillIndex = unit.skills.length - 1;
                 renderCircles();
                 renderSkillEditor();
+                markChanged();
             });
 
             el('delete-unit').addEventListener('click', () => {
@@ -717,6 +891,7 @@
                 unitIndex = outline.units.length ? 0 : -1;
                 skillIndex = -1;
                 renderAll();
+                markChanged();
             });
 
             el('delete-skill').addEventListener('click', () => {
@@ -726,7 +901,15 @@
                 skillIndex = Math.min(skillIndex, unit.skills.length - 1);
                 renderCircles();
                 renderSkillEditor();
+                markChanged();
             });
+
+            el('move-unit-up').addEventListener('click', () => moveUnit(-1));
+            el('move-unit-down').addEventListener('click', () => moveUnit(1));
+            el('duplicate-unit').addEventListener('click', duplicateUnit);
+            el('move-skill-up').addEventListener('click', () => moveSkill(-1));
+            el('move-skill-down').addEventListener('click', () => moveSkill(1));
+            el('duplicate-skill').addEventListener('click', duplicateSkill);
 
             el('add-question').addEventListener('click', () => {
                 const unit = outline.units[unitIndex];
@@ -735,6 +918,7 @@
                 skill.questions.push(blankQuestion());
                 renderQuestions();
                 renderCircles();
+                markChanged();
             });
 
             el('unit-title').addEventListener('input', (e) => {
@@ -867,7 +1051,22 @@
             function renderAll() {
                 renderPages();
                 renderUnit();
+                renderReadiness();
             }
+
+            // Any edit inside the map marks the draft dirty; the debounce lives in
+            // markChanged so a fast typist writes once, not once per key.
+            const mapPanel = el('map-panel');
+            if (mapPanel) {
+                mapPanel.addEventListener('input', markChanged);
+                mapPanel.addEventListener('change', markChanged);
+            }
+            document.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && String(e.key).toLowerCase() === 's') {
+                    e.preventDefault();
+                    autoSave();
+                }
+            });
 
             if (!token) {
                 status('Please sign in first.', true);

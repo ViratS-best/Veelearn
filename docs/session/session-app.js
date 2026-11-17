@@ -1093,10 +1093,22 @@
   /** Play a validated script, saying the line first so the ink lands on speech. */
   function playAI(payload) {
     if (!window.Annotate || !Array.isArray(payload.script)) return false;
+    // A board step is not an annotation: open the drawing, then play the ink
+    // around it. The validator only lets a whitelisted preset through.
+    const boardStep = payload.script.find((s) => s && s.do === 'board');
+    if (boardStep && window.Board) {
+      Board.open({
+        title: state.item ? state.item.name : 'On the board',
+        steps: ((state.lastSolution && state.lastSolution.steps) || []).slice(0, 3),
+        preset: boardStep.preset,
+        params: boardStep.params
+      }).catch(() => {});
+    }
     const steps = [];
     if (payload.say) steps.push({ at: 0, do: 'say', text: payload.say });
     let lastAt = 0;
     for (const step of payload.script) {
+      if (!step || step.do === 'board') continue;
       steps.push(step);
       lastAt = Math.max(lastAt, Number(step.at) || 0);
     }
@@ -1203,52 +1215,62 @@
     );
   }
 
-  function boardPresetFor(question) {
-    const s = String(question || '').toLowerCase();
-    if (/number line/.test(s)) return 'number_line';
-    if (/unit circle|sine|cosine|trig/.test(s)) return 'unit_circle';
-    if (/triangle|angle|area of|geometry/.test(s)) return 'unit_circle';
-    if (/projectile|velocity|throw|launch/.test(s)) return 'function_plot';
-    if (/graph|plot|parabola|function|curve|slope|line/.test(s)) return 'function_plot';
-    if (/number|order|value|position|distance/.test(s)) return 'number_line';
-    return 'function_plot';
+  /**
+   * The drawing for this question, generated for this question.
+   *
+   * The board used to fall back to a stock `y = a·x²` plot whenever the card had
+   * no preset, which is why a fractions question could open a parabola. Now the
+   * server writes a scene from the card and the authored method; when that is
+   * unavailable the board shows the method itself, never an unrelated graph.
+   */
+  async function requestBoardScene(ask) {
+    if (!state.id || !state.question) return null;
+    try {
+      const out = await api(`/api/session/${state.id}/board`, {
+        questionId: state.question.id,
+        ask: ask || ''
+      });
+      return out && out.scene ? out.scene : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  async function buildBoard(title, ask) {
+    if (!window.Board) return;
+    const question = state.question || {};
+    const visual = question.visual && typeof question.visual === 'object' ? question.visual : {};
+    const steps = ((state.lastSolution && state.lastSolution.steps) || []).slice(0, 3);
+    const base = {
+      title: title || (state.item ? state.item.name : 'On the board'),
+      // Even with nothing to draw, the board holds the question and the ask, not
+      // a diagram from another topic.
+      steps: steps.length ? steps : [String(question.stem || 'Read the question once more.').slice(0, 220)]
+    };
+    if (window.Mascot) Mascot.mood('writing');
+
+    if (visual.preset) {
+      await Board.open(Object.assign({}, base, { preset: visual.preset, params: visual.params })).catch(() => {});
+      if (state.visualReady && window.Mascot) Mascot.pointAt('#board').catch(() => {});
+      return;
+    }
+
+    // Method first (instant), then the generated interactive scene on top.
+    await Board.open(base).catch(() => {});
+    if (state.visualReady && window.Mascot) Mascot.pointAt('#board').catch(() => {});
+    const scene = await requestBoardScene(ask);
+    if (!scene || !window.Board || !Board.isOpen()) return;
+    await Board.scene(scene).catch(() => {});
   }
 
   /** Vee draws a small interactive sketch when the question asks to be shown. */
   function openQuickDraw(question) {
-    if (!window.Board) return;
-    const spec = (state.question && state.question.visual) || {};
-    const preset = spec.preset || boardPresetFor(question);
-    if (window.Mascot) Mascot.mood('writing');
-    Board.open({ title: 'Vee’s sketch', steps: [], preset, params: spec.params })
-      .then(() => {
-        if (state.visualReady && window.Mascot) Mascot.pointAt('#board').catch(() => {});
-      })
-      .catch(() => {});
+    return buildBoard('Vee’s sketch', question);
   }
 
-  /** Board mode: the worked steps, plus the item's diagram preset when it has one. */
+  /** Board mode: the worked steps plus the drawing generated for this card. */
   function drawBoard() {
-    if (!window.Board) return;
-    const steps = (state.lastSolution && state.lastSolution.steps) || [];
-    const visual = state.question && state.question.visual;
-    const spec = visual && typeof visual === 'object' ? visual : {};
-    const hint = `${(state.item && state.item.name) || ''} ${(state.question && state.question.stem) || ''}`;
-    // Never open an empty board: with no worked steps and no item diagram, Vee
-    // still draws something the learner can move.
-    if (!steps.length && !spec.preset) return openQuickDraw(hint);
-    const preset = spec.preset || boardPresetFor(hint);
-    if (window.Mascot) Mascot.mood('writing');
-    Board.open({
-      title: state.item ? state.item.name : 'On the board',
-      steps,
-      preset,
-      params: spec.params
-    })
-      .then(() => {
-        if (state.visualReady && window.Mascot) Mascot.pointAt('#board').catch(() => {});
-      })
-      .catch(() => {});
+    return buildBoard(state.item ? state.item.name : 'On the board');
   }
 
   function initVisual() {
