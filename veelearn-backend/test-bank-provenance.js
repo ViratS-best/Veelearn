@@ -145,7 +145,7 @@ function makeDb() {
     return { query, state };
 }
 
-function startServer(db) {
+function startServer(db, userId = 1) {
     const app = express();
     app.use(express.json());
     const noLimit = (req, res, next) => next();
@@ -153,7 +153,7 @@ function startServer(db) {
         createOutlineRoutes({
             query: db.query,
             authenticateToken: (req, res, next) => {
-                req.user = { id: 1, role: 'creator' };
+                req.user = { id: userId, role: userId === 1 ? 'creator' : 'superadmin' };
                 next();
             },
             writeLimiter: noLimit,
@@ -415,6 +415,33 @@ ok('an unknown source with a credit line is credited', provenance.isThirdParty({
         const scriptSrc = fs.readFileSync(path.join(__dirname, '..', 'veelearn-frontend', 'script.js'), 'utf8');
         ok('the review queue marks outlines with the map they carry', /AS has_outline/.test(fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8')));
         ok('an admin opens the map instead of an empty course body', /openOutlineForReview/.test(scriptSrc));
+
+        // A superadmin is not the creator, so the reviewed id is never in their
+        // own course list. The page must open the id it was given instead of
+        // falling back to one of the reviewer's older courses (which had no map
+        // and rendered blank).
+        ok('the outline page opens the id it was given', /courseId = Number\(wanted \|\| list\[0\]\.id\)/.test(page));
+        ok('it never substitutes the viewer\'s first course for a requested id', !/courseId = Number\(match \? match\.id : list\[0\.id\)/.test(page));
+        ok('a reviewer with no outlines of their own is not pushed into the create card', /if \(!list\.length && !wanted\)/.test(page));
+        ok('the bar names the map that is actually open', /querySelector\('option\[value="' \+ courseId/.test(page));
+
+        // The reviewer's read must actually carry the map, read-only.
+        const reviewer = await startServer(db, 99);
+        const reviewerBase = `http://127.0.0.1:${reviewer.address().port}`;
+        try {
+            const asReviewer = await call(reviewerBase, 'GET', '/api/courses/7/outline');
+            eq('a reviewer can open a map they did not write', asReviewer.status, 200);
+            eq('the reviewer sees the submitted units', asReviewer.json.data.outline.units.length, 1);
+            eq(
+                'the reviewer sees the submitted skills and questions',
+                asReviewer.json.data.outline.units[0].skills.length,
+                2
+            );
+            eq('the map carries its real title', asReviewer.json.data.title, 'Stars and Cells');
+            eq('the reviewer cannot edit it', asReviewer.json.data.canEdit, false);
+        } finally {
+            reviewer.close();
+        }
         ok('the outline page can start a new outline', /id="new-outline"/.test(page) && /\/api\/outlines'/.test(page));
         ok('the outline page can submit for approval', /\/submit'/.test(page) && /Submit for approval/.test(page));
         ok('a submitted outline locks its editor', /review\.status === 'pending'/.test(page));
