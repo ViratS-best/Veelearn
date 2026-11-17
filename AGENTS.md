@@ -4172,7 +4172,7 @@ answer computed by Python (`tools/gen_bank.py`), never recalled.
 | K-12 math: arithmetic, fractions, percent, ratio, geometry, probability, algebra | 10,700 |
 | AMC 8 / 10 / 12, AIME, USAMO, IMO style | 3,850 |
 | Coding: Python / C++ / Java output and semantics | 2,800 |
-| SAT math + SAT R&W, ACT math + ACT English | 4,867 |
+| SAT math + SAT R&W, ACT math + ACT English | 3,455 |
 | K-12 science (OpenBookQA) + word problems (GSM8K) | 12,279 |
 
 **Files**
