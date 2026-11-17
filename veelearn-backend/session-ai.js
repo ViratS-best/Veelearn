@@ -748,8 +748,6 @@ function createSessionAI({ query, qbank, chat, log } = {}) {
         if (!scene) {
             const fallback = sceneModule.fallbackScene({ question: card, skill, solution, hint });
             fallback.dropped = lastError ? dropped.concat([`error: ${lastError}`]) : dropped;
-            // Capped, so a malformed reply can be diagnosed without a log dive.
-            if (lastText) fallback.preview = lastText.slice(0, 120);
             boardCache.set(key, { value: fallback, expiresAt: Date.now() + CAPS.fallbackTtlMs });
             return fallback;
         }
