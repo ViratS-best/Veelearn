@@ -166,6 +166,49 @@ function parseControlLine(item) {
 }
 
 /**
+ * Take the draw function alone, closing brace included. Prose after the code
+ * (an explanation, a second draft) must not travel into the sandbox.
+ */
+function sliceDrawFunction(src) {
+    const at = src.search(/function\s+draw\s*\(/);
+    if (at < 0) return '';
+    const open = src.indexOf('{', at);
+    if (open < 0) return '';
+    let depth = 0;
+    let quote = null;
+    let escaped = false;
+    for (let i = open; i < src.length; i += 1) {
+        const ch = src[i];
+        if (quote) {
+            if (escaped) escaped = false;
+            else if (ch === '\\') escaped = true;
+            else if (ch === quote) quote = null;
+            continue;
+        }
+        if (ch === '"' || ch === "'" || ch === '`') {
+            quote = ch;
+            continue;
+        }
+        if (ch === '/' && src[i + 1] === '/') {
+            const nl = src.indexOf('\n', i);
+            i = nl < 0 ? src.length : nl;
+            continue;
+        }
+        if (ch === '/' && src[i + 1] === '*') {
+            const end = src.indexOf('*/', i + 2);
+            i = end < 0 ? src.length : end + 1;
+            continue;
+        }
+        if (ch === '{') depth += 1;
+        else if (ch === '}') {
+            depth -= 1;
+            if (depth === 0) return src.slice(at, i + 1).trim();
+        }
+    }
+    return src.slice(at).trim();
+}
+
+/**
  * The plain-text scene protocol.
  *
  * Canvas code carries newlines and quotes, which is exactly what a model fails
@@ -242,7 +285,9 @@ function parseSceneText(text) {
     }
 
     scene.steps = scene.steps.slice(0, MAX_STEPS);
-    scene.code = codeLines.join('\n').trim();
+    const joined = codeLines.join('\n').trim();
+    // Trailing prose after the function is dropped, so only the drawing is sent.
+    scene.code = joined ? sliceDrawFunction(joined) || joined : '';
     if (!scene.title && !scene.steps.length && !scene.code && !scene.preset) return null;
     return scene;
 }

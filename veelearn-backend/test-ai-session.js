@@ -163,6 +163,10 @@ const plainParsed = boardScene.parseSceneText(PLAIN_REPLY);
 ok('a plain-text scene parses', Boolean(plainParsed), JSON.stringify(plainParsed));
 ok('its code keeps its newlines and quotes', plainParsed && /fillText\("y = "/.test(plainParsed.code) && plainParsed.code.split('\n').length >= 4);
 ok('its steps and slider parse', plainParsed && plainParsed.steps.length === 2 && plainParsed.controls[0].key === 'a');
+const noisyParsed = boardScene.parseSceneText(
+    PLAIN_REPLY.replace('CODE:', 'Here is the drawing I designed for you.').concat('\n\nThat should make it clear.')
+);
+ok('prose around the reply does not enter the code', noisyParsed && noisyParsed.code.endsWith('}') && !/That should/.test(noisyParsed.code));
 const sanitizedPlain = boardScene.sanitizeScene(plainParsed);
 ok('the parsed scene passes the safety gate', Boolean(sanitizedPlain.scene && sanitizedPlain.scene.code));
 
