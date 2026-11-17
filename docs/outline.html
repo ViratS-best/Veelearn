@@ -140,9 +140,12 @@
         <div class="brand">Vee<span>learn</span> outlines</div>
         <select id="course-select" aria-label="Choose a course"></select>
         <span class="status" id="status"></span>
+        <span class="status" id="review-state"></span>
         <div class="spacer"></div>
+        <button class="btn" id="new-outline">+ New outline</button>
         <button class="btn" id="new-unit">+ Unit page</button>
         <button class="btn primary" id="save">Save outline</button>
+        <button class="btn" id="submit">Submit for approval</button>
     </div>
 
     <div class="wrap">
@@ -195,6 +198,39 @@
 
     <div class="skill-tip" id="skill-tip"></div>
 
+    <div class="modal" id="create-modal">
+        <div class="modal-card" style="max-width:520px">
+            <strong style="font-size:17px">Start a new outline</strong>
+            <p class="dots-hint" style="margin:6px 0 14px">
+                An outline is the map itself — unit pages, skill circles, teaching instructions and questions.
+                No course body to write.
+            </p>
+            <label class="field">
+                <span>Title</span>
+                <input type="text" id="create-title" placeholder="e.g. AP Calculus AB — full year" />
+            </label>
+            <label class="field">
+                <span>Grade band (optional)</span>
+                <select id="create-grade">
+                    <option value="">Any</option>
+                    <option value="5">Grade 5</option>
+                    <option value="6">Grade 6</option>
+                    <option value="7">Grade 7</option>
+                    <option value="8">Grade 8</option>
+                    <option value="9">Grade 9</option>
+                    <option value="10">Grade 10</option>
+                    <option value="11">Grade 11</option>
+                    <option value="12">Grade 12</option>
+                    <option value="13">College</option>
+                </select>
+            </label>
+            <p class="dots-hint" id="create-status" style="color:var(--red);margin:0 0 10px"></p>
+            <div class="row" style="justify-content:flex-end">
+                <button class="btn primary" id="create-go">Create outline</button>
+            </div>
+        </div>
+    </div>
+
     <div class="modal" id="bank-modal">
         <div class="modal-card">
             <div class="row" style="justify-content:space-between;margin-bottom:10px">
@@ -241,6 +277,10 @@
             let unitIndex = -1;
             let skillIndex = -1;
 
+            // Review state of the map being edited. A draft (or a rejected one)
+            // is editable; once submitted the creator waits for the superadmin.
+            let review = { status: 'draft', feedback: '', canEdit: false };
+
             const status = (msg, bad) => {
                 el('status').textContent = msg || '';
                 el('status').style.color = bad ? 'var(--red)' : 'var(--muted)';
@@ -270,8 +310,10 @@
                 const select = el('course-select');
                 select.innerHTML = '';
                 if (!list.length) {
-                    select.innerHTML = '<option value="">No courses yet</option>';
-                    el('unit-empty').textContent = 'Create a course first, then draw its outline here.';
+                    select.innerHTML = '<option value="">No outlines yet</option>';
+                    el('unit-empty').textContent = 'Start a new outline to draw your first map.';
+                    el('review-state').textContent = '';
+                    openCreate();
                     return;
                 }
                 list.forEach((c) => {
@@ -294,10 +336,78 @@
                 try {
                     const data = await api('/api/courses/' + courseId + '/outline');
                     outline = data.outline && data.outline.units ? data.outline : { version: 1, units: [] };
+                    review = { status: data.status || 'draft', feedback: data.feedback || '', canEdit: Boolean(data.canEdit) };
                     unitIndex = outline.units.length ? 0 : -1;
                     skillIndex = -1;
                     renderAll();
-                    status(data.canEdit ? 'Ready' : 'Read-only (not your course)');
+                    applyMeta();
+                    status('');
+                } catch (err) {
+                    status(err.message, true);
+                }
+            }
+
+            // The review state has its own line so a save message never hides it.
+            function reviewLine() {
+                if (!review.canEdit) return 'Read-only · not your outline';
+                if (review.status === 'pending') return '⏳ Waiting for a superadmin to review';
+                if (review.status === 'approved') return '✅ Approved';
+                if (review.status === 'rejected') return '✋ Rejected · ' + (review.feedback || 'edit the map and submit again');
+                return 'Draft · not submitted yet';
+            }
+
+            function applyMeta() {
+                el('review-state').textContent = reviewLine();
+                el('review-state').style.color = review.status === 'rejected' ? 'var(--red)' : 'var(--muted)';
+                const locked = !review.canEdit || review.status === 'pending' || review.status === 'approved';
+                ['save', 'new-unit', 'add-skill', 'delete-unit', 'delete-skill', 'add-question', 'pull-bank',
+                    'unit-title', 'unit-summary', 'skill-name', 'skill-teach'].forEach((id) => {
+                    const node = el(id);
+                    if (node) node.disabled = locked;
+                });
+                el('submit').disabled = locked;
+                el('submit').textContent = review.status === 'draft' ? 'Submit for approval' : 'Resubmit for approval';
+            }
+
+            function openCreate() {
+                el('create-modal').classList.add('is-on');
+                el('create-status').textContent = '';
+                el('create-title').focus();
+            }
+
+            async function createOutline() {
+                const title = el('create-title').value.trim();
+                const grade = el('create-grade').value;
+                if (!title) {
+                    el('create-status').textContent = 'Give the outline a title.';
+                    return;
+                }
+                el('create-go').disabled = true;
+                try {
+                    const data = await api('/api/outlines', {
+                        method: 'POST',
+                        body: { title, gradeLevel: grade ? Number(grade) : null }
+                    });
+                    el('create-modal').classList.remove('is-on');
+                    el('create-title').value = '';
+                    history.replaceState(null, '', 'outline.html?id=' + data.id);
+                    courseId = Number(data.id);
+                    await loadCourses();
+                    status('Outline created · draw the first unit page');
+                } catch (err) {
+                    el('create-status').textContent = err.message;
+                } finally {
+                    el('create-go').disabled = false;
+                }
+            }
+
+            async function submitOutline() {
+                if (!courseId) return;
+                status('Submitting…');
+                try {
+                    const data = await api('/api/outlines/' + courseId + '/submit', { method: 'POST', body: {} });
+                    await loadOutline();
+                    status('Submitted · ' + data.skills + ' skills · ' + data.questions + ' questions');
                 } catch (err) {
                     status(err.message, true);
                 }
@@ -305,6 +415,10 @@
 
             async function save() {
                 if (!courseId) return;
+                if (!review.canEdit || review.status === 'pending' || review.status === 'approved') {
+                    status('This outline is locked while it waits for review.', true);
+                    return;
+                }
                 status('Saving…');
                 try {
                     const data = await api('/api/courses/' + courseId + '/outline', { method: 'PUT', body: { outline } });
@@ -622,6 +736,15 @@
             });
 
             el('save').addEventListener('click', save);
+            el('submit').addEventListener('click', submitOutline);
+            el('new-outline').addEventListener('click', openCreate);
+            el('create-go').addEventListener('click', createOutline);
+            el('create-title').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') createOutline();
+            });
+            el('create-modal').addEventListener('click', (e) => {
+                if (e.target === el('create-modal') && courseId) el('create-modal').classList.remove('is-on');
+            });
             el('course-select').addEventListener('change', (e) => {
                 courseId = Number(e.target.value);
                 loadOutline();
