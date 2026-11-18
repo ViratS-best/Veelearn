@@ -216,8 +216,18 @@ ok(
 );
 ok('the tutor has no bare-course fallback', /recommendable = \[\];/.test(tutorSrc));
 ok(
+    'the tutor catalog never lists a Master Course',
+    /IFNULL\(c\.course_type, 'single'\) <> 'master'/.test(tutorSrc),
+    'a learner is shown outlines, not a Master Course'
+);
+ok(
     'recommendations rank by question count then unit count',
     /const qa = Number\(a\.questions\)/.test(tutorSrc) && /return qb - qa/.test(tutorSrc) && /return ub - ua/.test(tutorSrc)
+);
+const recCardSrc = fs.readFileSync(path.join(__dirname, '..', 'veelearn-frontend', 'learner-gamification.js'), 'utf8');
+ok(
+    'a recommendation card offers only practice with the tutor',
+    /data-practice=/.test(recCardSrc) && !/data-enroll=/.test(recCardSrc) && !/data-like=/.test(recCardSrc)
 );
 
 // ---------------------------------------------------- (a) picker labels

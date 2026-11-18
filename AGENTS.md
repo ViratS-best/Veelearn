@@ -120,11 +120,12 @@
 - Both endpoints scoped a question with `f.skill_id = question.skill_id`. A unit review's cards belong to the unit's skills, not to the review item, so every board request from a review card returned 404 before calling the model ("make a simulation please" produced an empty board and no Luna spend).
 - Ownership now accepts a question when a focus item has the same skill, lists the id in `question_ids`, or carries it in `review_pool`, so the scene request reaches Luna and the board draws.
 
-**Dashboard recommendations are outlines only, ranked by size** (`ai-tutor-handlers.js`)
-- The catalog keeps a row only when `course_outlines.outline_json` has at least one unit, one skill and three questions; a bare course is never recommendable and there is no legacy fallback. Each line carries units, skills and question count.
+**Dashboard recommendations are outlines only, ranked by size** (`ai-tutor-handlers.js`, `learner-gamification.js`)
+- The catalog keeps a row only when `course_outlines.outline_json` has at least one unit, one skill and three questions, and it excludes `course_type = 'master'` outright: a Master Course is a bundle of units, not an outline, so the tutor never names one and never offers to enroll anyone. A bare course is never recommendable and there is no legacy fallback. Each line carries units, skills and question count.
 - The prompt tells the model these are complete maps and to match the request's scope by size. The deterministic fallback ranks fits by grade distance, then question count, then unit count (likes last), and its reason names the size.
+- The recommendation card shows the map's grade, units and questions, and its only action is **Practice with the tutor** (`session.html?course=<id>&minutes=15`). The old View / Enroll and Like buttons were removed, and the legacy study-coach list now opens a session instead of `viewCourse()`.
 
-**Tests**: `test-ai-session.js` 156 (first-row session order, unit labels, rail grouping/update, review-card board membership) · `test-bank-provenance.js` 111 (outline-only catalog and size ranking).
+**Tests**: `test-ai-session.js` 156 (first-row session order, unit labels, rail grouping/update, review-card board membership) · `test-bank-provenance.js` 113 (outline-only catalog incl. Master exclusion, practice-only card, size ranking).
 
 ---
 

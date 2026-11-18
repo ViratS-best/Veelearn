@@ -1451,7 +1451,7 @@ function renderStudyCoachRecommendations(recs) {
     el.innerHTML = "";
     if (!recs || !recs.length) return;
     const title = document.createElement("div");
-    title.textContent = "Suggested courses:";
+    title.textContent = "Suggested outlines:";
     title.style.fontWeight = "600";
     title.style.marginBottom = "6px";
     el.appendChild(title);
@@ -1460,12 +1460,12 @@ function renderStudyCoachRecommendations(recs) {
         row.style.marginBottom = "6px";
         const link = document.createElement("button");
         link.type = "button";
-        link.textContent = r.title || `Course ${r.courseId}`;
+        link.textContent = r.title || `Outline ${r.courseId}`;
         link.style.cssText =
             "background:none;border:none;cursor:pointer;text-align:left;padding:0;font-size:13px;text-decoration:underline;";
         link.addEventListener("click", () => {
-            if (typeof viewCourse === "function") viewCourse(r.courseId);
             document.getElementById("study-coach-panel").style.display = "none";
+            window.location.href = `session.html?course=${encodeURIComponent(r.courseId)}&minutes=15`;
         });
         row.appendChild(link);
         if (r.reason) {
@@ -1476,6 +1476,11 @@ function renderStudyCoachRecommendations(recs) {
             why.style.opacity = "0.92";
             row.appendChild(why);
         }
+        const practice = document.createElement("div");
+        practice.textContent = "Practice with the tutor";
+        practice.style.fontSize = "12px";
+        practice.style.opacity = "0.92";
+        row.appendChild(practice);
         el.appendChild(row);
     });
 }

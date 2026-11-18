@@ -94,7 +94,7 @@ Outline recommendations (required when relevant):
 - AVAILABLE_COURSES contains outlines only: every entry is a complete map with units, skills and questions. Never talk about a bare course or a course body; recommend these maps, and call them outlines or maps rather than courses.
 - When the learner asks for something to learn, says what they want to learn, mentions a grade/level, or is clearly looking for where to start, you MUST recommend 1–3 outlines from AVAILABLE_COURSES (or 1 if only one fits).
 - Fit the prompt FIRST. Then use SIZE: each line lists its units and question count. A quick ask, a single topic or a short attention span gets a shorter map; "the whole course", an exam, or a semester gets the longer map with more questions. Never recommend a more-liked off-topic outline (e.g. not Algebra or Mathcounts for "1st grade math").
-- AVAILABLE_COURSES already omits units that belong to a Master Course. Recommend the master map, not its child units.
+- AVAILABLE_COURSES holds standalone outlines only: it never contains a Master Course or a unit that belongs to one. Never name a Master Course and never offer to enroll anyone; the learner practices the outline with you instead.
 - Never recommend a placeholder. A title like "Outline Test 1794761977545", "test", "a" or an empty draft is not a course; the list is filtered for this, but if one slips through, do not name it.
 - Always end those turns with a new line exactly:
 VEELEARN_RECOMMEND_JSON:
@@ -1085,12 +1085,12 @@ function createAiTutorHandlers({ query, aiChatCompletion, apiResponse }) {
                  FROM courses c
                  WHERE c.status = 'approved'
                  AND c.id NOT IN (SELECT course_id FROM enrollments WHERE user_id = ?)
+                 AND IFNULL(c.course_type, 'single') <> 'master'
                  AND NOT EXISTS (
                      SELECT 1 FROM course_units cu
                      WHERE cu.child_course_id = c.id AND cu.is_draft = FALSE
                  )
-                 ORDER BY CASE WHEN c.course_type = 'master' THEN 0 ELSE 1 END,
-                          IFNULL(c.like_count, 0) DESC, c.title ASC
+                 ORDER BY IFNULL(c.like_count, 0) DESC, c.title ASC
                  LIMIT 250`,
                 [userId]
             );
