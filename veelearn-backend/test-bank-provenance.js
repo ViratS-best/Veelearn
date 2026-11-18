@@ -494,6 +494,90 @@ ok('an unknown source with a credit line is credited', provenance.isThirdParty({
             /move-unit-up/.test(page) && /move-skill-down/.test(page) && /duplicate-skill/.test(page)
         );
 
+        // Course -> outline builder: structure, teaching briefs, diagram ideas,
+        // question mapping and the index-course assembly each get a check.
+        const builder = require('./outline-builder');
+        const mcq = (stem, correct, options) => ({
+            question_text: stem,
+            options,
+            correct_answer: correct,
+            explanation: `${stem}: ${correct}`
+        });
+        const demoCourse = {
+            id: 9001,
+            title: 'Algebra',
+            content:
+                '<h2>Linear equations</h2><p>A linear equation has the form ax + b = c. Solve 3x - 7 = 11 by adding 7 to both sides, then dividing both sides by 3.</p>' +
+                '<h2>Ratios</h2><p>A ratio compares two quantities. The ratio 2:3 means for every 2 of the first there are 3 of the second.</p>',
+            questions: [
+                mcq('Solve 3x - 7 = 11', '6', ['6', '5', '4', '7']),
+                mcq('Solve 2x + 3 = 11', '4', ['4', '5', '6', '7']),
+                mcq('Solve 5x = 45', '9', ['9', '8', '7', '6']),
+                mcq('A ratio of 2:3 means what?', 'two parts to three parts', ['two parts to three parts', 'three parts to two parts', 'two plus three', 'two times three']),
+                mcq('Which ratio matches 4:6?', '2:3', ['2:3', '3:4', '4:3', '1:2']),
+                mcq('Divide 20 in the ratio 2:3', '8 and 12', ['8 and 12', '10 and 10', '12 and 8', '5 and 15'])
+            ]
+        };
+        const demoOutline = builder.outlineForCourse(demoCourse);
+        ok('the builder makes one unit per course topic', demoOutline && demoOutline.units.length === 2);
+        ok(
+            'each skill gets a teaching brief, a plain-words instruction and diagram ideas',
+            demoOutline &&
+                demoOutline.units.every(
+                    (u) =>
+                        /Teach it in plain words/.test(u.skills[0].teach) &&
+                        /Draw or show: /.test(u.skills[0].teach) &&
+                        u.skills[0].teach.length > 120
+                )
+        );
+        ok(
+            'the course questions are mapped three per skill',
+            demoOutline && demoOutline.units.every((u) => u.skills[0].questions.length >= 3),
+            demoOutline && JSON.stringify(demoOutline.units.map((u) => u.skills[0].questions.length))
+        );
+        ok(
+            'an equation skill gets a balance-scale model',
+            demoOutline && /balance scale/.test(demoOutline.units[0].skills[0].teach)
+        );
+        ok(
+            'a question keeps its correct answer letter',
+            demoOutline &&
+                demoOutline.units[0].skills[0].questions.every((q) => q.options.some((o) => o.k === q.answer))
+        );
+
+        const indexCourse = {
+            id: 9002,
+            title: 'Algebra Complete',
+            content: '<h2>The units</h2><ol><li>Linear equations</li><li>Ratios</li></ol>',
+            questions: []
+        };
+        const unitOne = {
+            id: 9003,
+            title: 'Algebra Unit 1: Linear equations',
+            content: '<h2>Balancing equations</h2><p>Keep both sides equal. Solve 3x = 12 by dividing both sides by 3.</p>',
+            questions: [
+                mcq('Solve 3x = 12', '4', ['4', '3', '6', '12']),
+                mcq('Solve x + 5 = 9', '4', ['4', '5', '9', '14']),
+                mcq('Solve 2x = 10', '5', ['5', '2', '10', '20'])
+            ]
+        };
+        const unitTwo = {
+            id: 9004,
+            title: 'Algebra Unit 2: Ratios',
+            content: '<h2>Comparing quantities</h2><p>A ratio compares two amounts. 3:4 means three of one for four of the other.</p>',
+            questions: [
+                mcq('Which ratio matches 6:8?', '3:4', ['3:4', '4:3', '6:4', '2:3']),
+                mcq('Simplify 10:15', '2:3', ['2:3', '3:2', '10:15', '5:3']),
+                mcq('A 2:5 mix uses 4 parts of the first; how many of the second?', '10', ['10', '8', '5', '2'])
+            ]
+        };
+        const assembled = builder.assembleFromSiblings(indexCourse, [unitOne, unitTwo]);
+        ok('an index course is assembled from its unit courses', assembled && assembled.units.length === 2);
+        ok(
+            'the assembled map carries the unit questions',
+            assembled && assembled.units.every((u) => u.skills.some((s) => s.questions.length >= 3))
+        );
+
         const serverSrc = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
         ok('the catalog tells the UI which courses are outlines', /AS has_outline/.test(serverSrc));
         ok(

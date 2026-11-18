@@ -1283,6 +1283,7 @@ const aiTutorHandlers = createAiTutorHandlers({ query, aiChatCompletion, apiResp
 const createSessionRoutes = require('./session-routes');
 
 const createOutlineRoutes = require('./outline-routes');
+const createOutlineBuildRoutes = require('./outline-build-routes');
 const sessionRoutes = createSessionRoutes({ query, apiResponse, log: { info, warn }, sendEmail });
 
 const createAiEditorHelpHandlers = require('./ai-editor-help-handlers');
@@ -1382,6 +1383,8 @@ app.use(
         log: { info, warn, error }
     })
 );
+
+app.use(createOutlineBuildRoutes({ query, authenticateToken, log: { info, warn, error } }));
 
 app.use('/api/', generalLimiter);
 
