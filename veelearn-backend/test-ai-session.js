@@ -40,6 +40,22 @@ ok('the free twin is only a fallback now', (hackclub.DEFAULT_FALLBACK_MODELS || 
 ok('the endpoint is Hack Club, not OpenRouter', /ai\.hackclub\.com/.test(fs.readFileSync(path.join(__dirname, 'hackclub-ai.js'), 'utf8')));
 ok('no backend file still calls the OpenRouter API', !/openrouter\.ai/i.test(fs.readFileSync(path.join(__dirname, 'ai-chat.js'), 'utf8').replace(/^\s*\*.*$/gm, '')));
 
+// Board scenes are the only caller pinned to Luna, and it must run without
+// reasoning so the whole reply is drawing code.
+const sessionAiSrc = fs.readFileSync(path.join(__dirname, 'session-ai.js'), 'utf8');
+const builderRoutesSrc = fs.readFileSync(path.join(__dirname, 'outline-build-routes.js'), 'utf8');
+ok(
+    'board scenes are drawn by openai/gpt-6-luna:nitro',
+    /openai\/gpt-6-luna:nitro/.test(sessionAiSrc) && /BOARD_MODEL/.test(sessionAiSrc)
+);
+ok('the board asks for reasoning effort none', /effort: 'none'/.test(sessionAiSrc));
+ok('no other pipeline is pinned to Luna', !/gpt-6-luna/.test(builderRoutesSrc));
+ok(
+    'the chat body can carry a reasoning control',
+    /body\.reasoning = opts\.reasoning/.test(fs.readFileSync(path.join(__dirname, 'hackclub-ai.js'), 'utf8')) &&
+        /reasoning: opts\.reasoning/.test(fs.readFileSync(path.join(__dirname, 'ai-chat.js'), 'utf8'))
+);
+
 const savedHcKey = process.env.HACKCLUBAI_KEY;
 process.env.HACKCLUBAI_KEY = ' hc-test-key ';
 ok('the Hack Club key is read for the config checks', JSON.stringify(chatClient.getAiKeys()) === JSON.stringify(['hc-test-key']), JSON.stringify(chatClient.getAiKeys()));

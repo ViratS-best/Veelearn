@@ -295,6 +295,9 @@ async function hackClubChatCompletionOnce(messages, opts = {}) {
             temperature: opts.temperature ?? 0.1,
             max_tokens: maxTokens
         };
+        // OpenAI-compatible reasoning controls, e.g. { effort: 'none' } for a
+        // model that would otherwise spend the answer's budget thinking.
+        if (opts.reasoning && typeof opts.reasoning === 'object') body.reasoning = opts.reasoning;
         if (hasFiles && engine) {
             body.plugins = [fileParserPlugin(engine)];
         }

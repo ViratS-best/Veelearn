@@ -130,6 +130,7 @@ async function aiChatCompletion(messages, opts = {}) {
             timeoutMs,
             jsonMust: opts.jsonMust === true,
             fileContext: opts.fileContext,
+            reasoning: opts.reasoning,
             onModel: opts.onModel
         });
         const content = typeof out === 'string' ? out : out && out.content;

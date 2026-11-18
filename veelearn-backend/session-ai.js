@@ -289,10 +289,11 @@ function decideNext({ requested, correct, attempts = 0, itemsDone = false } = {}
     return { action: 'more', overridden: want !== 'more' };
 }
 
-// The default chain starts with a reasoning model, which spends the whole token
-// budget thinking and never reaches the drawing. The board wants a fast model
-// that answers, so it is pinned while the tutor keeps the default chain.
-const BOARD_MODEL = String(process.env.VEELEARN_BOARD_MODEL || '').trim() || 'google/gemini-3.5-flash-lite';
+// Board scenes are the one place that wants a coder, not a talker: the default
+// chain's reasoning model spends the answer's budget thinking. The board pins
+// Luna with reasoning off; every other caller keeps the normal model chain.
+const BOARD_MODEL = String(process.env.VEELEARN_BOARD_MODEL || '').trim() || 'openai/gpt-6-luna:nitro';
+const BOARD_REASONING = /^openai\/gpt-6-luna/i.test(BOARD_MODEL) ? { effort: 'none' } : null;
 
 function createSessionAI({ query, qbank, chat, log } = {}) {
     const info = (log && log.info) || (() => {});
@@ -699,6 +700,7 @@ function createSessionAI({ query, qbank, chat, log } = {}) {
         let dropped = [];
         let lastText = '';
         let lastError = '';
+        let usedModel = BOARD_MODEL;
         const messages = sceneModule.buildMessages({ question: card, skill, solution, ask });
         // A scene carries code, so a truncated reply is the common failure. Two
         // attempts: the second asks for a shorter, compact object.
@@ -716,12 +718,16 @@ function createSessionAI({ query, qbank, chat, log } = {}) {
             try {
                 const text = await chat(nudge, {
                     model: BOARD_MODEL,
+                    reasoning: BOARD_REASONING || undefined,
                     max_tokens: attempt === 0 ? 2600 : 2200,
                     temperature: attempt === 0 ? 0.45 : 0.3,
                     budgetMs: CAPS.boardBudgetMs,
                     // The scene protocol is plain text on purpose: code with
                     // newlines and quotes cannot survive a JSON string.
-                    jsonMust: false
+                    jsonMust: false,
+                    onModel: (model) => {
+                        if (model) usedModel = String(model);
+                    }
                 });
                 lastText = text == null ? `(null ${typeof text})` : `${typeof text}:${String(text).length}`;
                 const verdict = sceneModule.sanitizeScene(sanitizeBoardReply(sceneModule, text));
@@ -744,6 +750,8 @@ function createSessionAI({ query, qbank, chat, log } = {}) {
                 .filter(Boolean);
             if (!scene.steps.length && hint) scene.steps = [sceneModule.clampText(hint, 140)];
         }
+        // The model that actually answered, so a fallback inside the chain is visible.
+        if (scene) scene.model = usedModel;
 
         if (!scene) {
             const fallback = sceneModule.fallbackScene({ question: card, skill, solution, hint });
