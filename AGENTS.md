@@ -80,11 +80,11 @@
 
 ### 🔎 SEMANTIC SEARCH FOR THE QUESTION BANK (pgvector)
 
-**Status**: COMPLETE — 512-dim embeddings on `qbank_items`, HNSW cosine index, backfill + sync, hybrid ranking.
+**Status**: COMPLETE — all 48,226 live questions embedded with `cohere/embed-5-fast` at 512 dimensions, HNSW cosine index built, hybrid ranking live.
 
 **Embeddings** (`embeddings.js`)
-- `POST https://ai.hackclub.com/proxy/v1/embeddings` with `Authorization: Bearer HACKCLUBAI_KEY` and `{model:'openai/text-embedding-3-small', dimensions:512, input:[...]}`; batches of 48 with 429/5xx retry. This is the same Hack Club account as every chat call; no second provider or key.
-- If the proxy rejects `dimensions`, the request is retried without it and the 1536-dimension reply is truncated to 512 and renormalised (Matryoshka), so the column width never changes.
+- `POST https://ai.hackclub.com/proxy/v1/embeddings` with `Authorization: Bearer HACKCLUBAI_KEY` and `{model:'cohere/embed-5-fast', dimensions:512, input:[...]}`; batches of 50, six requests in flight, 429/5xx retry. This is the same Hack Club account as every chat call; no second provider or key. `VEELEARN_EMBED_MODEL` and `VEELEARN_EMBED_DIMS` override them, and `POST /api/admin/qbank/embed/test {model, text}` probes a candidate without writing anything.
+- If the proxy rejects `dimensions`, the request is retried without it and a longer reply is truncated to 512 and renormalised (Matryoshka), so the column width never changes. Switching the model changes `embedding_hash`, so run the stale pass to move old vectors into the new space; do not mix models in one index.
 - The embedded text is the stem, `Topic: <skill> · <track>` and `Answer: <correct option text>`; `embedding_hash` fingerprints that exact text.
 
 **Storage**
@@ -92,7 +92,8 @@
 
 **Backfill & sync**
 - `POST /api/admin/qbank/embed/backfill {afterId, limit, mode:'missing'|'stale'}` embeds one resumable page; `POST /api/admin/qbank/embed/sync` is the stale pass; `GET /api/admin/qbank/embed/progress` reports total/embedded/missing, column, extension and readiness; `POST /api/admin/qbank/embed/index` builds the index; `POST /api/admin/qbank/embed/search {q}` returns the top eight semantic neighbours for diagnosis.
-- `node backfill_embeddings.js [--stale|--progress|--index]` drives the whole bank via the admin endpoint and builds the index when nothing is missing.
+- `node backfill_embeddings.js [--stale|--progress|--index|--drop-index]` drives the whole bank via the admin endpoint and builds the index when nothing is missing. `--drop-index` removes the HNSW index for the bulk run (faster writes) and the final index build restores it.
+- Pages are 512 rows; each page embeds batches of 50 with six requests in flight (`VEELEARN_EMBED_CONCURRENCY`, default 6) and writes them in one `unnest` UPDATE per 50 rows. A round trip per row was the original bottleneck (~100 ms each against the hosted Postgres); the batched path sustains ~70-80 rows/s including writes, so a cold 48k backfill takes about 10-12 minutes. Reruns only touch rows that are missing or whose `embedding_hash` changed.
 - New outline questions are queued by `outline.ensureQuestions` (background drain, never blocks a session); a 10-minute drift sweep re-embeds seed inserts, bulk edits and anything written by a path with no explicit hook. `embedding_hash` makes an edit detectable, so changed text is re-embedded instead of keeping a stale vector.
 
 **Hybrid search** (`GET /api/question-bank/search?q=`)
