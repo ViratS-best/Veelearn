@@ -576,11 +576,16 @@ function courseFitsPrompt(message, course) {
 }
 
 function tokenizeForMatch(text) {
-    return String(text || '')
-        .toLowerCase()
-        .replace(/[^a-z0-9\s+#]/g, ' ')
-        .split(/\s+/)
-        .filter((w) => w.length > 2 && !['the', 'and', 'for', 'want', 'learn', 'course', 'with', 'that', 'this', 'have', 'dont', "don't", 'know', 'please', 'recommend', 'something', 'about'].includes(w));
+    return (
+        String(text || '')
+            .toLowerCase()
+            .replace(/[^a-z0-9\s+#]/g, ' ')
+            .split(/\s+/)
+            .filter((w) => w.length > 2 && !['the', 'and', 'for', 'want', 'learn', 'course', 'with', 'that', 'this', 'have', 'dont', "don't", 'know', 'please', 'recommend', 'something', 'about'].includes(w))
+            // "physical science" names the physics maps; the catalog titles say
+            // "Physics", so match the adjective to its subject.
+            .flatMap((w) => (w === 'physical' ? [w, 'physics'] : [w]))
+    );
 }
 
 /**
@@ -1261,7 +1266,9 @@ function createAiTutorHandlers({ query, aiChatCompletion, apiResponse }) {
 
             if (wantsCourseRecommendation(message)) {
                 const ranked = fallbackRecommendations(message, visibleCatalog, 3, learnerGrade.grade);
-                recommendations = ranked;
+                // Only replace the model's picks when the heuristic actually found
+                // a fit: an empty list must not erase a valid recommendation.
+                if (ranked.length) recommendations = ranked;
                 if (recommendations.length && !/veelearn (course|outline)|recommended (course|outline)|here are (a few )?(courses|outlines)|most liked/i.test(safeReply)) {
                     safeReply = `${safeReply}\n\nI picked the Veelearn outline whose size and questions best match what you asked for — open it below.`.trim();
                 }
