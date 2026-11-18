@@ -372,9 +372,9 @@
     el.innerHTML = recs
       .map((r) => {
         const meta = [
-          r.courseType ? String(r.courseType) : null,
           r.gradeLevel != null ? `Grade ${r.gradeLevel}` : null,
-          typeof r.likeCount === 'number' ? `${r.likeCount} likes` : null
+          r.units ? `${r.units} unit${Number(r.units) === 1 ? '' : 's'}` : null,
+          r.questions ? `${r.questions} questions` : null
         ]
           .filter(Boolean)
           .join(' · ');
@@ -385,8 +385,6 @@
         <div style="color:var(--ls-muted);font-size:0.9rem;">${esc(r.reason || '')}</div>
         <div class="ls-rec-actions">
           <button type="button" class="ls-btn-primary" data-practice="${r.courseId}">Practice with the tutor</button>
-          <button type="button" class="ls-btn-soft" data-enroll="${r.courseId}">View / Enroll</button>
-          <button type="button" class="ls-btn-soft" data-like="${r.courseId}">Like this course</button>
         </div>
       </div>`;
       })
@@ -398,41 +396,6 @@
         if (!id) return;
         // A course session teaches the course's own units instead of a generic track.
         window.location.href = `session.html?course=${encodeURIComponent(id)}&minutes=15`;
-      });
-    });
-    el.querySelectorAll('[data-enroll]').forEach((btn) => {
-      btn.addEventListener('click', async () => {
-        const id = parseInt(btn.getAttribute('data-enroll'), 10);
-        try {
-          // Prefer enroll then open; fall back to view if already enrolled
-          const enrollRes = await api(`/api/courses/${id}/enroll`, { method: 'POST', body: '{}' });
-          if (!enrollRes.success && !(enrollRes.message || '').toLowerCase().includes('already')) {
-            // Try master enroll
-            await api(`/api/courses/${id}/enroll-master`, { method: 'POST', body: '{}' });
-          }
-        } catch (_) { /* ignore */ }
-        window.LearnerShell?.hideLearnerShell?.();
-        if (typeof window.viewCourse === 'function') {
-          try {
-            const detail = await api(`/api/courses/${id}`);
-            if (detail.success && detail.data && typeof window.__veelearnPushCourse === 'function') {
-              window.__veelearnPushCourse(detail.data);
-            }
-          } catch (_) { /* ignore */ }
-          window.viewCourse(id);
-        }
-      });
-    });
-    el.querySelectorAll('[data-like]').forEach((btn) => {
-      btn.addEventListener('click', async () => {
-        const id = parseInt(btn.getAttribute('data-like'), 10);
-        try {
-          await api(`/api/courses/${id}/like`, { method: 'POST', body: '{}' });
-          btn.textContent = 'Liked!';
-          btn.disabled = true;
-        } catch (_) {
-          /* ignore */
-        }
       });
     });
   }
