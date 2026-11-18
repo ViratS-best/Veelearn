@@ -240,8 +240,9 @@ async function embedTexts(texts) {
     for (let i = 0; i < list.length; i += BATCH) starts.push(i);
     const out = new Array(list.length);
     let next = 0;
-    // Three requests in flight: the proxy's latency, not the row writes, is the
+    // Several requests in flight: the proxy's latency, not the row writes, is the
     // bottleneck for a 48k backfill. Order is preserved through `starts`.
+    const width = Math.max(1, Math.min(8, Number(process.env.VEELEARN_EMBED_CONCURRENCY || 6)));
     const worker = async () => {
         while (next < starts.length) {
             const start = starts[next++];
@@ -251,7 +252,7 @@ async function embedTexts(texts) {
             });
         }
     };
-    await Promise.all(Array.from({ length: Math.min(3, starts.length) }, worker));
+    await Promise.all(Array.from({ length: Math.min(width, starts.length) }, worker));
     return out;
 }
 

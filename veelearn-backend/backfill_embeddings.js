@@ -24,7 +24,7 @@ const valueOf = (name, fallback) => {
     return found ? found.slice(name.length + 3) : fallback;
 };
 const MODE = has('--stale') ? 'stale' : 'missing';
-const PAGE = Number(valueOf('limit', 288)) || 288;
+const PAGE = Number(valueOf('limit', 512)) || 512;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
