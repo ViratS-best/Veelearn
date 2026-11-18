@@ -24,6 +24,7 @@
  */
 
 const FRAME_CHARS = 900;
+const embeddings = require('./embeddings');
 const LETTERS = 'ABCDEFGH';
 const REVIEW_MIN = 4;
 const REVIEW_TARGET_RATIO = 0.9;
@@ -234,7 +235,15 @@ function createOutlines({ query, log } = {}) {
                 /* keep the ids we already had */
             }
         }
-        return prepared.map((p) => idByHash.get(p.hash)).filter(Boolean);
+        const ids = prepared.map((p) => idByHash.get(p.hash)).filter(Boolean);
+        // New bank rows are embedded in the background, so starting a session
+        // never waits on the embeddings API.
+        try {
+            embeddings.queueQuestions(ids);
+        } catch (_) {
+            /* semantic search is optional; a keyword search still works */
+        }
+        return ids;
     }
 
     /**

@@ -78,6 +78,31 @@
 
 ---
 
+### 🔎 SEMANTIC SEARCH FOR THE QUESTION BANK (pgvector)
+
+**Status**: COMPLETE — 512-dim embeddings on `qbank_items`, HNSW cosine index, backfill + sync, hybrid ranking.
+
+**Embeddings** (`embeddings.js`)
+- `POST https://ai.hackclub.com/proxy/v1/embeddings` with `Authorization: Bearer HACKCLUBAI_KEY` and `{model:'openai/text-embedding-3-small', dimensions:512, input:[...]}`; batches of 48 with 429/5xx retry. This is the same Hack Club account as every chat call; no second provider or key.
+- If the proxy rejects `dimensions`, the request is retried without it and the 1536-dimension reply is truncated to 512 and renormalised (Matryoshka), so the column width never changes.
+- The embedded text is the stem, `Topic: <skill> · <track>` and `Answer: <correct option text>`; `embedding_hash` fingerprints that exact text.
+
+**Storage**
+- `CREATE EXTENSION IF NOT EXISTS vector`; `qbank_items.embedding halfvec(512)` (falls back to `vector(512)` on pgvector < 0.7); `qbank_items.embedding_hash TEXT`; `qbank_items_embedding_hnsw` using `halfvec_cosine_ops` (or `vector_cosine_ops`). All created at boot off the request path, so search is keyword-only until they exist.
+
+**Backfill & sync**
+- `POST /api/admin/qbank/embed/backfill {afterId, limit, mode:'missing'|'stale'}` embeds one resumable page; `POST /api/admin/qbank/embed/sync` is the stale pass; `GET /api/admin/qbank/embed/progress` reports total/embedded/missing, column, extension and readiness; `POST /api/admin/qbank/embed/index` builds the index; `POST /api/admin/qbank/embed/search {q}` returns the top eight semantic neighbours for diagnosis.
+- `node backfill_embeddings.js [--stale|--progress|--index]` drives the whole bank via the admin endpoint and builds the index when nothing is missing.
+- New outline questions are queued by `outline.ensureQuestions` (background drain, never blocks a session); a 10-minute drift sweep re-embeds seed inserts, bulk edits and anything written by a path with no explicit hook. `embedding_hash` makes an edit detectable, so changed text is re-embedded instead of keeping a stale vector.
+
+**Hybrid search** (`GET /api/question-bank/search?q=`)
+- The query is embedded (cached for an hour). SQL merges the nearest 150 vectors with the 150 exact keyword hits (`LOWER(stem) LIKE` or skill name) and ranks `0.72 × cosine + 0.28 × keyword`. Without a key/extension/vector the same endpoint keeps its old keyword SQL, so a failure degrades instead of breaking search.
+- Results add `similarity` and `match` (`semantic`, `semantic+keyword`, `keyword`); answers are still withheld.
+
+**Tests**: `test-semantic-search.js` 32 (schema/column/index, model + dimensions + bearer key, embedded text, hash, vector normalisation, hybrid weights and fallback wiring).
+
+---
+
 
 ### ✅ QUESTION BANK: STEM · ENGLISH · SAT R&W · ACT · MATHCOUNTS · AMC 8/10/12
 

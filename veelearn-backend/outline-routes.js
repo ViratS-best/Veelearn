@@ -12,11 +12,13 @@
 
 const express = require('express');
 const courseQuality = require('./course-quality');
+const embeddings = require('./embeddings');
 
 module.exports = function createOutlineRoutes({ query, authenticateToken, writeLimiter, log }) {
     const router = express.Router();
     const createOutlines = require('./outline');
     const outlines = createOutlines({ query, log });
+    embeddings.configure({ query, log });
 
     const cleanTitle = (v) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, 160);
 
@@ -157,25 +159,73 @@ module.exports = function createOutlineRoutes({ query, authenticateToken, writeL
         try {
             const q = String(req.query.q || '').trim();
             const limit = Math.min(30, Math.max(1, parseInt(req.query.limit, 10) || 12));
-            const params = [];
-            let where = 'WHERE q.live = 1';
+            // Postgres LIKE is case-sensitive, so "stars" would miss "Stars
+            // are". Lower both sides (portable across MySQL and Postgres).
+            const like = `%${q.replace(/[%_]/g, '').toLowerCase()}%`;
+            const columns = `q.id, q.stem, q.options, q.answer, q.hints, q.solution_steps, q.visual,
+                             q.source, q.attribution, s.name AS skill_name`;
+
+            let rows = null;
+            let semantic = false;
             if (q) {
-                // Postgres LIKE is case-sensitive, so "stars" would miss "Stars
-                // are". Lower both sides (portable across MySQL and Postgres).
-                where += ' AND (LOWER(q.stem) LIKE ? OR LOWER(s.name) LIKE ?)';
-                const like = `%${q.replace(/[%_]/g, '').toLowerCase()}%`;
-                params.push(like, like);
+                const vector = await embeddings.embedQuery(q).catch(() => null);
+                if (vector) {
+                    try {
+                        // Two candidate sets: the nearest 150 vectors and the 150
+                        // keyword hits. The outer score is what the user sees.
+                        rows = await query(
+                            `WITH vec AS (
+                                 SELECT id, (1 - (embedding <=> ?::${embeddings.state.column})) AS sim
+                                   FROM qbank_items
+                                  WHERE live = 1 AND embedding IS NOT NULL
+                                  ORDER BY embedding <=> ?::${embeddings.state.column}
+                                  LIMIT 150
+                             ), kw AS (
+                                 SELECT q.id
+                                   FROM qbank_items q
+                                   LEFT JOIN skills s ON s.id = q.skill_id
+                                  WHERE q.live = 1 AND (LOWER(q.stem) LIKE ? OR LOWER(s.name) LIKE ?)
+                                  LIMIT 150
+                             )
+                             SELECT ${columns},
+                                    COALESCE(v.sim, 0) AS similarity,
+                                    CASE WHEN k.id IS NULL THEN 0 ELSE 1 END AS keyword_hit,
+                                    (COALESCE(v.sim, 0) * 0.72 +
+                                     (CASE WHEN k.id IS NULL THEN 0 ELSE 1 END) * 0.28) AS score
+                               FROM qbank_items q
+                               LEFT JOIN skills s ON s.id = q.skill_id
+                               LEFT JOIN vec v ON v.id = q.id
+                               LEFT JOIN kw k ON k.id = q.id
+                              WHERE q.live = 1 AND (v.id IS NOT NULL OR k.id IS NOT NULL)
+                              ORDER BY score DESC, q.id DESC
+                              LIMIT ?`,
+                            [vector, vector, like, like, limit]
+                        );
+                        semantic = true;
+                    } catch (err) {
+                        if (log && log.warn) log.warn(`[qbank] hybrid search fell back: ${err.message}`);
+                        rows = null;
+                    }
+                }
             }
-            const rows = await query(
-                `SELECT q.id, q.stem, q.options, q.answer, q.hints, q.solution_steps, q.visual,
-                        q.source, q.attribution, s.name AS skill_name
-                 FROM qbank_items q
-                 LEFT JOIN skills s ON s.id = q.skill_id
-                 ${where}
-                 ORDER BY q.id DESC
-                 LIMIT ${limit}`,
-                params
-            );
+
+            if (!rows) {
+                const params = [];
+                let where = 'WHERE q.live = 1';
+                if (q) {
+                    where += ' AND (LOWER(q.stem) LIKE ? OR LOWER(s.name) LIKE ?)';
+                    params.push(like, like);
+                }
+                rows = await query(
+                    `SELECT ${columns}
+                     FROM qbank_items q
+                     LEFT JOIN skills s ON s.id = q.skill_id
+                     ${where}
+                     ORDER BY q.id DESC
+                     LIMIT ${limit}`,
+                    params
+                );
+            }
             const data = rows.map((row) => {
                 const parse = (v, f) => {
                     if (v == null) return f;
@@ -198,10 +248,13 @@ module.exports = function createOutlineRoutes({ query, authenticateToken, writeL
                     // Provenance, so a creator can see where a pulled question
                     // came from before they put it in their outline.
                     source: row.source || 'authored',
-                    attribution: row.attribution || ''
+                    attribution: row.attribution || '',
+                    // Present only on the hybrid path; the picker ignores them.
+                    similarity: row.similarity == null ? null : Number(Number(row.similarity).toFixed(4)),
+                    match: semantic ? (Number(row.keyword_hit) ? 'semantic+keyword' : 'semantic') : 'keyword'
                 };
             });
-            res.json({ success: true, data });
+            res.json({ success: true, data, semantic });
         } catch (err) {
             res.status(500).json({ success: false, message: 'Question bank unavailable', error: err.message });
         }

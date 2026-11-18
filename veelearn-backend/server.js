@@ -1109,6 +1109,20 @@ const initializeDatabase = async () => {
                     warn(`[open-bank] import failed: ${e.message}`)
                 );
             }, 5000).unref();
+            // Semantic search: create the vector column, build the cosine index
+            // and start the drift sweep. None of this blocks the boot; search
+            // simply stays keyword-only until the column and vectors exist.
+            embeddings.configure({ query, log: { info, warn } });
+            setTimeout(() => {
+                embeddings
+                    .ensureSchema()
+                    .then(() => embeddings.ensureIndex())
+                    .then(() => {
+                        embeddings.startAutoSync();
+                        if (embeddings.state.ready) info('✓ Semantic question search ready');
+                    })
+                    .catch((e) => warn(`[embeddings] init failed: ${e.message}`));
+            }, 8000).unref();
             const { runRetention, scheduleRetention } = require('./retention');
             await runRetention({ query, log: { info, warn } });
             scheduleRetention({ query, log: { info, warn } });
@@ -1284,6 +1298,8 @@ const createSessionRoutes = require('./session-routes');
 
 const createOutlineRoutes = require('./outline-routes');
 const createOutlineBuildRoutes = require('./outline-build-routes');
+const createSemanticRoutes = require('./semantic-routes');
+const embeddings = require('./embeddings');
 const sessionRoutes = createSessionRoutes({ query, apiResponse, log: { info, warn }, sendEmail });
 
 const createAiEditorHelpHandlers = require('./ai-editor-help-handlers');
@@ -1385,6 +1401,7 @@ app.use(
 );
 
 app.use(createOutlineBuildRoutes({ query, authenticateToken, log: { info, warn, error } }));
+app.use(createSemanticRoutes({ query, authenticateToken, log: { info, warn, error } }));
 
 app.use('/api/', generalLimiter);
 
