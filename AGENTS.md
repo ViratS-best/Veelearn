@@ -56,7 +56,25 @@
 - The page runs that code in an iframe with `sandbox="allow-scripts"` and its own `default-src 'none'` CSP: no DOM access to the app, no network, no storage. Sliders post state into the frame; `Board.scene()` mounts a drawing without retyping the steps.
 - `session-app.js` no longer picks `function_plot` for every unknown ask: a card with a preset opens that preset, otherwise the method is shown immediately and the generated scene upgrades the open board. A `board` step in an AI turn now opens the drawing instead of being fed to the annotation player.
 
-**Tests**: `test-bank-provenance.js` 100 (quality rules incl. the Arabic title regression, junk-title refusal at creation, autosave/checklist/reorder wiring, `has_outline` in the list queries, delete cleanup) · `test-ai-session.js` 141 (scene sanitisation, unsafe-code rejection, slider clamping, fallback honesty, sandbox + CSP wiring, no parabola fallback) · `test-session-core.js` 73 · `test-visual-teaching.js` 122 · `test-phase45.js` 85 · `test-open-bank.js` 70.
+**Tests**: `test-bank-provenance.js` 108 (quality rules incl. the Arabic title regression, junk-title refusal at creation, autosave/checklist/reorder wiring, `has_outline` in the list queries, delete cleanup, the course→outline builder) · `test-ai-session.js` 141 (scene sanitisation, unsafe-code rejection, slider clamping, fallback honesty, sandbox + CSP wiring, no parabola fallback) · `test-session-core.js` 73 · `test-visual-teaching.js` 122 · `test-phase45.js` 85 · `test-open-bank.js` 70.
+
+---
+
+### 🗺 EVERY APPROVED COURSE IS NOW A DETAILED OUTLINE
+
+**Status**: COMPLETE — 232/232 approved courses mapped: 1,577 units, 2,168 skills, 10,387 questions, no skill below three questions.
+
+**The conversion** (`outline-builder.js`, `outline-build-routes.js`, `build_outlines.js`)
+- `outline-builder.outlineForCourse` reads the body a course already has: each `<h2>` section becomes a skill (meta sections such as "What you will learn", "Practice", "Summary" are skipped), the section's real prose becomes the teaching brief, the "Where people slip" line becomes the misconception to correct, and a subject-aware rulebook proposes two diagrams/models (balance scale, fraction bars, unit circle, free-body diagram, particle diagram, trace table, timeline…). Every brief ends with "Teach it in plain words…" and "Draw or show…".
+- The course's own quiz questions are mapped onto skills by keyword fit (title terms weigh 4×), then balanced to at least three per skill and at most five. Authored questions always win; the builder never invents one where the course has one.
+- The 13 "… Complete" index courses have no body, so `assembleFromSiblings` parses their unit list and builds each unit from the matching Unit course (AP Chemistry Complete → 8 units, 56 skills, 280 questions). A map page never opens empty.
+- `POST /api/admin/outlines/build {mode:'stubs'|'courses', limit, afterId, force}` is the batch writer (superadmin only, up to 25 courses per call); `GET /api/admin/outlines/progress?deep=1` reports mapped counts plus units/skills/questions/thin skills; `POST /api/admin/outlines/fill` asks the model for the questions a skill is missing; `POST /api/admin/outlines/tidy` strips course numbering ("1. Moles…", "Module 3: …") from titles without touching questions.
+- `node build_outlines.js --remote` drives it (build both modes, five fill passes); `--cached --dry` reports locally without writing.
+- The fill pins `VEELEARN_OUTLINE_MODEL` (default `google/gemini-3.5-flash-lite`), asks for at most five skills per call, retries once with a terse JSON instruction and then with `gemma-4-26b`, matches paraphrased skill names by word overlap with a fallback slot, and accepts an answer letter, index or exact option text. Every generated item is validated: four options, an answer that exists, no duplicate stem.
+- Course status is never touched. `PUT /api/courses/:id/outline` still refuses a non-owner, so review stays read-only; the batch routes write the map directly.
+- Live result: a session from a converted course uses its skills and questions (verified on `Algebra`: focus `Linear equations`, card "Solve for x: 3x + 7 = 22", answer withheld).
+
+**Tests**: `test-bank-provenance.js` 108 (adds builder structure, teaching brief, diagram model, question mapping, title tidy and index-course assembly).
 
 ---
 

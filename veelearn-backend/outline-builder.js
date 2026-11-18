@@ -250,6 +250,14 @@ const DIAGRAM_RULES = [
     ]
 ];
 
+/** Course headings often carry their own numbering; the map supplies its own. */
+function tidyTitle(value) {
+    return String(value || '')
+        .replace(/^(?:module|unit|chapter|lesson|part|step|week)\s+\d+\s*[:.\-—–]\s*/i, '')
+        .replace(/^\d+\s*[.)·:—–-]\s*/, '')
+        .trim();
+}
+
 function diagramIdeas(course, topic, text) {
     const hay = `${course.title} ${topic} ${text}`;
     for (const [pattern, ideas] of DIAGRAM_RULES) {
@@ -321,17 +329,18 @@ function teachFor(course, topic, count) {
 
 function buildUnit(course, topic, questions) {
     const { teach, ideas } = teachFor(course, topic, questions.length);
+    const tidy = tidyTitle(topic.title) || topic.title;
     return {
         id: `u${topic.index}`,
-        title: topic.title.slice(0, 160),
+        title: tidy.slice(0, 160),
         summary:
             (questions.length ? `${questions.length} question${questions.length === 1 ? '' : 's'} on ${topic.title.toLowerCase()}. ` : '') +
             (ideas[0] ? `Show it as ${ideas[0]}.` : ''),
         skills: [
             {
                 id: `s${topic.index}`,
-                name: topic.title.slice(0, 160),
-                teach,
+                name: tidy.slice(0, 160),
+                teach: tidy !== topic.title ? teach.replace(topic.title, tidy) : teach,
                 questions
             }
         ]
@@ -517,6 +526,7 @@ module.exports = {
     listedUnits,
     outlineForCourse,
     overlap,
+    tidyTitle,
     stats,
     toOutlineQuestion,
     toText,

@@ -228,6 +228,48 @@ module.exports = function createOutlineBuildRoutes({ query, authenticateToken, l
     });
 
     /**
+     * Strip the course's own numbering from map titles ("1. Moles…").
+     * Questions and teaching briefs are untouched.
+     */
+    router.post('/api/admin/outlines/tidy', authenticateToken, async (req, res) => {
+        if (!isAdmin(req)) return res.status(403).json({ success: false, message: 'Superadmin only' });
+        try {
+            const rows = await query(`SELECT course_id FROM course_outlines ORDER BY course_id`);
+            let renamed = 0;
+            for (const row of rows) {
+                const outline = await outlines.load(row.course_id);
+                if (!outline) continue;
+                let changed = false;
+                for (const unit of outline.units) {
+                    const unitTitle = builder.tidyTitle(unit.title);
+                    if (unitTitle && unitTitle !== unit.title) {
+                        unit.title = unitTitle;
+                        changed = true;
+                    }
+                    for (const skill of unit.skills) {
+                        const name = builder.tidyTitle(skill.name);
+                        if (name && name !== skill.name) {
+                            const old = skill.name;
+                            skill.name = name;
+                            if (String(skill.teach).startsWith(old)) {
+                                skill.teach = `${name}${String(skill.teach).slice(old.length)}`;
+                            }
+                            changed = true;
+                        }
+                    }
+                }
+                if (changed) {
+                    await outlines.save(row.course_id, outline);
+                    renamed += 1;
+                }
+            }
+            res.json({ success: true, data: { outlines: rows.length, renamed } });
+        } catch (err) {
+            res.status(500).json({ success: false, message: 'Could not tidy outlines', error: err.message });
+        }
+    });
+
+    /**
      * Ask the model for the questions a skill is missing.
      *
      * Only gaps are generated (skills below three questions), so the course's

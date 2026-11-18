@@ -540,6 +540,11 @@ ok('an unknown source with a credit line is credited', provenance.isThirdParty({
             demoOutline && /balance scale/.test(demoOutline.units[0].skills[0].teach)
         );
         ok(
+            'course numbering is stripped from map titles',
+            builder.tidyTitle('1. Moles and molar mass') === 'Moles and molar mass' &&
+                builder.tidyTitle('Module 3: The unit circle') === 'The unit circle'
+        );
+        ok(
             'a question keeps its correct answer letter',
             demoOutline &&
                 demoOutline.units[0].skills[0].questions.every((q) => q.options.some((o) => o.k === q.answer))
