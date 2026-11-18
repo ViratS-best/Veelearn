@@ -213,33 +213,45 @@ async function requestEmbeddings(texts, { withDimensions = true } = {}) {
  * the vector is truncated + renormalised (Matryoshka truncation for the v3
  * models), so the column stays 512 wide either way.
  */
+async function embedBatch(chunk) {
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+        try {
+            try {
+                return await requestEmbeddings(chunk);
+            } catch (err) {
+                if (err.status === 400 && /dimension/i.test(String(err.message))) {
+                    return await requestEmbeddings(chunk, { withDimensions: false });
+                }
+                throw err;
+            }
+        } catch (err) {
+            const retryable = err.status === 429 || (err.status >= 500 && err.status < 600) || err.name === 'AbortError';
+            if (!retryable || attempt === 3) throw err;
+            await sleep(1200 * (attempt + 1));
+        }
+    }
+    return [];
+}
+
 async function embedTexts(texts) {
     const list = (texts || []).map((t) => String(t || '').slice(0, MAX_TEXT));
     if (!list.length) return [];
-    const out = [];
-    for (let i = 0; i < list.length; i += BATCH) {
-        const chunk = list.slice(i, i + BATCH);
-        for (let attempt = 0; attempt < 4; attempt += 1) {
-            try {
-                let vectors;
-                try {
-                    vectors = await requestEmbeddings(chunk);
-                } catch (err) {
-                    if (err.status === 400 && /dimension/i.test(String(err.message))) {
-                        vectors = await requestEmbeddings(chunk, { withDimensions: false });
-                    } else {
-                        throw err;
-                    }
-                }
-                out.push(...vectors);
-                break;
-            } catch (err) {
-                const retryable = err.status === 429 || (err.status >= 500 && err.status < 600) || err.name === 'AbortError';
-                if (!retryable || attempt === 3) throw err;
-                await sleep(1200 * (attempt + 1));
-            }
+    const starts = [];
+    for (let i = 0; i < list.length; i += BATCH) starts.push(i);
+    const out = new Array(list.length);
+    let next = 0;
+    // Three requests in flight: the proxy's latency, not the row writes, is the
+    // bottleneck for a 48k backfill. Order is preserved through `starts`.
+    const worker = async () => {
+        while (next < starts.length) {
+            const start = starts[next++];
+            const vectors = await embedBatch(list.slice(start, start + BATCH));
+            vectors.forEach((vector, k) => {
+                out[start + k] = vector;
+            });
         }
-    }
+    };
+    await Promise.all(Array.from({ length: Math.min(3, starts.length) }, worker));
     return out;
 }
 
