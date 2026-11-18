@@ -21,13 +21,13 @@
 const crypto = require('crypto');
 const hackclub = require('./hackclub-ai');
 
-const EMBED_MODEL = String(process.env.VEELEARN_EMBED_MODEL || '').trim() || 'openai/text-embedding-3-small';
+const EMBED_MODEL = String(process.env.VEELEARN_EMBED_MODEL || '').trim() || 'cohere/embed-5-fast';
 const EMBED_DIMS = Number(process.env.VEELEARN_EMBED_DIMS || 512);
 const EMBED_URL = String(
     process.env.HACKCLUBAI_EMBEDDINGS_URL || 'https://ai.hackclub.com/proxy/v1/embeddings'
 ).trim();
 const MAX_TEXT = 2000;
-const BATCH = Math.max(1, Math.min(96, Number(process.env.VEELEARN_EMBED_BATCH || 48)));
+const BATCH = Math.max(1, Math.min(96, Number(process.env.VEELEARN_EMBED_BATCH || 50)));
 
 let ctx = { query: null, log: null };
 const state = {
@@ -168,13 +168,13 @@ function normaliseVector(vector) {
     return v;
 }
 
-async function requestEmbeddings(texts, { withDimensions = true } = {}) {
+async function requestEmbeddings(texts, { withDimensions = true, model = EMBED_MODEL } = {}) {
     const key = getKey();
     if (!key) throw Object.assign(new Error('Hack Club AI is not configured'), { code: 'EMBED_NO_KEY' });
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 30000);
     try {
-        const body = { model: EMBED_MODEL, input: texts };
+        const body = { model, input: texts };
         if (withDimensions) body.dimensions = EMBED_DIMS;
         const res = await fetch(EMBED_URL, {
             method: 'POST',
@@ -213,11 +213,11 @@ async function requestEmbeddings(texts, { withDimensions = true } = {}) {
  * the vector is truncated + renormalised (Matryoshka truncation for the v3
  * models), so the column stays 512 wide either way.
  */
-async function embedBatch(chunk) {
+async function embedBatch(chunk, model = EMBED_MODEL) {
     for (let attempt = 0; attempt < 4; attempt += 1) {
         try {
             try {
-                return await requestEmbeddings(chunk);
+                return await requestEmbeddings(chunk, { model });
             } catch (err) {
                 if (err.status === 400 && /dimension/i.test(String(err.message))) {
                     return await requestEmbeddings(chunk, { withDimensions: false });
@@ -254,6 +254,21 @@ async function embedTexts(texts) {
     };
     await Promise.all(Array.from({ length: Math.min(width, starts.length) }, worker));
     return out;
+}
+
+/**
+ * Try a candidate model without writing anything: lets a model switch be
+ * verified before the bank is re-embedded into a different vector space.
+ */
+async function probe({ model, text } = {}) {
+    const use = String(model || '').trim() || EMBED_MODEL;
+    const started = Date.now();
+    try {
+        const [vector] = await requestEmbeddings([String(text || '').slice(0, MAX_TEXT) || 'test'], { model: use });
+        return { ok: true, model: use, dims: vector.length, requested: EMBED_DIMS, ms: Date.now() - started };
+    } catch (err) {
+        return { ok: false, model: use, error: err.message, status: err.status || null, ms: Date.now() - started };
+    }
 }
 
 /** Text that is embedded: question, its topic and its answer. */
@@ -499,6 +514,7 @@ const api = {
     configure,
     drain,
     dropIndex,
+    probe,
     embedQuery,
     embedTexts,
     ensureIndex,

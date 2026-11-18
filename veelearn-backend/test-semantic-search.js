@@ -36,7 +36,7 @@ ok('the extension is created idempotently', /CREATE EXTENSION IF NOT EXISTS vect
 
 /* ------------------------------------------------------------ embeddings */
 
-ok('the embedding model is OpenAI text-embedding-3-small', embeddings.EMBED_MODEL === 'openai/text-embedding-3-small', embeddings.EMBED_MODEL);
+ok('the default embedding model is cohere/embed-5-fast', embeddings.EMBED_MODEL === 'cohere/embed-5-fast', embeddings.EMBED_MODEL);
 ok('dimensions are 512', embeddings.EMBED_DIMS === 512, String(embeddings.EMBED_DIMS));
 ok('the endpoint is the Hack Club embeddings proxy', /ai\.hackclub\.com\/proxy\/v1\/embeddings/.test(fs.readFileSync(path.join(__dirname, 'embeddings.js'), 'utf8')));
 
@@ -78,7 +78,7 @@ ok('a vector literal is bracketed and comma-separated', embeddings.toVectorLiter
         ok('embedding requests go to the Hack Club proxy', captured.url === 'https://ai.hackclub.com/proxy/v1/embeddings', captured.url);
         ok('the request carries the bearer key', captured.headers.authorization === 'Bearer hc-semantic-test');
         ok('the request asks for 512 dimensions', captured.body.dimensions === 512, JSON.stringify(captured.body.dimensions));
-        ok('the request names the embedding model', captured.body.model === 'openai/text-embedding-3-small');
+        ok('the request names the embedding model', captured.body.model === embeddings.EMBED_MODEL);
         ok('the model receives an array input', Array.isArray(captured.body.input));
         ok('a 1536-dimension reply is truncated to 512', vector.length === 512, String(vector.length));
         ok('the stored vector is unit length', Math.abs(Math.sqrt(vector.reduce((n, x) => n + x * x, 0)) - 1) < 1e-6);

@@ -68,6 +68,21 @@ module.exports = function createSemanticRoutes({ query, authenticateToken, log }
         }
     });
 
+    /** Check a candidate embedding model before committing a re-embed to it. */
+    router.post('/api/admin/qbank/embed/test', authenticateToken, async (req, res) => {
+        if (!admin(req, res)) return;
+        try {
+            const body = req.body || {};
+            const data = await embeddings.probe({
+                model: String(body.model || '').trim() || undefined,
+                text: String(body.text || 'What is 5 + 5?')
+            });
+            res.json({ success: data.ok, data });
+        } catch (err) {
+            res.status(500).json({ success: false, message: 'Embedding probe failed', error: err.message });
+        }
+    });
+
     router.post('/api/admin/qbank/embed/index', authenticateToken, async (req, res) => {
         if (!admin(req, res)) return;
         try {
