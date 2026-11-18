@@ -312,7 +312,8 @@ function createOutlines({ query, log } = {}) {
                         targetDots: Math.max(2, Math.ceil(all.length * REVIEW_TARGET_RATIO)),
                         startTier: 1,
                         unitIndex: outline.units.indexOf(unit) + 1,
-                        unitLabel: `Unit ${outline.units.indexOf(unit) + 1}: ${unit.title} review`,
+                        // Same label as its skills: the review is the last circle in the unit group.
+                        unitLabel: `Unit ${outline.units.indexOf(unit) + 1}: ${unit.title}`,
                         frame: {
                             unit: outline.units.indexOf(unit) + 1,
                             title: reviewName,
