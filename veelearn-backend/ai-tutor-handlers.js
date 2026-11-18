@@ -87,13 +87,14 @@ Rules (strict):
 - If they demand the answer, briefly refuse and offer a learning step instead.
 - Keep text concise (under 180 words unless they ask for more detail on the method). Widget JSON does not count toward that limit.
 - Match their level. If they say they are in grades 1–3 / elementary / don't know basic math, do NOT suggest algebra, competition math, Mathcounts, AMC, or advanced topics. Prefer AVAILABLE_COURSES whose grade_level and title/description match their request.
-- NEVER invent course titles. Only recommend courses that appear in AVAILABLE_COURSES. If the list is empty, say so and coach without naming fake courses.
+- NEVER invent course titles. Only recommend outlines that appear in AVAILABLE_COURSES. If the list is empty, say so and coach without naming fake courses.
 - Use LaTeX with $...$ or $$...$$ for math in your prose.
 
-Course recommendations (required when relevant):
-- When the learner asks for a course, says what they want to learn, mentions a grade/level, or is clearly looking for where to start, you MUST recommend 1–3 courses from AVAILABLE_COURSES (or 1 if only one fits).
-- Fit the prompt FIRST. Then, among courses that actually fit, prefer the highest like_count. Never recommend a more-liked off-topic course (e.g. do not recommend Algebra or Mathcounts for "1st grade math").
-- AVAILABLE_COURSES already omits units that belong to a Master Course. Recommend the master, not its child units. Standalone courses that are not part of a master are OK.
+Outline recommendations (required when relevant):
+- AVAILABLE_COURSES contains outlines only: every entry is a complete map with units, skills and questions. Never talk about a bare course or a course body; recommend these maps.
+- When the learner asks for something to learn, says what they want to learn, mentions a grade/level, or is clearly looking for where to start, you MUST recommend 1–3 outlines from AVAILABLE_COURSES (or 1 if only one fits).
+- Fit the prompt FIRST. Then use SIZE: each line lists its units and question count. A quick ask, a single topic or a short attention span gets a shorter map; "the whole course", an exam, or a semester gets the longer map with more questions. Never recommend a more-liked off-topic outline (e.g. not Algebra or Mathcounts for "1st grade math").
+- AVAILABLE_COURSES already omits units that belong to a Master Course. Recommend the master map, not its child units.
 - Never recommend a placeholder. A title like "Outline Test 1794761977545", "test", "a" or an empty draft is not a course; the list is filtered for this, but if one slips through, do not name it.
 - Always end those turns with a new line exactly:
 VEELEARN_RECOMMEND_JSON:
@@ -237,6 +238,8 @@ function validateRecommendations(rawRecs, allowedCatalog) {
             courseType: row.course_type || 'single',
             gradeLevel: row.grade_level != null ? Number(row.grade_level) : null,
             likeCount: Number(row.like_count) || 0,
+            units: Number(row.units) || 0,
+            questions: Number(row.questions) || 0,
             reason: typeof r.reason === 'string' ? r.reason.slice(0, 240) : 'A good match from Veelearn for what you asked.'
         });
         if (out.length >= 3) break;
@@ -967,10 +970,17 @@ function fallbackRecommendations(message, catalog, limit = 3, grade = null) {
 
     const fits = catalog.filter((c) => courseFitsPrompt(message, c));
     fits.sort((a, b) => {
-        // Closest grade band first, then most liked.
+        // Closest grade band first, then the fuller outline: the catalog is
+        // outlines only, so questions and units are its real size.
         const da = gradeGate.gradeDistance(a, grade);
         const db = gradeGate.gradeDistance(b, grade);
         if (da !== db) return da - db;
+        const qa = Number(a.questions) || 0;
+        const qb = Number(b.questions) || 0;
+        if (qa !== qb) return qb - qa;
+        const ua = Number(a.units) || 0;
+        const ub = Number(b.units) || 0;
+        if (ua !== ub) return ub - ua;
         return (Number(b.like_count) || 0) - (Number(a.like_count) || 0);
     });
     const pick = fits.slice(0, limit);
@@ -981,9 +991,11 @@ function fallbackRecommendations(message, catalog, limit = 3, grade = null) {
         courseType: row.course_type || 'single',
         gradeLevel: row.grade_level != null ? Number(row.grade_level) : null,
         likeCount: Number(row.like_count) || 0,
-        reason: grades.length
-            ? `Most liked match for grades ${grades.join('–')} from what you asked.`
-            : 'Most liked Veelearn course that matches what you asked for.'
+        units: Number(row.units) || 0,
+        questions: Number(row.questions) || 0,
+        reason: `${Number(row.questions) || 0} questions across ${Number(row.units) || 0} unit${
+            Number(row.units) === 1 ? '' : 's'
+        }${grades.length ? `, written for grades ${grades.join('–')}` : ''}.`
     }));
 }
 
@@ -1098,14 +1110,30 @@ function createAiTutorHandlers({ query, aiChatCompletion, apiResponse }) {
                       )
                     : [];
                 const outlineById = new Map(outlineRows.map((r) => [Number(r.course_id), r.outline_json]));
-                recommendable = catalog.filter((c) =>
-                    courseQuality.isRecommendableCourse(c, outlineById.has(Number(c.id)) ? outlineById.get(Number(c.id)) : null)
-                );
+                // Learners are recommended maps, never a bare course: a row needs a
+                // real outline with a skill and at least three questions, and its
+                // size travels with it so size can decide between two good fits.
+                recommendable = catalog
+                    .map((c) => {
+                        const outline = outlineById.has(Number(c.id)) ? outlineById.get(Number(c.id)) : null;
+                        const stats = courseQuality.outlineStats(outline);
+                        return Object.assign({}, c, {
+                            units: stats.units,
+                            skills: stats.skills,
+                            questions: stats.questions
+                        });
+                    })
+                    .filter(
+                        (c) =>
+                            c.units > 0 &&
+                            c.questions >= 3 &&
+                            courseQuality.isRecommendableCourse(c, outlineById.get(Number(c.id)))
+                    );
             } catch (err) {
-                // The outline table is optional on very old databases: fall back to
-                // the title check so a placeholder can still never be recommended.
-                recommendable = catalog.filter((c) => !courseQuality.isTestTitle(c.title));
-                console.warn('Recommendation quality filter skipped:', err.message);
+                // No outline table, no outlines to recommend. Never fall back to a
+                // bare course here: that is exactly what this filter exists for.
+                recommendable = [];
+                console.warn('Recommendation outline filter skipped:', err.message);
             }
 
             const quizRow = await query(
@@ -1156,7 +1184,7 @@ function createAiTutorHandlers({ query, aiChatCompletion, apiResponse }) {
                 .map((c) => {
                     const g = c.grade_level != null ? `grade=${c.grade_level}` : 'grade=any';
                     const d = String(c.desc_preview || '').replace(/\s+/g, ' ').trim();
-                    return `${c.id}: ${c.title} [${c.course_type || 'single'}, ${g}, likes=${c.like_count || 0}] ${d ? `— ${d}` : ''}`;
+                    return `${c.id}: ${c.title} [${g}, ${Number(c.units) || 0} units, ${Number(c.skills) || 0} skills, ${Number(c.questions) || 0} questions, likes=${c.like_count || 0}] ${d ? `— ${d}` : ''}`;
                 })
                 .join('\n');
             const enrolledLines = enrolled.map((c) => `${c.id}: ${c.title}`).join('\n') || '(none)';
@@ -1234,8 +1262,8 @@ function createAiTutorHandlers({ query, aiChatCompletion, apiResponse }) {
             if (wantsCourseRecommendation(message)) {
                 const ranked = fallbackRecommendations(message, visibleCatalog, 3, learnerGrade.grade);
                 recommendations = ranked;
-                if (recommendations.length && !/veelearn course|recommended course|here are (a few )?courses|most liked/i.test(safeReply)) {
-                    safeReply = `${safeReply}\n\nI picked the most liked Veelearn course that matches what you asked for — tap View / Enroll below.`.trim();
+                if (recommendations.length && !/veelearn (course|outline)|recommended (course|outline)|here are (a few )?(courses|outlines)|most liked/i.test(safeReply)) {
+                    safeReply = `${safeReply}\n\nI picked the Veelearn outline whose size and questions best match what you asked for — open it below.`.trim();
                 }
             }
 

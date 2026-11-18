@@ -207,24 +207,51 @@
   }
 
   // -------------------------------------------------------------------- focus
+  /**
+   * The rail lists one skill per row, grouped by the unit it belongs to. Each
+   * row's single circle is that skill (not a four-dot mastery strip): the count
+   * matches the skills in the unit, hovering names the skill and its level, and
+   * a completed skill's circle fills in as the plan advances.
+   */
   function renderFocus(focus, activeId) {
     const list = el('sx-focus');
     if (!list) return;
-    list.innerHTML = (focus || [])
-      .map((f) => {
-        const isActive = Number(f.id) === Number(activeId);
-        const mark = f.status === 'done' ? '✓' : f.status === 'deferred' ? '–' : isActive ? '●' : '○';
-        const cls = ['sx-focus-item'];
-        if (f.status === 'done') cls.push('is-done');
-        else if (f.status === 'deferred') cls.push('is-deferred');
-        else if (isActive) cls.push('is-active');
-        return `<li class="${cls.join(' ')}">
-          <span class="sx-focus-mark" aria-hidden="true">${mark}</span>
-          <span class="sx-focus-body">
-            <span class="sx-focus-name">${esc(f.name)}</span>
-            ${dotsHtml(f.level)}
-          </span>
+    const groups = [];
+    (focus || []).forEach((f) => {
+      const key = f.unitLabel || (f.unitIndex ? `Unit ${f.unitIndex}` : 'This session');
+      let group = groups.find((g) => g.key === key);
+      if (!group) {
+        group = { key, items: [] };
+        groups.push(group);
+      }
+      group.items.push(f);
+    });
+
+    list.innerHTML = groups
+      .map((group) => {
+        const done = group.items.filter((f) => f.status === 'done').length;
+        const rows = group.items
+          .map((f) => {
+            const isActive = Number(f.id) === Number(activeId);
+            const mark = f.status === 'done' ? '✓' : f.status === 'deferred' ? '–' : isActive ? '●' : '○';
+            const cls = ['sx-focus-item'];
+            if (f.status === 'done') cls.push('is-done');
+            else if (f.status === 'deferred') cls.push('is-deferred');
+            else if (isActive) cls.push('is-active');
+            const level = Math.max(0, Math.min(4, Number(f.level) || 0));
+            const state = f.status === 'done' ? 'done' : isActive ? 'current skill' : 'not started';
+            const tip = `${f.name} — ${state}, mastery ${level} of 4`;
+            return `<li class="${cls.join(' ')}" title="${esc(tip)}">
+          <span class="sx-focus-mark" title="${esc(f.name)}" aria-hidden="true">${mark}</span>
+          <span class="sx-focus-name">${esc(f.name)}</span>
           ${f.isReview ? '<span class="sx-badge">review</span>' : ''}
+          <span class="sx-focus-level" title="Mastery ${level} of 4">${level}/4</span>
+        </li>`;
+          })
+          .join('');
+        return `<li class="sx-focus-unit">
+          <p class="sx-unit-name"><span>${esc(group.key)}</span><span class="sx-unit-count">${done}/${group.items.length}</span></p>
+          <ul class="sx-unit-skills">${rows}</ul>
         </li>`;
       })
       .join('');
@@ -805,9 +832,13 @@
     if (state.session) {
       const doneId = result.item && result.item.done ? Number(result.item.id) : null;
       const focus = (state.session.focus || []).map((f) => {
-        if (Number(f.skillId) !== Number(result.item && result.item.skillId)) return f;
+        // Match the row first: a review card's question belongs to a different
+        // skill id, so a skillId-only match left the rail stuck at the old level.
+        const byRow = doneId && Number(f.id) === doneId;
+        const bySkill = Number(f.skillId) === Number(result.item && result.item.skillId);
+        if (!byRow && !bySkill) return f;
         const next = Object.assign({}, f, { level: result.mastery ? result.mastery.levelAfter : f.level });
-        if (doneId && Number(f.id) === doneId) next.status = 'done';
+        if (byRow) next.status = 'done';
         return next;
       });
       state.session.focus = focus;

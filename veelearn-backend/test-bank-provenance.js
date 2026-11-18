@@ -208,6 +208,18 @@ ok(
     courseQuality.isRecommendableCourse({ title: 'Waves and Sound', content_length: 240 }, null)
 );
 
+// The dashboard tutor recommends outlines only, and size decides between fits.
+const tutorSrc = fs.readFileSync(path.join(__dirname, 'ai-tutor-handlers.js'), 'utf8');
+ok(
+    'the tutor catalog keeps outlines with a skill and three questions',
+    /c\.units > 0/.test(tutorSrc) && /c\.questions >= 3/.test(tutorSrc)
+);
+ok('the tutor has no bare-course fallback', /recommendable = \[\];/.test(tutorSrc));
+ok(
+    'recommendations rank by question count then unit count',
+    /const qa = Number\(a\.questions\)/.test(tutorSrc) && /return qb - qa/.test(tutorSrc) && /return ub - ua/.test(tutorSrc)
+);
+
 // ---------------------------------------------------- (a) picker labels
 eq('an OpenBookQA row is labelled with its licence', provenance.label({ source: 'openbookqa', attribution: OBQA_ATTRIBUTION }), 'OpenBookQA · Apache-2.0');
 eq('a GSM8K row is labelled with its licence', provenance.label({ source: 'gsm8k', attribution: GSM8K_ATTRIBUTION }), 'GSM8K · MIT');

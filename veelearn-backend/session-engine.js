@@ -253,7 +253,7 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
     async function focusItems(sessionId) {
         return query(
             `SELECT f.id, f.session_id, f.skill_id, f.ord, f.is_review, f.target_dots, f.status,
-                    f.correct_count, f.attempts, f.question_ids, f.review_pool, f.frame_md, f.unit_index, f.started_at, f.completed_at,
+                    f.correct_count, f.attempts, f.question_ids, f.review_pool, f.frame_md, f.unit_index, f.unit_label, f.started_at, f.completed_at,
                     s.name AS skill_name, s.code AS skill_code, s.track, s.intro_md
              FROM session_focus_items f
              JOIN skills s ON s.id = f.skill_id
@@ -278,14 +278,12 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
         const open = items.filter((i) => i.status === 'active' || i.status === 'pending');
         const active = open.find((i) => i.status === 'active');
         if (active && !reviewBlocked(active, items)) return active;
-        // A unit review that is ready comes before the next unit's skills, so a
-        // retake cannot be skipped by walking on.
-        const retake = open.find(
-            (i) => i.status === 'pending' && Number(i.is_review) && !reviewBlocked(i, items)
-        );
-        if (retake) return retake;
-        const pending = open.find((i) => i.status === 'pending' && !reviewBlocked(i, items));
-        if (pending) return pending;
+        // Walk the plan in the order the creator drew it. A ready review is only
+        // current when it is the next open row, never by scanning ahead: skipping
+        // to a later unit's review was why a fresh session opened at the end.
+        for (const row of open) {
+            if (!reviewBlocked(row, items)) return row;
+        }
         // Blocked reviews only happen when their unit is already out of order; never
         // leave the learner without a card when work is still open.
         if (open.length) return open[0];
@@ -579,6 +577,7 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
                     status: i.status,
                     isReview: !!Number(i.is_review),
                     unitIndex: Number(i.unit_index || 0),
+                    unitLabel: i.unit_label || '',
                     targetDots: Number(i.target_dots || 2),
                     poolSize: (parseJson(i.review_pool, []).length || parseJson(i.question_ids, []).length),
                     correctCount: Number(i.correct_count || 0),
@@ -731,8 +730,8 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
             const frameDigest = p.frame && p.frame.digest ? String(p.frame.digest) : null;
             await query(
                 `INSERT INTO session_focus_items
-                    (session_id, skill_id, ord, is_review, target_dots, status, correct_count, attempts, question_ids, review_pool, frame_md, unit_index)
-                 VALUES (?, ?, ?, ?, ?, 'pending', 0, 0, ?, ?, ?, ?)`,
+                    (session_id, skill_id, ord, is_review, target_dots, status, correct_count, attempts, question_ids, review_pool, frame_md, unit_index, unit_label)
+                 VALUES (?, ?, ?, ?, ?, 'pending', 0, 0, ?, ?, ?, ?, ?)`,
                 [
                     sessionId,
                     p.skillId,
@@ -742,7 +741,8 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
                     JSON.stringify(p.isReview ? [] : seeded.length ? seeded.map(Number) : q ? [Number(q.id)] : []),
                     p.isReview && seeded.length ? JSON.stringify(seeded.map(Number)) : null,
                     frameDigest,
-                    Number(p.unitIndex || 0)
+                    Number(p.unitIndex || 0),
+                    p.unitLabel ? String(p.unitLabel).slice(0, 150) : null
                 ]
             );
         }
@@ -1030,8 +1030,8 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
                         );
                         await query(
                             `INSERT INTO session_focus_items
-                                (session_id, skill_id, ord, is_review, target_dots, status, correct_count, attempts, question_ids, review_pool, frame_md, unit_index)
-                             VALUES (?, ?, ?, 1, ?, 'pending', 0, 0, ?, ?, ?, ?)`,
+                                (session_id, skill_id, ord, is_review, target_dots, status, correct_count, attempts, question_ids, review_pool, frame_md, unit_index, unit_label)
+                             VALUES (?, ?, ?, 1, ?, 'pending', 0, 0, ?, ?, ?, ?, ?)`,
                             [
                                 sessionId,
                                 item.skill_id,
@@ -1040,7 +1040,8 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
                                 JSON.stringify([]),
                                 JSON.stringify(retakePool),
                                 item.frame_md,
-                                unitIndex
+                                unitIndex,
+                                item.unit_label || null
                             ]
                         );
                     }

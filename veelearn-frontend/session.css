@@ -142,6 +142,25 @@
 .sx-focus-body { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 .sx-focus-name { overflow-wrap: anywhere; }
 
+/* One circle per skill, grouped under the unit it belongs to. */
+.sx-focus-unit { list-style: none; }
+.sx-unit-name {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--sx-muted);
+}
+.sx-unit-count { flex: none; font-weight: 500; letter-spacing: 0; }
+.sx-unit-skills { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.sx-focus-level { margin-left: auto; flex: none; font-size: 10.5px; color: var(--sx-muted); }
+.sx-focus-item.is-active .sx-focus-level { color: inherit; }
+
 .sx-badge {
   margin-left: auto;
   font-size: 10px;
@@ -448,7 +467,8 @@
   .sx-main:has(.sx-map:not([hidden])) { grid-template-columns: minmax(0, 1fr); }
   .sx-rail, .sx-map { position: static; }
   .sx-focus { flex-direction: row; flex-wrap: wrap; }
-  .sx-focus-item { flex: 1 1 45%; }
+  .sx-focus-unit { flex: 1 1 45%; }
+  .sx-focus-item { flex: 1 1 100%; }
   .sx-rail-actions { flex-direction: row; }
 }
 

@@ -406,13 +406,31 @@ function createSessionAI({ query, qbank, chat, log } = {}) {
         // Scope: this endpoint can only decorate a question that is part of the
         // caller's own session. Otherwise it would be a way to probe any item.
         if (typeof query === 'function' && userId && sessionId) {
+            // Matching only `f.skill_id` rejected every review card: its question
+            // belongs to one of the unit's skills, not to the review item itself.
             const owned = await query(
-                `SELECT f.id FROM session_focus_items f
-                 JOIN sessions s ON s.id = f.session_id
-                 WHERE f.session_id = ? AND s.user_id = ? AND f.skill_id = ? LIMIT 1`,
-                [sessionId, userId, raw.skill_id]
+                `SELECT f.skill_id, f.question_ids, f.review_pool
+                   FROM session_focus_items f
+                   JOIN sessions s ON s.id = f.session_id
+                  WHERE f.session_id = ? AND s.user_id = ?`,
+                [sessionId, userId]
             );
-            if (!owned.length) return { ok: false, error: 404, message: 'That question is not part of this session' };
+            const list = (value) => {
+                try {
+                    const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+                    return Array.isArray(parsed) ? parsed.map(Number) : [];
+                } catch (_) {
+                    return [];
+                }
+            };
+            const qid = Number(raw.id);
+            const member = owned.some(
+                (row) =>
+                    Number(row.skill_id) === Number(raw.skill_id) ||
+                    list(row.question_ids).includes(qid) ||
+                    list(row.review_pool).includes(qid)
+            );
+            if (!member) return { ok: false, error: 404, message: 'That question is not part of this session' };
         }
 
         const skill = await qbank.getSkill(raw.skill_id);
@@ -671,13 +689,31 @@ function createSessionAI({ query, qbank, chat, log } = {}) {
         if (!raw) return { ok: false, error: 404, message: 'Question not found' };
 
         if (typeof query === 'function' && userId && sessionId) {
+            // Matching only `f.skill_id` rejected every review card: its question
+            // belongs to one of the unit's skills, not to the review item itself.
             const owned = await query(
-                `SELECT f.id FROM session_focus_items f
-                 JOIN sessions s ON s.id = f.session_id
-                 WHERE f.session_id = ? AND s.user_id = ? AND f.skill_id = ? LIMIT 1`,
-                [sessionId, userId, raw.skill_id]
+                `SELECT f.skill_id, f.question_ids, f.review_pool
+                   FROM session_focus_items f
+                   JOIN sessions s ON s.id = f.session_id
+                  WHERE f.session_id = ? AND s.user_id = ?`,
+                [sessionId, userId]
             );
-            if (!owned.length) return { ok: false, error: 404, message: 'That question is not part of this session' };
+            const list = (value) => {
+                try {
+                    const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+                    return Array.isArray(parsed) ? parsed.map(Number) : [];
+                } catch (_) {
+                    return [];
+                }
+            };
+            const qid = Number(raw.id);
+            const member = owned.some(
+                (row) =>
+                    Number(row.skill_id) === Number(raw.skill_id) ||
+                    list(row.question_ids).includes(qid) ||
+                    list(row.review_pool).includes(qid)
+            );
+            if (!member) return { ok: false, error: 404, message: 'That question is not part of this session' };
         }
 
         const key = `${raw.id}|${String(ask || '').slice(0, 120)}`.toLowerCase();

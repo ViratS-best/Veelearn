@@ -127,8 +127,8 @@ const TABLES = [
         question_ids LONGTEXT NULL,
         review_pool LONGTEXT NULL,
         frame_md LONGTEXT NULL,
-
         unit_index SMALLINT DEFAULT 0,
+        unit_label VARCHAR(150) NULL,
         started_at TIMESTAMP NULL,
         completed_at TIMESTAMP NULL,
         UNIQUE KEY uniq_focus_item (session_id, ord),
@@ -321,6 +321,7 @@ const ALTERS = [
     'ALTER TABLE session_focus_items ADD COLUMN IF NOT EXISTS review_pool LONGTEXT NULL',
 
     'ALTER TABLE session_focus_items ADD COLUMN IF NOT EXISTS unit_index SMALLINT DEFAULT 0',
+    'ALTER TABLE session_focus_items ADD COLUMN IF NOT EXISTS unit_label VARCHAR(150) NULL',
     'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS rating SMALLINT NULL',
     'ALTER TABLE sessions ADD COLUMN IF NOT EXISTS sprint SMALLINT DEFAULT 0',
     'ALTER TABLE users ADD COLUMN IF NOT EXISTS exam_date DATE NULL',

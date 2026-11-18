@@ -755,6 +755,7 @@ function createCreatorImpact({ query, log } = {}) {
                 targetDots: 2,
                 startTier: Math.min(...bucket.map((b) => b.tier)),
                 unitIndex: unit.ord,
+                unitLabel: `Unit ${unit.ord}: ${shortName(unit.title || course.title)}`,
                 frame: frameFor(unit),
                 // Seed only the first card: the engine serves the last id in the
                 // array, then picks the next unseen question for this skill itself.

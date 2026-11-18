@@ -148,6 +148,21 @@ const sessionAppSrc = fs.readFileSync(path.join(FRONTEND, 'session', 'session-ap
 
 ok('the AI loop exposes a board scene', typeof createSessionAI({}).boardScene === 'function');
 
+// Sessions walk the creator's plan from its first row and the rail names skills
+// per unit, so a fresh session no longer opens on a later unit's review.
+const engineSrc = fs.readFileSync(path.join(__dirname, 'session-engine.js'), 'utf8');
+const schemaSrc = fs.readFileSync(path.join(__dirname, 'session-schema.js'), 'utf8');
+ok('a session takes the first open row in plan order', /for \(const row of open\)/.test(engineSrc));
+ok(
+    'focus items carry the unit they belong to',
+    /unit_label/.test(schemaSrc) && /unitLabel: i\.unit_label/.test(engineSrc)
+);
+ok(
+    'the rail groups one circle per skill under its unit',
+    /sx-focus-unit/.test(sessionAppSrc) && /sx-unit-skills/.test(sessionAppSrc)
+);
+ok('the answered row updates by row id, not only by skill id', /const byRow/.test(sessionAppSrc));
+
 const GOOD_CODE =
     'function draw(ctx, W, H, S, t) { ctx.fillStyle = "#ea580c"; ctx.fillRect(20, 20, S.a * 20, 30); ctx.fillText("a", 20, 80); }';
 const goodScene = boardScene.sanitizeScene({
@@ -318,7 +333,7 @@ function makeDb() {
                 events.push(params);
                 return { affectedRows: 1 };
             }
-            if (/session_focus_items/i.test(sql)) return [{ id: 1 }];
+            if (/session_focus_items/i.test(sql)) return [{ id: 1, skill_id: 7, question_ids: null, review_pool: null }];
             if (/skill_mastery/i.test(sql)) return [{ level: 2 }];
             return [];
         }
@@ -610,6 +625,33 @@ ok('a finished item advances even if the model asks to stay', createSessionAI.de
     const denied = await scoped.turn({ userId: 3, sessionId: 101, kind: 'reteach', questionId: 501, distractor: 'B' });
     ok('a question outside the session is refused', denied.ok === false && denied.error === 404, JSON.stringify(denied));
     ok('a refused turn makes no model call', chatCalls === 0);
+
+    // ---- a review card is allowed to draw: its question belongs to a unit skill,
+    // not to the review focus item, which used to 404 every board request.
+    const reviewBoard = createSessionAI({
+        query: async (sql) => {
+            if (/session_focus_items/i.test(sql)) {
+                return [
+                    { skill_id: 999, question_ids: JSON.stringify([501]), review_pool: JSON.stringify([501]) }
+                ];
+            }
+            return [];
+        },
+        qbank: makeQBank([ALGEBRA]),
+        chat: scriptedChat([PLAIN_REPLY])
+    });
+    const reviewScene = await reviewBoard.boardScene({
+        userId: 3,
+        sessionId: 101,
+        questionId: 501,
+        ask: 'make a simulation please'
+    });
+    ok(
+        'a review card can draw its own question',
+        reviewScene && reviewScene.ok !== false && Boolean(reviewScene.scene),
+        JSON.stringify(reviewScene).slice(0, 140)
+    );
+    ok('the drawn scene reaches the board model', Boolean(reviewScene && reviewScene.scene && reviewScene.scene.code));
 
     // ---- the HTTP layer exposes the same guard rails
     const createRoutes = require('./session-routes');

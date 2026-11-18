@@ -104,6 +104,30 @@
 
 ---
 
+### ✅ SESSION FOCUS, BOARD 404s AND OUTLINE-ONLY RECOMMENDATIONS
+
+**Status**: COMPLETE — 649 checks green.
+
+**A session starts where the map starts** (`session-engine.js`)
+- `currentItem` used to scan ahead for any unit review that was not blocked, so a fresh session could open on the last unit's review. It now walks the open rows in the creator's order and takes the first unblocked one; a review is only current when it is the next row.
+- `session_focus_items.unit_label` stores the plan's unit title (`Unit 2: Forces`). The session response returns it per focus item, and `creator-impact` adds it for legacy unit plans too. Older sessions without it fall back to `Unit N` / `This session` in the rail.
+
+**The rail is skill circles, not a four-dot strip** (`session-app.js`, `session.css`)
+- Focus rows are grouped under their unit. Each row has exactly one circle (that skill) plus its name and `level/4`; the unit header shows `done/skills`. Hovering a row or its circle names the skill and its mastery, so the number of circles matches the number of skills in the unit instead of always being four.
+- The answered row now updates by row id first and skill id second, so a review card (whose question belongs to a different skill) no longer leaves the level frozen. The rail is regenerated after every graded answer.
+
+**Board and Ask Vee work on review cards** (`session-ai.js`)
+- Both endpoints scoped a question with `f.skill_id = question.skill_id`. A unit review's cards belong to the unit's skills, not to the review item, so every board request from a review card returned 404 before calling the model ("make a simulation please" produced an empty board and no Luna spend).
+- Ownership now accepts a question when a focus item has the same skill, lists the id in `question_ids`, or carries it in `review_pool`, so the scene request reaches Luna and the board draws.
+
+**Dashboard recommendations are outlines only, ranked by size** (`ai-tutor-handlers.js`)
+- The catalog keeps a row only when `course_outlines.outline_json` has at least one unit, one skill and three questions; a bare course is never recommendable and there is no legacy fallback. Each line carries units, skills and question count.
+- The prompt tells the model these are complete maps and to match the request's scope by size. The deterministic fallback ranks fits by grade distance, then question count, then unit count (likes last), and its reason names the size.
+
+**Tests**: `test-ai-session.js` 156 (first-row session order, unit labels, rail grouping/update, review-card board membership) · `test-bank-provenance.js` 111 (outline-only catalog and size ranking).
+
+---
+
 
 ### ✅ QUESTION BANK: STEM · ENGLISH · SAT R&W · ACT · MATHCOUNTS · AMC 8/10/12
 
