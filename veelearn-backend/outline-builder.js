@@ -516,8 +516,10 @@ module.exports = {
     inline,
     listedUnits,
     outlineForCourse,
+    overlap,
     stats,
     toOutlineQuestion,
     toText,
+    tokenSet,
     topicsOf
 };

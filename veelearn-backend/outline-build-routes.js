@@ -91,6 +91,21 @@ module.exports = function createOutlineBuildRoutes({ query, authenticateToken, l
                  FROM courses c WHERE c.status = 'approved' ORDER BY c.id`
             );
             const mapped = rows.filter((r) => Number(r.mapped) > 0);
+            let stats = null;
+            if (String(req.query.deep || '') === '1') {
+                stats = { units: 0, skills: 0, questions: 0, emptySkills: 0, thinSkills: 0, thinCourses: [] };
+                for (const row of mapped) {
+                    const outline = await outlines.load(row.id);
+                    if (!outline) continue;
+                    const s = builder.stats(outline);
+                    stats.units += s.units;
+                    stats.skills += s.skills;
+                    stats.questions += s.questions;
+                    stats.emptySkills += s.emptySkills;
+                    stats.thinSkills += s.thinSkills;
+                    if (s.thinSkills) stats.thinCourses.push({ id: Number(row.id), title: row.title, thin: s.thinSkills, empty: s.emptySkills });
+                }
+            }
             res.json({
                 success: true,
                 data: {
@@ -98,6 +113,7 @@ module.exports = function createOutlineBuildRoutes({ query, authenticateToken, l
                     mapped: mapped.length,
                     missing: rows.length - mapped.length,
                     stubs: rows.filter((r) => Number(r.content_length || 0) < 1000).length,
+                    stats,
                     courses: rows.map((r) => ({
                         id: Number(r.id),
                         title: r.title,
@@ -257,8 +273,10 @@ module.exports = function createOutlineBuildRoutes({ query, authenticateToken, l
             const failed = [];
             for (const item of batch) {
                 const { course, outline, gaps } = item;
+                // A short list keeps the reply inside the token budget; a course
+                // with many thin skills comes back on a later pass.
                 const list = gaps
-                    .slice(0, 10)
+                    .slice(0, 5)
                     .map(
                         (g, i) =>
                             `${i + 1}. ${g.skill.name} — need ${g.need}. Teaching brief: ${String(g.skill.teach || '').slice(0, 380)}` +
@@ -300,6 +318,21 @@ module.exports = function createOutlineBuildRoutes({ query, authenticateToken, l
                         parsed = parseObject(text);
                     }
                     if (!parsed) {
+                        // A second model occasionally reads the constraint better.
+                        try {
+                            text = await aiChatCompletion(messages, {
+                                model: 'google/gemma-4-26b-a4b-it',
+                                max_tokens: 4000,
+                                temperature: 0.2,
+                                budgetMs: 120000,
+                                jsonMust: true
+                            });
+                            parsed = parseObject(text);
+                        } catch (_) {
+                            /* keep the earlier failure */
+                        }
+                    }
+                    if (!parsed) {
                         failed.push({ id: Number(course.id), reason: 'unparseable reply' });
                         continue;
                     }
@@ -315,10 +348,30 @@ module.exports = function createOutlineBuildRoutes({ query, authenticateToken, l
                     for (const unit of outline.units) {
                         for (const skill of unit.skills) byName.set(normStem(skill.name), skill);
                     }
+                    const asked = gaps.slice(0, 5).map((g) => g.skill);
+                    /** Exact name, then word overlap, then the first skill still short. */
+                    const pickSkill = (label) => {
+                        const key = normStem(label);
+                        const exact = byName.get(key);
+                        if (exact && exact.questions.length < FILL_MIN) return exact;
+                        const labelTokens = builder.tokenSet(label);
+                        let best = null;
+                        let bestScore = 0;
+                        for (const candidate of asked) {
+                            if (candidate.questions.length >= FILL_MIN) continue;
+                            const score = builder.overlap(labelTokens, builder.tokenSet(candidate.name));
+                            if (score > bestScore) {
+                                bestScore = score;
+                                best = candidate;
+                            }
+                        }
+                        if (best) return best;
+                        return asked.find((s) => s.questions.length < FILL_MIN) || null;
+                    };
                     let added = 0;
                     for (const raw of rows) {
                         if (!raw || typeof raw !== 'object') continue;
-                        const skill = byName.get(normStem(raw.skill || raw.skillName || raw.topic));
+                        const skill = pickSkill(raw.skill || raw.skillName || raw.topic || '');
                         if (!skill || skill.questions.length >= FILL_MIN) continue;
                         const options = (Array.isArray(raw.options)
                             ? raw.options
@@ -338,7 +391,9 @@ module.exports = function createOutlineBuildRoutes({ query, authenticateToken, l
                         if (options.length !== 4) continue;
                         const wanted = String(raw.answer != null ? raw.answer : raw.correct || '')
                             .trim()
-                            .toLowerCase();
+                            .toLowerCase()
+                            .replace(/^([a-d])\s*[).:-]\s+/, '$1')
+                            .replace(/^option\s+/i, '');
                         let index = options.findIndex((o) => o.t.toLowerCase() === wanted);
                         if (index < 0 && /^[a-d]$/.test(wanted)) index = 'abcd'.indexOf(wanted);
                         if (index < 0 && /^[0-3]$/.test(wanted)) index = Number(wanted);
