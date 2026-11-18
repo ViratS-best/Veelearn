@@ -146,18 +146,32 @@ async function remote(token) {
     const before = await progress();
     console.log('mapped:', before && `${before.mapped}/${before.approved}`);
 
-    for (;;) {
-        const out = await post('/api/admin/outlines/fill', { limit: 2 });
-        if (out.status !== 200) {
-            console.log(`fill failed: ${out.status} ${JSON.stringify(out.body).slice(0, 200)}`);
-            break;
+    // Courses with more than ten thin skills need another pass; five passes
+    // cover every course in the catalog.
+    for (let pass = 0; pass < 5; pass += 1) {
+        let afterId = 0;
+        let added = 0;
+        let thin = 0;
+        for (;;) {
+            const out = await post('/api/admin/outlines/fill', { limit: 2, afterId });
+            if (out.status !== 200) {
+                console.log(`fill failed: ${out.status} ${JSON.stringify(out.body).slice(0, 200)}`);
+                break;
+            }
+            const d = out.body.data;
+            const gained = d.filled.reduce((n, r) => n + r.added, 0);
+            added += gained;
+            thin = d.total;
+            console.log(
+                `fill pass ${pass + 1}: ${d.filled.length} course(s), +${gained} q | ${d.remaining} of ${d.total} left`
+            );
+            if (d.failed.length) console.log('  fill failures:', JSON.stringify(d.failed.slice(0, 4)));
+            if (!d.remaining || !d.processed) break;
+            afterId = d.nextId;
+            await sleep(300);
         }
-        const d = out.body.data;
-        console.log(`fill: ${d.filled.length} course(s), ${d.filled.reduce((n, r) => n + r.added, 0)} questions`);
-        if (d.failed.length) console.log('  fill failures:', JSON.stringify(d.failed.slice(0, 4)));
-        if (!d.processed) break;
-        if (!d.filled.length && d.failed.length) break; // do not spin on the same gaps
-        await sleep(400);
+        console.log(`fill pass ${pass + 1} done: +${added} questions (${thin} course(s) thin)`);
+        if (!added && pass > 0) break;
     }
 
     const after = await progress();

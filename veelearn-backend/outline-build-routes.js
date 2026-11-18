@@ -20,17 +20,51 @@ const FILL_MODEL = String(process.env.VEELEARN_OUTLINE_MODEL || '').trim() || 'g
 const FILL_MIN = 3;
 
 function parseObject(text) {
-    const src = String(text || '')
-        .replace(/```(?:json)?/gi, '')
-        .trim();
-    const at = src.indexOf('{');
-    const end = src.lastIndexOf('}');
-    if (at < 0 || end <= at) return null;
-    try {
-        return JSON.parse(src.slice(at, end + 1));
-    } catch (_) {
-        return null;
+    const raw = String(text || '').trim();
+    if (!raw) return null;
+    const fenced = /```(?:json)?\s*([\s\S]*?)```/i.exec(raw);
+    const candidates = [fenced && fenced[1], raw].filter(Boolean);
+    for (const source of candidates) {
+        const src = source.trim();
+        try {
+            const value = JSON.parse(src);
+            if (value && typeof value === 'object') return value;
+        } catch (_) {
+            /* scan for the first balanced object below */
+        }
+        const at = src.indexOf('{');
+        if (at < 0) continue;
+        let depth = 0;
+        let inString = false;
+        let escaped = false;
+        for (let i = at; i < src.length; i += 1) {
+            const ch = src[i];
+            if (inString) {
+                if (escaped) escaped = false;
+                else if (ch === '\\') escaped = true;
+                else if (ch === '"') inString = false;
+                continue;
+            }
+            if (ch === '"') {
+                inString = true;
+                continue;
+            }
+            if (ch === '{') depth += 1;
+            else if (ch === '}') {
+                depth -= 1;
+                if (depth === 0) {
+                    try {
+                        const value = JSON.parse(src.slice(at, i + 1));
+                        if (value && typeof value === 'object') return value;
+                    } catch (_) {
+                        /* keep looking */
+                    }
+                    break;
+                }
+            }
+        }
     }
+    return null;
 }
 
 const normStem = (s) =>
@@ -63,7 +97,7 @@ module.exports = function createOutlineBuildRoutes({ query, authenticateToken, l
                     approved: rows.length,
                     mapped: mapped.length,
                     missing: rows.length - mapped.length,
-                    stubs: rows.filter(isStub).length,
+                    stubs: rows.filter((r) => Number(r.content_length || 0) < 1000).length,
                     courses: rows.map((r) => ({
                         id: Number(r.id),
                         title: r.title,
@@ -189,12 +223,14 @@ module.exports = function createOutlineBuildRoutes({ query, authenticateToken, l
         const body = req.body || {};
         const limit = Math.min(6, Math.max(1, Number(body.limit) || 2));
         const ids = Array.isArray(body.ids) ? body.ids.map(Number).filter(Boolean) : [];
+        const afterId = Number(body.afterId) || 0;
 
         try {
             const all = await query(
                 `SELECT id, title, grade_level FROM courses WHERE status = 'approved' ORDER BY id`
             );
             const pool = ids.length ? all.filter((c) => ids.includes(Number(c.id))) : all;
+            // Courses that still have a skill below the three-question floor.
             const work = [];
             for (const course of pool) {
                 const outline = await outlines.load(course.id);
@@ -212,12 +248,14 @@ module.exports = function createOutlineBuildRoutes({ query, authenticateToken, l
                     }
                 }
                 if (gaps.length) work.push({ course, outline, gaps });
-                if (work.length >= limit) break;
             }
+            // A cursor keeps progress stable while courses drop out of the list.
+            const ahead = work.filter((w) => Number(w.course.id) > afterId);
+            const batch = ahead.slice(0, limit);
 
             const filled = [];
             const failed = [];
-            for (const item of work) {
+            for (const item of batch) {
                 const { course, outline, gaps } = item;
                 const list = gaps
                     .slice(0, 10)
@@ -246,43 +284,75 @@ module.exports = function createOutlineBuildRoutes({ query, authenticateToken, l
                     }
                 ];
                 try {
-                    const text = await aiChatCompletion(messages, {
-                        model: FILL_MODEL,
-                        max_tokens: 5000,
-                        temperature: 0.5,
-                        budgetMs: 120000,
-                        jsonMust: true
-                    });
-                    const parsed = parseObject(text);
-                    if (!parsed || !Array.isArray(parsed.questions)) {
+                    const ask = async (extra) =>
+                        aiChatCompletion(extra ? messages.concat([{ role: 'user', content: extra }]) : messages, {
+                            model: FILL_MODEL,
+                            max_tokens: 5000,
+                            temperature: extra ? 0.3 : 0.5,
+                            budgetMs: 120000,
+                            jsonMust: true
+                        });
+                    let text = await ask('');
+                    let parsed = parseObject(text);
+                    if (!parsed) {
+                        // One compact retry: a reasoning model can answer with prose.
+                        text = await ask('Return ONLY the JSON object {"questions":[...]}. No prose, no fences.');
+                        parsed = parseObject(text);
+                    }
+                    if (!parsed) {
                         failed.push({ id: Number(course.id), reason: 'unparseable reply' });
                         continue;
                     }
+                    const rows = Array.isArray(parsed.questions)
+                        ? parsed.questions
+                        : Array.isArray(parsed)
+                          ? parsed
+                          : Array.isArray(parsed.items)
+                            ? parsed.items
+                            : [];
 
                     const byName = new Map();
                     for (const unit of outline.units) {
                         for (const skill of unit.skills) byName.set(normStem(skill.name), skill);
                     }
                     let added = 0;
-                    for (const raw of parsed.questions) {
-                        const skill = byName.get(normStem(raw && raw.skill));
-                        if (!skill || skill.questions.length >= FILL_MIN + 2) continue;
-                        const options = (Array.isArray(raw.options) ? raw.options : [])
-                            .map((t, i) => ({ k: 'ABCD'[i], t: String(t || '').trim().slice(0, 300) }))
+                    for (const raw of rows) {
+                        if (!raw || typeof raw !== 'object') continue;
+                        const skill = byName.get(normStem(raw.skill || raw.skillName || raw.topic));
+                        if (!skill || skill.questions.length >= FILL_MIN) continue;
+                        const options = (Array.isArray(raw.options)
+                            ? raw.options
+                            : Array.isArray(raw.choices)
+                              ? raw.choices
+                              : Array.isArray(raw.answers)
+                                ? raw.answers
+                                : []
+                        )
+                            .map((o, i) => ({
+                                k: 'ABCD'[i],
+                                t: String(o && typeof o === 'object' ? o.t || o.text || o.label || '' : o || '')
+                                    .trim()
+                                    .slice(0, 300)
+                            }))
                             .filter((o) => o.t);
                         if (options.length !== 4) continue;
-                        const answer = String(raw.answer || '').trim().toUpperCase();
-                        if (!options.some((o) => o.k === answer)) continue;
-                        const stem = String(raw.stem || '').trim().slice(0, 1200);
+                        const wanted = String(raw.answer != null ? raw.answer : raw.correct || '')
+                            .trim()
+                            .toLowerCase();
+                        let index = options.findIndex((o) => o.t.toLowerCase() === wanted);
+                        if (index < 0 && /^[a-d]$/.test(wanted)) index = 'abcd'.indexOf(wanted);
+                        if (index < 0 && /^[0-3]$/.test(wanted)) index = Number(wanted);
+                        if (index < 0) continue;
+                        const stem = String(raw.stem || raw.question || raw.prompt || '').trim().slice(0, 1200);
                         if (stem.length < 12) continue;
                         if (skill.questions.some((q) => normStem(q.stem) === normStem(stem))) continue;
                         skill.questions.push({
                             id: `ai${skill.questions.length + 1}`,
                             stem,
                             options,
-                            answer,
+                            answer: options[index].k,
                             hint: String(raw.hint || '').trim().slice(0, 400),
-                            why: String(raw.why || '').trim().slice(0, 700),
+                            why: String(raw.why || raw.explanation || '').trim().slice(0, 700),
                             visual: null,
                             bankId: null,
                             source: 'authored',
@@ -303,7 +373,18 @@ module.exports = function createOutlineBuildRoutes({ query, authenticateToken, l
                 }
             }
 
-            res.json({ success: true, data: { filled, failed, processed: work.length } });
+            const lastId = batch.length ? Number(batch[batch.length - 1].course.id) : afterId;
+            res.json({
+                success: true,
+                data: {
+                    filled,
+                    failed,
+                    processed: batch.length,
+                    total: ahead.length,
+                    nextId: lastId,
+                    remaining: Math.max(0, ahead.length - batch.length)
+                }
+            });
         } catch (err) {
             res.status(500).json({ success: false, message: 'Could not fill outlines', error: err.message });
         }
