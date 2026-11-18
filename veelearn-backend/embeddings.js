@@ -325,26 +325,17 @@ async function writeEmbeddings(rows) {
     if (!prepared.length) return 0;
     const vectors = await embedTexts(prepared.map((p) => p.text));
     let written = 0;
-    for (let i = 0; i < prepared.length; i += 20) {
-        const chunk = prepared.slice(i, i + 20);
-        const values = [];
-        const params = [];
-        for (let j = 0; j < chunk.length; j += 1) {
-            const { row, hash } = chunk[j];
-            const vector = vectors[i + j];
-            if (!vector) continue;
-            values.push(`(${params.length + 1}, ${params.length + 2}::${state.column}, ${params.length + 3}::text)`);
-            params.push(Number(row.id), toHalfVecParam(vector), hash);
-        }
-        if (!values.length) continue;
+    // One UPDATE per row: the vector is a halfvec literal, and keeping the cast
+    // on a single parameter avoids the integer/halfvec ambiguity of VALUES.
+    for (let i = 0; i < prepared.length; i += 1) {
+        const { row, hash } = prepared[i];
+        const vector = vectors[i];
+        if (!vector) continue;
         await ctx.query(
-            `UPDATE qbank_items AS q
-                SET embedding = v.vec, embedding_hash = v.hash
-               FROM (VALUES ${values.join(', ')}) AS v(id, vec, hash)
-              WHERE q.id = v.id::int`,
-            params
+            `UPDATE qbank_items SET embedding = ?::${state.column}, embedding_hash = ? WHERE id = ?`,
+            [toHalfVecParam(vector), hash, Number(row.id)]
         );
-        written += values.length;
+        written += 1;
     }
     return written;
 }
