@@ -86,6 +86,11 @@ async function main() {
         console.log('index:', JSON.stringify(out.body && out.body.data));
         return;
     }
+    if (has('--drop-index')) {
+        const out = await call('/api/admin/qbank/embed/index', { method: 'POST', headers: H, body: '{"drop":true}' });
+        console.log('index:', JSON.stringify(out.body && out.body.data));
+        return;
+    }
 
     let afterId = 0;
     let embedded = 0;

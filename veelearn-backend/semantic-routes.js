@@ -71,7 +71,7 @@ module.exports = function createSemanticRoutes({ query, authenticateToken, log }
     router.post('/api/admin/qbank/embed/index', authenticateToken, async (req, res) => {
         if (!admin(req, res)) return;
         try {
-            const data = await embeddings.ensureIndex();
+            const data = req.body && req.body.drop ? await embeddings.dropIndex() : await embeddings.ensureIndex();
             res.json({ success: data.ok !== false, data });
         } catch (err) {
             res.status(500).json({ success: false, message: 'Index build failed', error: err.message });

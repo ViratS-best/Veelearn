@@ -118,6 +118,18 @@ async function ensureSchema() {
     return state;
 }
 
+/** Bulk-loading 48k rows is several times faster without index maintenance. */
+async function dropIndex() {
+    await ensureSchema();
+    if (!state.ready) return { ok: false, error: state.error };
+    try {
+        await ctx.query('DROP INDEX IF EXISTS qbank_items_embedding_hnsw');
+        return { ok: true, dropped: 'qbank_items_embedding_hnsw' };
+    } catch (err) {
+        return { ok: false, error: err.message };
+    }
+}
+
 async function ensureIndex() {
     await ensureSchema();
     if (!state.ready) return { ok: false, error: state.error };
@@ -473,6 +485,7 @@ const api = {
     backfill,
     configure,
     drain,
+    dropIndex,
     embedQuery,
     embedTexts,
     ensureIndex,
