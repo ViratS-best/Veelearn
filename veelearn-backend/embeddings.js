@@ -362,22 +362,38 @@ async function writeEmbeddings(rows) {
         if (!text) continue;
         prepared.push({ row, text, hash: hashText(text) });
     }
-    if (!prepared.length) return 0;
+    if (!prepared.length) return { written: 0, embedMs: 0, writeMs: 0 };
+    const embedStart = Date.now();
     const vectors = await embedTexts(prepared.map((p) => p.text));
+    const embedMs = Date.now() - embedStart;
+
+    // One statement per 50 rows: a round trip (and a commit) per row is ~100 ms
+    // against the hosted Postgres, which dominates a 48k backfill. `unnest` with
+    // explicit array casts avoids the VALUES integer/halfvec inference problem.
     let written = 0;
-    // One UPDATE per row: the vector is a halfvec literal, and keeping the cast
-    // on a single parameter avoids the integer/halfvec ambiguity of VALUES.
-    for (let i = 0; i < prepared.length; i += 1) {
-        const { row, hash } = prepared[i];
-        const vector = vectors[i];
-        if (!vector) continue;
+    const writeStart = Date.now();
+    for (let i = 0; i < prepared.length; i += 50) {
+        const chunk = prepared
+            .map((p, k) => ({ p, vector: vectors[k] }))
+            .slice(i, i + 50)
+            .filter((entry) => entry.vector);
+        if (!chunk.length) continue;
         await ctx.query(
-            `UPDATE qbank_items SET embedding = ?::${state.column}, embedding_hash = ? WHERE id = ?`,
-            [toHalfVecParam(vector), hash, Number(row.id)]
+            `UPDATE qbank_items AS q
+                SET embedding = v.vec, embedding_hash = v.hash
+               FROM (SELECT unnest(?::int[]) AS id,
+                            unnest(?::text[])::${state.column} AS vec,
+                            unnest(?::text[]) AS hash) v
+              WHERE q.id = v.id`,
+            [
+                chunk.map((entry) => Number(entry.p.row.id)),
+                chunk.map((entry) => toHalfVecParam(entry.vector)),
+                chunk.map((entry) => entry.p.hash)
+            ]
         );
-        written += 1;
+        written += chunk.length;
     }
-    return written;
+    return { written, embedMs, writeMs: Date.now() - writeStart };
 }
 
 async function backfill({ afterId = 0, limit = 128, mode = 'missing' } = {}) {
@@ -389,14 +405,16 @@ async function backfill({ afterId = 0, limit = 128, mode = 'missing' } = {}) {
     if (mode === 'stale') {
         toEmbed = rows.filter((row) => hashText(questionText(row)) !== String(row.embedding_hash || ''));
     }
-    const embedded = await writeEmbeddings(toEmbed);
+    const stats = await writeEmbeddings(toEmbed);
     const nextId = rows.length ? Number(rows[rows.length - 1].id) : Number(afterId) || 0;
     const counts = await progress();
     return {
         ok: true,
         mode,
         scanned: rows.length,
-        embedded,
+        embedded: stats.written,
+        embedMs: stats.embedMs,
+        writeMs: stats.writeMs,
         skipped: rows.length - toEmbed.length,
         nextId,
         remaining: counts.missing,
