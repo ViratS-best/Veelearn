@@ -262,36 +262,150 @@
    * A lesson written now, for this unit, streamed as the model types it. The
    * static `item.intro` is only the seed: the learner watches it being written
    * instead of being handed the finished paragraph after a spinner.
-   */
-  /**
-   * The lesson is written one sentence at a time so Vee has something specific to
-   * point at while it talks, instead of a paragraph it can only aim at as a whole.
-   */
-  /**
+   *
    * A vague unit can make the tutor think out loud ("The user wants me to…").
-   * That is not a lesson: keep the last learner-facing paragraph, else nothing so
-   * the unit's own words show instead.
+   * That is not a lesson: planning lines are dropped here, and every remaining
+   * section is kept — a lesson with worked examples has many paragraphs, so
+   * keeping only the last one (the old behaviour) threw the teaching away.
    */
+  const PLANNING_TELL =
+    /(the user wants|the user is asking|the user asked|the learner wants|i need to teach|i should teach|i should interpret|given the ambiguity|the safest approach is|that actually makes sense|the most sensible interpretation|as an ai|these instructions|this prompt|word count|let me (?:think|plan|write|draft|work out))/i;
+  const PLANNING_LEAD =
+    /^(the user|the learner|i need to|i should|i'll|i will now|let me|we need to|okay,?\s+(?:so|let)|hmm\b|wait\b|given the ambiguity|the most sensible|plan:|draft:|outline of the lesson|thinking:)/i;
+
   function cleanLesson(text) {
+    let raw = String(text || '').trim();
+    if (!raw) return '';
+    raw = raw
+      .replace(/<(?:thinking|thought|reasoning|scratchpad)>[\s\S]*?<\/(?:thinking|thought|reasoning|scratchpad)>/gi, ' ')
+      .replace(/^\s*(?:thinking|planning|reasoning|analysis|scratchpad)\s*:[^\n]*(?:\n(?!\s*\n)[^\n]*)*/i, ' ')
+      .trim();
+    if (!raw) return '';
+
+    const kept = [];
+    let dropping = false;
+    raw.split(/\r?\n/).forEach((line) => {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        dropping = false;
+        kept.push('');
+        return;
+      }
+      // A section heading always belongs to the lesson.
+      if (/^#{1,4}\s/.test(trimmed)) {
+        dropping = false;
+        kept.push(trimmed);
+        return;
+      }
+      if (dropping) return;
+      const meta =
+        PLANNING_TELL.test(trimmed) ||
+        (PLANNING_LEAD.test(trimmed) && /\b(i|me|we|the user|the learner)\b/i.test(trimmed.slice(0, 40)));
+      if (meta) {
+        dropping = true;
+        return;
+      }
+      kept.push(trimmed);
+    });
+
+    const out = kept
+      .join('\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+    return out.length >= 40 ? out : '';
+  }
+
+  /** **bold** only; everything else stays text so MathJax still sees $...$. */
+  function renderInline(node, text) {
+    String(text || '')
+      .split(/\*\*([^*]{1,160})\*\*/g)
+      .forEach((part, i) => {
+        if (!part) return;
+        if (i % 2 === 1) {
+          const strong = document.createElement('strong');
+          strong.textContent = part;
+          node.appendChild(strong);
+        } else {
+          node.appendChild(document.createTextNode(part));
+        }
+      });
+  }
+
+  /**
+   * The learning section: the model writes "## The idea", worked examples with
+   * numbered steps and a "Watch out" block. Render those as real headings, lists
+   * and tables so a long lesson reads like a lesson instead of one wall of text.
+   */
+  function renderLesson(box, text) {
+    if (!box) return null;
     const raw = String(text || '').trim();
-    const startsMeta = /^(the user|the learner|i need to|i should|i will|i'll|let me|we need to|okay\b|ok\b|hmm\b|since the unit|actually\b|given the ambiguity|the most sensible)/i;
-    const thinking =
-      /(the user wants|i need to teach|i should interpret|given the ambiguity|the safest approach is|that actually makes sense|the most sensible interpretation)/i;
-    if (!startsMeta.test(raw) && !thinking.test(raw)) return raw;
-    const meta = /^(the user|the learner|i need|i should|i'll|i will|let me|we need|okay|ok\b|hmm\b|since the unit|this is quite|actually\b|given the ambiguity|the most sensible)/i;
-    const paras = raw
-      .split(/\n\s*\n/)
-      .map((p) => p.trim())
-      .filter(Boolean);
-    const usable = paras.filter(
-      (p) =>
-        !meta.test(p) &&
-        !/\bI (need|should|will|must)\b|\bThe user\b|\bthe learner\b|given the ambiguity|the safest approach|that actually makes sense/i.test(
-          p.slice(0, 200)
-        )
-    );
-    const lesson = usable.length ? usable[usable.length - 1] : '';
-    return lesson.length >= 40 ? lesson : '';
+    box.textContent = '';
+    if (!raw) return null;
+
+    let firstTable = null;
+    raw
+      .split(/\n{2,}/)
+      .map((block) => block.trim())
+      .filter(Boolean)
+      .forEach((block) => {
+        const lines = block
+          .split('\n')
+          .map((l) => l.trim())
+          .filter(Boolean);
+        if (!lines.length) return;
+
+        const head = lines[0].match(/^#{1,4}\s+(.*)$/);
+        if (head) {
+          const h = document.createElement('h3');
+          h.className = 'sx-lesson-h';
+          h.textContent = head[1].replace(/[:.]+$/, '');
+          box.appendChild(h);
+          lines.shift();
+          if (!lines.length) return;
+        }
+
+        if (lines.every((l) => /^[-*•]\s+/.test(l))) {
+          const ul = document.createElement('ul');
+          ul.className = 'sx-lesson-list';
+          lines.forEach((l) => {
+            const li = document.createElement('li');
+            renderInline(li, l.replace(/^[-*•]\s+/, ''));
+            ul.appendChild(li);
+          });
+          box.appendChild(ul);
+          return;
+        }
+
+        if (lines.every((l) => /^\d+[.)]\s+/.test(l))) {
+          const ol = document.createElement('ol');
+          ol.className = 'sx-lesson-list sx-lesson-steps';
+          lines.forEach((l) => {
+            const li = document.createElement('li');
+            renderInline(li, l.replace(/^\d+[.)]\s+/, ''));
+            ol.appendChild(li);
+          });
+          box.appendChild(ol);
+          return;
+        }
+
+        if (lines.some((l) => /^\|/.test(l))) {
+          const holder = document.createElement('div');
+          holder.className = 'sx-lesson-table';
+          const table = renderTables(holder, lines.join('\n'));
+          if (table) {
+            box.appendChild(holder);
+            if (!firstTable) firstTable = table;
+            return;
+          }
+        }
+
+        const p = document.createElement('p');
+        p.className = 'sx-lesson-p';
+        renderInline(p, lines.join(' '));
+        box.appendChild(p);
+      });
+
+    return firstTable || box.querySelector('.sx-table');
   }
 
   function paintSentences(box, text) {
@@ -411,7 +525,10 @@
             text += data.t;
             if (Date.now() - lastPaint > 90) {
               lastPaint = Date.now();
-              pointAtSentence(paintSentences(box, cleanLesson(text)), box);
+              // Headings are markers, not words: while the lesson is being typed
+              // they would appear as "##". They become real headings at the end.
+              const live = cleanLesson(text).replace(/^#{1,4}\s+/gm, '');
+              pointAtSentence(paintSentences(box, live), box);
             }
             if (Date.now() - typesetAt > 700) {
               typesetAt = Date.now();
@@ -434,7 +551,8 @@
 
     box.classList.remove('is-streaming');
     el('sx-teach-status').hidden = true;
-    const table = renderTables(box, text);
+    // The finished lesson is laid out in sections: idea, worked examples, watch out.
+    const table = renderLesson(box, text);
     typesetContent();
     if (table && state.visualReady && window.Mascot) {
       Promise.resolve(Mascot.pointAt(table)).catch(() => {});
@@ -449,9 +567,10 @@
     hideCards();
     el('sx-loading').hidden = true;
     el('sx-intro').hidden = false;
-    el('sx-intro-kicker').textContent = item.isReview ? 'Review' : 'New skill';
+    el('sx-intro-kicker').textContent = item.isReview ? 'Review' : 'Learning';
     el('sx-intro-skill').textContent = item.name;
     el('sx-intro-text').textContent = item.intro || '';
+    el('sx-intro-start').textContent = 'Start practice';
     if (state.visualReady && window.Mascot) {
       Mascot.mood('talking');
       Promise.resolve(Mascot.pointAt('#sx-intro-text')).catch(() => {});
@@ -470,6 +589,12 @@
         teachBtn.disabled = false;
         teachBtn.textContent = 'Explain it again';
       }
+      // The practice button stays under the lesson, however long it ran.
+      const start = el('sx-intro-start');
+      if (start) {
+        start.disabled = false;
+        start.textContent = 'Start practice';
+      }
     };
     if (teachBtn) teachBtn.onclick = teach;
     // Teach on arrival: the first thing a learner sees is Vee explaining, and the
@@ -487,7 +612,7 @@
 
     const btn = el('sx-intro-start');
     btn.disabled = false;
-    btn.textContent = "Let's go";
+    btn.textContent = 'Start practice';
     btn.onclick = () => {
       state.introSeen.add(Number(item.id));
       state.item = item;
@@ -925,7 +1050,9 @@
         !sessionState.item.isReview &&
         Number(sessionState.item.attempts) === 0 &&
         !state.introSeen.has(Number(sessionState.item.id));
-    if (fresh && sessionState.item.intro) showIntro(sessionState);
+    // A new skill always opens on its learning section: the lesson is written from
+    // the outline, so it does not depend on a stored intro paragraph existing.
+    if (fresh) showIntro(sessionState);
     else if (sessionState.question) showQuestion(sessionState.question, sessionState.item);
     else refresh();
   }

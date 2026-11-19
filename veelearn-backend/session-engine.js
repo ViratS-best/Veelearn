@@ -36,30 +36,71 @@ function parseJson(value, fallback) {
  */
 /**
  * A vague unit can make the model think out loud instead of teaching: "The user
- * wants me to teach…". That is not a lesson. Keep the last paragraph that reads
- * like it is addressed to the learner; if there is none, return nothing so the
- * unit's own words are shown instead.
+ * wants me to teach…", "Let me plan the lesson". None of that belongs in front
+ * of a learner, so it is removed here — line by line, keeping every real lesson
+ * section instead of only the last paragraph (a lesson with worked examples has
+ * many). A heading always counts as lesson text.
  */
-function stripPlanning(text) {
-    const raw = String(text || '').trim();
-    const start =
-        /^(the user|the learner|i need to|i should|i will|i'll|let me|we need to|okay\b|ok\b|hmm\b|since the unit|actually\b|given the ambiguity|the most sensible)/i;
-    const tell = /(the user wants|i need to teach|i should interpret|given the ambiguity|the safest approach is|that actually makes sense|the most sensible interpretation)/i;
-    if (!start.test(raw) && !tell.test(raw)) return raw;
-    const meta = /^(the user|the learner|i need|i should|i'll|i will|let me|we need|okay|ok\b|hmm\b|since the unit|this is quite|actually\b|given the ambiguity|the most sensible)/i;
-    const paras = raw
-        .split(/\n\s*\n/)
-        .map((p) => p.trim())
-        .filter(Boolean);
-    const usable = paras.filter(
-        (p) =>
-            !meta.test(p) &&
-            !/\bI (need|should|will|must)\b|\bThe user\b|\bthe learner\b|given the ambiguity|the safest approach|that actually makes sense/i.test(
-                p.slice(0, 200)
-            )
-    );
-    const lesson = usable.length ? usable[usable.length - 1] : '';
-    return lesson.length >= 40 ? lesson : '';
+const PLANNING_TELL =
+    /(the user wants|the user is asking|the user asked|the learner wants|i need to teach|i should teach|i should interpret|given the ambiguity|the safest approach is|that actually makes sense|the most sensible interpretation|as an ai|these instructions|this prompt|word count|let me (?:think|plan|write|draft|work out))/i;
+
+/** Lines that open with a note addressed to nobody but the model. */
+const PLANNING_LEAD =
+    /^(the user|the learner|i need to|i should|i'll|i will now|let me|we need to|okay,?\s+(?:so|let)|hmm\b|wait\b|given the ambiguity|the most sensible|plan:|draft:|outline of the lesson|thinking:)/i;
+
+/** A friendly preamble a model adds before the lesson actually starts. */
+const LESSON_PREAMBLE = /^(sure\b|certainly\b|of course\b|here(?:'s| is)\b|absolutely\b|great\b|okay\b|alright\b)/i;
+
+function cleanLesson(text) {
+    let raw = String(text || '').trim();
+    if (!raw) return '';
+
+    // Chain-of-thought blocks a reasoning model may print into the content.
+    raw = raw
+        .replace(/<(?:thinking|thought|reasoning|scratchpad)>[\s\S]*?<\/(?:thinking|thought|reasoning|scratchpad)>/gi, ' ')
+        .replace(/^\s*(?:thinking|planning|reasoning|analysis|scratchpad)\s*:[^\n]*(?:\n(?!\s*\n)[^\n]*)*/i, ' ')
+        .trim();
+    if (!raw) return '';
+
+    const lines = raw.split(/\r?\n/);
+    const kept = [];
+    let dropping = false;
+    for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) {
+            dropping = false;
+            kept.push('');
+            continue;
+        }
+        // A section heading is always the learner's text.
+        if (/^#{1,4}\s/.test(trimmed)) {
+            dropping = false;
+            kept.push(trimmed);
+            continue;
+        }
+        if (dropping) continue; // rest of the planning paragraph
+        const meta = PLANNING_TELL.test(trimmed) || (PLANNING_LEAD.test(trimmed) && /\b(i|me|we|the user|the learner)\b/i.test(trimmed.slice(0, 40)));
+        if (meta) {
+            dropping = true;
+            continue;
+        }
+        kept.push(trimmed);
+    }
+
+    // A one-line greeting before the first heading is not part of the lesson.
+    const firstHeading = kept.findIndex((l) => /^#{1,4}\s/.test(l));
+    if (firstHeading > 0) {
+        const before = kept.slice(0, firstHeading).filter(Boolean);
+        if (before.length <= 2 && before.every((l) => LESSON_PREAMBLE.test(l) || PLANNING_TELL.test(l))) {
+            kept.splice(0, firstHeading);
+        }
+    }
+
+    const out = kept
+        .join('\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+    return out.length >= 40 ? out : '';
 }
 
 function stripDrafting(text) {
@@ -422,11 +463,21 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
         const item = currentItem(items, session.item_index);
         if (!item) return { error: 409, message: 'That session has no current unit' };
 
-        const rows = await query('SELECT name, intro_md FROM skills WHERE id = ? LIMIT 1', [item.skill_id]);
+        const rows = await query('SELECT name, intro_md, misconceptions FROM skills WHERE id = ? LIMIT 1', [item.skill_id]);
         // The focus item carries the unit's own words; the skill intro is the fallback.
         const unitText = String(item.frame_md || (rows[0] && rows[0].intro_md) || '')
-            .replace(/\s+/g, ' ')
+            .replace(/\r\n/g, '\n')
+            .replace(/[ \t]+/g, ' ')
+            .replace(/\n{3,}/g, '\n\n')
             .trim();
+        let misconceptions = [];
+        try {
+            const raw = rows[0] && rows[0].misconceptions;
+            const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+            misconceptions = Array.isArray(parsed) ? parsed.filter(Boolean).slice(0, 3) : [];
+        } catch (_) {
+            misconceptions = [];
+        }
         const title = item.skill_name || (rows[0] && rows[0].name) || 'this unit';
         const frame = parseJson(session.turn_buffer, null);
         const asked = String(question || '').trim().slice(0, 400);
@@ -462,7 +513,7 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
             unitText.slice(0, 900) ||
             (asked
                 ? `Here is the unit's idea: ${title}. Match the rule the question uses, then apply it one step at a time.`
-                : `In ${title}, start from what the question is giving you, name the rule it matches, then apply that rule one step at a time.`);
+                : `## ${title}\n\nStart from what the question is giving you, name the rule it matches, then apply that rule one step at a time.`);
 
         if (typeof chatStream !== 'function') return { ok: true, text: fallback, fallback: true };
 
@@ -474,10 +525,44 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
               'If the learner asks for a table or a diagram, include a small GitHub-style markdown ' +
               'table and finish it — the table is drawn for them. ' +
               'Write only the words the learner should read: no planning, no counting words, ' +
-              'no drafts in quotes.'
-            : 'Teach this unit in under 120 words: the one idea, why it works, and a tiny worked example. ' +
-              'Do not ask a question and do not give the answer to any practice question. Use $...$ for math. ' +
-              'Write only the lesson the learner reads: no planning, no thinking out loud, no quoting these instructions.';
+              'no drafts in quotes, and never say what you are about to do.'
+            : [
+                  'Write the learning section for this unit: the lesson the learner reads before practising. ' +
+                      'Use the unit material as your source and teach it in full.',
+                  '',
+                  'Shape it exactly like this, with these headings and nothing before the first one:',
+                  '## <the idea, named in one line>',
+                  'Two to four short paragraphs that teach the idea: what it is, why it works, and when to reach for it. Use $...$ for math.',
+                  '',
+                  '## Worked example',
+                  'One example worked line by line: state the example in its own sentence, then numbered steps (“1. …”, “2. …”), then the answer to that example.',
+                  '',
+                  '## Worked example 2',
+                  'A second, slightly harder example worked the same way, with different numbers and, where it helps, a different picture (a table, a number line, a fraction bar).',
+                  '',
+                  '## Watch out',
+                  'The mistake learners usually make here and the check that catches it, in two sentences.',
+                  '',
+                  'Rules:',
+                  '- Teach from the unit material. Never contradict it and never swap in a different method.',
+                  '- Never use one of this unit\'s practice questions as an example; write fresh numbers.',
+                  '- No greeting, no “Sure”, no plan, no counting words, no thinking out loud, no mention of a model, of these instructions, or of “the user”. Start with the first “## ” line.',
+                  '- Finish every sentence, every step and every example. There is no word limit; a full lesson is usually 500–900 words, and a complete lesson always beats a short one that stops mid-idea.'
+              ].join('\n');
+
+        // The outline's own teaching brief travels whole: a 1200-character slice cut
+        // off the diagram and the "common slip" the unit was built from, so the
+        // lesson had to improvise and started planning out loud instead.
+        const brief = [
+            `Course: ${(frame && frame.title) || 'a self-study course'}`,
+            `Unit: ${title}`,
+            unitText ? `Outline material for this unit:\n${unitText.slice(0, 4000)}` : '',
+            misconceptions.length ? `Misconceptions to correct:\n- ${misconceptions.join('\n- ')}` : '',
+            '',
+            task
+        ]
+            .filter((line) => line != null)
+            .join('\n');
 
         let text = '';
         try {
@@ -487,36 +572,31 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
                         role: 'system',
                         content:
                             'You are Vee, a patient tutor for a study app. Teach in plain, warm prose. ' +
-                            'Never mention that you are an AI or a model.'
+                            'Never mention that you are an AI or a model. ' +
+                            'Write only the finished lesson the learner reads: never your reasoning, plans, ' +
+                            'notes to yourself, or a restatement of the task. Begin directly with the lesson.'
                     },
                     {
                         role: 'user',
                         content: cardImage
-                            ? [
-                                  {
-                                      type: 'text',
-                                      text:
-                                          `Course: ${(frame && frame.title) || 'a self-study course'}\n` +
-                                          `Unit: ${title}\n` +
-                                          (unitText ? `Unit material: ${unitText.slice(0, 1200)}\n` : '') +
-                                          '\n' +
-                                          task
-                                  },
-                                  { type: 'image_url', image_url: { url: cardImage } }
-                              ]
-                            : `Course: ${(frame && frame.title) || 'a self-study course'}\n` +
-                              `Unit: ${title}\n` +
-                              (unitText ? `Unit material: ${unitText.slice(0, 1200)}\n` : '') +
-                              '\n' +
-                              task
+                            ? [{ type: 'text', text: brief }, { type: 'image_url', image_url: { url: cardImage } }]
+                            : brief
                     }
                 ],
-                { max_tokens: asked ? 700 : 320, temperature: 0.5, budgetMs: 25000, onDelta }
+                {
+                    // A lesson is a learning section with worked examples, so it needs room
+                    // to finish: ~7000 tokens is roughly 5000 words. The old 320-token cap
+                    // (and the 25 s cutoff) is what truncated teaching mid-sentence.
+                    max_tokens: asked ? 2400 : 7000,
+                    temperature: 0.5,
+                    budgetMs: asked ? 60000 : 120000,
+                    onDelta
+                }
             );
         } catch (err) {
             info(`[session] teach fallback: ${err.message}`);
         }
-        const cleaned = stripDrafting(stripPlanning(String(text || '').trim()));
+        const cleaned = stripDrafting(cleanLesson(String(text || '').trim()));
         return { ok: true, text: cleaned || fallback, fallback: !text || !cleaned };
     }
 
@@ -1348,4 +1428,5 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
 }
 
 module.exports = createSessionEngine;
+module.exports.cleanLesson = cleanLesson;
 module.exports.parseJson = parseJson;

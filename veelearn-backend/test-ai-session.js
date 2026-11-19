@@ -255,6 +255,50 @@ ok('a scene can upgrade an open board without retyping the steps', /async functi
 ok('the session asks the server to draw this question', /\/board`/.test(sessionAppSrc) && /requestBoardScene/.test(sessionAppSrc));
 ok('the stock-parabola fallback is gone', !/return 'function_plot';/.test(sessionAppSrc));
 
+// ------------------------------------------------- the lesson, not the thinking
+// A session used to open on a two-sentence overview and then jump to problems,
+// and the model sometimes narrated its own plan ("The user wants me to…"). The
+// learning section is now a full lesson from the outline, with worked examples,
+// and planning is dropped server-side and in the page.
+const sessionEngine = require('./session-engine');
+const sessionHtmlSrc = fs.readFileSync(path.join(FRONTEND, 'session.html'), 'utf8');
+
+const written = sessionEngine.cleanLesson(
+    'The user wants me to teach adding fractions.\n\nLet me plan the lesson first.\n\n' +
+        '## Adding fractions\n\nEach fraction counts parts of the same whole.\n\n' +
+        '## Worked example\n\n1. Add 1/4 + 2/4.\n2. Add the numerators: 3/4.\n'
+);
+ok('every lesson section survives the cleaner', /## Adding fractions/.test(written) && /## Worked example/.test(written), written.slice(0, 120));
+ok('planning never reaches the learner', !/the user|let me plan/i.test(written), written.slice(0, 160));
+ok(
+    'a reply that is only planning falls back to the unit text',
+    sessionEngine.cleanLesson('The user wants a lesson about fractions.') === ''
+);
+ok('the page uses the same rule', /function cleanLesson/.test(sessionAppSrc) && /PLANNING_TELL/.test(sessionAppSrc));
+ok(
+    'the old keep-only-the-last-paragraph rule is gone',
+    !/usable\[usable\.length - 1\]/.test(sessionAppSrc) && !/usable\[usable\.length - 1\]/.test(engineSrc)
+);
+
+ok(
+    'the lesson prompt asks for a teaching section with worked examples',
+    /## Worked example/.test(engineSrc) && /## Watch out/.test(engineSrc) && /never your reasoning/.test(engineSrc)
+);
+ok(
+    'teaching is not cut off at a paragraph',
+    /max_tokens: asked \? 2400 : 7000/.test(engineSrc) && /budgetMs: asked \? 60000 : 120000/.test(engineSrc),
+    'the lesson needs ~5000 words of room and a stream that is not killed at 25 s'
+);
+ok('the outline material travels whole enough to teach from', /unitText\.slice\(0, 4000\)/.test(engineSrc));
+ok(
+    'the page renders the lesson as sections',
+    /function renderLesson/.test(sessionAppSrc) && /sx-lesson-h/.test(sessionAppSrc) && /sx-lesson-steps/.test(sessionAppSrc)
+);
+ok(
+    'the learning section comes before practice',
+    /id="sx-intro-start">Start practice</.test(sessionHtmlSrc) && /Start practice/.test(sessionAppSrc)
+);
+
 const mascotSrc = fs.readFileSync(path.join(FRONTEND, 'mascot.js'), 'utf8');
 const mouthBlock = mascotSrc.slice(mascotSrc.indexOf('const MOUTH'), mascotSrc.indexOf('};', mascotSrc.indexOf('const MOUTH')));
 const mouthKeys = [...mouthBlock.matchAll(/^\s{4}(\w+):/gm)].map((m) => m[1]);

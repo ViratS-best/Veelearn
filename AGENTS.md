@@ -4,6 +4,22 @@
 
 ---
 
+### ✅ THE SESSION OPENS ON A REAL LESSON, NOT AN OVERVIEW
+
+**Status**: COMPLETE (offline-verified: 166 + 113 + 73 + 122 checks green; live run needs a Render deploy)
+
+**No more thinking out loud** (`session-engine.js`, `session/session-app.js`)
+- The teach reply used to leak the model's plan ("The user wants me to teach…", "Let me plan…") because a vague unit made it narrate instead of teach. `cleanLesson` now removes planning lines wherever they appear (planning tells, model-addressed leads, `<thinking>` / `Thinking:` blocks, greeting preambles before the first heading) and **keeps every remaining section** — the old frontend rule kept only the last paragraph, which threw away the teaching whenever a reply had several. If nothing survives, the unit's own outline text is shown instead.
+- The prompt also forbids it outright ("Write only the finished lesson… never your reasoning, plans, notes to yourself") and the page strips `##` markers while the text streams.
+
+**Teaching is no longer cut off** (`session-engine.js`)
+- `max_tokens` was 320 (≈240 words) and the stream was killed at 25 s. Now 7000 tokens (≈5000 words) with a 120 s budget for a lesson, 2400 / 60 s for an in-session question. The lesson prompt asks for a complete piece: finish every sentence, step and example.
+
+**A dedicated learning section, built from the outline** (`session-engine.js`, `session.html`, `session-app.js`, `session.css`)
+- `POST /api/session/:id/teach` now writes a lesson in fixed sections: `## <the idea>`, `## Worked example`, `## Worked example 2`, `## Watch out`. The unit's outline brief travels whole (4000 chars, was 1200 — the cut also removed the diagram and common-slip lines) plus the skill's misconceptions.
+- The page renders those sections as real headings, numbered step lists and tables (`renderLesson`, `sx-lesson-h` / `sx-lesson-steps`) instead of one wall of prose, and the primary button is **Start practice** — the lesson comes first, then the questions.
+- Every fresh skill opens on this section (`if (fresh) showIntro(...)`), not only units that happened to store an intro paragraph.
+
 ### ✅ OUTLINES ONLY + A MUCH BIGGER QUESTION BANK
 
 **Status**: COMPLETE (offline-verified: seed validates, 457 tests green; new skills and bank rows land on the next API boot)

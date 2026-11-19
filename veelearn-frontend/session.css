@@ -289,6 +289,34 @@
 
 .sx-intro { margin: 0 0 20px; font-size: 15.5px; line-height: 1.6; color: #3f3a36; }
 
+/* The learning section: idea, worked examples, watch out. Headings are real
+   headings so a long lesson can be skimmed and returned to. */
+.sx-intro .sx-lesson-h {
+  margin: 24px 0 8px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--sx-border, #f0e2d4);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--sx-ink, #1f2937);
+}
+.sx-intro .sx-lesson-h:first-child { margin-top: 0; }
+.sx-intro .sx-lesson-p { margin: 0 0 12px; }
+.sx-intro .sx-lesson-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 0 0 14px;
+  padding-left: 22px;
+}
+.sx-intro .sx-lesson-steps { list-style: decimal; }
+.sx-intro .sx-lesson-steps li::marker {
+  color: var(--sx-accent, #ea580c);
+  font-weight: 700;
+}
+.sx-intro .sx-lesson-table { margin: 0 0 14px; overflow-x: auto; }
+.sx-intro strong { font-weight: 700; color: var(--sx-ink, #1f2937); }
+
 .sx-stem {
   margin: 0 0 22px;
   font-size: 21px;
