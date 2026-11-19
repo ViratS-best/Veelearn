@@ -343,11 +343,43 @@
     if (!raw) return null;
 
     let firstTable = null;
-    raw
-      .split(/\n{2,}/)
-      .map((block) => block.trim())
-      .filter(Boolean)
-      .forEach((block) => {
+
+    // A fenced block is a picture/diagram the model drew in text: keep it as
+    // preformatted text instead of letting the backticks spill into a paragraph.
+    const segments = [];
+    const fence = /```[a-zA-Z]*\r?\n([\s\S]*?)```/g;
+    let cursor = 0;
+    let match;
+    while ((match = fence.exec(raw)) !== null) {
+      if (match.index > cursor) segments.push({ text: raw.slice(cursor, match.index) });
+      segments.push({ code: match[1].replace(/\s+$/, '') });
+      cursor = match.index + match[0].length;
+    }
+    if (cursor < raw.length) segments.push({ text: raw.slice(cursor) });
+
+    const blocks = [];
+    segments.forEach((segment) => {
+      if (segment.code != null) {
+        blocks.push({ code: segment.code });
+        return;
+      }
+      segment.text
+        .split(/\n{2,}/)
+        .map((block) => block.trim())
+        .filter(Boolean)
+        .forEach((block) => blocks.push({ text: block }));
+    });
+
+    blocks.forEach((entry) => {
+      if (entry.code != null) {
+        const pre = document.createElement('pre');
+        pre.className = 'sx-lesson-pre';
+        pre.textContent = entry.code;
+        box.appendChild(pre);
+        return;
+      }
+      const block = entry.text;
+      {
         const lines = block
           .split('\n')
           .map((l) => l.trim())
@@ -403,7 +435,8 @@
         p.className = 'sx-lesson-p';
         renderInline(p, lines.join(' '));
         box.appendChild(p);
-      });
+      }
+    });
 
     return firstTable || box.querySelector('.sx-table');
   }

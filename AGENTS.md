@@ -6,7 +6,7 @@
 
 ### ✅ THE SESSION OPENS ON A REAL LESSON, NOT AN OVERVIEW
 
-**Status**: COMPLETE (offline-verified: 166 + 113 + 73 + 122 checks green; live run needs a Render deploy)
+**Status**: COMPLETE (offline-verified: 168 + 113 + 73 + 122 checks green; live lesson verified against api.veelearn.org)
 
 **No more thinking out loud** (`session-engine.js`, `session/session-app.js`)
 - The teach reply used to leak the model's plan ("The user wants me to teach…", "Let me plan…") because a vague unit made it narrate instead of teach. `cleanLesson` now removes planning lines wherever they appear (planning tells, model-addressed leads, `<thinking>` / `Thinking:` blocks, greeting preambles before the first heading) and **keeps every remaining section** — the old frontend rule kept only the last paragraph, which threw away the teaching whenever a reply had several. If nothing survives, the unit's own outline text is shown instead.
@@ -17,7 +17,8 @@
 
 **A dedicated learning section, built from the outline** (`session-engine.js`, `session.html`, `session-app.js`, `session.css`)
 - `POST /api/session/:id/teach` now writes a lesson in fixed sections: `## <the idea>`, `## Worked example`, `## Worked example 2`, `## Watch out`. The unit's outline brief travels whole (4000 chars, was 1200 — the cut also removed the diagram and common-slip lines) plus the skill's misconceptions.
-- The page renders those sections as real headings, numbered step lists and tables (`renderLesson`, `sx-lesson-h` / `sx-lesson-steps`) instead of one wall of prose, and the primary button is **Start practice** — the lesson comes first, then the questions.
+- The page renders those sections as real headings, numbered step lists, tables and fenced blocks (`renderLesson`, `sx-lesson-h` / `sx-lesson-steps` / `sx-lesson-pre`) instead of one wall of prose, and the primary button is **Start practice** — the lesson comes first, then the questions. The prompt steers diagrams away from ASCII art towards markdown tables, which are drawn.
+- Live check: unit "Newton's Third Law" from course 42 produced a 4,143-character lesson — idea, cart diagram, worked example with numbered steps, watch out — with no planning text (`fallback: false`).
 - Every fresh skill opens on this section (`if (fresh) showIntro(...)`), not only units that happened to store an intro paragraph.
 
 ### ✅ OUTLINES ONLY + A MUCH BIGGER QUESTION BANK

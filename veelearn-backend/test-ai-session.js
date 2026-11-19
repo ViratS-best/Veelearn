@@ -294,6 +294,8 @@ ok(
     'the page renders the lesson as sections',
     /function renderLesson/.test(sessionAppSrc) && /sx-lesson-h/.test(sessionAppSrc) && /sx-lesson-steps/.test(sessionAppSrc)
 );
+ok('a fenced diagram becomes a block, not backticks in a paragraph', /sx-lesson-pre/.test(sessionAppSrc));
+ok('the prompt steers diagrams away from ASCII art', /Never use code fences or ASCII art/.test(engineSrc));
 ok(
     'the learning section comes before practice',
     /id="sx-intro-start">Start practice</.test(sessionHtmlSrc) && /Start practice/.test(sessionAppSrc)

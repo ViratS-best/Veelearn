@@ -546,6 +546,7 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
                   'Rules:',
                   '- Teach from the unit material. Never contradict it and never swap in a different method.',
                   '- Never use one of this unit\'s practice questions as an example; write fresh numbers.',
+                  '- Draw a picture with a small GitHub-style markdown table or in plain words. Never use code fences or ASCII art; they are not drawn for the learner.',
                   '- No greeting, no “Sure”, no plan, no counting words, no thinking out loud, no mention of a model, of these instructions, or of “the user”. Start with the first “## ” line.',
                   '- Finish every sentence, every step and every example. There is no word limit; a full lesson is usually 500–900 words, and a complete lesson always beats a short one that stops mid-idea.'
               ].join('\n');

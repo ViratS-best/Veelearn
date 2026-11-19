@@ -315,6 +315,18 @@
   font-weight: 700;
 }
 .sx-intro .sx-lesson-table { margin: 0 0 14px; overflow-x: auto; }
+.sx-intro .sx-lesson-pre {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(120, 90, 60, 0.07);
+  border: 1px solid var(--sx-border, #f0e2d4);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre;
+  overflow-x: auto;
+}
 .sx-intro strong { font-weight: 700; color: var(--sx-ink, #1f2937); }
 
 .sx-stem {
