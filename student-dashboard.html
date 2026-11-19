@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard - Learn Courses, Track Progress & Connect with Parents | Veelearn</title>
+    <meta name="description" content="Veelearn Student Dashboard - your personalized learning hub. Browse courses, track progress, complete assignments, view calendar, and connect with parents using AI-powered learning recommendations.">
+    <meta name="keywords" content="student dashboard, online learning, course tracking, assignment completion, education portal, AI learning recommendations, student progress, Veelearn">
+    <meta name="author" content="Veelearn">
+    <meta name="robots" content="index, follow">
+    <meta property="og:title" content="Student Dashboard - Learn Courses, Track Progress & Connect with Parents | Veelearn">
+    <meta property="og:description" content="Your personalized learning hub. Browse courses, track progress, complete assignments, view calendar, and connect with parents using AI-powered learning recommendations.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://veelearn.org/student-dashboard.html">
+    <meta property="og:image" content="https://veelearn.org/VEELEARN.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Student Dashboard - Learn Courses, Track Progress & Connect with Parents | Veelearn">
+    <meta name="twitter:description" content="Your personalized learning hub. Browse courses, track progress, complete assignments, view calendar, and connect with parents using AI-powered learning recommendations.">
+    <meta name="twitter:image" content="https://veelearn.org/VEELEARN.png">
+    <link rel="canonical" href="https://veelearn.org/student-dashboard.html">
+    <link rel="icon" type="image/png" href="VEELEARN.png">
+    <link rel="stylesheet" href="styles-redesign.css">
+    <link rel="stylesheet" href="luxury-editorial.css">
+    
+    <!-- AEO Schema Markup for Answer Engine Optimization -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Veelearn Student Dashboard",
+        "description": "Your personalized learning hub. Browse courses, track progress, complete assignments, view calendar, and connect with parents using AI-powered learning recommendations.",
+        "url": "https://veelearn.org/student-dashboard.html",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Web Browser",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "featureList": [
+            "Course browsing and enrollment",
+            "Progress tracking",
+            "Assignment completion",
+            "Calendar view",
+            "Parent connection",
+            "AI learning recommendations",
+            "Interactive simulators",
+            "Quiz completion"
+        ],
+        "provider": {
+            "@type": "Organization",
+            "name": "Veelearn",
+            "url": "https://veelearn.org"
+        }
+    }
+    </script>
+    
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": "What is the Veelearn Student Dashboard?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "The Veelearn Student Dashboard is a personalized learning hub where students can browse courses, track progress, complete assignments, view their calendar, and connect with parents using AI-powered learning recommendations."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "How do students track their progress on Veelearn?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Students can track their progress through the dashboard which shows course completion percentages, assignment status, quiz scores, and overall learning metrics with detailed analytics."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Can students connect with parents on Veelearn?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Yes, students can connect with their parents on Veelearn by sharing their unique parent code. This allows parents to monitor their progress and communicate with teachers."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "What features does the Veelearn Student Dashboard offer?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "The dashboard offers course browsing and enrollment, progress tracking, assignment completion, calendar view, parent connection, AI learning recommendations, interactive simulators, and quiz completion features."
+                }
+            }
+        ]
+    }
+    </script>
+    <style>
+        body {
+            background-color: #f8fafc;
+            background-image: radial-gradient(circle at 20% 50%, rgba(102, 126, 234, 0.08) 0%, transparent 50%),
+                              radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.08) 0%, transparent 50%),
+                              radial-gradient(circle at 40% 20%, rgba(16, 185, 129, 0.05) 0%, transparent 50%);
+            background-attachment: fixed;
+            color: #1f2937;
+        }
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e5e7eb;
+        }
+        .dashboard-header h1 {
+            color: #667eea;
+            margin: 0;
+        }
+        .parent-code-box {
+            background: #667eea;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .parent-code-box h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+        }
+        .parent-code-box .code {
+            font-size: 28px;
+            font-weight: bold;
+            letter-spacing: 3px;
+        }
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .dashboard-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+        .dashboard-card h2 {
+            color: #667eea;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+        .class-list, .assignment-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .class-item, .assignment-item {
+            background: #f8fafc;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #e5e7eb;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        .class-item:hover, .assignment-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+        }
+        .class-item h3, .assignment-item h3 {
+            color: #1f2937;
+            margin: 0 0 10px 0;
+        }
+        .class-item p, .assignment-item p {
+            color: #6b7280;
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        .progress-bar {
+            background: #e5e7eb;
+            height: 10px;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        .progress-bar .fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s;
+        }
+        .status {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status.not-started {
+            background: #ff6b6b;
+            color: white;
+        }
+        .status.in-progress {
+            background: #ffd93d;
+            color: #333;
+        }
+        .status.completed {
+            background: #51cf66;
+            color: white;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            background: white;
+            color: #6b7280;
+            border: 1px solid #e5e7eb;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tab:hover {
+            border-color: #667eea;
+        }
+        .tab.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .btn {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .loading {
+            color: #6b7280;
+            text-align: center;
+            padding: 20px;
+        }
+        .post-item, .message-item {
+            background: #f8fafc;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #e5e7eb;
+        }
+        .post-item h4, .message-item h4 {
+            color: #667eea;
+            margin: 0 0 10px 0;
+        }
+        .post-item p, .message-item p {
+            color: #6b7280;
+            margin: 5px 0;
+        }
+        .post-item .meta, .message-item .meta {
+            color: #9ca3af;
+            font-size: 12px;
+        }
+        .calendar-item {
+            background: #f8fafc;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #e5e7eb;
+        }
+        .calendar-item h4 {
+            color: #667eea;
+            margin: 0 0 10px 0;
+        }
+        .calendar-item .meta {
+            color: #6b7280;
+            font-size: 14px;
+        }
+        .message-item h4 {
+            color: #667eea;
+            margin: 0 0 10px 0;
+        }
+        .message-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .message-item {
+            background: #f8fafc;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #e5e7eb;
+        }
+        .message-item.sent {
+            border-left: 3px solid #667eea;
+        }
+        .message-item.received {
+            border-left: 3px solid #764ba2;
+        }
+        .message-item h4 {
+            color: #667eea;
+            margin: 0 0 10px 0;
+        }
+        .message-item p {
+            color: #1f2937;
+            margin: 5px 0;
+        }
+        .message-item .meta {
+            color: #888;
+            font-size: 12px;
+        }
+        .calendar-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .calendar-item {
+            background: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #e5e7eb;
+            border-left: 3px solid #667eea;
+        }
+        .calendar-item.assignment {
+            border-left-color: #ff6b6b;
+        }
+        .calendar-item.exam {
+            border-left-color: #ffd93d;
+        }
+        .calendar-item.event {
+            border-left-color: #51cf66;
+        }
+        .calendar-item h4 {
+            color: #667eea;
+            margin: 0 0 10px 0;
+        }
+        .calendar-item p {
+            color: #1f2937;
+            margin: 5px 0;
+        }
+        .calendar-item .meta {
+            color: #6b7280;
+            font-size: 12px;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+        .btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1>🎓 Student Dashboard</h1>
+            <div class="parent-code-box">
+                <h3>👨‍👩‍👧 Parent Code</h3>
+                <div class="code" id="parentCode">Loading...</div>
+            </div>
+            <button class="btn" onclick="logout()">Logout</button>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('classes')">My Classes</button>
+            <button class="tab" onclick="showTab('assignments')">Assignments</button>
+            <button class="tab" onclick="showTab('posts')">Class Posts</button>
+            <button class="tab" onclick="showTab('messages')">Messages</button>
+            <button class="tab" onclick="showTab('calendar')">Calendar</button>
+        </div>
+
+        <div id="classesTab" class="tab-content active">
+            <div class="dashboard-card">
+                <h2>📋 My Classes</h2>
+                <div class="class-list" id="classList">
+                    <p class="loading">Loading classes...</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="assignmentsTab" class="tab-content">
+            <div class="dashboard-card">
+                <h2>📚 My Assignments</h2>
+                <div class="assignment-list" id="assignmentList">
+                    <p class="loading">Loading assignments...</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="postsTab" class="tab-content">
+            <div class="dashboard-card">
+                <h2>📢 Class Posts</h2>
+                <div class="post-list" id="postsList">
+                    <p class="loading">Loading posts...</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="messagesTab" class="tab-content">
+            <div class="dashboard-card">
+                <h2>💬 Messages</h2>
+                <div class="message-list" id="messageList">
+                    <p class="loading">Loading messages...</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="calendarTab" class="tab-content">
+            <div class="dashboard-card">
+                <h2>📅 Calendar</h2>
+                <div class="calendar-list" id="calendarList">
+                    <p class="loading">Loading calendar events...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = (() => {
+            if (window.location.hostname.includes('veelearn.org')) {
+                return 'https://api.veelearn.org';
+            }
+            if (window.location.hostname.includes('github.io')) {
+                return 'https://veelearn.onrender.com';
+            }
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                return 'http://localhost:3000';
+            }
+            return window.location.origin;
+        })();
+
+        let authToken = localStorage.getItem('token');
+        let currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+
+        if (!authToken) {
+            window.location.href = 'index.html';
+        }
+
+        function showTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            document.querySelector(`.tab[onclick="showTab('${tabName}')"]`).classList.add('active');
+            document.getElementById(`${tabName}Tab`).classList.add('active');
+        }
+
+        async function loadParentCode() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/student/my-parent-code`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.data) {
+                    document.getElementById('parentCode').textContent = data.data.parent_code || 'Not available';
+                }
+            } catch (error) {
+                console.error('Error loading parent code:', error);
+            }
+        }
+
+        async function loadClasses() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/student/my-classes`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.data) {
+                    const classes = data.data;
+                    const classList = document.getElementById('classList');
+                    
+                    classList.innerHTML = '';
+                    
+                    if (classes.length === 0) {
+                        classList.innerHTML = '<p style="color: #888; text-align: center;">You are not enrolled in any classes yet.</p>';
+                        return;
+                    }
+                    
+                    classes.forEach(cls => {
+                        const classItem = document.createElement('div');
+                        classItem.className = 'class-item';
+                        classItem.innerHTML = `
+                            <h3>${cls.name}</h3>
+                            <p>Teacher: ${cls.teacher_name || 'Not assigned'}</p>
+                            <p>Email: ${cls.teacher_email || 'N/A'}</p>
+                        `;
+                        classList.appendChild(classItem);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading classes:', error);
+            }
+        }
+
+        async function loadAssignments() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/student/my-assignments`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.data) {
+                    const assignments = data.data;
+                    const assignmentList = document.getElementById('assignmentList');
+                    
+                    assignmentList.innerHTML = '';
+                    
+                    if (assignments.length === 0) {
+                        assignmentList.innerHTML = '<p style="color: #888; text-align: center;">No assignments yet.</p>';
+                        return;
+                    }
+                    
+                    assignments.forEach(assignment => {
+                        const assignmentItem = document.createElement('div');
+                        assignmentItem.className = 'assignment-item';
+                        assignmentItem.style.cursor = 'pointer';
+                        
+                        const dueDate = new Date(assignment.due_date);
+                        const now = new Date();
+                        const isLate = dueDate < now && !assignment.submitted_at;
+                        const isCompleted = assignment.submitted_at !== null;
+                        
+                        let status = 'not-started';
+                        if (isCompleted) status = 'completed';
+                        else if (assignment.completion_percentage > 0) status = 'in-progress';
+                        
+                        assignmentItem.innerHTML = `
+                            <h3>${assignment.title}</h3>
+                            <p>Course: ${assignment.course_title}</p>
+                            <p>Due: ${dueDate.toLocaleString()}</p>
+                            <p>Progress: ${assignment.completion_percentage || 0}%</p>
+                            <div class="progress-bar">
+                                <div class="fill" style="width: ${assignment.completion_percentage || 0}%"></div>
+                            </div>
+                            ${assignment.correct_answers !== null && assignment.total_questions !== null
+                                ? `<p>Score: ${assignment.correct_answers}/${assignment.total_questions} (${assignment.quiz_accuracy || 0}%)</p>`
+                                : `<p>Score: ${assignment.score || 'N/A'}</p>`
+                            }
+                            <span class="status ${status}">${status.replace('-', ' ')}</span>
+                            ${isLate ? '<span class="status not-started" style="margin-left: 10px;">LATE</span>' : ''}
+                        `;
+                        
+                        // Add click handler to redirect to course
+                        assignmentItem.addEventListener('click', () => {
+                            const baseUrl = window.location.hostname.includes('github.io')
+                                ? 'https://virat-sisodiya.github.io/Veelearn/veelearn-frontend'
+                                : window.location.origin;
+                            window.open(`${baseUrl}/course-viewer.html?courseId=${assignment.course_id}&assignmentId=${assignment.id}`, '_blank');
+                        });
+                        
+                        assignmentList.appendChild(assignmentItem);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading assignments:', error);
+            }
+        }
+
+        async function loadPosts() {
+            try {
+                console.log('[Posts] Loading posts...');
+                
+                // Get user's school info
+                const userResponse = await fetch(`${API_BASE_URL}/api/student/my-parent-code`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const userData = await userResponse.json();
+                console.log('[Posts] User data:', userData);
+                
+                let schoolId = null;
+                if (userResponse.ok && userData.data && userData.data.school_id) {
+                    schoolId = userData.data.school_id;
+                    console.log('[Posts] School ID found:', schoolId);
+                } else {
+                    console.log('[Posts] No school ID found. Response ok:', userResponse.ok, 'Data:', userData);
+                }
+
+                const postsList = document.getElementById('postsList');
+                postsList.innerHTML = '';
+
+                // Load school-wide posts if student has a school
+                if (schoolId) {
+                    try {
+                        console.log('[Posts] Loading school posts for school ID:', schoolId);
+                        const schoolPostsResponse = await fetch(`${API_BASE_URL}/api/posts/school/${schoolId}`, {
+                            headers: { 'Authorization': `Bearer ${authToken}` }
+                        });
+                        const schoolPostsData = await schoolPostsResponse.json();
+                        console.log('[Posts] School posts response:', schoolPostsData);
+                        
+                        if (schoolPostsResponse.ok && schoolPostsData.data) {
+                            const schoolPosts = schoolPostsData.data;
+                            console.log('[Posts] School posts count:', schoolPosts.length);
+                            schoolPosts.forEach(post => {
+                                const postItem = document.createElement('div');
+                                postItem.className = 'post-item';
+                                const timestamp = new Date(post.created_at).toLocaleString();
+                                postItem.innerHTML = `
+                                    <h4>SCHOOL-WIDE - ${post.post_type.toUpperCase()}</h4>
+                                    <p>${post.content}</p>
+                                    <p class="meta">By ${post.author_name} - ${timestamp}</p>
+                                `;
+                                postsList.appendChild(postItem);
+                            });
+                        } else {
+                            console.log('[Posts] School posts failed. Response ok:', schoolPostsResponse.ok);
+                        }
+                    } catch (error) {
+                        console.error('[Posts] Error loading school posts:', error);
+                    }
+                }
+
+                // Get user's classes and load class posts
+                console.log('[Posts] Loading user classes...');
+                const classesResponse = await fetch(`${API_BASE_URL}/api/student/my-classes`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const classesData = await classesResponse.json();
+                console.log('[Posts] Classes response:', classesData);
+                
+                if (classesResponse.ok && classesData.data) {
+                    const classes = classesData.data;
+                    console.log('[Posts] Classes count:', classes.length);
+                    
+                    if (classes.length === 0 && postsList.children.length === 0) {
+                        postsList.innerHTML = '<p style="color: #888; text-align: center;">No classes to show posts from.</p>';
+                        return;
+                    }
+                    
+                    // Load posts for each class
+                    for (const cls of classes) {
+                        try {
+                            console.log('[Posts] Loading posts for class:', cls.id, cls.name);
+                            const postsResponse = await fetch(`${API_BASE_URL}/api/posts/class/${cls.id}`, {
+                                headers: { 'Authorization': `Bearer ${authToken}` }
+                            });
+                            
+                            const postsData = await postsResponse.json();
+                            console.log('[Posts] Class posts response for', cls.name, ':', postsData);
+                            
+                            if (postsResponse.ok && postsData.data) {
+                                const posts = postsData.data;
+                                console.log('[Posts] Class posts count for', cls.name, ':', posts.length);
+                                
+                                posts.forEach(post => {
+                                    const postItem = document.createElement('div');
+                                    postItem.className = 'post-item';
+                                    const timestamp = new Date(post.created_at).toLocaleString();
+                                    postItem.innerHTML = `
+                                        <h4>${cls.name} - ${post.post_type.toUpperCase()}</h4>
+                                        <p>${post.content}</p>
+                                        <p class="meta">By ${post.author_name} - ${timestamp}</p>
+                                    `;
+                                    postsList.appendChild(postItem);
+                                });
+                            } else {
+                                console.log('[Posts] Class posts failed for', cls.name, '. Response ok:', postsResponse.ok);
+                            }
+                        } catch (error) {
+                            console.error('[Posts] Error loading posts for class:', cls.name, error);
+                        }
+                    }
+                } else {
+                    console.log('[Posts] Classes request failed. Response ok:', classesResponse.ok);
+                }
+                
+                if (postsList.children.length === 0) {
+                    postsList.innerHTML = '<p style="color: #888; text-align: center;">No posts yet.</p>';
+                }
+                
+                console.log('[Posts] Total posts displayed:', postsList.children.length);
+            } catch (error) {
+                console.error('[Posts] Error loading posts:', error);
+            }
+        }
+
+        async function loadMessages() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/messages`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.data) {
+                    const messages = data.data;
+                    const messageList = document.getElementById('messageList');
+                    
+                    messageList.innerHTML = '';
+                    
+                    if (messages.length === 0) {
+                        messageList.innerHTML = '<p style="color: #888; text-align: center;">No messages yet.</p>';
+                        return;
+                    }
+                    
+                    messages.forEach(message => {
+                        const messageItem = document.createElement('div');
+                        const isSent = message.sender_id === currentUser.id;
+                        messageItem.className = `message-item ${isSent ? 'sent' : 'received'}`;
+                        const timestamp = new Date(message.created_at).toLocaleString();
+                        messageItem.innerHTML = `
+                            <h4>${isSent ? 'To: ' + message.recipient_name : 'From: ' + message.sender_name}</h4>
+                            <p>${message.content}</p>
+                            <p class="meta">${timestamp}</p>
+                        `;
+                        messageList.appendChild(messageItem);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading messages:', error);
+            }
+        }
+
+        async function loadCalendar() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/calendar`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.data) {
+                    const events = data.data;
+                    const calendarList = document.getElementById('calendarList');
+                    
+                    calendarList.innerHTML = '';
+                    
+                    if (events.length === 0) {
+                        calendarList.innerHTML = '<p style="color: #888; text-align: center;">No calendar events yet.</p>';
+                        return;
+                    }
+                    
+                    events.forEach(event => {
+                        const eventItem = document.createElement('div');
+                        eventItem.className = `calendar-item ${event.event_type}`;
+                        // Parse date directly to avoid timezone conversion
+                        let eventDate;
+                        if (event.event_date.includes('T')) {
+                            // Handle ISO timestamp format - extract date portion before T
+                            const dateOnly = event.event_date.split('T')[0];
+                            const dateParts = dateOnly.split('-');
+                            eventDate = `${dateParts[1]}/${dateParts[2]}/${dateParts[0]}`;
+                        } else {
+                            // Handle YYYY-MM-DD format
+                            const dateParts = event.event_date.split('-');
+                            eventDate = `${dateParts[1]}/${dateParts[2]}/${dateParts[0]}`;
+                        }
+                        eventItem.innerHTML = `
+                            <h4>${event.title}</h4>
+                            <p class="meta">Date: ${eventDate} | Type: ${event.event_type}</p>
+                        `;
+                        calendarList.appendChild(eventItem);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading calendar:', error);
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = 'index.html';
+        }
+
+        // Initialize
+        loadParentCode();
+        loadClasses();
+        loadAssignments();
+        loadPosts();
+        loadMessages();
+        loadCalendar();
+    </script>
+</body>
+</html>

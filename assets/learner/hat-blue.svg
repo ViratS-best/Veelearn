@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 120" width="96" height="120">
+  <!-- Cap sits on crown of head (top ~y=8), not over eyes -->
+  <ellipse cx="48" cy="4" rx="30" ry="8" fill="#60A5FA"/>
+  <rect x="28" y="4" width="40" height="10" rx="3" fill="#3B82F6"/>
+</svg>

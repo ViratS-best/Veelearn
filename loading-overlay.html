@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Veelearn - Server Loading</title>
+    <link rel="stylesheet" href="server-loading.css">
+</head>
+<body>
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-container">
+            <!-- Veelearn Logo with Animation -->
+            <div class="logo-container">
+                <div class="veelearn-logo">
+                    <div class="logo-circle">
+                        <span class="logo-text">V</span>
+                    </div>
+                    <div class="logo-pulse"></div>
+                </div>
+                <h1 class="brand-name">Veelearn</h1>
+            </div>
+
+            <!-- Loading Messages -->
+            <div class="loading-messages">
+                <p id="loading-message" class="loading-message">Connecting to Veelearn...</p>
+                <p id="loading-submessage" class="loading-submessage">Please wait while we prepare your learning experience</p>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div id="progress-fill" class="progress-fill"></div>
+                </div>
+                <div class="progress-info">
+                    <span id="progress-percentage">0%</span>
+                    <span id="progress-time">~60s remaining</span>
+                </div>
+            </div>
+
+            <!-- STEM Animation Elements -->
+            <div class="stem-animations">
+                <!-- Floating Atoms -->
+                <div class="atom atom-1">
+                    <div class="nucleus"></div>
+                    <div class="orbit orbit-1"></div>
+                    <div class="orbit orbit-2"></div>
+                </div>
+                <div class="atom atom-2">
+                    <div class="nucleus"></div>
+                    <div class="orbit orbit-1"></div>
+                    <div class="orbit orbit-2"></div>
+                </div>
+                
+                <!-- Mathematical Equations -->
+                <div class="equation equation-1">E = mc²</div>
+                <div class="equation equation-2">∫f(x)dx</div>
+                <div class="equation equation-3">∑(i=1→n)</div>
+                
+                <!-- DNA Helix -->
+                <div class="dna-helix">
+                    <div class="dna-strand strand-1"></div>
+                    <div class="dna-strand strand-2"></div>
+                </div>
+            </div>
+
+            <!-- Loading Dots -->
+            <div class="loading-dots">
+                <span class="dot dot-1"></span>
+                <span class="dot dot-2"></span>
+                <span class="dot dot-3"></span>
+            </div>
+
+            <!-- Status Indicator -->
+            <div class="status-indicator">
+                <div id="status-dot" class="status-dot waking"></div>
+                <span id="status-text">Server waking up</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="server-loading.js"></script>
+</body>
+</html>

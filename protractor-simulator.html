@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>Protractor Lab</title>
+  <style>
+    :root {
+      --ink: #1e293b;
+      --muted: #475569;
+      --paper: #f8fafc;
+      --line: #0f766e;
+      --ray: #c2410c;
+      --accent: #4f46e5;
+      --ok: #15803d;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: var(--paper); color: var(--ink); font-family: "Segoe UI", system-ui, sans-serif; }
+    body { display: flex; flex-direction: column; min-height: 100%; }
+    header {
+      padding: 10px 14px 8px;
+      background: #eef2ff;
+      border-bottom: 1px solid #c7d2fe;
+    }
+    header h1 { margin: 0; font-size: 1.05rem; }
+    header p { margin: 4px 0 0; font-size: 0.85rem; color: var(--muted); }
+    #stage { flex: 1; position: relative; min-height: 340px; }
+    canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+    canvas.dragging { cursor: grabbing; }
+    .bar {
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+      padding: 10px 12px; border-top: 1px solid #cbd5e1; background: #fff;
+    }
+    button, .check {
+      border: 0; border-radius: 8px; padding: 8px 12px; font-weight: 700;
+      background: var(--accent); color: #fff; cursor: pointer; font-size: 0.85rem;
+    }
+    button.secondary { background: #e2e8f0; color: var(--ink); }
+    button:active { transform: scale(0.98); }
+    label { font-size: 0.85rem; font-weight: 700; }
+    input[type="number"] {
+      width: 72px; padding: 7px 8px; border: 2px solid #cbd5e1; border-radius: 8px; font-size: 1rem;
+    }
+    #status { font-weight: 800; min-height: 1.2em; }
+    #status.ok { color: var(--ok); }
+    #status.bad { color: #b91c1c; }
+    .hint { font-size: 0.78rem; color: var(--muted); width: 100%; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Protractor Lab</h1>
+    <p>Drag the protractor onto the vertex. Line up the baseline with one ray. Read the other ray.</p>
+  </header>
+  <div id="stage"><canvas id="c"></canvas></div>
+  <div class="bar">
+    <button type="button" id="btn-new">New angle</button>
+    <button type="button" class="secondary" id="btn-snap">Snap to vertex</button>
+    <button type="button" class="secondary" id="btn-align">Line up a ray</button>
+    <button type="button" class="secondary" id="btn-show">Show measure</button>
+    <label>Your reading <input id="guess" type="number" min="0" max="180" step="1" /></label>
+    <button type="button" class="check" id="btn-check">Check</button>
+    <span id="status"></span>
+    <div class="hint">Outer numbers run 0 → 180 one way. Inner numbers run the other way. Use the 0 that sits on your ray.</div>
+  </div>
+  <script>
+(function () {
+  const canvas = document.getElementById("c");
+  const ctx = canvas.getContext("2d");
+  const params = new URLSearchParams(location.search);
+  const statusEl = document.getElementById("status");
+  const guessEl = document.getElementById("guess");
+
+  const state = {
+    vertex: { x: 0.5, y: 0.62 },
+    baseDeg: 18,
+    measure: 65,
+    prot: { x: 0.28, y: 0.72, rot: 0, r: 0.34 },
+    showMeasure: params.get("show") === "1",
+    practice: params.get("practice") !== "0",
+    drag: null,
+  };
+
+  if (params.has("angle")) {
+    const a = Number(params.get("angle"));
+    if (a >= 1 && a <= 179) state.measure = Math.round(a);
+  }
+  if (params.has("base")) {
+    const b = Number(params.get("base"));
+    if (!Number.isNaN(b)) state.baseDeg = b;
+  }
+  if (params.get("practice") === "0") state.practice = false;
+  if (params.get("show") === "1") state.showMeasure = true;
+
+  function randInt(a, b) {
+    return a + Math.floor(Math.random() * (b - a + 1));
+  }
+
+  function newAngle(kind) {
+    const roll = kind || ["acute", "right", "obtuse"][randInt(0, 2)];
+    if (roll === "right") state.measure = 90;
+    else if (roll === "acute") state.measure = randInt(2, 17) * 5;
+    else state.measure = 90 + randInt(1, 17) * 5;
+    if (state.measure >= 180) state.measure = 175;
+    state.baseDeg = randInt(-20, 40);
+    state.showMeasure = !state.practice;
+    guessEl.value = "";
+    statusEl.textContent = "";
+    statusEl.className = "";
+    draw();
+  }
+
+  function size() {
+    const box = canvas.parentElement.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.max(320, box.width) * dpr;
+    canvas.height = Math.max(280, box.height) * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { w: box.width, h: box.height, dpr };
+  }
+
+  function px() {
+    const { w, h } = sizeCached();
+    return {
+      vx: state.vertex.x * w,
+      vy: state.vertex.y * h,
+      px: state.prot.x * w,
+      py: state.prot.y * h,
+      pr: state.prot.r * Math.min(w, h * 1.35),
+      w, h,
+    };
+  }
+
+  let lastBox = { w: 640, h: 400 };
+  function sizeCached() {
+    const box = canvas.parentElement.getBoundingClientRect();
+    if (box.width > 0) lastBox = { w: box.width, h: box.height };
+    return lastBox;
+  }
+
+  function rayEnds(p) {
+    const len = Math.min(p.w, p.h) * 0.72;
+    const a1 = (state.baseDeg * Math.PI) / 180;
+    const a2 = ((state.baseDeg + state.measure) * Math.PI) / 180;
+    return {
+      a1, a2,
+      x1: p.vx + Math.cos(a1) * len,
+      y1: p.vy - Math.sin(a1) * len,
+      x2: p.vx + Math.cos(a2) * len,
+      y2: p.vy - Math.sin(a2) * len,
+    };
+  }
+
+  function drawPaper(p) {
+    ctx.fillStyle = "#f8fafc";
+    ctx.fillRect(0, 0, p.w, p.h);
+    ctx.strokeStyle = "#e2e8f0";
+    ctx.lineWidth = 1;
+    for (let x = 20; x < p.w; x += 24) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, p.h); ctx.stroke();
+    }
+    for (let y = 20; y < p.h; y += 24) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(p.w, y); ctx.stroke();
+    }
+  }
+
+  function drawAngle(p) {
+    const r = rayEnds(p);
+    const arcR = Math.min(p.w, p.h) * 0.11;
+    ctx.beginPath();
+    ctx.moveTo(r.x1, r.y1);
+    ctx.lineTo(p.vx, p.vy);
+    ctx.lineTo(r.x2, r.y2);
+    ctx.strokeStyle = "#c2410c";
+    ctx.lineWidth = 4;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(p.vx, p.vy, 6, 0, Math.PI * 2);
+    ctx.fillStyle = "#0f766e";
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(p.vx, p.vy, arcR, -r.a1, -r.a2, state.measure > 0);
+    ctx.strokeStyle = "#4f46e5";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    if (state.showMeasure) {
+      const mx = p.vx + Math.cos((r.a1 + r.a2) / 2) * (arcR + 18);
+      const my = p.vy - Math.sin((r.a1 + r.a2) / 2) * (arcR + 18);
+      ctx.fillStyle = "#312e81";
+      ctx.font = "bold 16px Segoe UI, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(state.measure + "°", mx, my);
+    }
+  }
+
+  function drawProtractor(p) {
+    const { px, py, pr } = p;
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.rotate(-state.prot.rot);
+
+    ctx.beginPath();
+    ctx.arc(0, 0, pr, Math.PI, 0, true);
+    ctx.lineTo(-pr, 0);
+    ctx.closePath();
+    ctx.fillStyle = "rgba(186, 230, 253, 0.42)";
+    ctx.fill();
+    ctx.strokeStyle = "#0369a1";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(-pr, 0);
+    ctx.lineTo(pr, 0);
+    ctx.strokeStyle = "#0c4a6e";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(0, 0, 5, 0, Math.PI * 2);
+    ctx.fillStyle = "#0c4a6e";
+    ctx.fill();
+
+    for (let d = 0; d <= 180; d++) {
+      const t = (d * Math.PI) / 180;
+      const x = Math.cos(Math.PI - t);
+      const y = -Math.sin(t);
+      const outer = d % 10 === 0 ? 16 : d % 5 === 0 ? 10 : 5;
+      ctx.beginPath();
+      ctx.moveTo(x * (pr - 2), y * (pr - 2));
+      ctx.lineTo(x * (pr - 2 - outer), y * (pr - 2 - outer));
+      ctx.strokeStyle = d % 10 === 0 ? "#0c4a6e" : "#0284c7";
+      ctx.lineWidth = d % 10 === 0 ? 2 : 1;
+      ctx.stroke();
+      if (d % 10 === 0) {
+        ctx.fillStyle = "#0f172a";
+        ctx.font = "bold " + Math.max(9, pr * 0.07) + "px Segoe UI, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(String(d), x * (pr - 28), y * (pr - 28));
+        if (d !== 90) {
+          ctx.fillStyle = "#334155";
+          ctx.font = Math.max(8, pr * 0.055) + "px Segoe UI, sans-serif";
+          ctx.fillText(String(180 - d), x * (pr - 46), y * (pr - 46));
+        }
+      }
+    }
+    ctx.restore();
+
+    const aligned = alignment(p);
+    if (aligned.ok) {
+      ctx.fillStyle = "#15803d";
+      ctx.font = "bold 13px Segoe UI, sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillText("Lined up — read " + aligned.reading + "°", 12, 22);
+    }
+  }
+
+  function angDiff(a, b) {
+    let d = Math.abs(a - b) % (Math.PI * 2);
+    if (d > Math.PI) d = Math.PI * 2 - d;
+    return d;
+  }
+
+  function alignment(p) {
+    const r = rayEnds(p);
+    const dx = p.px - p.vx;
+    const dy = p.py - p.vy;
+    const dist = Math.hypot(dx, dy);
+    const near = dist < 14;
+    const baseA = state.prot.rot;
+    const baseFlip = state.prot.rot + Math.PI;
+    const d1 = Math.min(angDiff(baseA, r.a1), angDiff(baseFlip, r.a1));
+    const d2 = Math.min(angDiff(baseA, r.a2), angDiff(baseFlip, r.a2));
+    const lined = Math.min(d1, d2) < 0.06;
+    return { ok: near && lined, reading: state.measure };
+  }
+
+  function draw() {
+    size();
+    const p = px();
+    drawPaper(p);
+    drawAngle(p);
+    drawProtractor(p);
+  }
+
+  function eventPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const src = e.touches ? e.touches[0] : e;
+    return { x: src.clientX - rect.left, y: src.clientY - rect.top };
+  }
+
+  function hit(p, pos) {
+    const dx = pos.x - p.px;
+    const dy = pos.y - p.py;
+    const localX = dx * Math.cos(state.prot.rot) + dy * Math.sin(state.prot.rot);
+    const localY = -dx * Math.sin(state.prot.rot) + dy * Math.cos(state.prot.rot);
+    const dist = Math.hypot(dx, dy);
+    if (dist > p.pr + 8) return null;
+    if (localY > 18) return null;
+    if (dist > p.pr * 0.62) return "rotate";
+    return "move";
+  }
+
+  function onDown(e) {
+    const p = px();
+    const pos = eventPos(e);
+    const mode = hit(p, pos);
+    if (!mode) return;
+    e.preventDefault();
+    canvas.classList.add("dragging");
+    state.drag = {
+      mode,
+      x: pos.x,
+      y: pos.y,
+      protX: state.prot.x,
+      protY: state.prot.y,
+      rot: state.prot.rot,
+      ang0: Math.atan2(p.py - pos.y, pos.x - p.px),
+    };
+  }
+
+  function onMove(e) {
+    if (!state.drag) return;
+    e.preventDefault();
+    const p = px();
+    const pos = eventPos(e);
+    if (state.drag.mode === "move") {
+      const dx = (pos.x - state.drag.x) / p.w;
+      const dy = (pos.y - state.drag.y) / p.h;
+      state.prot.x = Math.min(0.95, Math.max(0.05, state.drag.protX + dx));
+      state.prot.y = Math.min(0.95, Math.max(0.08, state.drag.protY + dy));
+    } else {
+      const ang = Math.atan2(p.py - pos.y, pos.x - p.px);
+      state.prot.rot = state.drag.rot + (ang - state.drag.ang0);
+    }
+    draw();
+  }
+
+  function onUp() {
+    state.drag = null;
+    canvas.classList.remove("dragging");
+    draw();
+  }
+
+  canvas.addEventListener("mousedown", onDown);
+  window.addEventListener("mousemove", onMove);
+  window.addEventListener("mouseup", onUp);
+  canvas.addEventListener("touchstart", onDown, { passive: false });
+  window.addEventListener("touchmove", onMove, { passive: false });
+  window.addEventListener("touchend", onUp);
+
+  document.getElementById("btn-new").onclick = function () { newAngle(); };
+  document.getElementById("btn-snap").onclick = function () {
+    state.prot.x = state.vertex.x;
+    state.prot.y = state.vertex.y;
+    draw();
+  };
+  document.getElementById("btn-align").onclick = function () {
+    state.prot.x = state.vertex.x;
+    state.prot.y = state.vertex.y;
+    state.prot.rot = (state.baseDeg * Math.PI) / 180;
+    draw();
+  };
+  document.getElementById("btn-show").onclick = function () {
+    state.showMeasure = !state.showMeasure;
+    this.textContent = state.showMeasure ? "Hide measure" : "Show measure";
+    draw();
+  };
+  document.getElementById("btn-check").onclick = function () {
+    const g = Number(guessEl.value);
+    if (Number.isNaN(g)) {
+      statusEl.textContent = "Type a number of degrees.";
+      statusEl.className = "bad";
+      return;
+    }
+    const diff = Math.abs(g - state.measure);
+    if (diff === 0) {
+      statusEl.textContent = "Exactly " + state.measure + "° — you got it!";
+      statusEl.className = "ok";
+    } else if (diff <= 2) {
+      statusEl.textContent = "Very close. It is " + state.measure + "°.";
+      statusEl.className = "ok";
+    } else {
+      statusEl.textContent = "Not yet. Line up 0 on one ray, then read the other ray.";
+      statusEl.className = "bad";
+    }
+  };
+
+  window.addEventListener("resize", draw);
+  if (document.getElementById("btn-show")) {
+    document.getElementById("btn-show").textContent = state.showMeasure ? "Hide measure" : "Show measure";
+  }
+  requestAnimationFrame(draw);
+})();
+  </script>
+</body>
+</html>
