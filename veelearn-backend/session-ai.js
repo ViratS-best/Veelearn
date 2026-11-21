@@ -294,7 +294,10 @@ function decideNext({ requested, correct, attempts = 0, itemsDone = false } = {}
 // never a `:nitro` route). It thinks before it writes, so the prompt forbids any
 // thinking in the reply and the parser takes only the scene.
 const BOARD_MODEL = String(process.env.VEELEARN_BOARD_MODEL || '').trim() || 'anthropic/claude-haiku-5.5';
-const BOARD_REASONING = /^openai\/gpt-6-luna/i.test(BOARD_MODEL) ? { effort: 'none' } : null;
+// Reasoning off for whatever the board is pinned to: a scene is the answer, and
+// thinking spends the budget before the first line of code. The prompt still says
+// to write nothing but the scene, in case a provider ignores the control.
+const BOARD_REASONING = { effort: 'none' };
 
 function createSessionAI({ query, qbank, chat, log } = {}) {
     const info = (log && log.info) || (() => {});

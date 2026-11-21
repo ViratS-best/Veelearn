@@ -66,7 +66,10 @@ ok(
     'board scenes are drawn by claude-haiku-5.5',
     /anthropic\/claude-haiku-5\.5/.test(sessionAiSrc) && /BOARD_MODEL/.test(sessionAiSrc)
 );
-ok('the board asks for reasoning effort none when it is a Luna override', /effort: 'none'/.test(sessionAiSrc));
+ok(
+    'the board asks for reasoning effort none whatever it is pinned to',
+    /const BOARD_REASONING = \{ effort: 'none' \};/.test(sessionAiSrc)
+);
 ok('the outline filler keeps its own model instead of the board\'s', !/claude-haiku/.test(builderRoutesSrc));
 const scenePrompt = require('./board-scene').SYSTEM_PROMPT;
 ok(
