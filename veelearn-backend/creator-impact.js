@@ -22,6 +22,8 @@
  *      creator pane and the certificate both read the same rows.
  */
 
+const { isMetaUnit } = require('./outline');
+
 const WEIGHTS = { units: 30, skills: 25, questions: 25, prose: 15, sims: 5 };
 const PROSE_MIN = 80;
 const READY_PASS = 60;
@@ -744,9 +746,9 @@ function createCreatorImpact({ query, log } = {}) {
         buckets.forEach((bucket, unitIndex) => {
             if (!bucket.length) return;
             const unit = list[unitIndex];
-            // The course's "what you will learn" section is a table of contents,
-            // not a unit to practise: it wasted a plan slot and forced an AI call.
-            if (/^what you will learn/i.test(String(unit.title || ''))) return;
+            // A contents/overview section is not a unit to practise: it wasted a
+            // plan slot and forced an AI call about the course instead of the topic.
+            if (isMetaUnit(unit.title)) return;
             items.push({
                 ord: items.length,
                 skillId: skillByCode.get(`course.${course.id}.u${unit.ord}`),
@@ -900,7 +902,7 @@ function createCreatorImpact({ query, log } = {}) {
             unitTarget =
                 units.find(
                     (u) =>
-                        !/^what you will learn/i.test(String(u.title || '')) &&
+                        !isMetaUnit(u.title) &&
                         (doneBy.get(Number(u.ord) + 1) || 0) === 0
                 ) || null;
         }

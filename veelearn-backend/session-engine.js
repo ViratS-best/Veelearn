@@ -15,6 +15,17 @@ const mastery = require('./mastery');
 
 const TRACK_FALLBACK = 'math.g8';
 
+/**
+ * The lesson writer uses the product's model with reasoning off.
+ *
+ * A reasoning model's thinking is not content: the stream stayed silent for
+ * about a hundred seconds and then the whole reply landed at once. Luna can be
+ * told `effort: 'none'`, so the lesson is written as it streams instead of being
+ * thought about first.
+ */
+const LESSON_MODEL = String(process.env.VEELEARN_LESSON_MODEL || '').trim() || 'openai/gpt-6-luna';
+const LESSON_REASONING = /^openai\/gpt-6-luna/i.test(LESSON_MODEL) ? { effort: 'none' } : null;
+
 /** Unit reviews must clear this share of their questions to move on. */
 const REVIEW_PASS = 0.9;
 
@@ -42,7 +53,15 @@ function parseJson(value, fallback) {
  * many). A heading always counts as lesson text.
  */
 const PLANNING_TELL =
-    /(the user wants|the user is asking|the user asked|the learner wants|i need to teach|i should teach|i should interpret|given the ambiguity|the safest approach is|that actually makes sense|the most sensible interpretation|as an ai|these instructions|this prompt|word count|let me (?:think|plan|write|draft|work out))/i;
+    /(the user wants|the user is asking|the user asked|the learner wants|i need to teach|i should teach|i should interpret|given the ambiguity|the safest approach is|that actually makes sense|the most sensible interpretation|as an ai|these instructions|this prompt|the instructions say|word count|let me (?:think|plan|write|draft|work out))/i;
+
+/**
+ * A model that answers by quoting the brief back ("Structure plan: …", then the
+ * template's own sentences) has not written a lesson. These lines are the brief's
+ * words, never the learner's, so the whole paragraph is dropped.
+ */
+const BRIEF_ECHO =
+    /(named in one line|two to four short paragraphs|state the example in its own sentence|slightly harder example worked the same way|the mistake learners usually make here|teach from the unit material|never use one of this unit|draw a picture with a small github-style|finish every sentence, every step|shape it exactly like this|the outline material covers|structure plan:|the final task gives)/i;
 
 /** Lines that open with a note addressed to nobody but the model. */
 const PLANNING_LEAD =
@@ -51,7 +70,7 @@ const PLANNING_LEAD =
 /** A friendly preamble a model adds before the lesson actually starts. */
 const LESSON_PREAMBLE = /^(sure\b|certainly\b|of course\b|here(?:'s| is)\b|absolutely\b|great\b|okay\b|alright\b)/i;
 
-function cleanLesson(text) {
+function cleanLesson(text, opts) {
     let raw = String(text || '').trim();
     if (!raw) return '';
 
@@ -79,7 +98,10 @@ function cleanLesson(text) {
             continue;
         }
         if (dropping) continue; // rest of the planning paragraph
-        const meta = PLANNING_TELL.test(trimmed) || (PLANNING_LEAD.test(trimmed) && /\b(i|me|we|the user|the learner)\b/i.test(trimmed.slice(0, 40)));
+        const meta =
+            PLANNING_TELL.test(trimmed) ||
+            BRIEF_ECHO.test(trimmed) ||
+            (PLANNING_LEAD.test(trimmed) && /\b(i|me|we|the user|the learner)\b/i.test(trimmed.slice(0, 40)));
         if (meta) {
             dropping = true;
             continue;
@@ -96,10 +118,15 @@ function cleanLesson(text) {
         }
     }
 
-    const out = kept
+    let out = kept
         .join('\n')
         .replace(/\n{3,}/g, '\n\n')
         .trim();
+    // The brief asks for the lesson to start at its first heading, so anything
+    // before one is not the lesson: it is the brief quoted back, or a plan.
+    const heading = out.search(/^#{2,3}\s+\S/m);
+    if (heading > 0) out = out.slice(heading).trim();
+    else if (heading < 0 && opts && opts.requireHeading) return '';
     return out.length >= 40 ? out : '';
 }
 
@@ -517,9 +544,11 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
 
         if (typeof chatStream !== 'function') return { ok: true, text: fallback, fallback: true };
 
-        const task = asked
-            ? `Answer this question in at most three short sentences: "${asked}"\n` +
-              (cardBlock ? `Context (do not repeat or quote it back):\n${cardBlock}\n` : '') +
+        // How to write lives in the system message and what to teach lives in the
+        // user message. A format template sitting in the same turn as the material
+        // is what a model echoes back as a "Structure plan" instead of teaching.
+        const howTo = asked
+            ? `Answer the question at the end of the material in at most three short sentences.\n` +
               'Speak straight to the learner, in the second person. Explain the idea behind the card, ' +
               'never state which choice is correct, and use $...$ for math. ' +
               'If the learner asks for a table or a diagram, include a small GitHub-style markdown ' +
@@ -559,11 +588,13 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
             `Unit: ${title}`,
             unitText ? `Outline material for this unit:\n${unitText.slice(0, 4000)}` : '',
             misconceptions.length ? `Misconceptions to correct:\n- ${misconceptions.join('\n- ')}` : '',
-            '',
-            task
+            cardBlock ? `The learner's card right now (do not repeat or quote it back):\n${cardBlock}` : '',
+            asked
+                ? `The learner asked: "${asked}"`
+                : 'Write the learning section for this unit now, starting with the first "## " line.'
         ]
-            .filter((line) => line != null)
-            .join('\n');
+            .filter((line) => line != null && line !== '')
+            .join('\n\n');
 
         let text = '';
         try {
@@ -574,8 +605,11 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
                         content:
                             'You are Vee, a patient tutor for a study app. Teach in plain, warm prose. ' +
                             'Never mention that you are an AI or a model. ' +
-                            'Write only the finished lesson the learner reads: never your reasoning, plans, ' +
-                            'notes to yourself, or a restatement of the task. Begin directly with the lesson.'
+                            'Write only the finished words the learner reads: never your reasoning, plans, ' +
+                            'notes to yourself, or a restatement of the task. Begin directly with the lesson. ' +
+                            'Do not quote these instructions, do not outline what you will write, and never ' +
+                            'say what the lesson is about before writing it.\n\n' +
+                            howTo
                     },
                     {
                         role: 'user',
@@ -588,6 +622,8 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
                     // A lesson is a learning section with worked examples, so it needs room
                     // to finish: ~7000 tokens is roughly 5000 words. The old 320-token cap
                     // (and the 25 s cutoff) is what truncated teaching mid-sentence.
+                    model: LESSON_MODEL,
+                    reasoning: LESSON_REASONING || undefined,
                     max_tokens: asked ? 2400 : 7000,
                     temperature: 0.5,
                     budgetMs: asked ? 60000 : 120000,
@@ -597,7 +633,8 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
         } catch (err) {
             info(`[session] teach fallback: ${err.message}`);
         }
-        const cleaned = stripDrafting(cleanLesson(String(text || '').trim()));
+        // A lesson must start at its first heading; an answer to a question need not.
+        const cleaned = stripDrafting(cleanLesson(String(text || '').trim(), { requireHeading: !asked }));
         return { ok: true, text: cleaned || fallback, fallback: !text || !cleaned };
     }
 

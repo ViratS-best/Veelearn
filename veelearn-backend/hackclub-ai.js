@@ -2,13 +2,12 @@ const axios = require('axios');
 
 const HACKCLUB_URL = 'https://ai.hackclub.com/proxy/v1/chat/completions';
 /**
- * The one model the product uses. It is the metered id, not the `:free` twin:
- * the free tier's daily ceiling is shared by the whole Hack Club key, so leading
- * with it costs every call a guaranteed 429 before the real request. Metered
- * gemma-4-26b is $0.07 per million prompt tokens (a session turn is ~$0.0001
- * against the account's daily allowance), so the fast path pays for itself.
+ * The one model the product uses: gpt-6-luna, the standard id — never the
+ * `:nitro` variant, which routes to the expensive providers. It costs the same
+ * as the GLM flash it replaces and can be asked for no reasoning, so a turn
+ * writes its answer instead of thinking silently for a minute first.
  */
-const DEFAULT_MODEL = 'z-ai/glm-5.3-flash:nitro';
+const DEFAULT_MODEL = 'openai/gpt-6-luna';
 const DEFAULT_JSON_MODEL = DEFAULT_MODEL;
 /**
  * If the metered gemma is throttled or has a bad day, the free twin is still
@@ -48,6 +47,16 @@ function getHackClubModelCandidates(explicit) {
     for (const m of String(process.env.HACKCLUBAI_FALLBACK_MODELS || '').split(',')) push(m);
     for (const m of DEFAULT_FALLBACK_MODELS) push(m);
     return out.length ? out : [DEFAULT_MODEL];
+}
+
+/**
+ * Luna writes the answer instead of thinking at it. Reasoning is off by default
+ * for that family (and only that family), so every caller gets a reply instead
+ * of a minute of silence; an explicit `reasoning` still wins.
+ */
+function reasoningFor(model, explicit) {
+    if (explicit && typeof explicit === 'object') return explicit;
+    return /^openai\/gpt-6-luna/i.test(String(model || '')) ? { effort: 'none' } : null;
 }
 
 function getHackClubJsonModel() {
@@ -297,7 +306,8 @@ async function hackClubChatCompletionOnce(messages, opts = {}) {
         };
         // OpenAI-compatible reasoning controls, e.g. { effort: 'none' } for a
         // model that would otherwise spend the answer's budget thinking.
-        if (opts.reasoning && typeof opts.reasoning === 'object') body.reasoning = opts.reasoning;
+        const reasoning = reasoningFor(model, opts.reasoning);
+        if (reasoning) body.reasoning = reasoning;
         if (hasFiles && engine) {
             body.plugins = [fileParserPlugin(engine)];
         }
@@ -403,6 +413,7 @@ module.exports = {
     getHackClubModel,
     getHackClubJsonModel,
     JSON_MUST,
+    reasoningFor,
     DEFAULT_MODEL,
     DEFAULT_JSON_MODEL
 };

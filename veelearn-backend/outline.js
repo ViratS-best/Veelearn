@@ -29,6 +29,21 @@ const LETTERS = 'ABCDEFGH';
 const REVIEW_MIN = 4;
 const REVIEW_TARGET_RATIO = 0.9;
 
+/**
+ * A contents page is not a unit to practise.
+ *
+ * "Course Overview" used to be Unit 1 of a session built from an outline, so the
+ * first card asked "What is the general scope of this course?" and the lesson
+ * above it taught nothing. Only a title that is *just* the meta section is
+ * skipped: "Introduction to Functions" is still a real unit.
+ */
+const META_UNIT =
+    /^(?:\d+[.)]\s*)?(?:📚\s*)?(?:course\s+)?(?:overview|introduction|intro|welcome|getting started|course map|contents|table of contents|what you(?:'ll| will) learn|about (?:the|this) course|how to use (?:the|this) course)(?:\s+(?:to|of|and)\s+(?:the|this)\s+course)?(?:\s*[·—-]\s*part\s*\d+)?\s*[.!:]?$/i;
+
+function isMetaUnit(title) {
+    return META_UNIT.test(String(title || '').trim());
+}
+
 function parseJson(value, fallback) {
     if (value == null) return fallback;
     if (typeof value === 'object') return value;
@@ -257,6 +272,9 @@ function createOutlines({ query, log } = {}) {
         const items = [];
         let ord = 0;
         for (const unit of outline.units) {
+            // An overview/contents page has nothing to teach and its questions ask
+            // about the course, not the subject.
+            if (isMetaUnit(unit.title)) continue;
             const unitQuestions = [];
             const unitSkills = [];
             for (let si = 0; si < unit.skills.length; si += 1) {
@@ -333,6 +351,7 @@ function createOutlines({ query, log } = {}) {
 }
 
 module.exports = createOutlines;
+module.exports.isMetaUnit = isMetaUnit;
 module.exports.normalise = normalise;
 module.exports.skillCount = skillCount;
 module.exports.questionCount = questionCount;

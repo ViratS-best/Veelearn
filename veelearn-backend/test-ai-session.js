@@ -34,26 +34,56 @@ function ok(name, cond, detail) {
 const chatClient = require('./ai-chat');
 const hackclub = require('./hackclub-ai');
 
-ok('the shared model is the requested GLM', chatClient.DEFAULT_MODEL === 'z-ai/glm-5.3-flash:nitro', chatClient.DEFAULT_MODEL);
-ok('the Hack Club client defaults to the same model', hackclub.DEFAULT_MODEL === 'z-ai/glm-5.3-flash:nitro', hackclub.DEFAULT_MODEL);
+// gpt-6-luna replaces the GLM flash: same price, and it can be told not to
+// reason, which is what stops a turn sitting silent before it writes.
+ok('the shared model is gpt-6-luna', chatClient.DEFAULT_MODEL === 'openai/gpt-6-luna', chatClient.DEFAULT_MODEL);
+ok('the Hack Club client defaults to the same model', hackclub.DEFAULT_MODEL === 'openai/gpt-6-luna', hackclub.DEFAULT_MODEL);
+ok('no pipeline still leads with the old GLM', !/z-ai\/glm-5\.3-flash:nitro/.test(fs.readFileSync(path.join(__dirname, 'ai-chat.js'), 'utf8')) && !/z-ai\/glm-5\.3-flash:nitro/.test(fs.readFileSync(path.join(__dirname, 'hackclub-ai.js'), 'utf8')));
+ok(
+    'luna is asked for no reasoning, other models are left alone',
+    JSON.stringify(hackclub.reasoningFor('openai/gpt-6-luna')) === JSON.stringify({ effort: 'none' }) &&
+        hackclub.reasoningFor('google/gemini-3.5-flash-lite') === null &&
+        JSON.stringify(hackclub.reasoningFor('openai/gpt-6-luna', { effort: 'high' })) ===
+            JSON.stringify({ effort: 'high' })
+);
+ok(
+    'the reasoning default reaches both request paths',
+    /const reasoning = reasoningFor\(model, opts\.reasoning\)/.test(
+        fs.readFileSync(path.join(__dirname, 'hackclub-ai.js'), 'utf8')
+    ) && /const reasoning = hackclub\.reasoningFor\(model, opts\.reasoning\)/.test(
+        fs.readFileSync(path.join(__dirname, 'ai-chat.js'), 'utf8')
+    )
+);
 ok('the free twin is only a fallback now', (hackclub.DEFAULT_FALLBACK_MODELS || []).includes('google/gemma-4-26b-a4b-it:free'));
 ok('the endpoint is Hack Club, not OpenRouter', /ai\.hackclub\.com/.test(fs.readFileSync(path.join(__dirname, 'hackclub-ai.js'), 'utf8')));
 ok('no backend file still calls the OpenRouter API', !/openrouter\.ai/i.test(fs.readFileSync(path.join(__dirname, 'ai-chat.js'), 'utf8').replace(/^\s*\*.*$/gm, '')));
 
-// Board scenes are the only caller pinned to Luna, and it must run without
-// reasoning so the whole reply is drawing code.
+// Luna is the product's model now, so the board, the lesson and every other
+// caller share it — with reasoning off, which is what keeps replies coming.
 const sessionAiSrc = fs.readFileSync(path.join(__dirname, 'session-ai.js'), 'utf8');
 const builderRoutesSrc = fs.readFileSync(path.join(__dirname, 'outline-build-routes.js'), 'utf8');
 ok(
-    'board scenes are drawn by openai/gpt-6-luna:nitro',
-    /openai\/gpt-6-luna:nitro/.test(sessionAiSrc) && /BOARD_MODEL/.test(sessionAiSrc)
+    'board scenes are drawn by openai/gpt-6-luna',
+    /openai\/gpt-6-luna/.test(sessionAiSrc) && /BOARD_MODEL/.test(sessionAiSrc)
 );
 ok('the board asks for reasoning effort none', /effort: 'none'/.test(sessionAiSrc));
-ok('no other pipeline is pinned to Luna', !/gpt-6-luna/.test(builderRoutesSrc));
+ok('the outline filler keeps its own model instead of inheriting Luna', !/gpt-6-luna/.test(builderRoutesSrc));
 ok(
-    'the chat body can carry a reasoning control',
-    /body\.reasoning = opts\.reasoning/.test(fs.readFileSync(path.join(__dirname, 'hackclub-ai.js'), 'utf8')) &&
-        /reasoning: opts\.reasoning/.test(fs.readFileSync(path.join(__dirname, 'ai-chat.js'), 'utf8'))
+    'the chat body carries a reasoning control',
+    /if \(reasoning\) body\.reasoning = reasoning;/.test(
+        fs.readFileSync(path.join(__dirname, 'hackclub-ai.js'), 'utf8')
+    ) && /hackclub\.reasoningFor\(model, opts\.reasoning\)/.test(fs.readFileSync(path.join(__dirname, 'ai-chat.js'), 'utf8'))
+);
+ok(
+    'the expensive nitro route is never the default',
+    !/['"][^'"]*:nitro['"]/.test(
+        [
+            fs.readFileSync(path.join(__dirname, 'hackclub-ai.js'), 'utf8'),
+            fs.readFileSync(path.join(__dirname, 'ai-chat.js'), 'utf8'),
+            fs.readFileSync(path.join(__dirname, 'session-ai.js'), 'utf8'),
+            fs.readFileSync(path.join(__dirname, 'session-engine.js'), 'utf8')
+        ].join('\n')
+    )
 );
 
 const savedHcKey = process.env.HACKCLUBAI_KEY;
@@ -68,7 +98,7 @@ ok('a stale dots model in env falls back to the default', (() => {
     const model = hackclub.getHackClubModel();
     if (before === undefined) delete process.env.HACKCLUBAI_MODEL;
     else process.env.HACKCLUBAI_MODEL = before;
-    return model === 'z-ai/glm-5.3-flash:nitro';
+    return model === 'openai/gpt-6-luna';
 })());
 ok('a deliberate model override still wins', (() => {
     const before = process.env.HACKCLUBAI_MODEL;
@@ -79,10 +109,10 @@ ok('a deliberate model override still wins', (() => {
     return model === 'google/gemma-4-31b-it:free';
 })());
 
-ok('the chain leads with GLM, then the free twin', (() => {
+ok('the chain leads with Luna, then the free twin', (() => {
     const list = hackclub.getHackClubModelCandidates();
     return (
-        list[0] === 'z-ai/glm-5.3-flash:nitro' &&
+        list[0] === 'openai/gpt-6-luna' &&
         list[1] === 'google/gemma-4-26b-a4b-it:free' &&
         list.includes('google/gemini-3.5-flash-lite')
     );
@@ -299,6 +329,59 @@ ok('the prompt steers diagrams away from ASCII art', /Never use code fences or A
 ok(
     'the learning section comes before practice',
     /id="sx-intro-start">Start practice</.test(sessionHtmlSrc) && /Start practice/.test(sessionAppSrc)
+);
+
+// ------------------------------------------------- the session starts on content
+// "Course Overview" was planned as Unit 1 of an outline course, so the first card
+// of a session asked "What is the general scope of this course?" and the lesson
+// above it taught nothing about the subject.
+const outlineSrc = fs.readFileSync(path.join(__dirname, 'outline.js'), 'utf8');
+const impactSrc = fs.readFileSync(path.join(__dirname, 'creator-impact.js'), 'utf8');
+const isMetaUnit = require('./outline').isMetaUnit;
+ok('an outline never plans an overview page as a unit', /if \(isMetaUnit\(unit\.title\)\) continue;/.test(outlineSrc));
+ok('the content planner skips it too', /isMetaUnit\(u\.title\)/.test(impactSrc) && /isMetaUnit\(unit\.title\)/.test(impactSrc));
+ok(
+    'overview titles are recognised',
+    ['Course Overview', '📚 Course Overview', 'What you will learn', 'Introduction', 'Welcome!'].every((t) => isMetaUnit(t)),
+    'the overview page is not a unit'
+);
+ok(
+    'a real unit with an introduction in its name is still taught',
+    !isMetaUnit('Introduction to Functions') && !isMetaUnit('Linear Equations & Graphing')
+);
+
+// ------------------------------------------------- nothing but the lesson streams
+const echoed =
+    'Learning\n\nQuadratic Equations & Functions\nCourse: Algebra Fundamentals, Unit: Quadratics. ' +
+    'The outline material covers: - the formula\n\nStructure plan: start with a ball, then the formula.\n\n' +
+    '## The quadratic formula\n\nIt solves every quadratic.\n\n## Worked example\n\n1. Read a, b, c.\n';
+const started = sessionEngine.cleanLesson(echoed, { requireHeading: true });
+ok('a lesson starts at its first heading', started.startsWith('## The quadratic formula'), started.slice(0, 60));
+ok('the brief quoted back never reaches the card', !/outline material|structure plan|quadratic equations & functions/i.test(started));
+ok(
+    'a reply that only quotes the brief is not a lesson',
+    sessionEngine.cleanLesson('Learning\n\nCourse: Algebra. The outline material covers: roots.\n\nStructure plan: teach it.', {
+        requireHeading: true
+    }) === ''
+);
+ok('the page holds the same rule while it streams', /requireHeading: true/.test(sessionAppSrc));
+ok(
+    'the learning card says it is writing instead of sitting blank',
+    /const status = el\('sx-teach-status'\)/.test(sessionAppSrc) && /status\.hidden = false/.test(sessionAppSrc)
+);
+ok(
+    'the lesson is written without a reasoning pause',
+    /const LESSON_MODEL =/.test(engineSrc) &&
+        /openai\/gpt-6-luna/.test(engineSrc) &&
+        /reasoning: LESSON_REASONING/.test(engineSrc)
+);
+ok(
+    'the streaming request carries the reasoning control',
+    /if \(reasoning\) body\.reasoning = reasoning;/.test(fs.readFileSync(path.join(__dirname, 'ai-chat.js'), 'utf8'))
+);
+ok(
+    'a card diagram no longer stops the board generating an interactive scene',
+    /const drawable = scene && \(scene\.code \|\| scene\.preset\)/.test(sessionAppSrc)
 );
 
 const mascotSrc = fs.readFileSync(path.join(FRONTEND, 'mascot.js'), 'utf8');
@@ -760,7 +843,7 @@ ok('a finished item advances even if the model asks to stay', createSessionAI.de
                 }
             });
             ok('a 429 on the lead model retries instead of failing', out.content === 'eight sevens is fifty-six', JSON.stringify(out).slice(0, 120));
-            ok('the retry walks to the next model in the chain', asked[0] === 'z-ai/glm-5.3-flash:nitro' && asked[1] === 'google/gemma-4-26b-a4b-it:free', JSON.stringify(asked));
+            ok('the retry walks to the next model in the chain', asked[0] === 'openai/gpt-6-luna' && asked[1] === 'google/gemma-4-26b-a4b-it:free', JSON.stringify(asked));
             ok('the caller is told which model answered', reported === 'google/gemma-4-26b-a4b-it:free', String(reported));
         } finally {
             axios.post = realPost;

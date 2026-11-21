@@ -24,8 +24,13 @@ const hackclub = require('./hackclub-ai');
 
 const HACKCLUB_URL = 'https://ai.hackclub.com/proxy/v1/chat/completions';
 
-/** The model the whole product now uses: fast, free, and available on Hack Club. */
-const DEFAULT_MODEL = 'z-ai/glm-5.3-flash:nitro';
+/**
+ * The model the whole product uses. The standard gpt-6-luna (not `:nitro`, which
+ * routes to the expensive providers) costs the same as the GLM flash it replaces
+ * and can be told not to reason, so a call returns prose instead of spending a
+ * minute thinking before it writes anything.
+ */
+const DEFAULT_MODEL = 'openai/gpt-6-luna';
 const DEFAULT_TIMEOUT_MS = 60000;
 const MAX_RETRY_DELAY_MS = 800;
 
@@ -165,15 +170,21 @@ async function aiChatCompletionStream(messages, opts = {}) {
     const timeoutMs = Number(opts.timeoutMs) || Number(opts.budgetMs) || DEFAULT_TIMEOUT_MS;
 
     try {
+        const body = {
+            model,
+            messages: packed.messages,
+            temperature: opts.temperature ?? 0.35,
+            max_tokens: opts.max_tokens ?? 1024,
+            stream: true
+        };
+        // A reasoning model thinks before it writes, and none of that thinking is
+        // content: the stream stays silent for a minute and then the whole reply
+        // lands at once. Luna is asked for effort none by default.
+        const reasoning = hackclub.reasoningFor(model, opts.reasoning);
+        if (reasoning) body.reasoning = reasoning;
         const res = await axios.post(
             HACKCLUB_URL,
-            {
-                model,
-                messages: packed.messages,
-                temperature: opts.temperature ?? 0.35,
-                max_tokens: opts.max_tokens ?? 1024,
-                stream: true
-            },
+            body,
             {
                 headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
                 timeout: timeoutMs,

@@ -8514,7 +8514,7 @@ const server = app.listen(PORT, () => {
     info(`Server running on port ${PORT} `);
     info(`Environment: ${process.env.NODE_ENV || 'development'} `);
     if (getAiKeys().length) {
-        debug('✓ Hack Club AI key loaded (google/gemma-4-26b-a4b-it:free)');
+        debug('✓ Hack Club AI key loaded (openai/gpt-6-luna:nitro)');
     } else {
         console.warn('ℹ️ No HACKCLUBAI_KEY — AI features disabled until the key is set (see .env.example)');
     }

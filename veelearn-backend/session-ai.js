@@ -289,10 +289,10 @@ function decideNext({ requested, correct, attempts = 0, itemsDone = false } = {}
     return { action: 'more', overridden: want !== 'more' };
 }
 
-// Board scenes are the one place that wants a coder, not a talker: the default
-// chain's reasoning model spends the answer's budget thinking. The board pins
-// Luna with reasoning off; every other caller keeps the normal model chain.
-const BOARD_MODEL = String(process.env.VEELEARN_BOARD_MODEL || '').trim() || 'openai/gpt-6-luna:nitro';
+// Board scenes want a coder, not a talker, and a reasoning model spends the
+// answer's budget thinking. The board pins Luna (the standard id, not the
+// expensive `:nitro` route) with reasoning off.
+const BOARD_MODEL = String(process.env.VEELEARN_BOARD_MODEL || '').trim() || 'openai/gpt-6-luna';
 const BOARD_REASONING = /^openai\/gpt-6-luna/i.test(BOARD_MODEL) ? { effort: 'none' } : null;
 
 function createSessionAI({ query, qbank, chat, log } = {}) {
