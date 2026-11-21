@@ -272,8 +272,11 @@
     /(the user wants|the user is asking|the user asked|the learner wants|i need to teach|i should teach|i should interpret|given the ambiguity|the safest approach is|that actually makes sense|the most sensible interpretation|as an ai|these instructions|this prompt|word count|let me (?:think|plan|write|draft|work out))/i;
   const PLANNING_LEAD =
     /^(the user|the learner|i need to|i should|i'll|i will now|let me|we need to|okay,?\s+(?:so|let)|hmm\b|wait\b|given the ambiguity|the most sensible|plan:|draft:|outline of the lesson|thinking:)/i;
+  // The brief's own sentences, quoted back by the model instead of taught.
+  const BRIEF_ECHO =
+    /(named in one line|two to four short paragraphs|state the example in its own sentence|slightly harder example worked the same way|the mistake learners usually make here|teach from the unit material|never use one of this unit|draw a picture with a small github-style|finish every sentence, every step|shape it exactly like this|the outline material covers|structure plan:|the final task gives)/i;
 
-  function cleanLesson(text) {
+  function cleanLesson(text, opts) {
     let raw = String(text || '').trim();
     if (!raw) return '';
     raw = raw
@@ -300,6 +303,7 @@
       if (dropping) return;
       const meta =
         PLANNING_TELL.test(trimmed) ||
+        BRIEF_ECHO.test(trimmed) ||
         (PLANNING_LEAD.test(trimmed) && /\b(i|me|we|the user|the learner)\b/i.test(trimmed.slice(0, 40)));
       if (meta) {
         dropping = true;
@@ -308,10 +312,15 @@
       kept.push(trimmed);
     });
 
-    const out = kept
+    let out = kept
       .join('\n')
       .replace(/\n{3,}/g, '\n\n')
       .trim();
+    // The lesson starts at its first heading; everything before one is the model
+    // quoting the brief or planning, which must never be typed onto the card.
+    const heading = out.search(/^#{2,3}\s+\S/m);
+    if (heading > 0) out = out.slice(heading).trim();
+    else if (heading < 0 && opts && opts.requireHeading) return '';
     return out.length >= 40 ? out : '';
   }
 
@@ -518,7 +527,10 @@
     if (!box) return '';
     box.textContent = '';
     box.classList.add('is-streaming');
-    el('sx-teach-status').hidden = !silent;
+    const status = el('sx-teach-status');
+    // Nothing is on the card until the first heading arrives, so say what is
+    // happening rather than leaving an empty box with a cursor in it.
+    if (status) status.hidden = false;
     lastPointed = null;
 
     let text = '';
@@ -560,7 +572,8 @@
               lastPaint = Date.now();
               // Headings are markers, not words: while the lesson is being typed
               // they would appear as "##". They become real headings at the end.
-              const live = cleanLesson(text).replace(/^#{1,4}\s+/gm, '');
+              const live = cleanLesson(text, { requireHeading: true }).replace(/^#{1,4}\s+/gm, '');
+              if (live && status) status.hidden = true;
               pointAtSentence(paintSentences(box, live), box);
             }
             if (Date.now() - typesetAt > 700) {
@@ -583,7 +596,7 @@
     }
 
     box.classList.remove('is-streaming');
-    el('sx-teach-status').hidden = true;
+    if (status) status.hidden = true;
     // The finished lesson is laid out in sections: idea, worked examples, watch out.
     const table = renderLesson(box, text);
     typesetContent();
@@ -1440,17 +1453,18 @@
     };
     if (window.Mascot) Mascot.mood('writing');
 
+    // The card's own diagram is a picture of the question, not something the
+    // learner can move. Open it first because it is instant, then upgrade to the
+    // generated scene, which is the interactive one (its sliders redraw it).
     if (visual.preset) {
       await Board.open(Object.assign({}, base, { preset: visual.preset, params: visual.params })).catch(() => {});
-      if (state.visualReady && window.Mascot) Mascot.pointAt('#board').catch(() => {});
-      return;
+    } else {
+      await Board.open(base).catch(() => {});
     }
-
-    // Method first (instant), then the generated interactive scene on top.
-    await Board.open(base).catch(() => {});
     if (state.visualReady && window.Mascot) Mascot.pointAt('#board').catch(() => {});
     const scene = await requestBoardScene(ask);
-    if (!scene || !window.Board || !Board.isOpen()) return;
+    const drawable = scene && (scene.code || scene.preset);
+    if (!drawable || !window.Board || !Board.isOpen()) return;
     await Board.scene(scene).catch(() => {});
   }
 
