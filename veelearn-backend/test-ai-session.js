@@ -865,6 +865,170 @@ ok('a finished item advances even if the model asks to stay', createSessionAI.de
         }
     }
 
+    // ------------------------------------------------- a unit is more than one card
+    // An outline unit seeds its whole question list into `question_ids`. Reading
+    // that list as "already served" closed the unit after a single correct answer,
+    // so a three-question unit showed 1/1 in the rail after one card.
+    {
+        const db = {
+            session: {
+                id: 700,
+                user_id: 3,
+                course_id: 1,
+                mode: 'course',
+                minutes: 20,
+                goal_text: 'Unit 2: Linear Equations & Graphing',
+                status: 'active',
+                item_index: 0,
+                xp_awarded: 0,
+                gems_awarded: 0,
+                started_at: new Date().toISOString(),
+                ended_at: null,
+                last_active_at: null,
+                turn_buffer: null,
+                sprint: 0,
+                rating: null,
+                elapsed_s: 0
+            },
+            items: [
+                {
+                    id: 55,
+                    session_id: 700,
+                    skill_id: 7,
+                    ord: 0,
+                    is_review: 0,
+                    target_dots: 2,
+                    status: 'active',
+                    correct_count: 0,
+                    attempts: 0,
+                    question_ids: JSON.stringify([901, 902, 903]),
+                    review_pool: null,
+                    frame_md: 'Keep both sides balanced.',
+                    unit_index: 2,
+                    unit_label: 'Unit 2: Linear Equations & Graphing',
+                    started_at: null,
+                    completed_at: null,
+                    skill_name: 'Linear Equations & Graphing',
+                    skill_code: 'course.1.o2.s1',
+                    track: 'course',
+                    intro_md: ''
+                }
+            ],
+            attempts: [],
+            events: []
+        };
+        const query = async (sql, params = []) => {
+            const s = String(sql).toLowerCase().replace(/\s+/g, ' ').trim();
+            const p = params;
+            if (s.startsWith('select id, user_id, course_id, mode')) return [db.session];
+            if (s.includes('from session_focus_items f') && s.includes('join skills s')) return db.items.slice();
+            if (s.startsWith('select distinct question_id from practice_attempts')) {
+                const ids = db.attempts
+                    .filter((a) => Number(a.user_id) === Number(p[0]) && Number(a.session_id) === Number(p[1]))
+                    .map((a) => Number(a.question_id));
+                return [...new Set(ids)].map((question_id) => ({ question_id }));
+            }
+            if (s.includes("kind = 'hint'")) return [{ c: 0 }];
+            if (s.includes('from practice_attempts') && s.includes('count(*)')) {
+                const c = db.attempts.filter(
+                    (a) =>
+                        Number(a.user_id) === Number(p[0]) &&
+                        Number(a.session_id) === Number(p[1]) &&
+                        Number(a.question_id) === Number(p[2])
+                ).length;
+                return [{ c }];
+            }
+            if (s.startsWith('insert into practice_attempts')) {
+                db.attempts.push({ user_id: p[0], question_id: p[1], session_id: p[3], correct: p[4] });
+                return { affectedRows: 1 };
+            }
+            if (s.includes('from skill_mastery')) return [];
+            if (s.startsWith('insert into skill_mastery')) return { affectedRows: 1 };
+            if (s.includes('from review_queue')) return [];
+            if (s.startsWith('insert into review_queue')) return { affectedRows: 1 };
+            if (s.startsWith('update session_focus_items')) {
+                const item = db.items.find((i) => Number(i.id) === Number(p[p.length - 1]));
+                if (item) {
+                    item.correct_count = p[0];
+                    item.attempts = p[1];
+                    item.status = p[2];
+                    item.question_ids = p[3];
+                }
+                return { affectedRows: 1 };
+            }
+            if (s.startsWith('insert ignore into user_xp_events')) return { affectedRows: 1 };
+            if (s.startsWith('update users')) return { affectedRows: 1 };
+            if (s.includes('coalesce(max(seq)')) return [{ s: db.events.length + 1 }];
+            if (s.startsWith('insert into session_events')) {
+                db.events.push(p);
+                return { affectedRows: 1 };
+            }
+            if (s.startsWith('update sessions')) {
+                if (s.includes('item_index = item_index + 1')) db.session.item_index += 1;
+                return { affectedRows: 1 };
+            }
+            if (s.startsWith('select xp, gems from users')) return [{ xp: 6, gems: 1 }];
+            return [];
+        };
+        const cardFor = (id) => ({
+            id,
+            skill_id: 7,
+            tier: 1,
+            qtype: 'mcq',
+            stem: `Solve 2x = ${id}`,
+            options: JSON.stringify([{ k: 'A', t: 'x = 3' }, { k: 'B', t: 'x = 4' }]),
+            answer: 'A',
+            hints: JSON.stringify(['Divide both sides']),
+            solution_steps: JSON.stringify(['2x = 6', 'x = 3']),
+            visual: null
+        });
+        const rows = new Map([901, 902, 903].map((id) => [id, cardFor(id)]));
+        const qbank = {
+            getRaw: async (id) => rows.get(Number(id)) || null,
+            toCard: (row) => ({ id: row.id, skillId: row.skill_id, tier: row.tier, stem: row.stem }),
+            whyFor: () => '',
+            solutionFor: (row) => ({ steps: [], answer: row.answer }),
+            listSkills: async () => [],
+            pick: async () => null,
+            pickUnserved: async ({ skillId, exclude }) => {
+                const skip = new Set((exclude || []).map(Number));
+                return [...rows.values()].find((r) => r.skill_id === skillId && !skip.has(Number(r.id))) || null;
+            }
+        };
+        const engine = sessionEngine({ query, qbank, log: { info() {} } });
+        const first = await engine.answer(3, 700, { itemId: 55, questionId: 901, answer: 'A', ms: 4000, hints: 0 });
+        ok('one correct answer does not close a three-card unit', first.item && first.item.done === false, JSON.stringify(first.item));
+        ok(
+            'the unit asks its next card',
+            first.next === 'more' && first.question && Number(first.question.id) === 902,
+            `${first.next} ${first.question && first.question.id}`
+        );
+        ok('the session stays on that unit', db.session.item_index === 0, String(db.session.item_index));
+
+        // Resuming mid-unit must land on an unanswered card, not the one just done.
+        const resumed = await engine.state(3, 700, { ensure: true });
+        ok(
+            'a resumed unit serves the card not yet answered',
+            resumed && resumed.question && Number(resumed.question.id) === 902,
+            JSON.stringify(resumed && resumed.question && resumed.question.id)
+        );
+
+        const second = await engine.answer(3, 700, { itemId: 55, questionId: 902, answer: 'A', ms: 3000, hints: 0 });
+        ok(
+            'the second card is served before the unit closes',
+            second.item && second.item.done === false && second.question && Number(second.question.id) === 903,
+            JSON.stringify(second.item)
+        );
+
+        const third = await engine.answer(3, 700, { itemId: 55, questionId: 903, answer: 'A', ms: 3000, hints: 0 });
+        ok(
+            'the unit closes once its three corrects are in',
+            third.item && third.item.done === true && third.next === 'advance',
+            JSON.stringify(third.item)
+        );
+        ok('only then does the plan advance', db.session.item_index === 1, String(db.session.item_index));
+    }
+
     // ------------------------------------------------------------- the report
     if (failures.length) {
         console.error(`\n${failures.length} FAILED of ${pass + failures.length}:`);

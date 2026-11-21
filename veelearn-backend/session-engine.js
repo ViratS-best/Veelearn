@@ -396,10 +396,27 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
     const ensuring = new Map();
 
     async function ensureQuestion(item, userId) {
-        const ids = parseJson(item.question_ids, []);
-        const lastId = ids.length ? ids[ids.length - 1] : null;
-        if (lastId) {
-            const raw = await qbank.getRaw(lastId);
+        const ids = parseJson(item.question_ids, []).map(Number).filter(Boolean);
+        if (ids.length) {
+            // The list is the unit's own questions, not a record of what was asked,
+            // so resuming a unit lands on a card the learner has not answered yet.
+            // Returning the last entry re-asked the question they had just done.
+            let asked = new Set();
+            if (!Number(item.is_review)) {
+                try {
+                    const rows = await query(
+                        'SELECT DISTINCT question_id FROM practice_attempts WHERE user_id = ? AND session_id = ?',
+                        [userId, item.session_id]
+                    );
+                    asked = new Set(rows.map((r) => Number(r.question_id)).filter(Boolean));
+                } catch (_) {
+                    asked = new Set();
+                }
+            }
+            const nextId = Number(item.is_review)
+                ? ids[ids.length - 1]
+                : ids.find((id) => !asked.has(Number(id))) || ids[ids.length - 1];
+            const raw = await qbank.getRaw(nextId);
             if (raw) return qbank.toCard(raw);
         }
         // A review serves the next card from its pool, never the same skill on repeat.
@@ -1039,6 +1056,21 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
         let next = 'retry';
         let nextQuestion = null;
 
+        // Cards the learner has actually answered in this session. `question_ids`
+        // is the unit's own question list (an outline unit seeds three of them), so
+        // it cannot be used to decide what was already served.
+        let asked = null;
+        const answeredCards = async () => {
+            if (asked) return asked;
+            const rows = await query(
+                'SELECT DISTINCT question_id FROM practice_attempts WHERE user_id = ? AND session_id = ?',
+                [userId, sessionId]
+            );
+            asked = new Set(rows.map((r) => Number(r.question_id)).filter(Boolean));
+            asked.add(Number(raw.id));
+            return asked;
+        };
+
         if (correct) {
             if (itemDone) {
                 next = 'advance';
@@ -1068,19 +1100,28 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
                 }
             } else {
                 next = 'more';
-                const tier = Math.min(4, Number(raw.tier) + 1);
-                nextQuestion = await qbank.pick({ skillId: raw.skill_id, tier, userId });
-                if (!nextQuestion || parseJson(item.question_ids, []).map(Number).includes(Number(nextQuestion.id))) {
-                    nextQuestion = await qbank.pickUnserved({
-                        skillId: raw.skill_id,
-                        exclude: parseJson(item.question_ids, [])
-                    });
-                    // Nothing new in this skill: the unit is finished, don't loop the
-                    // same card at the learner.
-                    if (!nextQuestion) {
-                        itemDone = true;
-                        next = 'advance';
-                    }
+                // Only the cards the learner actually answered are off the table, so
+                // the unit keeps going for the three corrects it asks for instead of
+                // closing as soon as its seeded list runs out.
+                const seen = await answeredCards();
+                const pending = parseJson(item.question_ids, [])
+                    .map(Number)
+                    .filter((id) => id && !seen.has(id));
+                let nextRaw = pending.length ? await qbank.getRaw(pending[0]) : null;
+                if (!nextRaw) {
+                    const tier = Math.min(4, Number(raw.tier) + 1);
+                    nextRaw = await qbank.pick({ skillId: raw.skill_id, tier, userId });
+                    if (nextRaw && seen.has(Number(nextRaw.id))) nextRaw = null;
+                }
+                if (!nextRaw) {
+                    nextRaw = await qbank.pickUnserved({ skillId: raw.skill_id, exclude: [...seen] });
+                }
+                // Only an empty skill ends the unit: never loop the same card at the
+                // learner just because the plan's list was mistaken for served cards.
+                if (nextRaw) nextQuestion = nextRaw;
+                else {
+                    itemDone = true;
+                    next = 'advance';
                 }
             }
         } else if (attempts >= 2) {
@@ -1183,11 +1224,14 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
             }
         }
 
-        if (nextQuestion && servedIds.includes(Number(nextQuestion.id))) {
-            // Never re-serve the same card; fall back to any other item.
-            nextQuestion = await qbank.pick({ skillId: raw.skill_id, tier: Math.min(4, Number(raw.tier) + 1), userId });
+        if (nextQuestion && !Number(item.is_review) && (await answeredCards()).has(Number(nextQuestion.id))) {
+            // Never hand back a card this learner already answered; a review's own
+            // re-ask is deliberate and stays as it is.
+            nextQuestion = await qbank.pickUnserved({ skillId: raw.skill_id, exclude: [...(await answeredCards())] });
         }
-        const questionIds = nextQuestion ? [...servedIds, Number(nextQuestion.id)] : servedIds;
+        const questionIds = nextQuestion
+            ? [...new Set([...servedIds, Number(nextQuestion.id)])]
+            : servedIds;
 
         await query(
             `UPDATE session_focus_items
