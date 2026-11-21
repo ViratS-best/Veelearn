@@ -63,11 +63,18 @@ ok('no backend file still calls the OpenRouter API', !/openrouter\.ai/i.test(fs.
 const sessionAiSrc = fs.readFileSync(path.join(__dirname, 'session-ai.js'), 'utf8');
 const builderRoutesSrc = fs.readFileSync(path.join(__dirname, 'outline-build-routes.js'), 'utf8');
 ok(
-    'board scenes are drawn by openai/gpt-6-luna',
-    /openai\/gpt-6-luna/.test(sessionAiSrc) && /BOARD_MODEL/.test(sessionAiSrc)
+    'board scenes are drawn by claude-haiku-5.5',
+    /anthropic\/claude-haiku-5\.5/.test(sessionAiSrc) && /BOARD_MODEL/.test(sessionAiSrc)
 );
-ok('the board asks for reasoning effort none', /effort: 'none'/.test(sessionAiSrc));
-ok('the outline filler keeps its own model instead of inheriting Luna', !/gpt-6-luna/.test(builderRoutesSrc));
+ok('the board asks for reasoning effort none when it is a Luna override', /effort: 'none'/.test(sessionAiSrc));
+ok('the outline filler keeps its own model instead of the board\'s', !/claude-haiku/.test(builderRoutesSrc));
+const scenePrompt = require('./board-scene').SYSTEM_PROMPT;
+ok(
+    'a thinking model is told to write only the scene',
+    /never write the thinking/.test(scenePrompt) && /starts with TITLE:/.test(scenePrompt)
+);
+ok('the board can draw a projected 3D scene', /project the points yourself/.test(scenePrompt));
+ok('a bigger scene is not cut off', require('./board-scene').MAX_CODE >= 6000);
 ok(
     'the chat body carries a reasoning control',
     /if \(reasoning\) body\.reasoning = reasoning;/.test(
@@ -222,6 +229,9 @@ const PLAIN_REPLY = [
 ].join('\n');
 const plainParsed = boardScene.parseSceneText(PLAIN_REPLY);
 ok('a plain-text scene parses', Boolean(plainParsed), JSON.stringify(plainParsed));
+// A board with no slider is a picture: every scene must let the learner move the
+// quantity the question is about.
+ok('the board asks for at least one slider', /1 to 3 sliders, never empty/.test(boardScene.SYSTEM_PROMPT));
 ok('its code keeps its newlines and quotes', plainParsed && /fillText\("y = "/.test(plainParsed.code) && plainParsed.code.split('\n').length >= 4);
 ok('its steps and slider parse', plainParsed && plainParsed.steps.length === 2 && plainParsed.controls[0].key === 'a');
 const noisyParsed = boardScene.parseSceneText(

@@ -16,7 +16,7 @@
 
 const prompts = require('./pedagogy-prompts');
 
-const MAX_CODE = 4000;
+const MAX_CODE = 6000;
 const MAX_CONTROLS = 3;
 const MAX_STEPS = 3;
 
@@ -47,9 +47,10 @@ const PALETTE = 'ink #26221f, accent #ea580c, green #15803d, blue #2563eb, muted
 const SYSTEM_PROMPT = `You write one small interactive canvas drawing for a Veelearn question. You get the question card (the answer is withheld), the skill and the authored method.
 
 Output EXACTLY these three things and nothing else. No preamble, no plan, no explanation, no markdown fences.
+You may think silently, but never write the thinking: no reasoning, no notes to yourself, no draft, no "Let me…", no restating the task. The reply starts with TITLE: and ends with the closing brace of draw().
 
 1) TITLE: <specific title, at most 60 characters>
-2) CONTROLS: key | label | min | max | step | value, key | label | ...   (0 to 3 sliders)
+2) CONTROLS: key | label | min | max | step | value, key | label | ...   (1 to 3 sliders, never empty)
 3) JavaScript beginning with: function draw(ctx, W, H, S, t) { ... }
 
 The JavaScript is the answer, so start it immediately after the CONTROLS line. Never describe the drawing in words.
@@ -58,14 +59,16 @@ THE DRAWING
 - ctx is a canvas 2D context, W and H are pixels, S holds slider values (S.a), t is seconds since the board opened.
 - Draw the actual quantities in THIS question with its numbers, not a generic graph.
 - Animate from t only: shapes, arrows, parts that fill or move.
+- A 3D idea is welcome: project the points yourself onto this 2D canvas (isometric or simple perspective) and rotate them from S and t. No WebGL.
 - Vector shapes and text only. Label what matters with ctx.fillText.
 - Palette: ${PALETTE}. White canvas.
-- Under 90 lines, no comments.
+- Under 140 lines, no comments.
 - Never use: document, window, parent, fetch, XMLHttpRequest, eval, new Function, import, localStorage, location, postMessage, alerts, images, timers.
 
 CONTROLS
-- One line, key | label | min | max | step | value, groups separated by commas.
-- Each key must visibly change the drawing through S.key. Omit the line when no slider helps.
+- One line, key | label | min | max | step | value, groups separated by commas. Always at least one.
+- Each key must visibly change the drawing through S.key, so the learner can move it and watch the answer follow.
+- Pick a quantity the question is actually about: a coefficient, the slope, the intercept, an angle, a length, the point itself. If the card gives fixed numbers, let the learner drag that number and redraw the result.
 
 Only if a stock diagram is genuinely the better drawing, output instead:
 PRESET: <one of ${prompts.PRESETS.join(', ')}>

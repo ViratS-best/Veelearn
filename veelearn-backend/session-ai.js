@@ -33,7 +33,7 @@ const CAPS = {
     budgetMs: Number(process.env.SESSION_AI_BUDGET_MS) || 18000,
     summaryBudgetMs: Number(process.env.SESSION_SUMMARY_BUDGET_MS) || 9000,
     /** A scene is drawn once per question and cached, so it can afford a moment. */
-    boardBudgetMs: Number(process.env.SESSION_BOARD_BUDGET_MS) || 24000,
+    boardBudgetMs: Number(process.env.SESSION_BOARD_BUDGET_MS) || 45000,
     /** A fallback is deterministic; remember it briefly instead of stalling again. */
     fallbackTtlMs: 5 * 60 * 1000,
     maxTokens: 700
@@ -289,10 +289,11 @@ function decideNext({ requested, correct, attempts = 0, itemsDone = false } = {}
     return { action: 'more', overridden: want !== 'more' };
 }
 
-// Board scenes want a coder, not a talker, and a reasoning model spends the
-// answer's budget thinking. The board pins Luna (the standard id, not the
-// expensive `:nitro` route) with reasoning off.
-const BOARD_MODEL = String(process.env.VEELEARN_BOARD_MODEL || '').trim() || 'openai/gpt-6-luna';
+// Board scenes want a coder, not a talker. Claude Haiku writes bigger scenes than
+// the prose model, including projected 3D, so the board pins it (the standard id,
+// never a `:nitro` route). It thinks before it writes, so the prompt forbids any
+// thinking in the reply and the parser takes only the scene.
+const BOARD_MODEL = String(process.env.VEELEARN_BOARD_MODEL || '').trim() || 'anthropic/claude-haiku-5.5';
 const BOARD_REASONING = /^openai\/gpt-6-luna/i.test(BOARD_MODEL) ? { effort: 'none' } : null;
 
 function createSessionAI({ query, qbank, chat, log } = {}) {
@@ -755,7 +756,7 @@ function createSessionAI({ query, qbank, chat, log } = {}) {
                 const text = await chat(nudge, {
                     model: BOARD_MODEL,
                     reasoning: BOARD_REASONING || undefined,
-                    max_tokens: attempt === 0 ? 2600 : 2200,
+                    max_tokens: attempt === 0 ? 6000 : 4000,
                     temperature: attempt === 0 ? 0.45 : 0.3,
                     budgetMs: CAPS.boardBudgetMs,
                     // The scene protocol is plain text on purpose: code with
