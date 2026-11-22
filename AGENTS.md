@@ -14,6 +14,31 @@
 - `POST /api/login` looks the address up with `LOWER(email) = ? ORDER BY id` and runs `bcrypt.compare` over the candidates, so an account created before this fix (stored with capitals) still logs in whatever casing is typed.
 - Covered in `test-phase45.js` (the helper, both endpoints, the case-insensitive duplicate check, the candidate loop). Its digest checks were also pinned to the week their fixture sessions live in (2026-11-14); they had rotted once the seven-day window moved past that date.
 
+### ✅ VEE MOVES OUT OF THE WAY, HINTS SAY SOMETHING, REVIEWS ASK NEW QUESTIONS
+
+**Status**: COMPLETE (offline-verified: 211 + 73 + 122 + 113 + 91 checks green; the session UI itself was not clicked through)
+
+**The mascot can be dragged off the text** (`mascot.js`, `session.css`, `session/session-app.js`)
+- Vee is placed beside what it points at, but a wide paragraph has no gutter, so it could sit across the sentence being read. The dock is now a drag handle: `pointerdown` + `pointermove` moves it (4 px slop, so a click still works), `pointerup` remembers the spot as a fraction of the stage in `localStorage` (`veelearnMascotPos`), and the position survives a reload and a resize.
+- Once dragged, `state.manual` stops `moveTo`, `park` and `drift`: a hint no longer pulls Vee back over the words the learner just moved it away from. Double-clicking Vee clears the saved spot and hands placement back to the page; a single click still opens the board, delayed 260 ms so the double-click can win, and a click within 400 ms of a drag is ignored.
+- `placeFor` now tries four spots (left gutter, right gutter, above, below) and rejects any that overlaps the anchor **or the paragraph it belongs to**, as well as the answer options. The cursor is `grab`/`grabbing` and the dock has `touch-action: none`.
+
+**A hint names the next move** (`session-engine.js`, `session/session-app.js`)
+- The hint button fell back to "Look again at what the question is really asking you to find", which names nothing the learner can do. `hintLadder(raw)` builds the ladder from the authored hints, then from the first concrete steps of the authored method (never the last step, because that is the answer), capped at three rungs and de-duplicated. Both `POST /hint` and the hint released after a wrong answer use it, so a card with one authored hint still gets a second, specific one. The page's last-resort line is now "write down what the card gives you, what it wants, and the one rule that links them".
+
+**Practice matches the worked example** (`session-engine.js`, `creator-impact.js`)
+- The lesson is written with the learner's actual card in front of it (stem, options, diagram and now `tier`), and the prompt requires **Worked example 2** to be the same kind of question as that card: same structure, same number of steps, same difficulty, different numbers. The old prompt let the examples be the easy version of the topic while the card was several steps harder, which is why the learner was clueless on the first question.
+- AI-written unit questions now carry the same calibration ("Match the difficulty of the unit's own worked examples… every question must be solvable with the method the unit teaches"), three progressive hints instead of one, and a `steps` array. `ensureQuestionsForSkill` stores `hints`/`steps` rather than a single hint and the explanation.
+
+**A simulation builds the idea, not the answer** (`board-scene.js`, `session-ai.js`)
+- The board prompt used to say "the JavaScript is the answer" and told the sliders to let the learner "watch the answer follow". It now says the scene draws the situation and never the solution, forbids drawing/labelling the final answer or the correct option, and forbids a slider that reveals it.
+- `boardScene` also runs the existing `leaksAnswer` guard over the scene's title, steps and code; a scene that names the key or echoes the correct option is dropped and the authored method is shown instead.
+
+**A review is not the same three questions again** (`session-engine.js`, `creator-impact.js`)
+- A review pool was only the unit's own questions. When it ran out before the 90% bar, `answer` re-asked a card from the same few, so a small unit's review was the practice set on repeat. `topUpReviewPool` now widens the pool with every live bank question for the unit's skills, and when the bank has nothing new, asks the model to write more MCQs from the same skill brief (`creator-impact.generateQuestionsForSkill`, which passes the existing stems so the model writes something new and skips duplicate stems).
+- Serving prefers a card the learner has **not** answered in this unit; a repeat only happens when the widened pool is genuinely spent. Bank widening is one quick query before the card appears; the model's fresh questions are written in the background while the learner reads, so no card ever waits on a 30 s generation.
+- Covered in `test-ai-session.js` (the ladder's rungs and its refusal to state the answer, the board prompt, the review top-up wiring, the generated-question shape).
+
 ### ✅ THE SESSION OPENS ON A REAL LESSON, NOT AN OVERVIEW
 
 **Status**: COMPLETE (offline-verified: 195 + 113 + 73 + 122 checks green; live lesson verified against api.veelearn.org)

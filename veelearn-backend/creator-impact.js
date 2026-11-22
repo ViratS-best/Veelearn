@@ -433,30 +433,44 @@ function createCreatorImpact({ query, log } = {}) {
      * keep: it writes three MCQs from the unit's own text, with a one-line hint
      * and a real explanation, so any course is teachable the moment it opens.
      */
-    async function aiQuestionsForUnit(course, unit) {
+    async function aiQuestionsForUnit(course, unit, { count = 3, avoid = [] } = {}) {
         const text = String(unit.text || '').replace(/\s+/g, ' ').trim().slice(0, 1400);
         if (!text) return [];
+        const howMany = Math.max(1, Math.min(6, Number(count) || 3));
+        const avoidStems = (Array.isArray(avoid) ? avoid : [])
+            .map((s) => String(s || '').replace(/\s+/g, ' ').trim().slice(0, 180))
+            .filter(Boolean)
+            .slice(0, 8);
         const messages = [
             {
                 role: 'system',
                 content:
                     'You write practice questions for a study app. Reply with JSON only, no prose, no code fences. ' +
                     'Shape: {"questions":[{"stem":"...","options":["...","...","...","..."],"answer":0,' +
-                    '"hint":"...","explanation":"..."}]}. answer is the 0-based index of the correct option. ' +
-                    'Use LaTeX with $...$ for math. The hint must be a nudge, never the answer. ' +
-                    'The explanation must say why the right answer works and why the tempting wrong one fails.'
+                    '"hints":["...","...","..."],"steps":["...","..."],"explanation":"..."}]}. ' +
+                    'answer is the 0-based index of the correct option. Use LaTeX with $...$ for math. ' +
+                    'Match the difficulty of the unit\'s own worked examples: the first question is a direct ' +
+                    'application with different numbers, and every question must be solvable with the method the ' +
+                    'unit teaches. Never use a technique the unit does not show. ' +
+                    'The hints are a ladder: hint 1 names what to notice, hint 2 names the next concrete step, ' +
+                    'hint 3 leaves only the final arithmetic. No hint may state the answer or name the correct option. ' +
+                    'steps are the worked method in 2 to 4 short lines, the last line being the result. ' +
+                    'The explanation says why the right answer works and why the tempting wrong one fails.'
             },
             {
                 role: 'user',
                 content:
                     `Course: ${course.title}\nUnit: ${unit.title}\n\nUnit content:\n${text}\n\n` +
-                    'Write 3 questions that test this unit, easiest first.'
+                    (avoidStems.length
+                        ? `Do not repeat or paraphrase these existing questions:\n- ${avoidStems.join('\n- ')}\n\n`
+                        : '') +
+                    `Write ${howMany} questions that test this unit, easiest first, each with three hints and its worked steps.`
             }
         ];
         let raw;
         try {
             raw = await require('./ai-chat').aiChatCompletion(messages, {
-                max_tokens: 1100,
+                max_tokens: Math.min(2600, 700 + howMany * 500),
                 temperature: 0.4,
                 jsonMust: true,
                 timeoutMs: 30000
@@ -490,13 +504,23 @@ function createCreatorImpact({ query, log } = {}) {
             }
             const keys = ['A', 'B', 'C', 'D', 'E', 'F'];
             const reshuffled = ordered.map((o, i) => Object.assign({}, o, { k: keys[i] }));
+            const hints = (Array.isArray(q.hints) ? q.hints : [q.hint])
+                .map((h) => String(h == null ? '' : h).replace(/\s+/g, ' ').trim().slice(0, 300))
+                .filter(Boolean)
+                .slice(0, 3);
+            const steps = (Array.isArray(q.steps) ? q.steps : [])
+                .map((s) => String(s == null ? '' : s).replace(/\s+/g, ' ').trim().slice(0, 300))
+                .filter(Boolean)
+                .slice(0, 4);
+            const explanation = String(q.explanation || '').replace(/\s+/g, ' ').trim().slice(0, 600);
             out.push({
                 stem,
                 options: reshuffled,
                 answer: reshuffled[ordered.indexOf(options.find((o) => o.k === answer))]?.k || answer,
                 tier: 1,
-                hint: String(q.hint || '').slice(0, 300),
-                explanation: String(q.explanation || '').slice(0, 600),
+                hints,
+                steps: steps.length ? steps : explanation ? [explanation] : [],
+                explanation,
                 unitIndex: unit.ord
             });
         }
@@ -544,8 +568,8 @@ function createCreatorImpact({ query, log } = {}) {
                         stemHash,
                         JSON.stringify(item.options),
                         item.answer,
-                        JSON.stringify(item.hint ? [item.hint] : []),
-                        JSON.stringify(item.explanation ? [item.explanation] : []),
+                        JSON.stringify(Array.isArray(item.hints) ? item.hints : []),
+                        JSON.stringify(Array.isArray(item.steps) ? item.steps : []),
                         Number(course.id)
                     ]
                 );
@@ -553,6 +577,72 @@ function createCreatorImpact({ query, log } = {}) {
                 if (row[0]) ids.push(Number(row[0].id));
             } catch (err) {
                 warn(`[creator-impact] on-demand question skipped: ${err.message}`);
+            }
+        }
+        return ids;
+    }
+
+    /**
+     * Fresh MCQs for one skill, written from that skill's own teaching brief.
+     * Used when a unit or a review runs out of cards, so the learner is not
+     * shown the same handful of questions again. Existing stems travel with the
+     * request so the model writes something new; a duplicate stem is skipped.
+     */
+    async function generateQuestionsForSkill(skillId, { count = 3, avoid = [] } = {}) {
+        const rows = await query('SELECT id, code, name, intro_md FROM skills WHERE id = ? LIMIT 1', [skillId]);
+        const skill = rows[0];
+        if (!skill) return [];
+        const text = String(skill.intro_md || '').replace(/\s+/g, ' ').trim();
+        if (text.length < 40) return [];
+
+        const avoidIds = (Array.isArray(avoid) ? avoid : []).map(Number).filter(Boolean).slice(0, 10);
+        let avoidStems = [];
+        if (avoidIds.length) {
+            try {
+                const marks = avoidIds.map(() => '?').join(', ');
+                const known = await query(`SELECT stem FROM qbank_items WHERE id IN (${marks})`, avoidIds);
+                avoidStems = known.map((r) => String(r.stem || '').trim()).filter(Boolean);
+            } catch (_) {
+                avoidStems = [];
+            }
+        }
+
+        const match = /^course\.(\d+)\./.exec(String(skill.code || ''));
+        const courseId = match ? Number(match[1]) : null;
+        const generated = await aiQuestionsForUnit(
+            { title: 'this course' },
+            { ord: 0, title: skill.name || 'this skill', text },
+            { count, avoid: avoidStems }
+        );
+        if (!generated.length) return [];
+
+        const crypto = require('crypto');
+        const ids = [];
+        for (const item of generated) {
+            const stemHash = crypto.createHash('sha256').update(item.stem).digest('hex');
+            try {
+                await query(
+                    `INSERT IGNORE INTO qbank_items
+                        (skill_id, tier, qtype, stem, stem_hash, options, answer, hints, solution_steps, source, course_id, live)
+                     VALUES (?, ?, 'mcq', ?, ?, ?, ?, ?, ?, 'course', ?, 1)`,
+                    [
+                        Number(skillId),
+                        item.tier,
+                        item.stem,
+                        stemHash,
+                        JSON.stringify(item.options),
+                        item.answer,
+                        JSON.stringify(Array.isArray(item.hints) ? item.hints : []),
+                        JSON.stringify(Array.isArray(item.steps) ? item.steps : []),
+                        courseId
+                    ]
+                );
+                // Only a row that belongs to this skill is a new card for it; a
+                // duplicate stem is the same question the learner already saw.
+                const row = await query('SELECT id, skill_id FROM qbank_items WHERE stem_hash = ? LIMIT 1', [stemHash]);
+                if (row[0] && Number(row[0].skill_id) === Number(skillId)) ids.push(Number(row[0].id));
+            } catch (err) {
+                warn(`[creator-impact] extra question skipped: ${err.message}`);
             }
         }
         return ids;
@@ -1363,7 +1453,17 @@ function createCreatorImpact({ query, log } = {}) {
         return { courses: out, hours: round2(hours) };
     }
 
-    return { readiness, plan, ensureQuestionsForSkill, impact, record, summaryForCreator, splitUnits, frameFor };
+    return {
+        readiness,
+        plan,
+        ensureQuestionsForSkill,
+        generateQuestionsForSkill,
+        impact,
+        record,
+        summaryForCreator,
+        splitUnits,
+        frameFor
+    };
 }
 
 module.exports = createCreatorImpact;

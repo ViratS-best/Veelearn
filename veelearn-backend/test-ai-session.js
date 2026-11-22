@@ -1029,6 +1029,45 @@ ok('a finished item advances even if the model asks to stay', createSessionAI.de
         ok('only then does the plan advance', db.session.item_index === 1, String(db.session.item_index));
     }
 
+    // ---------------------------------------- hints, reviews and the board sim
+    // The hint button used to answer "Look again at what the question is really
+    // asking you to find", which names nothing the learner can do. The ladder is
+    // the authored hints followed by concrete steps of the authored method.
+    const ladder = sessionEngine.hintLadder({
+        hints: JSON.stringify(['Divide both sides by 2', 'Check the sign when you divide by a negative']),
+        solution_steps: JSON.stringify(['2x > 12', 'x > 6'])
+    });
+    ok('a hint names a concrete move, not "look again"', /divide both sides/i.test(ladder[0] || ''), JSON.stringify(ladder));
+    ok('the ladder adds a method step when the authored hints run out', ladder.some((h) => /2x > 12/.test(h)), JSON.stringify(ladder));
+    ok('a hint never states the answer', !ladder.some((h) => /x > 6/.test(h)), JSON.stringify(ladder));
+    ok('the ladder stops at three rungs', ladder.length <= 3, String(ladder.length));
+
+    const bare = sessionEngine.hintLadder({
+        hints: '[]',
+        solution_steps: JSON.stringify(['Subtract 5 from both sides', 'Divide by 3', 'x = 4'])
+    });
+    ok('a card with no authored hints still gets a real first step', /subtract 5/i.test(bare[0] || ''), JSON.stringify(bare));
+    ok('a bare ladder still withholds the final answer', !bare.some((h) => /x = 4/.test(h)), JSON.stringify(bare));
+
+    // The board is a playground, not the answer sheet.
+    const scenePrompt = require('./board-scene').SYSTEM_PROMPT;
+    ok('the board is told not to hand over the answer', /never draw, animate, fill in or label the final answer/i.test(scenePrompt));
+    ok('the board no longer calls its code "the answer"', !/JavaScript is the answer/i.test(scenePrompt));
+
+    // A review with fewer cards than it needs used to re-ask the same ones. It now
+    // widens its pool from the shared bank and, when that is empty, from the model.
+    const engineSource = fs.readFileSync(path.join(__dirname, 'session-engine.js'), 'utf8');
+    ok('a spent review pool is widened, not repeated', /topUpReviewPool\(item, items, userId\)/.test(engineSource));
+    ok('a review takes more cards from the shared bank', /FROM qbank_items[\s\S]{0,200}skill_id IN/.test(engineSource));
+    ok('a review asks the model for fresh MCQs when the bank has none', /generateQuestionsForSkill\(skillId/.test(engineSource));
+    ok('the second worked example matches the card', /Calibrate to the learner/.test(engineSource));
+
+    const impactSource = fs.readFileSync(path.join(__dirname, 'creator-impact.js'), 'utf8');
+    ok('generated questions carry a hint ladder', /"hints":\[/.test(impactSource));
+    ok('generated questions carry worked steps', /"steps":\[/.test(impactSource));
+    ok('generated questions match the unit example difficulty', /Match the difficulty of the unit/.test(impactSource));
+    ok('fresh MCQs can be written for one skill on demand', /async function generateQuestionsForSkill\(/.test(impactSource));
+
     // ------------------------------------------------------------- the report
     if (failures.length) {
         console.error(`\n${failures.length} FAILED of ${pass + failures.length}:`);

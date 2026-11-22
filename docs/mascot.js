@@ -18,6 +18,8 @@
   const FAR = 620; // px at which pupils are fully deflected (eye-relative)
   const BOB_MS = 3000; // idle bob period
   const IDLE_DRIFT_MS = 12000;
+  const DRAG_KEY = 'veelearnMascotPos';
+  const DRAG_SLOP = 4; // px before a press counts as a drag, not a click
 
   const MOUTH = {
     idle: 'M54 61.5 Q64 68 74 61.5',
@@ -78,6 +80,9 @@
     last: 0,
     lastNarration: performance.now(),
     rectsAt: 0,
+    manual: false, // the learner placed Vee here: the tutor stops moving it
+    dragging: false,
+    dragAt: 0,
     bubbleEl: null,
     bubbleTimer: null,
     blinkAt: 0,
@@ -99,6 +104,122 @@
 
   function invalidate() {
     state.rectsDirty = true;
+  }
+
+  // ------------------------------------------------------- remembered drag
+  function storedPos() {
+    try {
+      const raw = global.localStorage && global.localStorage.getItem(DRAG_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || !Number.isFinite(parsed.fx) || !Number.isFinite(parsed.fy)) return null;
+      return { fx: clamp(parsed.fx, 0, 1), fy: clamp(parsed.fy, 0, 1) };
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /** Fractions of the stage, so a split-screen window still finds Vee. */
+  function rememberPos(x, y, stage) {
+    try {
+      if (!global.localStorage) return;
+      global.localStorage.setItem(
+        DRAG_KEY,
+        JSON.stringify({ fx: stage.width ? x / stage.width : 0, fy: stage.height ? y / stage.height : 0 })
+      );
+    } catch (_) {
+      /* private mode: the drag still holds for this page */
+    }
+  }
+
+  function forgetPos() {
+    try {
+      if (global.localStorage) global.localStorage.removeItem(DRAG_KEY);
+    } catch (_) {
+      /* nothing to clear */
+    }
+  }
+
+  function restorePos(stage) {
+    const saved = storedPos();
+    if (!saved) return null;
+    const size = mascotSize();
+    return {
+      x: clamp(saved.fx * stage.width, 8, Math.max(8, stage.width - size - 8)),
+      y: clamp(saved.fy * stage.height, 8, Math.max(8, stage.height - size - 8))
+    };
+  }
+
+  /** Move the dock to an exact spot, without asking where an anchor is. */
+  function setDock(x, y, flip) {
+    if (!state.dock) return;
+    state.target = { x, y };
+    if (flip) state.targetFlip = flip;
+    state.dock.style.transition = state.reduced ? 'transform 200ms ease-out' : 'transform 240ms ease-out';
+    state.dock.style.transform = `translate(${x}px, ${y}px) scaleX(${state.targetFlip === -1 ? -1 : 1})`;
+  }
+
+  /**
+   * Drag Vee out of the way. A press only becomes a drag after a few pixels, so
+   * the click that opens the board still works; once dragged, the tutor stops
+   * moving the mascot and the spot is remembered across sessions.
+   */
+  function enableDrag(dock) {
+    let start = null;
+
+    dock.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      start = { px: e.clientX, py: e.clientY, x: state.target.x, y: state.target.y, moved: false };
+      state.dragging = true;
+      dock.classList.add('is-dragging');
+      dock.style.transition = 'none';
+      try {
+        dock.setPointerCapture(e.pointerId);
+      } catch (_) {
+        /* capture is a nicety: the drag still works without it */
+      }
+    });
+
+    dock.addEventListener('pointermove', (e) => {
+      if (!start || !state.dragging) return;
+      const dx = e.clientX - start.px;
+      const dy = e.clientY - start.py;
+      if (!start.moved && Math.hypot(dx, dy) < DRAG_SLOP) return;
+      start.moved = true;
+      const stage = state.rects.stage || stageRect();
+      const size = mascotSize();
+      const x = clamp(start.x + dx, 8, Math.max(8, stage.width - size - 8));
+      const y = clamp(start.y + dy, 8, Math.max(8, stage.height - size - 8));
+      state.manual = true;
+      state.target = { x, y };
+      dock.style.transform = `translate(${x}px, ${y}px) scaleX(${state.targetFlip === -1 ? -1 : 1})`;
+    });
+
+    const finish = () => {
+      if (!start) return;
+      const moved = start.moved;
+      start = null;
+      state.dragging = false;
+      dock.classList.remove('is-dragging');
+      if (!moved) return;
+      state.dragAt = Date.now();
+      state.lastNarration = Date.now();
+      rememberPos(state.target.x, state.target.y, state.rects.stage || stageRect());
+      hideBubble();
+    };
+    dock.addEventListener('pointerup', finish);
+    dock.addEventListener('pointercancel', finish);
+  }
+
+  /** Hand the position back to the page: Vee follows the lesson again. */
+  function resetPosition() {
+    forgetPos();
+    state.manual = false;
+    state.dragAt = 0;
+    const stage = state.rects.stage || stageRect();
+    const size = mascotSize();
+    state.home = { x: Math.max(8, stage.width - size - 16), y: Math.max(8, stage.height - size - 38) };
+    setDock(state.home.x, state.home.y, 1);
   }
 
   function readRects() {
@@ -179,38 +300,57 @@
     const el = q(anchorEl);
     const stage = state.rects.stage || stageRect();
     const size = mascotSize();
+    const maxX = Math.max(8, stage.width - size - 8);
+    const maxY = Math.max(8, stage.height - size - 8);
     if (!el) {
       // never throw, never guess: fall back to the centre of the problem card
-      return { x: stage.width / 2 - size / 2, y: stage.height - size - 18 };
+      return { x: clamp(stage.width / 2 - size / 2, 8, maxX), y: maxY };
     }
     const r = el.getBoundingClientRect();
     if (compactMode()) {
       // Narrow: pin to the card's top-right corner, clear of the text column.
-      return { x: clamp(stage.width - size - 8, 8, Math.max(8, stage.width - size - 8)), y: 6 };
+      return { x: maxX, y: 6 };
     }
-    let x = r.left - stage.left - (size + 6); // sit to the left of what we point at
-    let y = r.top - stage.top + r.height / 2 - size / 2;
 
-    if (x < 8) x = r.right - stage.left + 10; // no room on the left, go right
-    x = clamp(x, 8, Math.max(8, stage.width - size - 8));
-    y = clamp(y, 8, Math.max(8, stage.height - size - 8));
-
-    // never cover the answer options
+    const boxAt = (x, y) => ({
+      left: stage.left + x,
+      top: stage.top + y,
+      right: stage.left + x + size,
+      bottom: stage.top + y + size
+    });
+    const hits = (a, b) => !!b && !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom);
     const opts = state.rects.options;
-    if (opts) {
-      const box = { left: stage.left + x, top: stage.top + y, right: stage.left + x + size, bottom: stage.top + y + size };
-      const hit = !(box.right < opts.left || box.left > opts.right || box.bottom < opts.top || box.top > opts.bottom);
-      if (hit) {
-        const above = opts.top - stage.top - (size + 10);
-        y = above > 8 ? above : clamp(opts.bottom - stage.top + 10, 8, Math.max(8, stage.height - size - 8));
-      }
+    // A sentence span is only one line: keep off the whole paragraph it lives in,
+    // not just the words it covers, or Vee lands across the next line.
+    const para = el.closest ? el.closest('p, li, td, .sx-intro, .sx-stem') : null;
+    const avoid = para && para !== el ? [r, para.getBoundingClientRect()] : [r];
+    // Never sit on the words being explained, nor on the answer options.
+    const clear = (x, y) => {
+      const b = boxAt(x, y);
+      return avoid.every((rect) => !hits(b, rect)) && !hits(b, opts);
+    };
+
+    const midY = clamp(r.top - stage.top + r.height / 2 - size / 2, 8, maxY);
+    const spots = [
+      { x: r.left - stage.left - (size + 6), y: midY }, // the gutter to its left
+      { x: r.right - stage.left + 10, y: midY }, // or to its right
+      { x: clamp(r.right - stage.left - size - 8, 8, maxX), y: clamp(r.top - stage.top - size - 10, 8, maxY) }, // above
+      { x: clamp(r.left - stage.left + 8, 8, maxX), y: clamp(r.bottom - stage.top + 10, 8, maxY) } // below
+    ].map((s) => ({ x: clamp(s.x, 8, maxX), y: clamp(s.y, 8, maxY) }));
+
+    for (const spot of spots) {
+      if (clear(spot.x, spot.y)) return spot;
     }
-    return { x, y };
+    // Nowhere clean beside it: sit below the block rather than across it.
+    return { x: clamp(r.left - stage.left + 8, 8, maxX), y: clamp(r.bottom - stage.top + 10, 8, maxY) };
   }
 
   function moveTo(anchorEl, opts) {
     if (!state.ready) return Promise.resolve();
     const options = opts || {};
+    // Once the learner has placed Vee, a hint must not drag it back over the
+    // sentence they moved it away from.
+    if (state.manual && !options.force) return Promise.resolve();
     const stage = state.rects.stage || stageRect();
     const el = q(anchorEl);
     const dest = placeFor(anchorEl);
@@ -332,6 +472,7 @@
 
   function park() {
     setMood('idle');
+    if (state.manual) return;
     state.target = { x: state.home.x, y: state.home.y };
     if (state.dock) {
       state.dock.style.transition = state.reduced ? 'transform 200ms ease-out' : 'transform 420ms cubic-bezier(.32,.72,0,1)';
@@ -419,6 +560,7 @@
   }
 
   function drift() {
+    if (state.manual) return;
     const stage = state.rects.stage || stageRect();
     state.lastNarration = performance.now();
     const rest = { x: Math.max(8, stage.width - 128), y: Math.max(8, stage.height - 150) };
@@ -463,6 +605,7 @@
     state.dock = dock;
     state.bobEl = bob;
     state.bubbleEl = bubble;
+    enableDrag(dock);
 
     // Crossing the split-screen threshold re-homes the mascot instead of
     // leaving it parked at coordinates from the other width.
@@ -473,6 +616,11 @@
         clearTimeout(state.resizeTimer);
         state.resizeTimer = setTimeout(() => {
           invalidate();
+          if (state.manual) {
+            const kept = restorePos(state.rects.stage || stageRect());
+            if (kept) setDock(kept.x, kept.y);
+            return;
+          }
           if (state.lastAnchor) moveTo(state.lastAnchor, { instant: true });
         }, 180);
       };
@@ -512,8 +660,11 @@
         readRects();
         const stage = state.rects.stage;
         state.home = { x: Math.max(8, stage.width - 128), y: Math.max(8, stage.height - 150) };
-        state.target = { ...state.home };
-        dock.style.transform = `translate(${state.home.x}px, ${state.home.y}px)`;
+        // A spot the learner dragged Vee to survives a reload and a resize.
+        const restored = restorePos(stage);
+        state.manual = Boolean(restored);
+        state.target = restored ? { ...restored } : { ...state.home };
+        dock.style.transform = `translate(${state.target.x}px, ${state.target.y}px)`;
         setMood(options.mood || 'idle');
 
         state.onMove = (e) => {
@@ -543,8 +694,10 @@
         readRects();
         const stageBox = state.rects.stage;
         state.home = { x: Math.max(8, stageBox.width - 128), y: Math.max(8, stageBox.height - 150) };
-        state.target = { ...state.home };
-        dock.style.transform = `translate(${state.home.x}px, ${state.home.y}px)`;
+        const kept = restorePos(stageBox);
+        state.manual = Boolean(kept);
+        state.target = kept ? { ...kept } : { ...state.home };
+        dock.style.transform = `translate(${state.target.x}px, ${state.target.y}px)`;
         return api;
       });
   }
@@ -591,6 +744,10 @@
     easeFactor,
     moods: Object.keys(MOUTH),
     isReady: () => state.ready,
+    isManual: () => state.manual,
+    // A drag ends in a click event: the page must not read that as "open the board".
+    wasDragged: () => Date.now() - state.dragAt < 400,
+    resetPosition,
     isReduced: () => state.reduced || prefersReduced(),
     position: () => ({ ...state.target }),
     parts: () => state.parts

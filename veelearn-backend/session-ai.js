@@ -773,6 +773,16 @@ function createSessionAI({ query, qbank, chat, log } = {}) {
                 const verdict = sceneModule.sanitizeScene(sanitizeBoardReply(sceneModule, text));
                 dropped = verdict.dropped;
                 scene = verdict.scene;
+                // A simulation is for building the idea, not for handing over the
+                // answer: a scene that labels the correct option (or says the key)
+                // is replaced by the authored method instead.
+                if (
+                    scene &&
+                    leaksAnswer([scene.title || ''].concat(scene.steps || [], [scene.code || '']).join('\n'), raw)
+                ) {
+                    dropped.push('scene gave the answer away');
+                    scene = null;
+                }
                 if (!scene) info(`[session.ai] board reply ${attempt + 1} unusable: ${String(text || '').slice(0, 160)}`);
             } catch (e) {
                 lastError = (e && (e.code || e.message)) || String(e);

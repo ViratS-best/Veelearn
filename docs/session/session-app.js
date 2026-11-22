@@ -1120,7 +1120,9 @@
     try {
       const out = await api(`/api/session/${state.id}/hint`, { questionId: state.question.id });
       const box = el('sx-hintbox');
-      box.textContent = out.hint || 'Look again at what the question is really asking you to find.';
+      box.textContent =
+        out.hint ||
+        'Write down what the card gives you, what it wants, and the one rule that links them.';
       box.hidden = false;
       typesetContent();
       if (state.visualReady && window.Mascot) {
@@ -1522,9 +1524,29 @@
       // Clicking Vee is a shortcut for "show me on the board".
       const host = document.querySelector('#sx-mascot-host');
       if (host) {
-        host.style.cursor = 'pointer';
-        host.title = 'Click Vee to draw this on the board';
-        host.addEventListener('click', () => drawBoard());
+        host.title = 'Drag Vee to move it · click to draw on the board · double-click to put it back';
+        // A click opens the board, but a drag ends in a click too, and a
+        // double-click puts Vee back under the page's control. Delaying the
+        // single click is what lets the double-click win without a stray board.
+        let clickTimer = null;
+        host.addEventListener('click', (e) => {
+          if (window.Mascot && Mascot.wasDragged && Mascot.wasDragged()) return;
+          if (e.detail > 1) {
+            clearTimeout(clickTimer);
+            clickTimer = null;
+            return;
+          }
+          clearTimeout(clickTimer);
+          clickTimer = setTimeout(() => {
+            clickTimer = null;
+            drawBoard();
+          }, 260);
+        });
+        host.addEventListener('dblclick', () => {
+          clearTimeout(clickTimer);
+          clickTimer = null;
+          if (window.Mascot && Mascot.resetPosition) Mascot.resetPosition();
+        });
       }
     }
   }

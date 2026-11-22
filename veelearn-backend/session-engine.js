@@ -41,6 +41,38 @@ function parseJson(value, fallback) {
 }
 
 /**
+ * The hint ladder for one card: the authored hints first, then the first
+ * concrete steps of the authored method. "Look again at what the question is
+ * asking" is not a hint — every rung names something the learner can do next.
+ * The final solution step is never added, because that is the answer.
+ */
+function hintLadder(raw) {
+    const out = [];
+    const push = (text) => {
+        const line = String(text == null ? '' : text)
+            .replace(/\s+/g, ' ')
+            .trim();
+        if (!line) return;
+        if (out.some((hint) => hint.toLowerCase() === line.toLowerCase())) return;
+        out.push(line);
+    };
+    for (const hint of parseJson(raw && raw.hints, [])) push(hint);
+    const steps = parseJson(raw && raw.solution_steps, [])
+        .map((step) =>
+            String(step == null ? '' : step)
+                .replace(/\s+/g, ' ')
+                .trim()
+        )
+        .filter(Boolean);
+    const usable = steps.slice(0, Math.max(0, steps.length - 1));
+    for (const step of usable) {
+        if (out.length >= 3) break;
+        push(`${out.length ? 'Next step' : 'Start with this step'}: ${step}`);
+    }
+    return out;
+}
+
+/**
  * Some replies arrive as drafted sentences with word counts ("..." (11) = 26)
  * because the model did its arithmetic out loud. When that pattern shows up,
  * keep the finished sentences and drop the working.
@@ -395,6 +427,98 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
      */
     const ensuring = new Map();
 
+    /**
+     * A review needs more cards than its unit's own list holds, or it asks the
+     * same handful again. Top the pool up from the shared bank for the unit's
+     * skills, and, when the bank has nothing new, have the model write more
+     * MCQs from the same unit material. The pool is saved, so this runs once.
+     */
+    const toppingUp = new Map();
+    async function topUpReviewPool(item, items, userId, { write = true } = {}) {
+        const pool = parseJson(item.review_pool, []).map(Number).filter(Boolean);
+        const need = Math.max(1, Number(item.target_dots || 18));
+        if (pool.length >= need + 4) return pool;
+
+        const key = `${item.id}|${pool.length}|${write ? 'w' : 'b'}`;
+        const running = toppingUp.get(key);
+        if (running) return running;
+
+        const work = (async () => {
+            const rows = items && items.length ? items : await focusItems(item.session_id);
+            const skills = [
+                ...new Set(
+                    (rows || [])
+                        .filter((row) => !Number(row.is_review) && Number(row.unit_index || 0) === Number(item.unit_index || 0))
+                        .map((row) => Number(row.skill_id))
+                        .filter(Boolean)
+                )
+            ];
+            if (!skills.length) return pool;
+
+            const marks = skills.map(() => '?').join(', ');
+            try {
+                const rows = await query(
+                    `SELECT id FROM qbank_items
+                     WHERE skill_id IN (${marks}) AND live = TRUE
+                     ORDER BY tier ASC, calibration_p DESC, id ASC LIMIT 60`,
+                    skills
+                );
+                for (const row of rows) {
+                    const id = Number(row.id);
+                    if (id && !pool.includes(id)) pool.push(id);
+                }
+            } catch (e) {
+                info(`[session] review bank top-up skipped: ${e.message}`);
+            }
+
+            // Still short of a full review: the model writes fresh MCQs for the
+            // same skills, so a review is not the same three cards again. This is
+            // the slow half, so a caller that must answer immediately passes
+            // `write: false` and lets it run while the learner reads the card.
+            if (write && pool.length < need + 2) {
+                try {
+                    const writer = impact || require('./creator-impact')({ query, log });
+                    if (writer && typeof writer.generateQuestionsForSkill === 'function') {
+                        for (const skillId of skills) {
+                            if (pool.length >= need + 4) break;
+                            const made = await writer.generateQuestionsForSkill(skillId, {
+                                count: 4,
+                                avoid: pool.slice(0, 8)
+                            });
+                            for (const id of made || []) {
+                                const n = Number(id);
+                                if (n && !pool.includes(n)) pool.push(n);
+                            }
+                        }
+                    }
+                } catch (e) {
+                    info(`[session] review question writing skipped: ${e.message}`);
+                }
+            }
+
+            const trimmed = pool.slice(0, 60);
+            try {
+                await query('UPDATE session_focus_items SET review_pool = ? WHERE id = ?', [
+                    JSON.stringify(trimmed),
+                    item.id
+                ]);
+                item.review_pool = JSON.stringify(trimmed);
+            } catch (e) {
+                info(`[session] review pool save skipped: ${e.message}`);
+            }
+            return trimmed;
+        })();
+
+        toppingUp.set(key, work);
+        const forget = () => setTimeout(() => toppingUp.delete(key), 5000);
+        work.then(forget, forget);
+        // A failed top-up must not break the review: the pool it had is still playable.
+        return work.catch((e) => {
+            info(`[session] review top-up failed: ${e.message}`);
+            return pool;
+        });
+    }
+
     async function ensureQuestion(item, userId) {
         const ids = parseJson(item.question_ids, []).map(Number).filter(Boolean);
         if (ids.length) {
@@ -419,10 +543,27 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
             const raw = await qbank.getRaw(nextId);
             if (raw) return qbank.toCard(raw);
         }
-        // A review serves the next card from its pool, never the same skill on repeat.
+        // A review serves a card the learner has not met yet, from a pool wider
+        // than the unit's own list — otherwise it is the same three questions again.
         if (Number(item.is_review)) {
-            const pool = parseJson(item.review_pool, []).map(Number);
-            const fresh = pool.find((id) => !ids.map(Number).includes(Number(id)));
+            // Bank cards are one quick query; the model's fresh MCQs are written
+            // while the learner reads this card, never before it appears.
+            const pool = await topUpReviewPool(item, null, userId, { write: false });
+            const served = ids.map(Number);
+            const asked = new Set();
+            try {
+                const rows = await query(
+                    'SELECT DISTINCT question_id FROM practice_attempts WHERE user_id = ? AND session_id = ?',
+                    [userId, item.session_id]
+                );
+                for (const row of rows) asked.add(Number(row.question_id));
+            } catch (_) {
+                /* an empty set only costs freshness, never a card */
+            }
+            const open = (id) => !served.includes(Number(id));
+            // A card the learner has not answered in this unit first; a re-ask
+            // only when the widened pool is genuinely spent.
+            const fresh = pool.find((id) => open(id) && !asked.has(Number(id))) || pool.find(open);
             if (fresh) {
                 const raw = await qbank.getRaw(fresh);
                 if (raw) {
@@ -432,6 +573,7 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
                         item.id
                     ]);
                     item.question_ids = JSON.stringify(served);
+                    Promise.resolve(topUpReviewPool(item, null, userId)).catch(() => {});
                     return qbank.toCard(raw);
                 }
             }
@@ -548,7 +690,8 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
                 cardBlock =
                     `The learner is looking at this question right now: ${String(onCard.stem || '').slice(0, 500)}\n` +
                     (choices ? `Choices:\n${choices.slice(0, 700)}\n` : '') +
-                    (visualText ? `Its diagram shows: ${visualText}\n` : '');
+                    (visualText ? `Its diagram shows: ${visualText}\n` : '') +
+                    `This card is tier ${Number(onCard.tier) || 1} of 4.\n`;
             }
         } catch (_) {
             cardBlock = '';
@@ -592,6 +735,7 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
                   'Rules:',
                   '- Teach from the unit material. Never contradict it and never swap in a different method.',
                   '- Never use one of this unit\'s practice questions as an example; write fresh numbers.',
+                  '- Calibrate to the learner\'s card. "Worked example 2" must be the same kind of question as that card: same structure, same number of steps, same difficulty, different numbers. If the examples are easier than the card, the learner is stuck — so raise the examples to the card, never the other way round.',
                   '- Draw a picture with a small GitHub-style markdown table or in plain words. Never use code fences or ASCII art; they are not drawn for the learner.',
                   '- No greeting, no “Sure”, no plan, no counting words, no thinking out loud, no mention of a model, of these instructions, or of “the user”. Start with the first “## ” line.',
                   '- Finish every sentence, every step and every example. There is no word limit; a full lesson is usually 500–900 words, and a complete lesson always beats a short one that stops mid-idea.'
@@ -605,7 +749,9 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
             `Unit: ${title}`,
             unitText ? `Outline material for this unit:\n${unitText.slice(0, 4000)}` : '',
             misconceptions.length ? `Misconceptions to correct:\n- ${misconceptions.join('\n- ')}` : '',
-            cardBlock ? `The learner's card right now (do not repeat or quote it back):\n${cardBlock}` : '',
+            cardBlock
+                ? `The learner's card right now (do not repeat or quote it back; match its difficulty in Worked example 2):\n${cardBlock}`
+                : '',
             asked
                 ? `The learner asked: "${asked}"`
                 : 'Write the learning section for this unit now, starting with the first "## " line.'
@@ -1079,7 +1225,18 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
                 // different questions instead of one skill on repeat.
                 const storedPool = parseJson(item.review_pool, []).map(Number);
                 const pool = storedPool.length ? storedPool : parseJson(item.question_ids, []).map(Number);
-                const unserved = pool.filter((id) => !servedIds.includes(Number(id)));
+                const answered = await answeredCards();
+                const isOpen = (id) => !servedIds.includes(Number(id));
+                let unserved = pool.filter((id) => isOpen(id) && !answered.has(Number(id)));
+                if (!unserved.length) {
+                    // Every card in the pool has been served: widen it from the bank
+                    // now, and ask the model for more while the learner works, so
+                    // the next card is fresh without this answer waiting on a model.
+                    const grown = await topUpReviewPool(item, items, userId, { write: false });
+                    unserved = grown.filter((id) => isOpen(id) && !answered.has(Number(id)));
+                    Promise.resolve(topUpReviewPool(item, items, userId)).catch(() => {});
+                }
+                if (!unserved.length) unserved = pool.filter(isOpen);
                 if (unserved.length) {
                     const rawNext = await qbank.getRaw(unserved[0]);
                     nextQuestion = rawNext ? qbank.toCard(rawNext) : null;
@@ -1275,6 +1432,7 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
 
         const showSolution = !correct && attempts >= 2;
         const nextCard = nextQuestion ? qbank.toCard(nextQuestion) : null;
+        const hintsForCard = hintLadder(raw);
 
         return {
             ok: true,
@@ -1283,7 +1441,9 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
             // Released only now, never before grading:
             why: correct ? '' : qbank.whyFor(raw, given),
             selected: selectedOption ? selectedOption.t : '',
-            hint: correct ? '' : String(parseJson(raw.hints, [])[Math.min(hintsUsed, parseJson(raw.hints, []).length - 1)] || ''),
+            hint: correct
+                ? ''
+                : String(hintsForCard[Math.min(hintsUsed, Math.max(0, hintsForCard.length - 1))] || ''),
             solution: showSolution ? qbank.solutionFor(raw) : null,
             next,
             question: nextCard,
@@ -1327,7 +1487,7 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
             [sessionId, raw.id]
         );
         const used = Number(rows[0]?.c || 0);
-        const hints = parseJson(raw.hints, []);
+        const hints = hintLadder(raw);
         if (used >= hints.length) {
             return { ok: true, hint: hints[hints.length - 1] || '', level: used, exhausted: true };
         }
@@ -1512,3 +1672,4 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
 module.exports = createSessionEngine;
 module.exports.cleanLesson = cleanLesson;
 module.exports.parseJson = parseJson;
+module.exports.hintLadder = hintLadder;
