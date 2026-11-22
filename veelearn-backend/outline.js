@@ -23,10 +23,15 @@
  * }
  */
 
-const FRAME_CHARS = 900;
+// The unit's brief is the syllabus the lesson is written from. It used to be cut
+// at 900 characters, which threw away the diagram and the "common slip" line and
+// left the model improvising — so the lesson had almost nothing to teach from.
+const FRAME_CHARS = 4000;
 const embeddings = require('./embeddings');
 const LETTERS = 'ABCDEFGH';
-const REVIEW_MIN = 4;
+// A unit with fewer than four questions used to get no review at all, so a
+// one-skill unit closed and jumped to the next unit with no checkpoint.
+const REVIEW_MIN = 2;
 const REVIEW_TARGET_RATIO = 0.9;
 
 /**
@@ -295,8 +300,9 @@ function createOutlines({ query, log } = {}) {
                     skillId,
                     skillName: skill.name,
                     isReview: 0,
-                    // Three to five questions per skill, exactly as the learner asked.
-                    targetDots: ids.length >= 4 ? 3 : 2,
+                    // Four dots is the gate: the unit closes on mastery, not on a
+                    // count of easy corrects. `answer` also requires level 3 of 4.
+                    targetDots: ids.length >= 4 ? 4 : 3,
                     startTier: 1,
                     unitIndex: outline.units.indexOf(unit) + 1,
                     unitLabel: `Unit ${outline.units.indexOf(unit) + 1}: ${unit.title}`,

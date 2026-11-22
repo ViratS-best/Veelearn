@@ -323,14 +323,125 @@ ok(
     !/usable\[usable\.length - 1\]/.test(sessionAppSrc) && !/usable\[usable\.length - 1\]/.test(engineSrc)
 );
 
+// The lesson is now a pack (unit-pack.js): the AI writes its own teaching from
+// the outline's syllabus, with as many worked examples as the idea needs, and
+// the practice questions are written from that lesson.
+const unitPack = require('./unit-pack');
+const unitPackSrc = fs.readFileSync(path.join(__dirname, 'unit-pack.js'), 'utf8');
 ok(
-    'the lesson prompt asks for a teaching section with worked examples',
-    /## Worked example/.test(engineSrc) && /## Watch out/.test(engineSrc) && /never your reasoning/.test(engineSrc)
+    'the lesson is written from the syllabus, not copied from it',
+    /Do NOT paraphrase it, quote it/.test(unitPackSrc) && /write your own lesson/.test(unitPackSrc)
 );
 ok(
-    'teaching is not cut off at a paragraph',
-    /max_tokens: asked \? 2400 : 7000/.test(engineSrc) && /budgetMs: asked \? 60000 : 120000/.test(engineSrc),
-    'the lesson needs ~5000 words of room and a stream that is not killed at 25 s'
+    'a lesson teaches a method, not just prose',
+    /## The method/.test(unitPackSrc) && /numbered attack plan/.test(unitPackSrc)
+);
+ok(
+    'the model decides how many worked examples, and never fewer than three',
+    /Three to six worked examples/.test(unitPackSrc) && /never fewer than three/.test(unitPackSrc)
+);
+ok(
+    'the last example is as hard as the hardest card',
+    /LAST example must be the same kind of question/.test(unitPackSrc)
+);
+ok('a lesson ends with a self-check', /## Try it yourself/.test(unitPackSrc));
+ok(
+    'the lesson has room to finish',
+    /max_tokens: 12000/.test(unitPackSrc) && /budgetMs: 180000/.test(unitPackSrc),
+    'a full lesson needs ~2500 words of room and a stream that is not killed early'
+);
+ok(
+    'a headingless reply is retried, never shown as the brief',
+    /lesson had no heading — retrying once/.test(unitPackSrc) && /must begin with the line "## What this is"/.test(unitPackSrc)
+);
+ok(
+    'the questions are written from the lesson',
+    unitPackSrc.includes('${String(lessonMd') && /must be solvable with the method the lesson teaches/.test(unitPackSrc)
+);
+ok('pack questions climb a tier ladder', /climbing from tier 1 to tier/.test(unitPackSrc));
+ok(
+    'pack questions carry a three-rung ladder and worked steps',
+    /hints are a ladder of exactly three/.test(unitPackSrc) && /steps are the worked method/.test(unitPackSrc)
+);
+
+const samplePackQuestion = unitPack.cleanQuestion(
+    {
+        stem: 'Find the derivative of x^4',
+        options: ['4x^3', 'x^5', '4x', '4'],
+        answer: 0,
+        tier: 9,
+        hints: ['Power rule', 'Bring the 4 down', 'Subtract one from the exponent'],
+        steps: ['d/dx x^n = n x^(n-1)', '4x^3'],
+        explanation: 'The power rule drops the exponent by one.'
+    },
+    { tierMax: 3 }
+);
+ok(
+    'a pack question is gradable and its key survives the shuffle',
+    samplePackQuestion &&
+        samplePackQuestion.options.length === 4 &&
+        samplePackQuestion.answer === samplePackQuestion.options.find((o) => o.t === '4x^3').k,
+    JSON.stringify(samplePackQuestion)
+);
+ok('a pack question is capped at the pack tier', samplePackQuestion && samplePackQuestion.tier === 3);
+ok(
+    'an answer index that does not exist is dropped',
+    unitPack.cleanQuestion({ stem: 'Find x in 2x = 4', options: ['1', '2', '3'], answer: 5 }) === null
+);
+ok(
+    'a question with too few options is dropped',
+    unitPack.cleanQuestion({ stem: 'Find x in 2x = 4', options: ['1', '2'], answer: 0 }) === null
+);
+
+// The ask is a teaching turn now: it works a twin example, applies it to the
+// card, and only names the option once the learner has answered.
+ok(
+    'an ask works a twin example and applies it to the card',
+    /Work a TWIN example/.test(engineSrc) && /Apply that method to the learner's card/.test(engineSrc)
+);
+ok('an ask is long enough to teach', /150 to 350 words/.test(engineSrc));
+ok('an ask never ends with a question at the learner', /Never end with a question back at the learner/.test(engineSrc));
+ok(
+    'an ask withholds the option until the card is answered',
+    /answeredCard/.test(engineSrc) && /The learner has already answered this card/.test(engineSrc)
+);
+ok('the old three-sentence ask is gone', !/at most three short sentences/.test(engineSrc));
+
+// The card on screen, not the last id in the served list.
+ok(
+    'the current card is tracked, not guessed from the list',
+    /SET current_question_id = \? WHERE id = \?/.test(engineSrc) &&
+        /item\.current_question_id \|\| 0\) \|\| \(qids\.length/.test(engineSrc) &&
+        /current_question_id = \?,/.test(engineSrc)
+);
+ok('a skipped item forgets its card', /status = 'deferred', current_question_id = NULL/.test(engineSrc));
+
+const schemaFileSrc = fs.readFileSync(path.join(__dirname, 'session-schema.js'), 'utf8');
+ok(
+    'packs are cached per skill and learner level',
+    /CREATE TABLE IF NOT EXISTS unit_packs/.test(schemaFileSrc) && /uniq_unit_pack \(skill_id, learner_level\)/.test(schemaFileSrc)
+);
+ok('the current card is a column on the focus item', /current_question_id INT NULL/.test(schemaFileSrc));
+const outlineFileSrc = fs.readFileSync(path.join(__dirname, 'outline.js'), 'utf8');
+ok('an outline unit asks for the mastery gate', /targetDots: ids\.length >= 4 \? 4 : 3/.test(outlineFileSrc));
+ok('a small unit still gets a checkpoint', /const REVIEW_MIN = 2;/.test(outlineFileSrc));
+ok('the unit brief is no longer cut to 900 characters', /const FRAME_CHARS = 4000;/.test(outlineFileSrc));
+
+ok(
+    'the card offers two ways to be taught',
+    /id="sx-teach-step"/.test(sessionHtmlSrc) && /id="sx-teach-example"/.test(sessionHtmlSrc)
+);
+ok(
+    'the buttons send a teaching ask, not a typed question',
+    /askVee\('Teach me this step', 'step'\)/.test(sessionAppSrc) && /askMode \? \{ question, askMode \}/.test(sessionAppSrc)
+);
+ok(
+    'explain it again asks for a different lesson',
+    /streamTeach\(el\('sx-intro-text'\), \{ fresh: taught \}\)/.test(sessionAppSrc)
+);
+ok(
+    'the rail marks a unit that is not solid yet',
+    /is-weak/.test(sessionAppSrc) && /not solid yet/.test(sessionAppSrc)
 );
 ok('the outline material travels whole enough to teach from', /unitText\.slice\(0, 4000\)/.test(engineSrc));
 ok(
@@ -338,7 +449,7 @@ ok(
     /function renderLesson/.test(sessionAppSrc) && /sx-lesson-h/.test(sessionAppSrc) && /sx-lesson-steps/.test(sessionAppSrc)
 );
 ok('a fenced diagram becomes a block, not backticks in a paragraph', /sx-lesson-pre/.test(sessionAppSrc));
-ok('the prompt steers diagrams away from ASCII art', /Never use code fences or ASCII art/.test(engineSrc));
+ok('the prompt steers diagrams away from ASCII art', /code fences and ASCII art are not/.test(unitPackSrc));
 ok(
     'the learning section comes before practice',
     /id="sx-intro-start">Start practice</.test(sessionHtmlSrc) && /Start practice/.test(sessionAppSrc)
@@ -869,7 +980,11 @@ ok('a finished item advances even if the model asks to stay', createSessionAI.de
     // An outline unit seeds its whole question list into `question_ids`. Reading
     // that list as "already served" closed the unit after a single correct answer,
     // so a three-question unit showed 1/1 in the rail after one card.
-    {
+    //
+    // It also used to close on three tier-1 corrects — a unit showed a tick at 2 of
+    // 4 dots and moved the learner on. The gate is now four corrects AND level 3 of
+    // 4 mastery, and a unit below the gate keeps asking.
+    function unitHarness({ level, p }) {
         const db = {
             session: {
                 id: 700,
@@ -901,11 +1016,12 @@ ok('a finished item advances even if the model asks to stay', createSessionAI.de
                     status: 'active',
                     correct_count: 0,
                     attempts: 0,
-                    question_ids: JSON.stringify([901, 902, 903]),
+                    question_ids: JSON.stringify([901, 902, 903, 904]),
                     review_pool: null,
                     frame_md: 'Keep both sides balanced.',
                     unit_index: 2,
                     unit_label: 'Unit 2: Linear Equations & Graphing',
+                    current_question_id: 901,
                     started_at: null,
                     completed_at: null,
                     skill_name: 'Linear Equations & Graphing',
@@ -919,12 +1035,12 @@ ok('a finished item advances even if the model asks to stay', createSessionAI.de
         };
         const query = async (sql, params = []) => {
             const s = String(sql).toLowerCase().replace(/\s+/g, ' ').trim();
-            const p = params;
+            const par = params;
             if (s.startsWith('select id, user_id, course_id, mode')) return [db.session];
             if (s.includes('from session_focus_items f') && s.includes('join skills s')) return db.items.slice();
             if (s.startsWith('select distinct question_id from practice_attempts')) {
                 const ids = db.attempts
-                    .filter((a) => Number(a.user_id) === Number(p[0]) && Number(a.session_id) === Number(p[1]))
+                    .filter((a) => Number(a.user_id) === Number(par[0]) && Number(a.session_id) === Number(par[1]))
                     .map((a) => Number(a.question_id));
                 return [...new Set(ids)].map((question_id) => ({ question_id }));
             }
@@ -932,27 +1048,36 @@ ok('a finished item advances even if the model asks to stay', createSessionAI.de
             if (s.includes('from practice_attempts') && s.includes('count(*)')) {
                 const c = db.attempts.filter(
                     (a) =>
-                        Number(a.user_id) === Number(p[0]) &&
-                        Number(a.session_id) === Number(p[1]) &&
-                        Number(a.question_id) === Number(p[2])
+                        Number(a.user_id) === Number(par[0]) &&
+                        Number(a.session_id) === Number(par[1]) &&
+                        Number(a.question_id) === Number(par[2])
                 ).length;
                 return [{ c }];
             }
             if (s.startsWith('insert into practice_attempts')) {
-                db.attempts.push({ user_id: p[0], question_id: p[1], session_id: p[3], correct: p[4] });
+                db.attempts.push({ user_id: par[0], question_id: par[1], session_id: par[3], correct: par[4] });
                 return { affectedRows: 1 };
             }
-            if (s.includes('from skill_mastery')) return [];
+            // One mastery row, shaped for both readers: applyMastery wants p/level,
+            // state() wants skill_id/level.
+            if (s.includes('from skill_mastery')) return [{ skill_id: 7, p, level, ease: 2.5, seen: 3, correct: 3, last_seen: null }];
             if (s.startsWith('insert into skill_mastery')) return { affectedRows: 1 };
             if (s.includes('from review_queue')) return [];
             if (s.startsWith('insert into review_queue')) return { affectedRows: 1 };
+            // The pointer at the card on screen has its own two-parameter update.
+            if (s.startsWith('update session_focus_items set current_question_id')) {
+                const item = db.items.find((i) => Number(i.id) === Number(par[1]));
+                if (item) item.current_question_id = par[0];
+                return { affectedRows: 1 };
+            }
             if (s.startsWith('update session_focus_items')) {
-                const item = db.items.find((i) => Number(i.id) === Number(p[p.length - 1]));
+                const item = db.items.find((i) => Number(i.id) === Number(par[par.length - 1]));
                 if (item) {
-                    item.correct_count = p[0];
-                    item.attempts = p[1];
-                    item.status = p[2];
-                    item.question_ids = p[3];
+                    item.correct_count = par[0];
+                    item.attempts = par[1];
+                    item.status = par[2];
+                    item.question_ids = par[3];
+                    item.current_question_id = par[4];
                 }
                 return { affectedRows: 1 };
             }
@@ -960,7 +1085,7 @@ ok('a finished item advances even if the model asks to stay', createSessionAI.de
             if (s.startsWith('update users')) return { affectedRows: 1 };
             if (s.includes('coalesce(max(seq)')) return [{ s: db.events.length + 1 }];
             if (s.startsWith('insert into session_events')) {
-                db.events.push(p);
+                db.events.push(par);
                 return { affectedRows: 1 };
             }
             if (s.startsWith('update sessions')) {
@@ -982,7 +1107,7 @@ ok('a finished item advances even if the model asks to stay', createSessionAI.de
             solution_steps: JSON.stringify(['2x = 6', 'x = 3']),
             visual: null
         });
-        const rows = new Map([901, 902, 903].map((id) => [id, cardFor(id)]));
+        const rows = new Map([901, 902, 903, 904, 905, 906].map((id) => [id, cardFor(id)]));
         const qbank = {
             getRaw: async (id) => rows.get(Number(id)) || null,
             toCard: (row) => ({ id: row.id, skillId: row.skill_id, tier: row.tier, stem: row.stem }),
@@ -995,15 +1120,21 @@ ok('a finished item advances even if the model asks to stay', createSessionAI.de
                 return [...rows.values()].find((r) => r.skill_id === skillId && !skip.has(Number(r.id))) || null;
             }
         };
-        const engine = sessionEngine({ query, qbank, log: { info() {} } });
+        return { db, engine: sessionEngine({ query, qbank, log: { info() {} } }) };
+    }
+
+    {
+        // Level 3: the unit can reach its gate, so it closes on the fourth correct.
+        const { db, engine } = unitHarness({ level: 3, p: 0.8 });
         const first = await engine.answer(3, 700, { itemId: 55, questionId: 901, answer: 'A', ms: 4000, hints: 0 });
-        ok('one correct answer does not close a three-card unit', first.item && first.item.done === false, JSON.stringify(first.item));
+        ok('one correct answer does not close a four-correct unit', first.item && first.item.done === false, JSON.stringify(first.item));
         ok(
             'the unit asks its next card',
             first.next === 'more' && first.question && Number(first.question.id) === 902,
             `${first.next} ${first.question && first.question.id}`
         );
         ok('the session stays on that unit', db.session.item_index === 0, String(db.session.item_index));
+        ok('the card on screen is remembered for the next ask', Number(db.items[0].current_question_id) === 902, String(db.items[0].current_question_id));
 
         // Resuming mid-unit must land on an unanswered card, not the one just done.
         const resumed = await engine.state(3, 700, { ensure: true });
@@ -1012,6 +1143,7 @@ ok('a finished item advances even if the model asks to stay', createSessionAI.de
             resumed && resumed.question && Number(resumed.question.id) === 902,
             JSON.stringify(resumed && resumed.question && resumed.question.id)
         );
+        ok('the session reports the card the learner is on', resumed && Number(resumed.item.currentQuestionId) === 902, JSON.stringify(resumed && resumed.item));
 
         const second = await engine.answer(3, 700, { itemId: 55, questionId: 902, answer: 'A', ms: 3000, hints: 0 });
         ok(
@@ -1022,12 +1154,103 @@ ok('a finished item advances even if the model asks to stay', createSessionAI.de
 
         const third = await engine.answer(3, 700, { itemId: 55, questionId: 903, answer: 'A', ms: 3000, hints: 0 });
         ok(
-            'the unit closes once its three corrects are in',
-            third.item && third.item.done === true && third.next === 'advance',
+            'three corrects are no longer enough to close a unit',
+            third.item && third.item.done === false && third.next === 'more',
             JSON.stringify(third.item)
         );
+        ok('the unit asks for its fourth correct', third.question && Number(third.question.id) === 904, JSON.stringify(third.question));
+
+        const fourth = await engine.answer(3, 700, { itemId: 55, questionId: 904, answer: 'A', ms: 3000, hints: 0 });
+        ok(
+            'the fourth correct at level 3 closes the unit',
+            fourth.item && fourth.item.done === true && fourth.next === 'advance',
+            JSON.stringify(fourth.item)
+        );
+        ok('the gate asks for four corrects', fourth.item && fourth.item.needed === 4, JSON.stringify(fourth.item));
         ok('only then does the plan advance', db.session.item_index === 1, String(db.session.item_index));
     }
+
+    {
+        // Level 2: four corrects are in, but the unit is not solid. It must not close.
+        const { db, engine } = unitHarness({ level: 2, p: 0.3 });
+        let last = null;
+        for (const id of [901, 902, 903, 904]) {
+            last = await engine.answer(3, 700, { itemId: 55, questionId: id, answer: 'A', ms: 3000, hints: 0 });
+        }
+        ok(
+            'a unit below the mastery gate stays open after four corrects',
+            last && last.item && last.item.done === false,
+            JSON.stringify(last && last.item)
+        );
+        ok('it keeps asking instead of moving on', last && last.next === 'more' && last.question && Number(last.question.id) === 905, JSON.stringify(last && last.question));
+        ok('the plan does not advance below the gate', db.session.item_index === 0, String(db.session.item_index));
+
+        const weakState = await engine.state(3, 700, { ensure: false });
+        ok(
+            'the rail can say "not solid yet"',
+            weakState && weakState.focus && weakState.focus[0].solid === false && weakState.focus[0].gate === 3,
+            JSON.stringify(weakState && weakState.focus && weakState.focus[0])
+        );
+    }
+
+    // ------------------------------------------------ one unit, one pack, one call
+    // The intro streams the lesson while the first card is prefetched. Both must
+    // share one lesson call, and a written lesson must be reused, not rewritten.
+    {
+        const calls = [];
+        const store = new Map();
+        const packQuery = async (sql, params = []) => {
+            const s = String(sql).toLowerCase().replace(/\s+/g, ' ').trim();
+            const k = `${params[0]}|${params[1]}`;
+            if (s.startsWith('select id, skill_id, learner_level')) return store.has(k) ? [store.get(k)] : [];
+            if (s.startsWith('insert ignore into unit_packs')) {
+                if (!store.has(k)) store.set(k, { id: 1, skill_id: params[0], learner_level: params[1], lesson_md: params[2], question_ids: params[3] });
+                return { affectedRows: 1 };
+            }
+            if (s.startsWith('update unit_packs')) {
+                const row = store.get(k) || { id: 1, skill_id: params[1], learner_level: params[2] };
+                if (s.includes('lesson_md')) row.lesson_md = params[0];
+                if (s.includes('question_ids')) row.question_ids = params[0];
+                store.set(k, row);
+                return { affectedRows: 1 };
+            }
+            return [];
+        };
+        const lessonBody =
+            '## What this is\n\nA derivative is the instantaneous rate of change of a function.\n\n' +
+            '## The method\n\n1. Identify the exponent.\n2. Multiply by it.\n3. Drop it by one.\n\n' +
+            '## Worked examples\n\nExample 1 — the simplest case\n\n1. d/dx x^2 = 2x.\n\n## Try it yourself\n\n1. d/dx x^5?\n\nAnswers: 5x^4.';
+        const pack = require('./unit-pack')({
+            query: packQuery,
+            log: { info() {}, warn() {} },
+            chatStream: async (messages, opts) => {
+                calls.push(opts);
+                await new Promise((resolve) => setTimeout(resolve, 10));
+                return lessonBody;
+            },
+            clean: sessionEngine.cleanLesson
+        });
+        const [a, b] = await Promise.all([
+            pack.lesson({ skillId: 9, learnerLevel: 0, title: 'The Derivative' }),
+            pack.lesson({ skillId: 9, learnerLevel: 0, title: 'The Derivative' })
+        ]);
+        ok('two readers of one unit share a single lesson call', calls.length === 1, String(calls.length));
+        ok('both readers get the lesson', !!a.text && a.text === b.text && /## The method/.test(a.text), a.text.slice(0, 80));
+        ok(
+            'the lesson call has room and no reasoning burn',
+            calls[0] && calls[0].max_tokens === 12000 && JSON.stringify(calls[0].reasoning) === JSON.stringify({ effort: 'none' }),
+            JSON.stringify(calls[0])
+        );
+        const again = await pack.lesson({ skillId: 9, learnerLevel: 0, title: 'The Derivative' });
+        ok('a written lesson is read from the cache, not rewritten', again.cached === true && calls.length === 1, String(calls.length));
+        const fresh = await pack.lesson({ skillId: 9, learnerLevel: 0, title: 'The Derivative', fresh: true });
+        ok('explain it again asks for a different lesson', fresh.cached === false && calls.length === 2, String(calls.length));
+    }
+
+    ok(
+        'a unit review is not gated on its own mastery',
+        /const gateApplies = courseItem && !Number\(item\.is_review\)/.test(engineSrc)
+    );
 
     // ---------------------------------------- hints, reviews and the board sim
     // The hint button used to answer "Look again at what the question is really
@@ -1060,7 +1283,7 @@ ok('a finished item advances even if the model asks to stay', createSessionAI.de
     ok('a spent review pool is widened, not repeated', /topUpReviewPool\(item, items, userId\)/.test(engineSource));
     ok('a review takes more cards from the shared bank', /FROM qbank_items[\s\S]{0,200}skill_id IN/.test(engineSource));
     ok('a review asks the model for fresh MCQs when the bank has none', /generateQuestionsForSkill\(skillId/.test(engineSource));
-    ok('the second worked example matches the card', /Calibrate to the learner/.test(engineSource));
+    ok('the last worked example matches the hardest card', /LAST example must be the same kind of question/.test(unitPackSrc));
 
     const impactSource = fs.readFileSync(path.join(__dirname, 'creator-impact.js'), 'utf8');
     ok('generated questions carry a hint ladder', /"hints":\[/.test(impactSource));

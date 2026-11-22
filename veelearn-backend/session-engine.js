@@ -175,6 +175,32 @@ function stripDrafting(text) {
 function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
     const info = (log && log.info) || (() => {});
 
+    // One pack per skill: the lesson the learner reads and the questions written
+    // from it. Cached by (skill, mastery level), so a reload or a second learner
+    // re-reads the same pack instead of paying for it again.
+    const packs = require('./unit-pack')({ query, log, chatStream, clean: cleanLesson });
+
+    /** The learner's mastery level for one skill — the pack's cache key. */
+    async function learnerLevelFor(userId, skillId) {
+        try {
+            const rows = await query('SELECT level FROM skill_mastery WHERE user_id = ? AND skill_id = ? LIMIT 1', [
+                userId,
+                skillId
+            ]);
+            return Number((rows[0] && rows[0].level) || 0);
+        } catch (_) {
+            return 0;
+        }
+    }
+
+    /** A course skill practises its own pack; anything else uses the shared bank. */
+    function isCourseSkill(item) {
+        return /^course\./.test(String((item && item.skill_code) || ''));
+    }
+
+    /** The mastery a unit has to reach before it closes: 3 of 4 dots. */
+    const GATE_LEVEL = 3;
+
     // ---------------------------------------------------------------- rewards
     /**
      * Award XP/gems through the existing ledger so the sidebar, store and
@@ -353,7 +379,7 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
     async function focusItems(sessionId) {
         return query(
             `SELECT f.id, f.session_id, f.skill_id, f.ord, f.is_review, f.target_dots, f.status,
-                    f.correct_count, f.attempts, f.question_ids, f.review_pool, f.frame_md, f.unit_index, f.unit_label, f.started_at, f.completed_at,
+                    f.correct_count, f.attempts, f.question_ids, f.review_pool, f.frame_md, f.unit_index, f.unit_label, f.current_question_id, f.started_at, f.completed_at,
                     s.name AS skill_name, s.code AS skill_code, s.track, s.intro_md
              FROM session_focus_items f
              JOIN skills s ON s.id = f.skill_id
@@ -519,6 +545,24 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
         });
     }
 
+    /**
+     * Remember the card the learner is on. Every later turn (ask, board, teach)
+     * describes *this* card; `question_ids` is the list the unit has served, so
+     * its last entry was the previous question from the second card onward.
+     */
+    async function serve(raw, item) {
+        try {
+            await query('UPDATE session_focus_items SET current_question_id = ? WHERE id = ?', [
+                Number(raw.id),
+                item.id
+            ]);
+            item.current_question_id = Number(raw.id);
+        } catch (e) {
+            info(`[session] current card skipped: ${e.message}`);
+        }
+        return qbank.toCard(raw);
+    }
+
     async function ensureQuestion(item, userId) {
         const ids = parseJson(item.question_ids, []).map(Number).filter(Boolean);
         if (ids.length) {
@@ -539,9 +583,42 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
             }
             const nextId = Number(item.is_review)
                 ? ids[ids.length - 1]
-                : ids.find((id) => !asked.has(Number(id))) || ids[ids.length - 1];
-            const raw = await qbank.getRaw(nextId);
-            if (raw) return qbank.toCard(raw);
+                : ids.find((id) => !asked.has(Number(id)));
+            if (nextId) {
+                const raw = await qbank.getRaw(nextId);
+                if (raw) return serve(raw, item);
+            }
+        }
+        // A course skill practises its own pack: the cards written from the lesson
+        // the learner just read, easiest first. The shared bank is the fallback.
+        if (!Number(item.is_review) && isCourseSkill(item)) {
+            try {
+                const packIds = await packs.ensureQuestions({
+                    skillId: item.skill_id,
+                    learnerLevel: await learnerLevelFor(userId, item.skill_id),
+                    title: item.skill_name,
+                    scope: item.frame_md || item.intro_md || '',
+                    unitLabel: item.unit_label || '',
+                    targetTier: Math.min(4, Math.max(2, Number(item.target_dots || 3)))
+                });
+                let seen = new Set();
+                try {
+                    const rows = await query(
+                        'SELECT DISTINCT question_id FROM practice_attempts WHERE user_id = ? AND session_id = ?',
+                        [userId, item.session_id]
+                    );
+                    seen = new Set(rows.map((r) => Number(r.question_id)).filter(Boolean));
+                } catch (_) {
+                    seen = new Set();
+                }
+                const nextId = (packIds || []).find((id) => !seen.has(Number(id)));
+                if (nextId) {
+                    const raw = await qbank.getRaw(nextId);
+                    if (raw) return serve(raw, item);
+                }
+            } catch (e) {
+                info(`[session] unit pack skipped: ${e.message}`);
+            }
         }
         // A review serves a card the learner has not met yet, from a pool wider
         // than the unit's own list — otherwise it is the same three questions again.
@@ -574,7 +651,7 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
                     ]);
                     item.question_ids = JSON.stringify(served);
                     Promise.resolve(topUpReviewPool(item, null, userId)).catch(() => {});
-                    return qbank.toCard(raw);
+                    return serve(raw, item);
                 }
             }
         }
@@ -604,7 +681,7 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
             JSON.stringify([Number(picked.id)]),
             item.id
         ]);
-        return qbank.toCard(picked);
+        return serve(picked, item);
     }
 
     /** A readable summary of a bank diagram, for prompts that only read text. */
@@ -642,7 +719,7 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
      * text is the fallback, so even without a key the learner gets taught instead
      * of being handed another question.
      */
-    async function teach(userId, sessionId, { onDelta, question } = {}) {
+    async function teach(userId, sessionId, { onDelta, question, askMode, fresh } = {}) {
         const session = await sessionRow(userId, sessionId);
         if (!session) return { error: 404, message: 'Session not found' };
         const items = await focusItems(sessionId);
@@ -672,9 +749,17 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
         // generic question about the unit and never saw what the learner was on.
         let cardBlock = '';
         let cardImage = null;
+        let answeredCard = false;
         try {
+            // The card on screen is the card the learner is asking about.
+            // `question_ids` is the list the unit has served, not a pointer: reading
+            // its last entry meant Vee explained the previous question from the
+            // second card onward, which is why "help me solve this" came back about
+            // something else entirely.
             const qids = parseJson(item.question_ids, []);
-            const onCard = qids.length ? await qbank.getRaw(qids[qids.length - 1]) : null;
+            const currentId =
+                Number(item.current_question_id || 0) || (qids.length ? Number(qids[qids.length - 1]) : 0);
+            const onCard = currentId ? await qbank.getRaw(currentId) : null;
             if (onCard) {
                 const choices = parseJson(onCard.options, [])
                     .map((o) => `${o.k}. ${o.t}`)
@@ -692,113 +777,139 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
                     (choices ? `Choices:\n${choices.slice(0, 700)}\n` : '') +
                     (visualText ? `Its diagram shows: ${visualText}\n` : '') +
                     `This card is tier ${Number(onCard.tier) || 1} of 4.\n`;
+                try {
+                    const seen = await query(
+                        'SELECT 1 AS x FROM practice_attempts WHERE user_id = ? AND question_id = ? LIMIT 1',
+                        [userId, onCard.id]
+                    );
+                    answeredCard = seen.length > 0;
+                } catch (_) {
+                    answeredCard = false;
+                }
             }
         } catch (_) {
             cardBlock = '';
         }
-        const fallback =
-            unitText.slice(0, 900) ||
-            (asked
-                ? `Here is the unit's idea: ${title}. Match the rule the question uses, then apply it one step at a time.`
-                : `## ${title}\n\nStart from what the question is giving you, name the rule it matches, then apply that rule one step at a time.`);
+        // A lesson is never the outline's brief read aloud. If the pack cannot be
+        // written, say so plainly and keep the traps the unit was built around —
+        // showing the brief's own instructions was worse than no lesson at all.
+        const fallback = asked
+            ? `The card is asking you to use ${title} on the numbers it gives. Write down what it gives you, what it wants, and the rule that links them, then apply that rule one step at a time.`
+            : [
+                  `## ${title}`,
+                  '',
+                  'This lesson could not be written just now. Press **Explain it again** — the practice below still works on this skill.',
+                  misconceptions.length ? '**Watch out for**' : '',
+                  ...misconceptions.map((m) => `- ${m}`)
+              ]
+                  .filter((line) => line != null)
+                  .join('\n')
+                  .trim();
 
         if (typeof chatStream !== 'function') return { ok: true, text: fallback, fallback: true };
 
         // How to write lives in the system message and what to teach lives in the
         // user message. A format template sitting in the same turn as the material
         // is what a model echoes back as a "Structure plan" instead of teaching.
-        const howTo = asked
-            ? `Answer the question at the end of the material in at most three short sentences.\n` +
-              'Speak straight to the learner, in the second person. Explain the idea behind the card, ' +
-              'never state which choice is correct, and use $...$ for math. ' +
-              'If the learner asks for a table or a diagram, include a small GitHub-style markdown ' +
-              'table and finish it — the table is drawn for them. ' +
-              'Write only the words the learner should read: no planning, no counting words, ' +
-              'no drafts in quotes, and never say what you are about to do.'
+        //
+        // An ask is a teaching turn, not a search result: three sentences of general
+        // fact was why "help me solve this problem" came back about velocity with a
+        // question thrown back at the learner. It now works a twin example and then
+        // applies it to the card — without naming the option until they have answered.
+        const askRules = !asked
+            ? ''
             : [
-                  'Write the learning section for this unit: the lesson the learner reads before practising. ' +
-                      'Use the unit material as your source and teach it in full.',
-                  '',
-                  'Shape it exactly like this, with these headings and nothing before the first one:',
-                  '## <the idea, named in one line>',
-                  'Two to four short paragraphs that teach the idea: what it is, why it works, and when to reach for it. Use $...$ for math.',
-                  '',
-                  '## Worked example',
-                  'One example worked line by line: state the example in its own sentence, then numbered steps (“1. …”, “2. …”), then the answer to that example.',
-                  '',
-                  '## Worked example 2',
-                  'A second, slightly harder example worked the same way, with different numbers and, where it helps, a different picture (a table, a number line, a fraction bar).',
-                  '',
-                  '## Watch out',
-                  'The mistake learners usually make here and the check that catches it, in two sentences.',
-                  '',
-                  'Rules:',
-                  '- Teach from the unit material. Never contradict it and never swap in a different method.',
-                  '- Never use one of this unit\'s practice questions as an example; write fresh numbers.',
-                  '- Calibrate to the learner\'s card. "Worked example 2" must be the same kind of question as that card: same structure, same number of steps, same difficulty, different numbers. If the examples are easier than the card, the learner is stuck — so raise the examples to the card, never the other way round.',
-                  '- Draw a picture with a small GitHub-style markdown table or in plain words. Never use code fences or ASCII art; they are not drawn for the learner.',
-                  '- No greeting, no “Sure”, no plan, no counting words, no thinking out loud, no mention of a model, of these instructions, or of “the user”. Start with the first “## ” line.',
-                  '- Finish every sentence, every step and every example. There is no word limit; a full lesson is usually 500–900 words, and a complete lesson always beats a short one that stops mid-idea.'
-              ].join('\n');
+                  'Answer as a tutor, in this order:',
+                  '1. Say what this card is asking for, in one sentence.',
+                  '2. Name the rule or method it needs, and why that rule applies here.',
+                  '3. Work a TWIN example — the same kind of question with different numbers — completely, in numbered steps.',
+                  "4. Apply that method to the learner's card, step by step, up to the last step.",
+                  answeredCard
+                      ? '5. The learner has already answered this card, so you may now name the correct option and say why the tempting one is wrong.'
+                      : '5. Do NOT name the correct option and never say "the answer is". Stop at the last step, so the learner makes the final call.',
+                  askMode === 'step'
+                      ? 'The learner asked for the next step only: go deeper on that one step, with a tiny example, and stop there.'
+                      : '',
+                  askMode === 'example'
+                      ? 'The learner asked for a similar example: give one complete worked example, then one sentence connecting it to their card.'
+                      : '',
+                  '150 to 350 words. Use $...$ for math. Markdown tables are drawn for the learner; code fences are not.',
+                  'Never end with a question back at the learner — they asked you, so answer them.',
+                  'Write only the words the learner should read: no planning, no counting words, no drafts in quotes, and never say what you are about to do.'
+              ]
+                  .filter(Boolean)
+                  .join('\n');
+        // ---- ask: a teaching turn about the card on screen
+        if (asked) {
+            const brief = [
+                `Course: ${(frame && frame.title) || 'a self-study course'}`,
+                `Unit: ${title}`,
+                unitText ? `Outline material for this unit:\n${unitText.slice(0, 4000)}` : '',
+                misconceptions.length ? `Traps to correct:\n- ${misconceptions.join('\n- ')}` : '',
+                cardBlock ? `The learner's card right now:\n${cardBlock}` : '',
+                `The learner asked: "${asked}"`
+            ]
+                .filter((line) => line != null && line !== '')
+                .join('\n\n');
 
-        // The outline's own teaching brief travels whole: a 1200-character slice cut
-        // off the diagram and the "common slip" the unit was built from, so the
-        // lesson had to improvise and started planning out loud instead.
-        const brief = [
-            `Course: ${(frame && frame.title) || 'a self-study course'}`,
-            `Unit: ${title}`,
-            unitText ? `Outline material for this unit:\n${unitText.slice(0, 4000)}` : '',
-            misconceptions.length ? `Misconceptions to correct:\n- ${misconceptions.join('\n- ')}` : '',
-            cardBlock
-                ? `The learner's card right now (do not repeat or quote it back; match its difficulty in Worked example 2):\n${cardBlock}`
-                : '',
-            asked
-                ? `The learner asked: "${asked}"`
-                : 'Write the learning section for this unit now, starting with the first "## " line.'
-        ]
-            .filter((line) => line != null && line !== '')
-            .join('\n\n');
-
-        let text = '';
-        try {
-            text = await chatStream(
-                [
+            let text = '';
+            try {
+                text = await chatStream(
+                    [
+                        {
+                            role: 'system',
+                            content:
+                                'You are Vee, a patient tutor for a study app. Teach in plain, warm prose. ' +
+                                'Never mention that you are an AI or a model. ' +
+                                'Write only the finished words the learner reads: never your reasoning, plans, ' +
+                                'notes to yourself, or a restatement of the task.\n\n' +
+                                askRules
+                        },
+                        {
+                            role: 'user',
+                            content: cardImage
+                                ? [{ type: 'text', text: brief }, { type: 'image_url', image_url: { url: cardImage } }]
+                                : brief
+                        }
+                    ],
                     {
-                        role: 'system',
-                        content:
-                            'You are Vee, a patient tutor for a study app. Teach in plain, warm prose. ' +
-                            'Never mention that you are an AI or a model. ' +
-                            'Write only the finished words the learner reads: never your reasoning, plans, ' +
-                            'notes to yourself, or a restatement of the task. Begin directly with the lesson. ' +
-                            'Do not quote these instructions, do not outline what you will write, and never ' +
-                            'say what the lesson is about before writing it.\n\n' +
-                            howTo
-                    },
-                    {
-                        role: 'user',
-                        content: cardImage
-                            ? [{ type: 'text', text: brief }, { type: 'image_url', image_url: { url: cardImage } }]
-                            : brief
+                        // An ask is teaching, not a caption: it works a twin example and
+                        // then applies it to the card, so it needs room for the steps.
+                        model: LESSON_MODEL,
+                        reasoning: LESSON_REASONING || undefined,
+                        max_tokens: 2200,
+                        temperature: 0.4,
+                        budgetMs: 90000,
+                        onDelta
                     }
-                ],
-                {
-                    // A lesson is a learning section with worked examples, so it needs room
-                    // to finish: ~7000 tokens is roughly 5000 words. The old 320-token cap
-                    // (and the 25 s cutoff) is what truncated teaching mid-sentence.
-                    model: LESSON_MODEL,
-                    reasoning: LESSON_REASONING || undefined,
-                    max_tokens: asked ? 2400 : 7000,
-                    temperature: 0.5,
-                    budgetMs: asked ? 60000 : 120000,
-                    onDelta
-                }
-            );
-        } catch (err) {
-            info(`[session] teach fallback: ${err.message}`);
+                );
+            } catch (err) {
+                info(`[session] ask fallback: ${err.message}`);
+            }
+            // An answer to a question need not start at a heading.
+            const answer = stripDrafting(cleanLesson(String(text || '').trim()));
+            return { ok: true, text: answer || fallback, fallback: !text || !answer };
         }
-        // A lesson must start at its first heading; an answer to a question need not.
-        const cleaned = stripDrafting(cleanLesson(String(text || '').trim(), { requireHeading: !asked }));
-        return { ok: true, text: cleaned || fallback, fallback: !text || !cleaned };
+
+        // ---- lesson: the pack's own teaching, written from the syllabus and cached.
+        // The outline is the syllabus, not the script: the pack writes its own
+        // lesson, with as many worked examples as the idea needs (at least three),
+        // ending at the difficulty of the practice cards.
+        const pack = await packs.lesson({
+            skillId: item.skill_id,
+            learnerLevel: await learnerLevelFor(userId, item.skill_id),
+            title,
+            scope: unitText,
+            misconceptions,
+            unitLabel: item.unit_label || '',
+            courseTitle: (frame && frame.title) || '',
+            targetTier: Math.min(4, Math.max(2, Number(item.target_dots || 3))),
+            onDelta,
+            fresh: !!fresh
+        });
+        const lessonText = pack && pack.text ? String(pack.text) : '';
+        if (lessonText) return { ok: true, text: lessonText, fallback: false, cached: !!(pack && pack.cached) };
+        return { ok: true, text: fallback, fallback: true };
     }
 
     /** More time on the clock, without losing the plan. */
@@ -863,7 +974,10 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
                     poolSize: (parseJson(i.review_pool, []).length || parseJson(i.question_ids, []).length),
                     correctCount: Number(i.correct_count || 0),
                     dots: mastery.dots(level),
-                    level
+                    level,
+                    // The gate the unit has to reach: a done row below it is not solid.
+                    gate: GATE_LEVEL,
+                    solid: level >= GATE_LEVEL
                 };
             }),
             item: item
@@ -881,7 +995,11 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
                       // A review stores how many correct answers it wants, not a dot target.
                       needed: Number(item.is_review)
                           ? Math.max(1, Number(item.target_dots || 18))
-                          : mastery.correctsNeeded(Number(item.target_dots || 2)),
+                          : isCourseSkill(item)
+                            ? Math.max(4, mastery.correctsNeeded(Number(item.target_dots || 3)))
+                            : mastery.correctsNeeded(Number(item.target_dots || 2)),
+                      gate: GATE_LEVEL,
+                      currentQuestionId: Number(item.current_question_id || 0) || null,
                       dots: mastery.dots(levelById.get(Number(item.skill_id)) || 0)
                   }
                 : null,
@@ -1192,12 +1310,21 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
         // ---- item progression
         // A review item stores the number of correct answers it wants (about 90% of
         // its pool) rather than a dot target, so it can ask for ~18 of 20.
+        // A course unit closes on mastery, not on a count of easy corrects: four
+        // corrects at the unit's own difficulty *and* level 3 of 4. Three tier-1
+        // answers used to finish a unit at 2/4 dots and move the learner on.
+        const courseItem = isCourseSkill(item);
+        // A unit review is a test of the unit, not of its synthetic skill: gating it
+        // on that skill's mastery would mean a review could never close.
+        const gateApplies = courseItem && !Number(item.is_review);
         const need = Number(item.is_review)
             ? Math.max(1, Number(item.target_dots || 18))
-            : mastery.correctsNeeded(Number(item.target_dots || 2));
+            : courseItem
+              ? Math.max(4, mastery.correctsNeeded(Number(item.target_dots || 3)))
+              : mastery.correctsNeeded(Number(item.target_dots || 2));
         const correctCount = Number(item.correct_count || 0) + (correct ? 1 : 0);
         const attempts = Number(item.attempts || 0) + 1;
-        let itemDone = correct && correctCount >= need;
+        let itemDone = correct && correctCount >= need && (!gateApplies || m.levelAfter >= GATE_LEVEL);
 
         let next = 'retry';
         let nextQuestion = null;
@@ -1272,6 +1399,28 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
                 }
                 if (!nextRaw) {
                     nextRaw = await qbank.pickUnserved({ skillId: raw.skill_id, exclude: [...seen] });
+                }
+                if (!nextRaw && courseItem) {
+                    // The pack is spent but the unit is not solid yet: write three more
+                    // of the same type from the lesson instead of closing at 2 of 4.
+                    try {
+                        const madeIds = await packs.moreQuestions({
+                            skillId: item.skill_id,
+                            learnerLevel: m.levelAfter,
+                            title: item.skill_name,
+                            scope: item.frame_md || item.intro_md || '',
+                            unitLabel: item.unit_label || '',
+                            targetTier: Math.min(4, Math.max(2, Number(item.target_dots || 3))),
+                            count: 3,
+                            force: true
+                        });
+                        const freshId = (madeIds || []).find(
+                            (id) => !seen.has(Number(id)) && Number(id) !== Number(raw.id)
+                        );
+                        if (freshId) nextRaw = await qbank.getRaw(freshId);
+                    } catch (e) {
+                        info(`[session] extra pack questions skipped: ${e.message}`);
+                    }
                 }
                 // Only an empty skill ends the unit: never loop the same card at the
                 // learner just because the plan's list was mistaken for served cards.
@@ -1392,11 +1541,18 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
 
         await query(
             `UPDATE session_focus_items
-             SET correct_count = ?, attempts = ?, status = ?, question_ids = ?,
+             SET correct_count = ?, attempts = ?, status = ?, question_ids = ?, current_question_id = ?,
                  started_at = COALESCE(started_at, NOW()),
                  completed_at = ${itemDone ? 'NOW()' : 'completed_at'}
              WHERE id = ?`,
-            [correctCount, attempts, itemDone ? 'done' : 'active', JSON.stringify(questionIds), item.id]
+            [
+                correctCount,
+                attempts,
+                itemDone ? 'done' : 'active',
+                JSON.stringify(questionIds),
+                nextQuestion ? Number(nextQuestion.id) : null,
+                item.id
+            ]
         );
 
         // ---- rewards
@@ -1506,7 +1662,9 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
         const item = items.find((i) => Number(i.id) === Number(itemId));
         if (!item) return { error: 400, message: 'Unknown focus item' };
 
-        await query("UPDATE session_focus_items SET status = 'deferred' WHERE id = ?", [item.id]);
+        await query("UPDATE session_focus_items SET status = 'deferred', current_question_id = NULL WHERE id = ?", [
+            item.id
+        ]);
         const seq = await nextSeq(sessionId);
         await logEvent(sessionId, seq, 'skip', item.skill_id, null, { itemId: Number(item.id) });
         await query('UPDATE sessions SET item_index = item_index + 1, last_active_at = NOW() WHERE id = ?', [sessionId]);

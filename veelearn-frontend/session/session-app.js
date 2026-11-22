@@ -233,19 +233,30 @@
         const rows = group.items
           .map((f) => {
             const isActive = Number(f.id) === Number(activeId);
-            const mark = f.status === 'done' ? '✓' : f.status === 'deferred' ? '–' : isActive ? '●' : '○';
+            const level = Math.max(0, Math.min(4, Number(f.level) || 0));
+            // A unit that closed below the gate is not "done": it is not solid yet,
+            // and the rail says so instead of showing a tick at 2 of 4.
+            const gate = Math.max(1, Math.min(4, Number(f.gate) || 3));
+            const weak = f.status === 'done' && level < gate;
+            const mark = weak ? '!' : f.status === 'done' ? '✓' : f.status === 'deferred' ? '–' : isActive ? '●' : '○';
             const cls = ['sx-focus-item'];
-            if (f.status === 'done') cls.push('is-done');
+            if (weak) cls.push('is-weak');
+            else if (f.status === 'done') cls.push('is-done');
             else if (f.status === 'deferred') cls.push('is-deferred');
             else if (isActive) cls.push('is-active');
-            const level = Math.max(0, Math.min(4, Number(f.level) || 0));
-            const state = f.status === 'done' ? 'done' : isActive ? 'current skill' : 'not started';
-            const tip = `${f.name} — ${state}, mastery ${level} of 4`;
+            const state = weak
+                ? 'not solid yet'
+                : f.status === 'done'
+                  ? 'done'
+                  : isActive
+                    ? 'current skill'
+                    : 'not started';
+            const tip = `${f.name} — ${state}, mastery ${level} of 4${weak ? `, needs ${gate}` : ''}`;
             return `<li class="${cls.join(' ')}" title="${esc(tip)}">
           <span class="sx-focus-mark" title="${esc(f.name)}" aria-hidden="true">${mark}</span>
           <span class="sx-focus-name">${esc(f.name)}</span>
           ${f.isReview ? '<span class="sx-badge">review</span>' : ''}
-          <span class="sx-focus-level" title="Mastery ${level} of 4">${level}/4</span>
+          <span class="sx-focus-level" title="Mastery ${level} of 4">${level}/4${weak ? `<span class="sx-focus-gate">→${gate}</span>` : ''}</span>
         </li>`;
           })
           .join('');
@@ -521,7 +532,7 @@
     });
   }
 
-  async function streamTeach(container, { silent } = {}) {
+  async function streamTeach(container, { silent, fresh } = {}) {
     if (!state.id) return '';
     const box = container || el('sx-intro-text');
     if (!box) return '';
@@ -541,7 +552,8 @@
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({})
+        // A fresh lesson is a different explanation, not the same text replayed.
+        body: JSON.stringify(fresh ? { fresh: true } : {})
       });
       if (!res.ok || !res.body) throw new Error('teach unavailable');
 
@@ -629,7 +641,9 @@
         teachBtn.disabled = true;
         teachBtn.textContent = 'Writing…';
       }
-      await streamTeach(el('sx-intro-text'));
+      // The first arrival writes the lesson; every press after that asks for a
+      // different explanation of the same idea.
+      await streamTeach(el('sx-intro-text'), { fresh: taught });
       taught = true;
       if (teachBtn) {
         teachBtn.disabled = false;
@@ -1901,17 +1915,17 @@
     return kept.length ? kept.join(' ') : raw;
   }
 
-  async function askVee() {
+  async function askVee(presetText, askMode) {
     const input = el('sx-ask-input');
     const btn = el('sx-ask-btn');
     const log = el('sx-ask-log');
-    if (!input || !log || asking || !state.id) return;
-    const question = String(input.value || '').trim();
+    if (!log || asking || !state.id) return;
+    const question = String(presetText || (input && input.value) || '').trim();
     if (!question) return;
 
     asking = true;
     if (btn) btn.disabled = true;
-    input.value = '';
+    if (input && !presetText) input.value = '';
     log.hidden = false;
 
     const entry = document.createElement('div');
@@ -1947,7 +1961,9 @@
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ question })
+        // A preset ask ("Teach me this step", "Show me a similar example") tells the
+        // server what kind of teaching turn it is; a typed question does not need to.
+        body: JSON.stringify(askMode ? { question, askMode } : { question })
       });
       if (!res.ok || !res.body) throw new Error('unavailable');
       const reader = res.body.getReader();
@@ -2063,7 +2079,12 @@
     const extendBtn = el('sx-extend');
     if (extendBtn) extendBtn.addEventListener('click', extendSession);
     const askBtn = el('sx-ask-btn');
-    if (askBtn) askBtn.addEventListener('click', askVee);
+    if (askBtn) askBtn.addEventListener('click', () => askVee());
+    // Two buttons so a learner never has to phrase a question to be taught.
+    const stepBtn = el('sx-teach-step');
+    if (stepBtn) stepBtn.addEventListener('click', () => askVee('Teach me this step', 'step'));
+    const exampleBtn = el('sx-teach-example');
+    if (exampleBtn) exampleBtn.addEventListener('click', () => askVee('Show me a similar example', 'example'));
     const askInput = el('sx-ask-input');
     if (askInput) {
       askInput.addEventListener('keydown', (e) => {

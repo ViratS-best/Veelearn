@@ -14,6 +14,36 @@
 - `POST /api/login` looks the address up with `LOWER(email) = ? ORDER BY id` and runs `bcrypt.compare` over the candidates, so an account created before this fix (stored with capitals) still logs in whatever casing is typed.
 - Covered in `test-phase45.js` (the helper, both endpoints, the case-insensitive duplicate check, the candidate loop). Its digest checks were also pinned to the week their fixture sessions live in (2026-11-14); they had rotted once the seven-day window moved past that date.
 
+### ✅ A UNIT IS A LESSON AND ITS OWN QUESTIONS (the pack)
+
+**Status**: COMPLETE (offline-verified: 254 + 73 + 122 + 113 + 91 checks green; the live session UI was not clicked through and nothing is deployed)
+
+**Why the lesson never taught the card** — five causes, all fixed here
+- **Vee answered about a different question.** `teach()` built its card block from the *last id in `question_ids`*, but `answer()` handed back the next card without ever recording it. From the second card onward the ask and the board described an older question — which is why "help me solve this" came back about velocity units while the card asked `d/dx x^4`. New `session_focus_items.current_question_id`, written by `serve()` in `ensureQuestion`, by `answer()` when it hands back `nextQuestion`, and cleared by `skip()`; `teach()` reads it first and only falls back to the list.
+- **The ask was capped at three sentences and forbidden to solve.** "Answer… in at most three short sentences… never state which choice is correct" is why a plea for help got a general fact plus a question thrown back. The ask is now a teaching turn: what the card asks → the rule it needs → **a twin example with different numbers, worked in numbered steps** → that method applied to the card. 150–350 words, never ends with a question at the learner, and names the correct option only when `practice_attempts` shows they already answered that card. `askMode: 'step' | 'example'` goes deeper on one step or gives one full example.
+- **The lesson had nothing to teach from, and a fixed shape.** `outline.js` stored the unit brief cut to **900 characters** (`FRAME_CHARS`), and the prompt was a rigid template with exactly two worked examples. `cleanLesson(..., {requireHeading:true})` then threw a headingless reply away and showed `unitText.slice(0,900)` — the outline's instructions — as if they were a lesson. `FRAME_CHARS` is now 4000.
+- **The unit closed at 2/4 by design.** `targetDots: ids.length >= 4 ? 3 : 2` plus `correctsNeeded(2) = 3` meant three tier-1 corrects finished a unit while the rail showed mastery (2/4). And `REVIEW_MIN = 4` meant a unit with fewer than four questions got **no review at all**, so a one-skill unit jumped straight to the next one. Now `targetDots` is 4 (3 for a tiny skill), the gate is **four corrects AND mastery level 3 of 4**, and `REVIEW_MIN = 2`.
+- **The questions were not written from the lesson.** A unit's cards were the outline's pre-seeded questions, then `qbank.pick({tier: 1})` from the shared bank. The lesson and the cards came from two unrelated calls, so one was conceptual and the other a recall flashcard.
+
+**The pack** (`unit-pack.js`, new; `unit_packs` table in `session-schema.js`)
+- One pack per skill, cached by `(skill_id, learner_level)`: `lesson_md` + `question_ids`.
+- The outline is the **syllabus, not the script**. It supplies the topic, the skill names and up to 4000 characters of scope; the prompt says outright not to paraphrase or quote it. The lesson is written in five fixed sections — `## What this is`, `## The method` (a numbered attack plan that works for any question of the type), `## Worked examples`, `## Where it goes wrong`, `## Try it yourself` (self-check with answers at the end) — 1500–2500 words, `max_tokens: 12000`, 180 s budget. **Three to six worked examples**, easiest first, and the model decides how many; the **last one must be the same kind of question, at the same difficulty, as the hardest practice card** (tier 3 of 4 by default), so the lesson ends where the questions start.
+- A reply with no `##` heading is retried once with a tighter instruction. If it still fails, the learner gets an honest short card plus the unit's misconceptions — never the brief's own instructions.
+- Two readers share one call: `lessonInflight` dedupes concurrent lessons (the intro streams while the first card is prefetched), and a written lesson is served from the cache. "Explain it again" (`{fresh:true}`) asks for a **different explanation**, not the same text replayed.
+- The questions are written **from the lesson** (JSON, `VEELEARN_OUTLINE_MODEL`, `gemini-3.5-flash-lite` by default), 8–12 of them, climbing tier 1 → 3, the last two at tier 3, each with a three-rung hint ladder, 2–4 worked steps and a distractor rationale. `cleanQuestion` drops anything ungradable (no key, duplicate options, fewer than three options) and shuffles the options so the key is not always A.
+- `ensureQuestion` serves the pack's next unanswered card, easiest first. The shared bank is only the fallback once the pack is spent; when the pack is spent **and the unit is below the gate**, `moreQuestions` writes three more of the same type and the unit stays open.
+
+**A unit ends on mastery, not on a count** (`session-engine.js`, `outline.js`)
+- `answer()` computes `need = max(4, correctsNeeded(targetDots))` for a course skill and requires `m.levelAfter >= 3`. A unit review is **not** gated on its own synthetic skill's mastery (`gateApplies`), or a review could never close.
+- `state()` reports `gate` and `solid` per focus row and `currentQuestionId` per item; the rail shows `!` and `is-weak` ("not solid yet, mastery 2 of 4, needs 3") instead of a tick at 2/4.
+
+**The learner can ask to be taught** (`session.html`, `session-app.js`, `session.css`)
+- Two buttons under every card: **Teach me this step** and **Show me a similar example**, wired to `askVee('…', 'step' | 'example')` — no need to phrase a question to get taught.
+- The ask stream sends `{question, askMode}`; `session-routes.js` passes `askMode` and `fresh` through to `engine.teach`.
+- Version bumps: `session-app.js?v=25`, `session.css?v=16`; `docs/` copies synced.
+
+**Tests**: `test-ai-session.js` 254 — the pack prompt (own words, method, 3–6 examples, last example matches the card, self-check, room to finish, retry on a headingless reply), question provenance from the lesson, `cleanQuestion` (key survives the shuffle, bad key and short option lists dropped), the ask rules (twin example, length, no closing question, withholds the option until answered, the old three-sentence ask is gone), current-card tracking in `serve`/`answer`/`skip`, the gate (four corrects at level 3 closes; four corrects at level 2 stays open and asks a fifth; the rail reports not-solid; a review is not gated), one lesson call shared by two readers, cache reuse and `fresh`, plus the frontend wiring. `test-session-core.js` 73 · `test-visual-teaching.js` 122 · `test-bank-provenance.js` 113 · `test-phase45.js` 91.
+
 ### ✅ VEE MOVES OUT OF THE WAY, HINTS SAY SOMETHING, REVIEWS ASK NEW QUESTIONS
 
 **Status**: COMPLETE (offline-verified: 211 + 73 + 122 + 113 + 91 checks green; the session UI itself was not clicked through)

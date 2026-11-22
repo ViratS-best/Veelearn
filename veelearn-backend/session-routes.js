@@ -153,7 +153,11 @@ function createSessionRoutes({
             try {
                 const out = await engine.teach(req.user.id, id, {
                     onDelta: (t) => send('delta', { t }),
-                    question: req.body && req.body.question
+                    question: req.body && req.body.question,
+                    // "Teach me this step" and "Show me a similar example" are asks with
+                    // a preset question; "Explain it again" asks for a fresh lesson.
+                    askMode: req.body && req.body.askMode,
+                    fresh: !!(req.body && req.body.fresh)
                 });
                 if (out.error) send('error', { message: out.message });
                 else send('done', { text: out.text, fallback: out.fallback });

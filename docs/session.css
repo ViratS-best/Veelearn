@@ -137,6 +137,10 @@
 }
 .sx-focus-item.is-done { color: var(--sx-good); }
 .sx-focus-item.is-deferred { opacity: 0.55; text-decoration: line-through; }
+/* Closed below the mastery gate: not "done", not solid yet. */
+.sx-focus-item.is-weak { color: var(--sx-bad); }
+.sx-focus-item.is-weak .sx-focus-mark { font-weight: 700; }
+.sx-focus-gate { margin-left: 3px; font-size: 9.5px; opacity: 0.8; }
 
 .sx-focus-mark { width: 14px; flex: none; text-align: center; font-size: 12px; }
 .sx-focus-body { display: flex; flex-direction: column; gap: 5px; min-width: 0; }

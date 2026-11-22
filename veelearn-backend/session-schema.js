@@ -127,12 +127,24 @@ const TABLES = [
         question_ids LONGTEXT NULL,
         review_pool LONGTEXT NULL,
         frame_md LONGTEXT NULL,
+        current_question_id INT NULL,
         unit_index SMALLINT DEFAULT 0,
         unit_label VARCHAR(150) NULL,
         started_at TIMESTAMP NULL,
         completed_at TIMESTAMP NULL,
         UNIQUE KEY uniq_focus_item (session_id, ord),
         INDEX idx_focus_session (session_id, status)
+    )`,
+
+    `CREATE TABLE IF NOT EXISTS unit_packs (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        skill_id INT NOT NULL,
+        learner_level SMALLINT DEFAULT 0,
+        lesson_md LONGTEXT NULL,
+        question_ids LONGTEXT NULL,
+        lesson_at TIMESTAMP NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_unit_pack (skill_id, learner_level)
     )`,
 
     `CREATE TABLE IF NOT EXISTS session_events (
@@ -319,6 +331,7 @@ const ALTERS = [
     'ALTER TABLE courses ADD COLUMN IF NOT EXISTS readiness_json LONGTEXT NULL',
     'ALTER TABLE session_focus_items ADD COLUMN IF NOT EXISTS frame_md LONGTEXT NULL',
     'ALTER TABLE session_focus_items ADD COLUMN IF NOT EXISTS review_pool LONGTEXT NULL',
+    'ALTER TABLE session_focus_items ADD COLUMN IF NOT EXISTS current_question_id INT NULL',
 
     'ALTER TABLE session_focus_items ADD COLUMN IF NOT EXISTS unit_index SMALLINT DEFAULT 0',
     'ALTER TABLE session_focus_items ADD COLUMN IF NOT EXISTS unit_label VARCHAR(150) NULL',
