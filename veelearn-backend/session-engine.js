@@ -715,9 +715,14 @@ function createSessionEngine({ query, qbank, log, chatStream, impact } = {}) {
     }
 
     /**
-     * A short lesson for the current unit, streamed token by token. The unit's own
-     * text is the fallback, so even without a key the learner gets taught instead
-     * of being handed another question.
+     * The learning section for the current unit, or an answer about the card on
+     * screen — both streamed token by token.
+     *
+     * A lesson is the unit's pack (`unit-pack.js`): the model writes its own
+     * teaching from the outline's syllabus, with three to six worked examples
+     * ending at the difficulty of the practice cards, and the questions are
+     * written from that same lesson. An ask is a teaching turn about the card the
+     * learner is looking at (`current_question_id`), not a three-sentence caption.
      */
     async function teach(userId, sessionId, { onDelta, question, askMode, fresh } = {}) {
         const session = await sessionRow(userId, sessionId);
