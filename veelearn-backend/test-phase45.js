@@ -934,7 +934,10 @@ function addSession(db, { id, userId, courseId, minutes = 14, items = 4, ended =
         addSession(db, { id: 300, userId: 3, courseId: 7 });
         db.summaries.push({ session_id: 300, summary: 'Nice work on exponents.' });
 
-        const off = await phase5.digest({ userId: 3 });
+        // The fixture sessions are dated 2026-11-14; pin the digest clock to that week
+        // so the seven-day window keeps covering them however long this file lives.
+        const DIGEST_NOW = Date.parse('2026-11-15T00:00:00Z');
+        const off = await phase5.digest({ userId: 3, now: DIGEST_NOW });
         ok('without opt-in the digest is built but not addressed', off.emailedTo === null && off.sessions === 1);
         ok('the digest counts minutes', off.minutes >= 10, `${off.minutes}`);
 
@@ -948,7 +951,7 @@ function addSession(db, { id, userId, courseId, minutes = 14, items = 4, ended =
                 sentTo = to;
             }
         });
-        const on = await withMail.digest({ userId: 3, send: true });
+        const on = await withMail.digest({ userId: 3, send: true, now: DIGEST_NOW });
         ok('one email goes to the parent', on.sent === true && sentTo === 'parent@example.com');
         ok('the digest body carries the week', on.body.includes('Sessions: 1'));
         ok('the digest body names the learner', on.body.includes('learner@example.com'));
@@ -1038,6 +1041,14 @@ function addSession(db, { id, userId, courseId, minutes = 14, items = 4, ended =
         ok('the teacher session list is mounted', /'\/api\/teacher\/session-assignments'/.test(server));
         ok('history searches skill names in SQL', /sk\.name LIKE/.test(engineSrc));
         ok('history returns the { sessions, count } envelope', /sessions: filtered, count: filtered\.length/.test(routesSrc));
+        // Auth: an address is stored and looked up in one normal form. Postgres compares
+        // text case-sensitively, so a mixed-case signup used to be unloggable.
+        ok('there is one normal form for an email', /function normalizeEmail\(value\)/.test(server));
+        ok('the normal form trims and lowercases', /value\.trim\(\)\.toLowerCase\(\)/.test(server));
+        ok('register stores the normal form', /const email = normalizeEmail\(req\.body\.email\);/.test(server));
+        ok('register refuses a case-variant duplicate', /WHERE LOWER\(email\) = \?', \[email\]\);\s*if \(existing\.length > 0\)/.test(server));
+        ok('login matches a stored address in any case', /SELECT \* FROM users WHERE LOWER\(email\) = \? ORDER BY id/.test(server));
+        ok('login tries every case-variant row', /for \(const row of candidates\) \{\s*if \(await bcrypt\.compare\(password, row\.password\)\)/.test(server));
     }
 
     // ------------------------------------------------------------- the report

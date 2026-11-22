@@ -1150,6 +1150,12 @@ function apiResponse(res, statusCode, message, data = null) {
 
 // ===== MIDDLEWARE =====
 // Input validation middleware
+function normalizeEmail(value) {
+    // Postgres compares text case-sensitively: "Foo@x.com" and "foo@x.com" are two
+    // rows, and only the exact spelling would ever log in. Store and look up one form.
+    return typeof value === 'string' ? value.trim().toLowerCase() : '';
+}
+
 function validateEmail(email) {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(email);
@@ -1426,7 +1432,8 @@ app.get('/api/health', (req, res) => {
 
 // ===== AUTHENTICATION ROUTES =====
 app.post('/api/register', smartAuthLimiter, async (req, res) => {
-    const { email, password } = req.body;
+    const email = normalizeEmail(req.body.email);
+    const { password } = req.body;
 
     if (!email || !password) {
         return apiResponse(res, 400, 'Email and password are required');
@@ -1441,41 +1448,49 @@ app.post('/api/register', smartAuthLimiter, async (req, res) => {
     }
 
     try {
+        // The unique index is case-sensitive in Postgres, so check first: two rows that
+        // differ only by case would leave one of them impossible to log into.
+        const existing = await query('SELECT id FROM users WHERE LOWER(email) = ?', [email]);
+        if (existing.length > 0) {
+            return apiResponse(res, 409, 'Email already registered');
+        }
+
         const hashedPassword = await bcrypt.hash(password, 10);
         const insertUser = 'INSERT INTO users (email, password) VALUES (?, ?)';
 
-        db.query(insertUser, [email, hashedPassword], (err, result) => {
-            if (err) {
-                if (err.code === 'ER_DUP_ENTRY') {
-                    return apiResponse(res, 409, 'Email already registered');
-                }
-                console.error('Error during registration:', err);
-                return apiResponse(res, 500, 'Server error during registration');
+        let result;
+        try {
+            result = await query(insertUser, [email, hashedPassword]);
+        } catch (err) {
+            if (err.code === 'ER_DUP_ENTRY') {
+                return apiResponse(res, 409, 'Email already registered');
             }
+            console.error('Error during registration:', err);
+            return apiResponse(res, 500, 'Server error during registration');
+        }
 
-            const newUser = {
-                id: result.insertId,
-                email,
-                role: 'user',
-                is_admin_approved: false,
-                shells: 0
-            };
-            const token = jwt.sign(
-                { id: newUser.id, role: newUser.role },
-                process.env.JWT_SECRET,
-                { expiresIn: '24h' }
-            );
+        const newUser = {
+            id: result.insertId,
+            email,
+            role: 'user',
+            is_admin_approved: false,
+            shells: 0
+        };
+        const token = jwt.sign(
+            { id: newUser.id, role: newUser.role },
+            process.env.JWT_SECRET,
+            { expiresIn: '24h' }
+        );
 
-            // Set cookie
-            res.cookie('token', token, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'Lax',
-                maxAge: 24 * 60 * 60 * 1000 // 24 hours
-            });
-
-            apiResponse(res, 201, 'User registered successfully', { token, user: newUser });
+        // Set cookie
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'Lax',
+            maxAge: 24 * 60 * 60 * 1000 // 24 hours
         });
+
+        return apiResponse(res, 201, 'User registered successfully', { token, user: newUser });
     } catch (error) {
         console.error('Hashing error:', error);
         apiResponse(res, 500, 'Server error');
@@ -1483,47 +1498,50 @@ app.post('/api/register', smartAuthLimiter, async (req, res) => {
 });
 
 app.post('/api/login', smartAuthLimiter, async (req, res) => {
-    const { email, password } = req.body;
+    const email = normalizeEmail(req.body.email);
+    const { password } = req.body;
 
     if (!email || !password) {
         return apiResponse(res, 400, 'Email and password are required');
     }
 
     try {
-        db.query('SELECT * FROM users WHERE email = ?', [email], async (err, results) => {
-            if (err) {
-                console.error('Error during login:', err);
-                return apiResponse(res, 500, 'Server error during login');
+        // Accounts made before emails were normalised may still carry capitals, and
+        // Postgres matches text case-sensitively, so find the address in one case and
+        // let the password decide which row is the real account.
+        const candidates = await query('SELECT * FROM users WHERE LOWER(email) = ? ORDER BY id', [email]);
+        if (candidates.length === 0) {
+            return apiResponse(res, 400, 'Invalid credentials');
+        }
+
+        let user = null;
+        for (const row of candidates) {
+            if (await bcrypt.compare(password, row.password)) {
+                user = row;
+                break;
             }
+        }
 
-            if (results.length === 0) {
-                return apiResponse(res, 400, 'Invalid credentials');
-            }
+        if (!user) {
+            return apiResponse(res, 400, 'Invalid credentials');
+        }
 
-            const user = results[0];
-            const isMatch = await bcrypt.compare(password, user.password);
+        const token = jwt.sign(
+            { id: user.id, role: user.role },
+            process.env.JWT_SECRET,
+            { expiresIn: '24h' }
+        );
 
-            if (!isMatch) {
-                return apiResponse(res, 400, 'Invalid credentials');
-            }
-
-            const token = jwt.sign(
-                { id: user.id, role: user.role },
-                process.env.JWT_SECRET,
-                { expiresIn: '24h' }
-            );
-
-            // Set cookie
-            res.cookie('token', token, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'Lax',
-                maxAge: 24 * 60 * 60 * 1000 // 24 hours
-            });
-
-            const { password: _, ...userWithoutPassword } = user;
-            apiResponse(res, 200, 'Logged in successfully', { token, user: userWithoutPassword });
+        // Set cookie
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'Lax',
+            maxAge: 24 * 60 * 60 * 1000 // 24 hours
         });
+
+        const { password: _, ...userWithoutPassword } = user;
+        return apiResponse(res, 200, 'Logged in successfully', { token, user: userWithoutPassword });
     } catch (error) {
         console.error('Login error:', error);
         apiResponse(res, 500, 'Server error');

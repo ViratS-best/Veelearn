@@ -4,6 +4,16 @@
 
 ---
 
+### ✅ SIGN-UP AND LOGIN AGREE ON THE EMAIL
+
+**Status**: COMPLETE (offline-verified: 91 + 195 + 113 + 73 + 122 + 32 checks green; reproduced and fixed live)
+
+- **A mixed-case address could be registered but never logged in.** MySQL compared text case-insensitively; PostgreSQL does not. `NewUser@Gmail.com` was stored exactly as typed, and `SELECT * FROM users WHERE email = ?` with `newuser@gmail.com` found nothing and answered `400 Invalid credentials`. Reproduced against api.veelearn.org: register `ProbeCaseX@Example.com` → 201, login `probecasex@example.com` → 400, login with the exact spelling → 200.
+- `normalizeEmail()` (`server.js`) trims and lowercases every address `POST /api/register` and `POST /api/login` reads, so a stray space or capital from a paste no longer matters.
+- `POST /api/register` checks `WHERE LOWER(email) = ?` before inserting and answers `409 Email already registered` for a case-variant of an existing account — the unique index alone would have allowed two rows, only one of which could ever log in.
+- `POST /api/login` looks the address up with `LOWER(email) = ? ORDER BY id` and runs `bcrypt.compare` over the candidates, so an account created before this fix (stored with capitals) still logs in whatever casing is typed.
+- Covered in `test-phase45.js` (the helper, both endpoints, the case-insensitive duplicate check, the candidate loop). Its digest checks were also pinned to the week their fixture sessions live in (2026-11-14); they had rotted once the seven-day window moved past that date.
+
 ### ✅ THE SESSION OPENS ON A REAL LESSON, NOT AN OVERVIEW
 
 **Status**: COMPLETE (offline-verified: 195 + 113 + 73 + 122 checks green; live lesson verified against api.veelearn.org)
