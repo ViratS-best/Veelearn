@@ -709,6 +709,13 @@
         <label for="ls-display-name">Display name</label>
         <input id="ls-display-name" maxlength="80" value="${esc(name)}" />
         <button type="button" id="ls-save-settings" class="ls-btn-primary">Save</button>
+      </div>
+      <div class="ls-settings-card ls-gift-setting">
+        <div>
+          <strong>Your free coding gift</strong>
+          <p>Unlimited free coding forever with models as good as FABLE 5. The offer from your welcome gift is always available here.</p>
+        </div>
+        <a href="${window.LearnerOnboarding?.GIFT_URL || 'https://freebuff.com/?ref=ref-2e1c9b1d-8a0e-40b5-9a27-729d7501336d&via=rewards_link'}" target="_blank" rel="noopener noreferrer">Open FREEBUFF</a>
       </div>`;
     document.getElementById('ls-save-settings')?.addEventListener('click', async () => {
       const displayName = document.getElementById('ls-display-name')?.value?.trim();

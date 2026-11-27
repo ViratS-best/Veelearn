@@ -1,0 +1,307 @@
+/* First-login gift popup and one-time dashboard tour */
+
+.ls-gift-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(17, 24, 39, 0.62);
+  backdrop-filter: blur(3px);
+  animation: ls-gift-fade 0.18s ease-out;
+}
+
+.ls-gift-card {
+  position: relative;
+  width: min(440px, 100%);
+  background: var(--ls-card, #fff);
+  color: var(--ls-text, #1a1a1a);
+  border: 1px solid var(--ls-border, #f3e8de);
+  border-radius: calc(var(--ls-radius, 16px) + 4px);
+  box-shadow: 0 24px 64px rgba(17, 24, 39, 0.28);
+  padding: 30px 26px 24px;
+  font-family: 'Nunito', system-ui, sans-serif;
+  animation: ls-gift-pop 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.1);
+}
+
+.ls-gift-badge {
+  width: 54px;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 27px;
+  border-radius: 50%;
+  background: var(--ls-accent-soft, #ffedd5);
+  margin-bottom: 14px;
+}
+
+.ls-gift-title {
+  margin: 0 0 10px;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--ls-active-text, #9a3412);
+}
+
+.ls-gift-body {
+  margin: 0 0 12px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ls-text, #1a1a1a);
+}
+
+.ls-gift-link {
+  color: var(--ls-accent, #ea580c);
+  font-weight: 800;
+  text-decoration: underline;
+}
+
+.ls-gift-link:hover,
+.ls-gift-link:focus-visible {
+  color: var(--ls-btn-hover, #ea580c);
+  text-decoration-thickness: 3px;
+}
+
+.ls-gift-note {
+  margin: 0 0 18px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ls-muted, #6b7280);
+}
+
+.ls-gift-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ls-gift-cta,
+.ls-gift-skip {
+  flex: 1 1 160px;
+  text-align: center;
+  padding: 11px 16px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.ls-gift-cta {
+  background: var(--ls-btn, #1a1a1a);
+  color: var(--ls-btn-text, #fff);
+  border: 1px solid var(--ls-btn, #1a1a1a);
+}
+
+.ls-gift-cta:hover {
+  background: var(--ls-btn-hover, #ea580c);
+  border-color: var(--ls-btn-hover, #ea580c);
+  color: var(--ls-btn-hover-text, #fff);
+}
+
+.ls-gift-skip {
+  background: transparent;
+  color: var(--ls-text, #1a1a1a);
+  border: 1px solid var(--ls-border, #f3e8de);
+}
+
+.ls-gift-skip:hover {
+  background: var(--ls-accent-soft, #ffedd5);
+}
+
+.ls-gift-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ls-muted, #6b7280);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ls-gift-close:hover {
+  background: var(--ls-accent-soft, #ffedd5);
+  color: var(--ls-text, #1a1a1a);
+}
+
+@keyframes ls-gift-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes ls-gift-pop {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ------------------------------------------------------------------ tour */
+
+.ls-tour {
+  position: fixed;
+  inset: 0;
+  z-index: 100060;
+  pointer-events: none;
+}
+
+.ls-tour-spot {
+  position: fixed;
+  border-radius: 12px;
+  box-shadow: 0 0 0 9999px rgba(17, 24, 39, 0.68);
+  border: 2px solid var(--ls-accent, #ea580c);
+  transition: top 0.2s ease, left 0.2s ease, width 0.2s ease, height 0.2s ease;
+  pointer-events: none;
+}
+
+.ls-tour-card {
+  position: fixed;
+  width: min(360px, calc(100vw - 24px));
+  background: var(--ls-card, #fff);
+  color: var(--ls-text, #1a1a1a);
+  border: 1px solid var(--ls-border, #f3e8de);
+  border-radius: var(--ls-radius, 16px);
+  box-shadow: 0 20px 48px rgba(17, 24, 39, 0.32);
+  padding: 18px 18px 14px;
+  font-family: 'Nunito', system-ui, sans-serif;
+  pointer-events: auto;
+}
+
+.ls-tour-count {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ls-accent, #ea580c);
+}
+
+.ls-tour-title {
+  margin: 0 0 8px;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--ls-active-text, #9a3412);
+}
+
+.ls-tour-body {
+  margin: 0 0 14px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ls-text, #1a1a1a);
+}
+
+.ls-tour-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ls-tour-gap {
+  flex: 1 1 auto;
+}
+
+.ls-tour-skip,
+.ls-tour-back,
+.ls-tour-next {
+  padding: 9px 15px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  border: 1px solid var(--ls-border, #f3e8de);
+  background: transparent;
+  color: var(--ls-text, #1a1a1a);
+}
+
+.ls-tour-skip {
+  border-color: transparent;
+  color: var(--ls-muted, #6b7280);
+  padding-left: 0;
+}
+
+.ls-tour-skip:hover,
+.ls-tour-back:hover {
+  background: var(--ls-accent-soft, #ffedd5);
+}
+
+.ls-tour-next {
+  background: var(--ls-btn, #1a1a1a);
+  color: var(--ls-btn-text, #fff);
+  border-color: var(--ls-btn, #1a1a1a);
+}
+
+.ls-tour-next:hover {
+  background: var(--ls-btn-hover, #ea580c);
+  border-color: var(--ls-btn-hover, #ea580c);
+}
+
+.ls-gift-close:focus-visible,
+.ls-gift-cta:focus-visible,
+.ls-gift-skip:focus-visible,
+.ls-gift-link:focus-visible,
+.ls-tour-skip:focus-visible,
+.ls-tour-back:focus-visible,
+.ls-tour-next:focus-visible {
+  outline: 3px solid var(--ls-accent, #ea580c);
+  outline-offset: 2px;
+}
+
+/* The giveaway card on the Settings pane */
+.ls-gift-setting {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.ls-gift-setting p {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ls-muted, #6b7280);
+  max-width: 52ch;
+}
+
+.ls-gift-setting a {
+  display: inline-block;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: var(--ls-btn, #1a1a1a);
+  color: var(--ls-btn-text, #fff);
+  font-weight: 800;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.ls-gift-setting a:hover {
+  background: var(--ls-btn-hover, #ea580c);
+}
+
+@media (max-width: 520px) {
+  .ls-gift-card {
+    padding: 26px 18px 20px;
+  }
+  .ls-tour-card {
+    padding: 16px 15px 12px;
+  }
+}

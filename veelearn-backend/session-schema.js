@@ -341,6 +341,7 @@ const ALTERS = [
     'ALTER TABLE users ADD COLUMN IF NOT EXISTS parent_email VARCHAR(190) NULL',
     'ALTER TABLE users ADD COLUMN IF NOT EXISTS digest_opt_in SMALLINT DEFAULT 0',
     'ALTER TABLE users ADD COLUMN IF NOT EXISTS reminder_at TIMESTAMP NULL',
+    'ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_done SMALLINT DEFAULT 0',
     "ALTER TABLE user_learning_profile ADD COLUMN IF NOT EXISTS prefs LONGTEXT NULL",
     // Provenance columns, for databases created before they were in CREATE TABLE.
     "ALTER TABLE qbank_items ADD COLUMN IF NOT EXISTS source VARCHAR(16) DEFAULT 'authored'",

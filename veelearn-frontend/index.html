@@ -5,10 +5,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description"
-    content="Veelearn — free AI-assisted STEM learning with high-quality interactive courses, 120+ simulations, and volunteer hours for creating educational content. Physics, chemistry, math, and biology for K-12 and college." />
+    content="Free AI STEM tutor for K-12 and college: a written lesson for every skill, then guided practice that tracks mastery. Maths, physics, chemistry, biology." />
   <link rel="icon" type="image/png" href="/VEELEARN.png" loading="lazy">
   <link rel="shortcut icon" href="/VEELEARN.png" loading="lazy">
-  <title>Veelearn — AI-Assisted STEM Learning | Free Courses, Simulations & Volunteer Hours</title>
+  <title>Veelearn — Free AI STEM Tutor, Lessons & Practice</title>
   <!-- Resource Hints for Performance -->
   <link rel="preload" href="styles.css" as="style">
   <link rel="preload" href="script.js?v=38" as="script">
@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="styles-redesign.css?v=2" />
   <link rel="stylesheet" href="styles-humanized.css" />
   <link rel="stylesheet" href="styles-learner-shell.css?v=21" />
+  <link rel="stylesheet" href="onboarding.css?v=1" />
   <link rel="stylesheet" href="course-sims.css?v=1" />
   <link rel="stylesheet" href="stem-polish.css?v=4" />
   <link rel="stylesheet" href="loading-states.css" media="print" onload="this.media='all'" />
@@ -25,14 +26,14 @@
   <link rel="stylesheet" href="keyboard-shortcuts.css" media="print" onload="this.media='all'" />
   <link rel="stylesheet" href="auto-save.css" media="print" onload="this.media='all'" />
   <link rel="stylesheet" href="search-enhancements.css" media="print" onload="this.media='all'" />
-  <link rel="stylesheet" href="mobile-responsive.css" media="print" onload="this.media='all'" />
+  <link rel="stylesheet" href="mobile-responsive.css?v=2" media="print" onload="this.media='all'" />
   <link rel="stylesheet" href="lazy-loading.css" media="print" onload="this.media='all'" />
   <link rel="stylesheet" href="focus-indicators.css?v=2" media="print" onload="this.media='all'" />
   <noscript>
     <link rel="stylesheet" href="loading-states.css" />
-    <link rel="stylesheet" href="mobile-responsive.css" />
+    <link rel="stylesheet" href="mobile-responsive.css?v=2" />
   </noscript>
-  <meta name="keywords" content="AI-assisted learning, high quality free STEM courses, earn volunteer hours, STEM learning, interactive physics simulations, chemistry education, math learning, biology simulations, free education, K-12 learning, college STEM, PhET simulations, block-based programming, online learning" />
+  <meta name="keywords" content="AI STEM tutor, free AI tutor for students, mastery-based learning, personalized STEM lessons, AI math tutor, AI physics tutor, AI chemistry tutor, free STEM practice, interactive simulations, K-12 STEM, college STEM, volunteer hours" />
   <meta name="author" content="Veelearn by Virat" />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="https://veelearn.org/" />
@@ -40,18 +41,18 @@
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://veelearn.org/" />
-  <meta property="og:title" content="Veelearn — AI-Assisted STEM Learning | Free Courses & Volunteer Hours" />
-  <meta property="og:description" content="Free AI-assisted STEM learning with high-quality interactive courses, simulations, and volunteer hours for creating educational content." />
-  <meta property="og:image" content="https://veelearn.org/VEELEARN.png" />
+  <meta property="og:title" content="Veelearn — Free AI STEM Tutor, Lessons & Practice" />
+  <meta property="og:description" content="A lesson for every skill, then practice until it's mastered — free for K-12 and college students." />
+  <meta property="og:image" content="https://veelearn.org/assets/og-image.png" />
   <meta property="og:site_name" content="Veelearn" />
   <meta property="og:locale" content="en_US" />
   
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:url" content="https://veelearn.org/" />
-  <meta name="twitter:title" content="Veelearn - Free Interactive STEM Learning | Physics, Chemistry, Math Simulations" />
-  <meta name="twitter:description" content="Free interactive STEM learning platform for K-12 and college students. Master physics, chemistry, math, and biology with 120+ PhET simulations, block-based programming, and community courses." />
-  <meta name="twitter:image" content="https://veelearn.org/VEELEARN.png" />
+  <meta name="twitter:title" content="Veelearn — Free AI STEM Tutor, Lessons & Practice" />
+  <meta name="twitter:description" content="A written lesson for every skill, then guided practice that tracks mastery. Free for K-12 and college students." />
+  <meta name="twitter:image" content="https://veelearn.org/assets/og-image.png" />
   
   <script type="application/ld+json">
 {
@@ -60,7 +61,7 @@
   "name": "Veelearn",
   "url": "https://veelearn.org",
   "logo": "https://veelearn.org/VEELEARN.png",
-  "description": "Free interactive STEM learning platform for K-12 and college students with 120+ PhET simulations, block-based programming, and community courses.",
+  "description": "Free AI STEM tutor for K-12 and college students: a written lesson for every skill, mastery-tracked practice, 120+ interactive simulations and volunteer hours for creators.",
   "sameAs": [
     "https://www.hackclub.com",
     "https://github.com/ViratS-best/Veelearn",
@@ -105,6 +106,22 @@
   "numberOfEmployees": {
     "@type": "QuantitativeValue",
     "value": "5"
+  }
+}
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "Veelearn",
+  "alternateName": "Veelearn STEM",
+  "url": "https://veelearn.org/",
+  "description": "Free AI STEM tutor: a written lesson for every skill, then mastery-tracked practice in maths, physics, chemistry and biology.",
+  "publisher": {
+    "@type": "EducationalOrganization",
+    "name": "Veelearn",
+    "url": "https://veelearn.org/"
   }
 }
 </script>
@@ -187,6 +204,7 @@
     .vl-pill-link { color: var(--ls-accent, var(--primary, #6366f1)); text-decoration: none; font-weight: 600; }
     .vl-pill-x { background: none; border: none; color: var(--ls-muted, var(--text-muted, #64748b)); cursor: pointer; font-size: 15px; }
   </style>
+  <link rel="stylesheet" href="responsive.css?v=1" />
 </head>
 
 <body>
@@ -273,12 +291,12 @@
     <!-- LANDING PAGE SECTION -->
     <section id="landing-page">
       <div class="hero">
-        <h1>Free Interactive STEM Learning Platform for K-12 & College Students</h1>
-        <p>Master physics, chemistry, math, and biology through 120+ interactive PhET simulations, block-based programming, and community-created courses. Veelearn brings science education to life with hands-on learning experiences. Join thousands of students worldwide and earn volunteer hours by creating educational content.</p>
+        <h1>Free AI-Powered STEM Learning for K-12 & College Students</h1>
+        <p>Veelearn writes a lesson for every skill you open, then coaches you through practice — one question at a time — until it's mastered. Maths, physics, chemistry and biology for K-12 and college, with 120+ interactive simulations, exam sprints, and volunteer hours for students who create courses.</p>
         <div class="hero-actions">
           <button id="get-started-btn" class="primary-btn">Get Started for Free</button>
           <button id="view-courses-btn" class="secondary-btn">Browse Courses</button>
-          <a href="https://hcb.hackclub.com/donations/start/veelearn" target="_blank" rel="noopener noreferrer"
+          <a href="https://hcb.hackclub.com/veelearn" target="_blank" rel="noopener noreferrer"
             class="primary-btn"
             style="background: linear-gradient(135deg, #f59e0b, #ef4444); text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
             💛 Donate
@@ -287,6 +305,11 @@
       </div>
 
       <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🧠</div>
+          <h3>An AI Tutor That Teaches, Then Coaches</h3>
+          <p>Every skill opens with a written lesson built for it — the idea, worked examples at the difficulty of your card, and the traps to avoid. Vee then asks one question at a time, gives a specific hint when you're stuck, and draws the situation on the board when a picture helps.</p>
+        </div>
         <div class="feature-card">
           <div class="feature-icon">⚛️</div>
           <h3>120+ Physics & Chemistry Simulations</h3>
@@ -928,6 +951,13 @@
   <footer>
     <p>&copy; Veelearn is a fiscally sponsored project of The Hack Foundation, a 501(c)(3) nonprofit. EIN: 81-2908499.
       All donations are tax-deductible to the full extent of the law.</p>
+    <nav aria-label="Compare Veelearn" style="margin-top:10px; display:flex; flex-wrap:wrap; gap:8px 18px; font-size:0.9em;">
+      <a href="compare.html">Compare</a>
+      <a href="compare-khan-academy.html">Veelearn vs Khan Academy</a>
+      <a href="compare-brilliant.html">Veelearn vs Brilliant</a>
+      <a href="compare-aristotle.html">Veelearn vs Aristotle</a>
+      <a href="https://hcb.hackclub.com/veelearn">Donate</a>
+    </nav>
   </footer>
 
   <!-- QUIZ QUESTION MODAL -->
@@ -1252,8 +1282,9 @@
   <script src="image-optimization.js" defer></script>
   <script src="accessibility.js" defer></script>
   <script src="ai-typewriter.js?v=1" defer></script>
-  <script src="learner-shell.js?v=12" defer></script>
-  <script src="learner-gamification.js?v=13" defer></script>
+  <script src="learner-shell.js?v=13" defer></script>
+  <script src="learner-gamification.js?v=14" defer></script>
+  <script src="onboarding.js?v=1" defer></script>
   <script src="notes-master-course.js?v=2" defer></script>
   <script src="course-interactive-blocks.js?v=5" defer></script>
   <script src="course-sims-core.js?v=2" defer></script>

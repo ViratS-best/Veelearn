@@ -33,6 +33,8 @@ const STORE_SEED = [
 ];
 
 const BASE_QUIZ_GEMS = 5;
+/** First day the welcome gift + tour existed; older accounts skip it. */
+const ONBOARDING_LAUNCH = '2026-11-27';
 const STREAK_CHECKIN_GEMS = 10;
 const MAX_STREAK_MULT = 3;
 const XP_PER_LEVEL = 100;
@@ -179,7 +181,8 @@ function createLearnerGamificationHandlers({ query, apiResponse, sendEmail }) {
         const rows = await query(
             `SELECT id, email, name, display_name, gems, current_streak, longest_streak,
                     last_active_date, avatar_config, dashboard_theme, role,
-                    xp, lifetime_gems, current_correct_streak, best_correct_streak
+                    xp, lifetime_gems, current_correct_streak, best_correct_streak,
+                    onboarding_done
              FROM users WHERE id = ? LIMIT 1`,
             [userId]
         );
@@ -441,6 +444,7 @@ function createLearnerGamificationHandlers({ query, apiResponse, sendEmail }) {
                 longestStreak: row.longest_streak || 0,
                 lastActiveDate: row.last_active_date,
                 avatarConfig: parseAvatarConfig(row.avatar_config),
+                onboardingDone: !!Number(row.onboarding_done || 0),
                 dashboardTheme: row.dashboard_theme || 'warm',
                 inventory: inv.map((i) => i.item_id),
                 quizCorrect: stats.correct,
@@ -772,6 +776,25 @@ function createLearnerGamificationHandlers({ query, apiResponse, sendEmail }) {
                 [displayName, displayName, userId]
             );
             return apiResponse(res, 200, 'Saved', { displayName });
+        },
+
+        /** Has this learner already seen the welcome gift + dashboard tour? */
+        async onboardingStatus(req, res) {
+            // Accounts that predate the tour already had their first login, so
+            // they are treated as seen however the column was defaulted.
+            const rows = await query(
+                `SELECT CASE WHEN COALESCE(onboarding_done, 0) = 1 OR created_at < '${ONBOARDING_LAUNCH}' THEN 1 ELSE 0 END AS seen
+                 FROM users WHERE id = ? LIMIT 1`,
+                [req.user.id]
+            );
+            if (!rows.length) return apiResponse(res, 404, 'User not found');
+            return apiResponse(res, 200, 'OK', { done: !!Number(rows[0].seen || 0), id: req.user.id });
+        },
+
+        /** The tour is one-time: once this lands the learner never sees it again. */
+        async completeOnboarding(req, res) {
+            await query('UPDATE users SET onboarding_done = 1 WHERE id = ?', [req.user.id]);
+            return apiResponse(res, 200, 'OK', { done: true });
         },
 
         async feedback(req, res) {

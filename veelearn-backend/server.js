@@ -8175,6 +8175,18 @@ app.put('/api/learner/settings', authenticateToken, writeLimiter, (req, res) => 
         return apiResponse(res, 500, 'Settings failed');
     });
 });
+app.get('/api/learner/onboarding', authenticateToken, (req, res) => {
+    learnerGamification.onboardingStatus(req, res).catch((e) => {
+        console.error('learner onboarding status:', e);
+        return apiResponse(res, 500, 'Failed to load onboarding status');
+    });
+});
+app.post('/api/learner/onboarding/complete', authenticateToken, writeLimiter, (req, res) => {
+    learnerGamification.completeOnboarding(req, res).catch((e) => {
+        console.error('learner onboarding complete:', e);
+        return apiResponse(res, 500, 'Failed to save onboarding');
+    });
+});
 app.post('/api/learner/feedback', authenticateToken, writeLimiter, (req, res) => {
     learnerGamification.feedback(req, res).catch((e) => {
         console.error('learner feedback:', e);
@@ -8345,8 +8357,17 @@ app.get('/sitemap.xml', async (req, res) => {
             { url: '/simulators.html', priority: '0.8', changefreq: 'weekly' },
             { url: '/for-teachers.html', priority: '0.7', changefreq: 'weekly' },
             { url: '/for-students.html', priority: '0.7', changefreq: 'weekly' },
-            { url: '/simulator-studio.html', priority: '0.7', changefreq: 'weekly' },
+            { url: '/compare.html', priority: '0.8', changefreq: 'monthly' },
+            { url: '/compare-khan-academy.html', priority: '0.7', changefreq: 'monthly' },
+            { url: '/compare-brilliant.html', priority: '0.7', changefreq: 'monthly' },
+            { url: '/compare-aristotle.html', priority: '0.7', changefreq: 'monthly' },
             { url: '/simulator-marketplace.html', priority: '0.8', changefreq: 'daily' },
+            { url: '/protractor-simulator.html', priority: '0.6', changefreq: 'monthly' },
+            { url: '/faq.html', priority: '0.7', changefreq: 'monthly' },
+            { url: '/student-signup.html', priority: '0.6', changefreq: 'monthly' },
+            { url: '/teacher-signup.html', priority: '0.6', changefreq: 'monthly' },
+            { url: '/parent-signup.html', priority: '0.6', changefreq: 'monthly' },
+            { url: '/school-admin-signup.html', priority: '0.6', changefreq: 'monthly' },
         ];
         
         staticPages.forEach(page => {
@@ -8394,9 +8415,17 @@ app.get('/robots.txt', (req, res) => {
     const robotsTxt = `User-agent: *
 Allow: /
 Disallow: /api/
-Disallow: /dashboard
-Disallow: /course-editor
 Disallow: /auth
+Disallow: /session.html
+Disallow: /outline.html
+Disallow: /course-editor
+Disallow: /simulator-studio.html
+Disallow: /simulator-creator.html
+Disallow: /simulator-execute.html
+Disallow: /scratch-studio.html
+Disallow: /block-simulator.html
+Disallow: /visual-simulator.html
+Disallow: /*-dashboard.html
 
 Sitemap: https://veelearn.org/sitemap.xml
 `;
