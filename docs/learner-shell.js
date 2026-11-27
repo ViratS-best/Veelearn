@@ -208,6 +208,8 @@
 
     window.LearnerGamification?.onShellShown?.();
     navigate('dashboard');
+    // First login only: the welcome gift, then the one-time dashboard tour.
+    window.LearnerOnboarding?.maybeStart?.();
   }
 
   function hideLearnerShell() {
