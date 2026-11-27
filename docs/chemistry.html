@@ -7,8 +7,8 @@
   <link rel="icon" type="image/png" href="/VEELEARN.png" loading="lazy">
   <link rel="shortcut icon" href="/VEELEARN.png" loading="lazy">
   <meta name="description"
-    content="Free interactive chemistry learning platform. Master atoms, molecules, chemical reactions, acids, bases, periodic table, and organic chemistry through PhET simulations. Perfect for K-12 and college students." />
-  <title>Chemistry Learning Hub | Free Interactive Chemistry Simulations | Reactions, Periodic Table</title>
+    content="An AI chemistry tutor for K-12 and college: a worked lesson for every skill, then guided practice with hints and lab simulations until it's mastered." />
+  <title>Free Chemistry Tutor, Practice & Simulations | Veelearn</title>
   <!-- Resource Hints for Performance -->
   <link rel="preload" href="styles.css" as="style">
   <link rel="preload" href="styles-redesign.css" as="style">
@@ -27,7 +27,7 @@
   <link rel="stylesheet" href="validation.css" />
   <link rel="stylesheet" href="keyboard-shortcuts.css" />
   <link rel="stylesheet" href="luxury-editorial.css" />
-  <meta name="keywords" content="chemistry learning, interactive chemistry simulations, chemical reactions, atoms, molecules, periodic table, acids and bases, organic chemistry, free chemistry education, PhET chemistry, virtual chemistry lab" />
+  <meta name="keywords" content="AI chemistry tutor, chemistry practice, balancing equations, stoichiometry, atoms and molecules, periodic table, acids and bases, organic chemistry, free chemistry help, PhET chemistry, virtual chemistry lab" />
   <meta name="author" content="Veelearn by Virat" />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="https://veelearn.org/chemistry.html" />
@@ -35,18 +35,18 @@
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://veelearn.org/chemistry.html" />
-  <meta property="og:title" content="Chemistry Learning Hub | Free Interactive Chemistry Simulations" />
-  <meta property="og:description" content="Master atoms, molecules, chemical reactions, acids, bases, periodic table, and organic chemistry through PhET simulations. Perfect for K-12 and college students." />
-  <meta property="og:image" content="https://veelearn.org/VEELEARN.png" />
+  <meta property="og:title" content="Free Chemistry Tutor, Practice & Simulations" />
+  <meta property="og:description" content="A worked lesson for every skill, then guided practice with hints and lab simulations until it's mastered. Free for K-12 and college." />
+  <meta property="og:image" content="https://veelearn.org/assets/og-image.png" />
   <meta property="og:site_name" content="Veelearn" />
   <meta property="og:locale" content="en_US" />
   
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:url" content="https://veelearn.org/chemistry.html" />
-  <meta name="twitter:title" content="Chemistry Learning Hub | Free Interactive Chemistry Simulations" />
-  <meta name="twitter:description" content="Master atoms, molecules, chemical reactions, acids, bases, periodic table, and organic chemistry through PhET simulations." />
-  <meta name="twitter:image" content="https://veelearn.org/VEELEARN.png" />
+  <meta name="twitter:title" content="Free Chemistry Tutor, Practice & Simulations" />
+  <meta name="twitter:description" content="A worked lesson for every skill, then guided practice with hints and lab simulations. Free for K-12 and college." />
+  <meta name="twitter:image" content="https://veelearn.org/assets/og-image.png" />
   
   <script type="application/ld+json">
 {
@@ -158,6 +158,7 @@
   ]
 }
 </script>
+  <link rel="stylesheet" href="responsive.css?v=1" />
 </head>
 
 <body>
@@ -313,10 +314,23 @@
     </section>
   </main>
 
-  <footer>
+  
+  <!-- VEELEARN-SIGNUP-CTA -->
+  <section style="margin:48px auto;max-width:900px;padding:34px 26px;border-radius:22px;background:linear-gradient(135deg,#2a1b6b,#5b34b8 55%,#8b45d8);color:#f3efff;font-family:'Segoe UI',system-ui,sans-serif;text-align:center;">
+    <h2 style="margin:0 0 10px;color:#fff;font-size:clamp(1.5rem,3vw,2.1rem);line-height:1.15;">Sign up to start learning now!</h2>
+    <p style="margin:0 auto 20px;max-width:640px;color:#ddd6fe;font-size:1rem;line-height:1.6;">Veelearn is a nonprofit, so every AI lesson, practice card and simulation is 100% free — and it stays that way. Fiscally sponsored by Hack Club.</p>
+    <p style="margin:0 0 18px;">
+      <a href="/student-signup.html?from=site-cta" style="display:inline-block;padding:14px 26px;margin:4px;border-radius:999px;background:#fff;color:#4c1d95;font-weight:800;text-decoration:none;">Sign up to start learning now!</a>
+      <a href="/teacher-signup.html?from=site-cta" style="display:inline-block;padding:14px 26px;margin:4px;border-radius:999px;border:1px solid rgba(255,255,255,.4);color:#fff;font-weight:700;text-decoration:none;">I'm a teacher</a>
+    </p>
+    <p style="margin:0;font-size:.88rem;color:#c4b5fd;">Keep it free for everyone: <a href="https://hcb.hackclub.com/veelearn" style="color:#fff;text-decoration:underline;">donate here</a> · <a href="/compare.html" style="color:#fff;text-decoration:underline;">compare Veelearn</a></p>
+  </section>
+  <!-- /VEELEARN-SIGNUP-CTA -->
+<footer>
     <p>&copy; 2026 Veelearn. A Hack Foundation Project.</p>
   </footer>
 
   <script src="script.js"></script>
+  <script src="mobile-responsive.js?v=2" defer></script>
 </body>
 </html>

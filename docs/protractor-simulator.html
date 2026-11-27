@@ -3,7 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-  <title>Protractor Lab</title>
+  <title>Protractor Lab — Measure Angles Interactively | Veelearn</title>
+  <meta name="description" content="A free interactive protractor: drag a ray, read the angle and check your measurement. Built for geometry lessons on any device, no sign-up needed." />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://veelearn.org/protractor-simulator.html" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://veelearn.org/protractor-simulator.html" />
+  <meta property="og:title" content="Protractor Lab — Measure Angles Interactively" />
+  <meta property="og:description" content="Drag a ray, read the angle and check your measurement. A free geometry lab for any device." />
+  <meta property="og:image" content="https://veelearn.org/assets/og-image.png" />
+  <meta property="og:site_name" content="Veelearn" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Protractor Lab — Measure Angles Interactively" />
+  <meta name="twitter:description" content="Drag a ray, read the angle and check your measurement. Free." />
+  <meta name="twitter:image" content="https://veelearn.org/assets/og-image.png" />
   <style>
     :root {
       --ink: #1e293b;
@@ -46,6 +59,7 @@
     #status.bad { color: #b91c1c; }
     .hint { font-size: 0.78rem; color: var(--muted); width: 100%; }
   </style>
+  <link rel="stylesheet" href="responsive.css?v=1" />
 </head>
 <body>
   <header>
@@ -396,5 +410,18 @@
   requestAnimationFrame(draw);
 })();
   </script>
+  <script src="mobile-responsive.js?v=2" defer></script>
+
+  <!-- VEELEARN-SIGNUP-CTA -->
+  <section style="margin:48px auto;max-width:900px;padding:34px 26px;border-radius:22px;background:linear-gradient(135deg,#2a1b6b,#5b34b8 55%,#8b45d8);color:#f3efff;font-family:'Segoe UI',system-ui,sans-serif;text-align:center;">
+    <h2 style="margin:0 0 10px;color:#fff;font-size:clamp(1.5rem,3vw,2.1rem);line-height:1.15;">Sign up to start learning now!</h2>
+    <p style="margin:0 auto 20px;max-width:640px;color:#ddd6fe;font-size:1rem;line-height:1.6;">Veelearn is a nonprofit, so every AI lesson, practice card and simulation is 100% free — and it stays that way. Fiscally sponsored by Hack Club.</p>
+    <p style="margin:0 0 18px;">
+      <a href="/student-signup.html?from=site-cta" style="display:inline-block;padding:14px 26px;margin:4px;border-radius:999px;background:#fff;color:#4c1d95;font-weight:800;text-decoration:none;">Sign up to start learning now!</a>
+      <a href="/teacher-signup.html?from=site-cta" style="display:inline-block;padding:14px 26px;margin:4px;border-radius:999px;border:1px solid rgba(255,255,255,.4);color:#fff;font-weight:700;text-decoration:none;">I'm a teacher</a>
+    </p>
+    <p style="margin:0;font-size:.88rem;color:#c4b5fd;">Keep it free for everyone: <a href="https://hcb.hackclub.com/veelearn" style="color:#fff;text-decoration:underline;">donate here</a> · <a href="/compare.html" style="color:#fff;text-decoration:underline;">compare Veelearn</a></p>
+  </section>
+  <!-- /VEELEARN-SIGNUP-CTA -->
 </body>
 </html>

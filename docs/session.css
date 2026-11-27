@@ -524,6 +524,7 @@
   .sx-focus-item { flex: 1 1 100%; }
 }
 
+
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
 }
@@ -1118,4 +1119,123 @@
 @keyframes sxConfetti {
   0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
   100% { transform: translate(var(--dx), calc(var(--dy) + 60px)) rotate(320deg); opacity: 0; }
+}
+
+/* ======================================================== phones & tablets == */
+/*
+ * Stacked, the rail used to sit above the stage, so a session with a dozen
+ * skills pushed the question below the first screen. On a phone the card now
+ * comes first and the rail follows it as a scrolling strip of skill chips:
+ * every skill stays reachable without taking height from the question.
+ *
+ * These rules come last on purpose: the motion block above also targets
+ * 720px and would otherwise win the cascade.
+ */
+@media (max-width: 980px) {
+  /* One column: the card comes first and the focus rail follows it. */
+  .sx-stage { order: 1; }
+  .sx-rail { order: 2; position: static; }
+  .sx-map { position: static; max-height: none; }
+}
+
+@media (max-width: 720px) {
+  .sx-app { padding: 10px 12px 32px; }
+
+  .sx-top {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px 10px;
+    padding: 4px 0 12px;
+    margin-bottom: 14px;
+  }
+  .sx-back { grid-column: 1; grid-row: 1; align-self: center; }
+  .sx-goal { grid-column: 1 / -1; grid-row: 2; }
+  .sx-top-right { grid-column: 2; grid-row: 1; justify-self: end; gap: 6px; }
+  .sx-goal-label { font-size: 14px; }
+  .sx-track { font-size: 11.5px; }
+  .sx-timer, .sx-xp { font-size: 12.5px; padding: 5px 9px; }
+  .sx-extend { padding: 4px 8px; font-size: 11.5px; }
+
+  .sx-main { gap: 14px; }
+  .sx-stage { order: 1; min-height: 0; }
+  .sx-rail { order: 2; padding: 12px; }
+  .sx-rail-title { display: none; }
+
+  /* One row of chips: the unit wrappers stop being boxes. */
+  .sx-focus {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 6px;
+    margin: 0 0 10px;
+    padding-bottom: 6px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .sx-focus-unit { display: contents; }
+  .sx-unit-name { display: none; }
+  .sx-unit-skills { display: contents; }
+  .sx-focus-item {
+    flex: 0 0 auto !important;
+    align-items: center;
+    padding: 7px 11px;
+    border: 1px solid var(--sx-border);
+    border-radius: 999px;
+    font-size: 12.5px;
+    line-height: 1.15;
+    white-space: nowrap;
+  }
+  .sx-focus-item.is-active { border-color: var(--sx-accent); }
+  .sx-focus-mark { width: auto; flex: none; }
+  .sx-focus-name { max-width: 46vw; overflow: hidden; text-overflow: ellipsis; }
+  .sx-focus-level { margin-left: 2px; }
+  .sx-rail-actions { flex-direction: row; }
+  .sx-rail-actions .sx-ghost { flex: 1 1 0; }
+
+  .sx-card { padding: 18px 14px; border-radius: 16px; }
+  .sx-skill { font-size: 20px; }
+  .sx-stem { font-size: 18px; margin-bottom: 16px; }
+  .sx-intro { font-size: 15px; }
+
+  /* Vee is 56px here. The lesson keeps the full width (its placement already
+     keeps the mascot off the paragraph); only the short kicker and stem leave
+     room in the corner. */
+  .sx-intro { padding-right: 0; }
+  .sx-kicker, .sx-stem { padding-right: 58px; }
+  .sx-mascot-dock, .sx-mascot-svg svg { width: 56px; height: 56px; }
+
+  .sx-q-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .sx-q-actions .sx-ghost {
+    width: 100%;
+    padding: 9px 8px;
+    font-size: 12.5px;
+    line-height: 1.25;
+  }
+  .sx-intro-actions { display: grid; grid-template-columns: 1fr; }
+  .sx-intro-actions .sx-btn,
+  .sx-intro-actions .sx-ghost { width: 100%; }
+
+  .sx-option { padding: 12px; font-size: 15.5px; gap: 10px; }
+  .sx-option-key { width: 26px; height: 26px; }
+
+  .sx-ask-row { flex-direction: column; }
+  .sx-ask-row .sx-ghost { width: 100%; }
+
+  .sx-board { inset: 4px; padding: 12px; border-radius: 14px; overflow: auto; }
+  .sx-board-frame { height: 190px; }
+  .sx-board-steps { font-size: 14px; }
+  .sx-board-canvas .vl-widget-host { min-height: 170px; }
+  .sx-board-canvas .vl-widget-view { max-height: 190px; }
+
+  .sx-figure svg, .sx-figure img { max-height: 240px; }
+
+  .sx-celebrate-card { min-width: 0; width: min(92vw, 420px); }
+  .sx-modal-panel { max-height: 88vh; padding: 14px 14px 18px; }
+}
+
+@media (max-width: 400px) {
+  .sx-app { padding: 8px 10px 28px; }
+  .sx-focus-name { max-width: 38vw; }
+  .sx-q-actions { grid-template-columns: 1fr; }
+  .sx-kicker, .sx-stem { padding-right: 0; }
 }

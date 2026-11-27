@@ -1,228 +1,134 @@
 /**
- * Veelearn Mobile Responsiveness Utility
- * Touch controls, hamburger menu, swipe gestures
+ * Veelearn mobile navigation
+ * ---------------------------------------------------------------------------
+ * Collapses the site header's link row behind a menu button at <= 900px and
+ * exposes the helpers the old script offered. It deliberately does not touch
+ * every button's size or synthesise clicks on touchend: that broke toolbars and
+ * fired each tap twice.
  */
+(function () {
+  'use strict';
 
-class MobileResponsive {
-    constructor() {
-        this.touchStartX = 0;
-        this.touchStartY = 0;
-        this.touchEndX = 0;
-        this.touchEndY = 0;
-        this.minSwipeDistance = 50;
-        this.init();
+  var MOBILE_QUERY = '(max-width: 900px)';
+
+  function isMobile() {
+    return window.matchMedia ? window.matchMedia(MOBILE_QUERY).matches : window.innerWidth <= 900;
+  }
+
+  function setVh() {
+    // iOS reports the wrong 100vh while the address bar is showing.
+    document.documentElement.style.setProperty('--vh', window.innerHeight * 0.01 + 'px');
+  }
+
+  function buildToggle() {
+    var toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'vl-nav-toggle';
+    toggle.setAttribute('aria-label', 'Open menu');
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.setAttribute('aria-controls', 'vl-site-nav');
+    toggle.innerHTML = '<span></span><span></span><span></span>';
+    return toggle;
+  }
+
+  function initNav() {
+    var header = document.querySelector('body > header');
+    if (!header || header.classList.contains('vl-nav-ready')) return;
+
+    var nav = header.querySelector('nav');
+    if (!nav) return;
+
+    // Give the panel a name only if the page does not already have one.
+    if (!nav.id) nav.id = 'vl-site-nav';
+
+    var toggle = buildToggle();
+    header.appendChild(toggle);
+    header.classList.add('vl-nav-ready');
+
+    function open() {
+      header.classList.add('vl-nav-open');
+      toggle.setAttribute('aria-expanded', 'true');
+      toggle.setAttribute('aria-label', 'Close menu');
     }
 
-    init() {
-        this.setupTouchControls();
-        this.createHamburgerMenu();
-        this.setupSwipeGestures();
-        this.adjustViewportHeight();
-        console.log('Mobile responsiveness initialized');
+    function close() {
+      header.classList.remove('vl-nav-open');
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.setAttribute('aria-label', 'Open menu');
     }
 
-    setupTouchControls() {
-        // Add touch-friendly classes to interactive elements
-        const touchTargets = document.querySelectorAll('button, a, input[type="button"], input[type="submit"]');
-        touchTargets.forEach(target => {
-            target.classList.add('touch-target');
-            target.style.minHeight = '44px';
-            target.style.minWidth = '44px';
-        });
-
-        // Prevent double-tap zoom on buttons
-        document.addEventListener('touchend', (e) => {
-            if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
-                e.preventDefault();
-                e.target.click();
-            }
-        });
+    function isOpen() {
+      return header.classList.contains('vl-nav-open');
     }
 
-    createHamburgerMenu() {
-        // Check if hamburger menu already exists
-        if (document.getElementById('hamburger-menu')) return;
+    toggle.addEventListener('click', function (event) {
+      event.stopPropagation();
+      if (isOpen()) close();
+      else open();
+    });
 
-        const hamburger = document.createElement('button');
-        hamburger.id = 'hamburger-menu';
-        hamburger.className = 'hamburger-menu';
-        hamburger.setAttribute('aria-label', 'Toggle menu');
-        hamburger.setAttribute('aria-expanded', 'false');
-        hamburger.innerHTML = `
-            <span class="hamburger-line"></span>
-            <span class="hamburger-line"></span>
-            <span class="hamburger-line"></span>
-        `;
+    // A chosen link closes the panel; the navigation itself still happens.
+    nav.addEventListener('click', function (event) {
+      if (event.target.closest('a, button')) close();
+    });
 
-        // Add to header if exists, otherwise to body
-        const header = document.querySelector('header, nav');
-        if (header) {
-            header.appendChild(hamburger);
-        } else {
-            document.body.appendChild(hamburger);
-        }
+    document.addEventListener('click', function (event) {
+      if (isOpen() && !header.contains(event.target)) close();
+    });
 
-        // Create mobile menu
-        this.createMobileMenu();
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && isOpen()) {
+        close();
+        toggle.focus();
+      }
+    });
 
-        // Setup toggle
-        hamburger.addEventListener('click', () => this.toggleMobileMenu());
+    // Leaving the phone layout must not leave a half-open panel behind.
+    if (window.matchMedia) {
+      var mq = window.matchMedia(MOBILE_QUERY);
+      var onChange = function () {
+        if (!mq.matches) close();
+      };
+      if (mq.addEventListener) mq.addEventListener('change', onChange);
+      else if (mq.addListener) mq.addListener(onChange);
     }
+  }
 
-    createMobileMenu() {
-        if (document.getElementById('mobile-menu')) return;
+  function addTouchFeedback(element) {
+    if (!element) return;
+    element.addEventListener(
+      'touchstart',
+      function () {
+        element.classList.add('touch-active');
+      },
+      { passive: true }
+    );
+    var clear = function () {
+      element.classList.remove('touch-active');
+    };
+    element.addEventListener('touchend', clear, { passive: true });
+    element.addEventListener('touchcancel', clear, { passive: true });
+  }
 
-        const mobileMenu = document.createElement('div');
-        mobileMenu.id = 'mobile-menu';
-        mobileMenu.className = 'mobile-menu';
-        mobileMenu.setAttribute('aria-hidden', 'true');
-        
-        // Add navigation links (customize based on actual navigation)
-        mobileMenu.innerHTML = `
-            <nav class="mobile-nav">
-                <a href="#home" class="mobile-nav-link">Home</a>
-                <a href="#courses" class="mobile-nav-link">Courses</a>
-                <a href="#simulators" class="mobile-nav-link">Simulators</a>
-                <a href="#marketplace" class="mobile-nav-link">Marketplace</a>
-                <a href="#profile" class="mobile-nav-link">Profile</a>
-            </nav>
-        `;
+  function start() {
+    initNav();
+    setVh();
+    window.addEventListener('resize', setVh);
+    window.addEventListener('orientationchange', setVh);
+  }
 
-        document.body.appendChild(mobileMenu);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start);
+  } else {
+    start();
+  }
 
-        // Close menu when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('#hamburger-menu') && !e.target.closest('#mobile-menu')) {
-                this.closeMobileMenu();
-            }
-        });
-
-        // Close menu on link click
-        mobileMenu.querySelectorAll('.mobile-nav-link').forEach(link => {
-            link.addEventListener('click', () => this.closeMobileMenu());
-        });
+  window.MobileResponsive = {
+    isMobile: isMobile,
+    addTouchFeedback: addTouchFeedback,
+    closeMenu: function () {
+      var header = document.querySelector('body > header');
+      if (header) header.classList.remove('vl-nav-open');
     }
-
-    toggleMobileMenu() {
-        const menu = document.getElementById('mobile-menu');
-        const hamburger = document.getElementById('hamburger-menu');
-        
-        if (!menu || !hamburger) return;
-
-        const isOpen = menu.classList.contains('open');
-        
-        if (isOpen) {
-            this.closeMobileMenu();
-        } else {
-            this.openMobileMenu();
-        }
-    }
-
-    openMobileMenu() {
-        const menu = document.getElementById('mobile-menu');
-        const hamburger = document.getElementById('hamburger-menu');
-        
-        if (!menu || !hamburger) return;
-
-        menu.classList.add('open');
-        menu.setAttribute('aria-hidden', 'false');
-        hamburger.classList.add('open');
-        hamburger.setAttribute('aria-expanded', 'true');
-        document.body.style.overflow = 'hidden';
-    }
-
-    closeMobileMenu() {
-        const menu = document.getElementById('mobile-menu');
-        const hamburger = document.getElementById('hamburger-menu');
-        
-        if (!menu || !hamburger) return;
-
-        menu.classList.remove('open');
-        menu.setAttribute('aria-hidden', 'true');
-        hamburger.classList.remove('open');
-        hamburger.setAttribute('aria-expanded', 'false');
-        document.body.style.overflow = '';
-    }
-
-    setupSwipeGestures() {
-        document.addEventListener('touchstart', (e) => {
-            this.touchStartX = e.changedTouches[0].screenX;
-            this.touchStartY = e.changedTouches[0].screenY;
-        }, { passive: true });
-
-        document.addEventListener('touchend', (e) => {
-            this.touchEndX = e.changedTouches[0].screenX;
-            this.touchEndY = e.changedTouches[0].screenY;
-            this.handleSwipe();
-        }, { passive: true });
-    }
-
-    handleSwipe() {
-        const deltaX = this.touchEndX - this.touchStartX;
-        const deltaY = this.touchEndY - this.touchStartY;
-
-        // Check if it's a horizontal swipe
-        if (Math.abs(deltaX) > Math.abs(deltaY)) {
-            if (Math.abs(deltaX) > this.minSwipeDistance) {
-                if (deltaX > 0) {
-                    this.handleSwipeRight();
-                } else {
-                    this.handleSwipeLeft();
-                }
-            }
-        }
-    }
-
-    handleSwipeLeft() {
-        // Swipe left - open menu or go back
-        const menu = document.getElementById('mobile-menu');
-        if (menu && !menu.classList.contains('open')) {
-            this.openMobileMenu();
-        }
-    }
-
-    handleSwipeRight() {
-        // Swipe right - close menu
-        const menu = document.getElementById('mobile-menu');
-        if (menu && menu.classList.contains('open')) {
-            this.closeMobileMenu();
-        }
-    }
-
-    adjustViewportHeight() {
-        // Fix viewport height on mobile browsers (especially iOS)
-        const setVh = () => {
-            const vh = window.innerHeight * 0.01;
-            document.documentElement.style.setProperty('--vh', `${vh}px`);
-        };
-
-        setVh();
-        window.addEventListener('resize', setVh);
-        window.addEventListener('orientationchange', setVh);
-    }
-
-    isMobile() {
-        return window.innerWidth <= 768;
-    }
-
-    addTouchFeedback(element) {
-        element.addEventListener('touchstart', () => {
-            element.classList.add('touch-active');
-        }, { passive: true });
-
-        element.addEventListener('touchend', () => {
-            setTimeout(() => {
-                element.classList.remove('touch-active');
-            }, 100);
-        }, { passive: true });
-
-        element.addEventListener('touchcancel', () => {
-            element.classList.remove('touch-active');
-        }, { passive: true });
-    }
-}
-
-// Initialize global mobile responsiveness
-window.mobileResponsive = new MobileResponsive();
-
-console.log('Mobile responsiveness utility loaded');
+  };
+})();

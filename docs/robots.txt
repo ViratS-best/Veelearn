@@ -1,8 +1,42 @@
+# Veelearn — public pages are open to search engines and answer engines.
 User-agent: *
 Allow: /
 Disallow: /api/
-Disallow: /dashboard
-Disallow: /course-editor
 Disallow: /auth
+Disallow: /session.html
+Disallow: /outline.html
+Disallow: /course-editor
+Disallow: /simulator-studio.html
+Disallow: /simulator-creator.html
+Disallow: /simulator-execute.html
+Disallow: /scratch-studio.html
+Disallow: /block-simulator.html
+Disallow: /visual-simulator.html
+Disallow: /*-dashboard.html
+
+# AI answer engines: the same public pages, the same private exclusions.
+User-agent: GPTBot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: ClaudeBot
+User-agent: Claude-SearchBot
+User-agent: PerplexityBot
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+User-agent: CCBot
+User-agent: Bingbot
+Allow: /
+Disallow: /api/
+Disallow: /auth
+Disallow: /session.html
+Disallow: /outline.html
+Disallow: /course-editor
+Disallow: /simulator-studio.html
+Disallow: /simulator-creator.html
+Disallow: /simulator-execute.html
+Disallow: /scratch-studio.html
+Disallow: /block-simulator.html
+Disallow: /visual-simulator.html
+Disallow: /*-dashboard.html
 
 Sitemap: https://veelearn.org/sitemap.xml

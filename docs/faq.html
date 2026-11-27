@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" type="image/png" href="/VEELEARN.png" loading="lazy">
   <link rel="shortcut icon" href="/VEELEARN.png" loading="lazy">
-  <meta name="description" content="Veelearn FAQ - Find answers to common questions about our free STEM learning platform, including how to use simulations, create courses, and earn volunteer hours." />
-  <title>Veelearn FAQ - Frequently Asked Questions | Free STEM Learning Platform</title>
+  <meta name="description" content="Answers about Veelearn's AI tutor, mastery-tracked practice, free STEM courses, simulations, teacher tools and volunteer hours." />
+  <title>Veelearn FAQ — AI Tutor, Practice & Volunteer Hours</title>
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="styles-redesign.css" />
   <link rel="stylesheet" href="styles-humanized.css" />
@@ -20,12 +20,12 @@
   <meta property="og:description" content="Find answers to common questions about our free STEM learning platform." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://veelearn.org/faq.html" />
-  <meta property="og:image" content="https://veelearn.org/VEELEARN.png" />
+  <meta property="og:image" content="https://veelearn.org/assets/og-image.png" />
   
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Veelearn FAQ - Frequently Asked Questions" />
   <meta name="twitter:description" content="Find answers to common questions about our free STEM learning platform." />
-  <meta name="twitter:image" content="https://veelearn.org/VEELEARN.png" />
+  <meta name="twitter:image" content="https://veelearn.org/assets/og-image.png" />
 
   <script type="application/ld+json">
   {
@@ -38,6 +38,22 @@
         "acceptedAnswer": {
           "@type": "Answer",
           "text": "Yes, Veelearn is completely free to use. All simulations, courses, and features are available at no cost. We believe in making STEM education accessible to everyone."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How does the AI tutor on Veelearn work?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Every skill opens with a written lesson built for it: the idea, worked examples at the difficulty of your practice card, and the mistakes to avoid. Vee then asks one question at a time, gives a specific hint when you are stuck, draws the situation on the board when a picture helps, and keeps working the skill until you reach mastery level 3 of 4."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is mastery on Veelearn?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Each skill tracks mastery from 1 to 4. Correct answers move you up, a wrong answer brings the next question down to an easier tier, and a unit stays open until you have answered enough cards correctly at level 3."
         }
       },
       {
@@ -135,6 +151,7 @@
     ]
   }
   </script>
+  <link rel="stylesheet" href="responsive.css?v=1" />
 </head>
 
 <body>
@@ -159,6 +176,16 @@
         <details style="border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 15px; background: var(--bg-card);">
           <summary style="font-size: 18px; font-weight: 600; cursor: pointer;">Is Veelearn completely free?</summary>
           <p style="margin-top: 15px; line-height: 1.8;">Yes, Veelearn is completely free to use. All simulations, courses, and features are available at no cost. We believe in making STEM education accessible to everyone.</p>
+        </details>
+
+        <details style="border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 15px; background: var(--bg-card);">
+          <summary style="font-size: 18px; font-weight: 600; cursor: pointer;">How does the AI tutor on Veelearn work?</summary>
+          <p style="margin-top: 15px; line-height: 1.8;">Every skill opens with a written lesson built for it: the idea, worked examples at the difficulty of your practice card, and the mistakes to avoid. Vee then asks one question at a time, gives a specific hint when you are stuck, draws the situation on the board when a picture helps, and keeps working the skill until you reach mastery level 3 of 4.</p>
+        </details>
+
+        <details style="border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 15px; background: var(--bg-card);">
+          <summary style="font-size: 18px; font-weight: 600; cursor: pointer;">What is mastery on Veelearn?</summary>
+          <p style="margin-top: 15px; line-height: 1.8;">Each skill tracks mastery from 1 to 4. Correct answers move you up, a wrong answer brings the next question down to an easier tier, and a unit stays open until you have answered enough cards correctly at level 3.</p>
         </details>
 
         <details style="border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 15px; background: var(--bg-card);">
@@ -216,10 +243,23 @@
     </article>
   </main>
 
-  <footer>
+  
+  <!-- VEELEARN-SIGNUP-CTA -->
+  <section style="margin:48px auto;max-width:900px;padding:34px 26px;border-radius:22px;background:linear-gradient(135deg,#2a1b6b,#5b34b8 55%,#8b45d8);color:#f3efff;font-family:'Segoe UI',system-ui,sans-serif;text-align:center;">
+    <h2 style="margin:0 0 10px;color:#fff;font-size:clamp(1.5rem,3vw,2.1rem);line-height:1.15;">Sign up to start learning now!</h2>
+    <p style="margin:0 auto 20px;max-width:640px;color:#ddd6fe;font-size:1rem;line-height:1.6;">Veelearn is a nonprofit, so every AI lesson, practice card and simulation is 100% free — and it stays that way. Fiscally sponsored by Hack Club.</p>
+    <p style="margin:0 0 18px;">
+      <a href="/student-signup.html?from=site-cta" style="display:inline-block;padding:14px 26px;margin:4px;border-radius:999px;background:#fff;color:#4c1d95;font-weight:800;text-decoration:none;">Sign up to start learning now!</a>
+      <a href="/teacher-signup.html?from=site-cta" style="display:inline-block;padding:14px 26px;margin:4px;border-radius:999px;border:1px solid rgba(255,255,255,.4);color:#fff;font-weight:700;text-decoration:none;">I'm a teacher</a>
+    </p>
+    <p style="margin:0;font-size:.88rem;color:#c4b5fd;">Keep it free for everyone: <a href="https://hcb.hackclub.com/veelearn" style="color:#fff;text-decoration:underline;">donate here</a> · <a href="/compare.html" style="color:#fff;text-decoration:underline;">compare Veelearn</a></p>
+  </section>
+  <!-- /VEELEARN-SIGNUP-CTA -->
+<footer>
     <p>&copy; 2026 Veelearn. A Hack Foundation Project.</p>
   </footer>
 
   <script src="script.js"></script>
+  <script src="mobile-responsive.js?v=2" defer></script>
 </body>
 </html>
