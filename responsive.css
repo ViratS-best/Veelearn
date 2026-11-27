@@ -1,0 +1,536 @@
+/*
+ * Veelearn responsive layer
+ * ---------------------------------------------------------------------------
+ * Loaded after every other stylesheet so a single file can correct the layout
+ * at each device width. Breakpoints:
+ *
+ *   1180px  small laptop / tablet landscape
+ *    980px  tablet
+ *    900px  header nav collapses behind a menu button
+ *    760px  tablet portrait / large phone
+ *    560px  phone
+ *    400px  small phone
+ *
+ * Nothing here changes colour, type or decoration on desktop; every rule lives
+ * inside a max-width query (plus touch and safe-area helpers at the end).
+ */
+
+/* ------------------------------------------------------------------ base */
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+img,
+picture,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Icons keep their own width; oversized inline artwork is capped instead. */
+svg {
+  max-width: 100%;
+}
+
+pre {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* Long unbroken strings (URLs, LaTeX) must wrap instead of widening the page. */
+.sx-stem,
+.ls-session-summary,
+.dashboard-card p,
+.modal-content p {
+  overflow-wrap: anywhere;
+}
+
+/* --------------------------------------------------------------- header */
+
+/*
+ * The menu button ships hidden. mobile-responsive.js adds .vl-nav-ready once it
+ * has wired the button, so a page without JavaScript keeps a normal (gently
+ * scrolling) nav instead of losing it.
+ */
+.vl-nav-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 44px;
+  height: 44px;
+  padding: 0 11px;
+  margin-left: auto;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-light, #f8fafc);
+  cursor: pointer;
+  order: 2;
+  flex: none;
+}
+
+.vl-nav-toggle span {
+  display: block;
+  width: 100%;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+header.vl-nav-open .vl-nav-toggle span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+header.vl-nav-open .vl-nav-toggle span:nth-child(2) { opacity: 0; }
+header.vl-nav-open .vl-nav-toggle span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* ------------------------------------------------------- tablet landscape */
+
+@media (max-width: 1180px) {
+  main:not(.sx-main) { padding: 20px; }
+  .course-editor-layout { gap: 14px; padding: 14px; }
+  .editor-sidebar,
+  .editor-inspector { padding: 16px; }
+}
+
+/* --------------------------------------------------------------- tablet */
+
+@media (max-width: 980px) {
+  .viewer-layout { grid-template-columns: minmax(0, 1fr) !important; }
+  .related-courses { max-height: none; }
+  .quick-actions { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+}
+
+/* ------------------------------------------------ header nav on small screens */
+
+@media (max-width: 900px) {
+  body > header {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px 16px;
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+
+  body > header h1 { font-size: 1.35rem; }
+
+  body > header.vl-nav-ready .vl-nav-toggle { display: flex; }
+
+  /* Collapsed panel: one full-width row per link, comfortable to tap. */
+  body > header.vl-nav-ready nav {
+    display: none;
+    order: 3;
+    flex-basis: 100%;
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    max-height: calc(100vh - 90px);
+    overflow-y: auto;
+  }
+
+  body > header.vl-nav-ready.vl-nav-open nav { display: flex; }
+
+  body > header.vl-nav-ready nav a,
+  body > header.vl-nav-ready nav button {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    padding: 12px 14px;
+    text-align: left;
+    font-size: 1rem;
+    border-radius: 10px;
+  }
+
+  body > header.vl-nav-ready nav button { border: 0; }
+
+  /* No JavaScript: the links stay available as one scrollable row. */
+  body > header:not(.vl-nav-ready) nav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    width: 100%;
+    gap: 4px;
+    padding-bottom: 2px;
+  }
+
+  body > header:not(.vl-nav-ready) nav a,
+  body > header:not(.vl-nav-ready) nav button { white-space: nowrap; }
+}
+
+/* ------------------------------------------------ tablet portrait / phone */
+
+@media (max-width: 760px) {
+  main:not(.sx-main) { padding: 16px 14px; }
+
+  /* Never the session stage: it has its own padding scale in session.css. */
+  section:not([class*='sx-']) {
+    padding: 20px 16px;
+    border-radius: 16px;
+    margin-bottom: 20px;
+  }
+
+  /* Inline paddings on the landing, auth and dashboard sections. */
+  #landing-page,
+  #dashboard-section,
+  #auth-section { padding: 18px 14px !important; }
+
+  /* stem-polish.css pins the landing hero to a 570px card with a 12vw
+     headline and a capped measure; on a phone that is a screen of type before
+     any content, so the card shrinks to its text and the headline gets a
+     readable size. !important matches the source rules. */
+  #landing-page .hero {
+    min-height: 0 !important;
+    padding: 24px 18px !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+  }
+
+  /* The decorative kicker was absolutely placed for the tall card. */
+  #landing-page .hero::after {
+    position: static !important;
+    order: -1;
+    margin-bottom: 10px;
+  }
+
+  #landing-page .hero h1,
+  #landing-page h1 {
+    max-width: none !important;
+    margin: 8px 0 14px !important;
+    font-size: clamp(1.6rem, 7.2vw, 2.2rem) !important;
+    line-height: 1.16 !important;
+    letter-spacing: -0.02em !important;
+    text-wrap: pretty;
+  }
+
+  #landing-page p,
+  #landing-page .hero p { font-size: 1rem !important; line-height: 1.6 !important; }
+
+  .hero-actions,
+  .landing-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .hero-actions button,
+  .hero-actions a,
+  .landing-buttons button { width: 100%; justify-content: center; text-align: center; }
+
+  .features-grid,
+  .steps-grid,
+  .quick-actions,
+  .topic-card,
+  .course-grid,
+  .blog-grid,
+  .simulators-grid,
+  .simulator-grid { grid-template-columns: minmax(0, 1fr) !important; }
+
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .dashboard-header h1 { font-size: 24px; }
+
+  /* Editing surfaces: one column, no fixed side panels. */
+  .course-editor-layout,
+  .course-editor-layout.sidebar-collapsed,
+  .course-editor-layout.inspector-collapsed,
+  .course-editor-layout.sidebar-collapsed.inspector-collapsed {
+    grid-template-columns: minmax(0, 1fr) !important;
+    padding: 12px;
+    gap: 12px;
+    min-height: 0;
+  }
+
+  .editor-sidebar,
+  .editor-inspector {
+    max-height: none;
+    overflow: visible;
+    padding: 14px;
+  }
+
+  .sidebar-collapse-rail { display: none; }
+
+  .editor-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .editor-actions,
+  .form-actions,
+  .modal-actions { flex-wrap: wrap; gap: 8px; }
+
+  .editor-actions button,
+  .modal-actions button { flex: 1 1 140px; }
+
+  .viewer-layout { padding: 12px; gap: 16px; }
+  .viewer-content { padding: 16px; border-radius: 12px; }
+  .viewer-sticky-hud { flex-wrap: wrap; gap: 6px; }
+
+  .vl-card { padding: 16px !important; }
+
+  /* Dashboard pages share these class names. */
+  .dashboard-container { padding: 12px; }
+
+  .dashboard-grid,
+  .drag-drop-container { grid-template-columns: minmax(0, 1fr) !important; }
+
+  .dashboard-card { padding: 16px; }
+
+  .tabs,
+  .ls-session-tabs {
+    display: flex;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    flex-wrap: nowrap;
+    gap: 6px;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tabs button,
+  .tab { white-space: nowrap; flex: none; }
+
+  /* Forms: 16px stops iOS zooming into every field. */
+  input[type='text'],
+  input[type='email'],
+  input[type='password'],
+  input[type='search'],
+  input[type='tel'],
+  input[type='url'],
+  input[type='number'],
+  input[type='date'],
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  .modal { padding: 12px; }
+
+  .modal-content {
+    width: 100%;
+    max-width: 100%;
+    max-height: 86vh;
+    overflow-y: auto;
+    margin: 8vh auto;
+    padding: 20px 16px;
+  }
+
+  .modal-content h2 { font-size: 1.25rem; }
+
+  .close-modal {
+    top: 8px;
+    right: 10px;
+    font-size: 26px;
+  }
+
+  .vl-modal-panel { max-height: 88vh; overflow-y: auto; padding: 16px; }
+
+  table { display: block; max-width: 100%; overflow-x: auto; }
+}
+
+/* ---------------------------------------------------------------- phone */
+
+@media (max-width: 560px) {
+  body { font-size: 15.5px; }
+
+  main:not(.sx-main) { padding: 12px 10px; }
+  section:not([class*='sx-']) { padding: 16px 12px; }
+
+  body > header { padding: 10px 12px; }
+  body > header h1 { font-size: 1.2rem; }
+
+  h1 { font-size: clamp(1.4rem, 7vw, 1.8rem); }
+  h2 { font-size: clamp(1.15rem, 5.4vw, 1.45rem); }
+  h3 { font-size: 1.05rem; }
+
+  .dashboard-header h1 { font-size: 21px; }
+  .dashboard-card h2 { font-size: 1.1rem; }
+
+  .parent-code-box { width: 100%; padding: 12px 16px; }
+  .parent-code-box .code { font-size: 24px; letter-spacing: 2px; }
+
+  .class-list li,
+  .assignment-list li,
+  .post-list li,
+  .message-list li,
+  .calendar-list li {
+    padding: 12px !important;
+  }
+
+  .modal { align-items: flex-start; padding: 8px; }
+  .modal-content { margin: 4vh auto; padding: 18px 14px; }
+
+  .ls-settings-card,
+  .ls-help-card { padding: 16px; }
+
+  .related-item { padding: 10px; }
+
+  .editor-toolbar { flex-direction: column; gap: 8px; }
+  .editor-toolbar button { width: 100%; }
+
+  .pagination-controls,
+  .pagination-buttons {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .page-strip { overflow-x: auto; }
+
+  .viewer-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .viewer-header h1 { font-size: 1.35rem; line-height: 1.25; }
+}
+
+/* ----------------------------------------------------------- small phone */
+
+@media (max-width: 400px) {
+  main:not(.sx-main) { padding: 10px 8px; }
+  section:not([class*='sx-']) { padding: 14px 10px; border-radius: 14px; }
+
+  body > header h1 { font-size: 1.1rem; }
+  body > header nav a,
+  body > header nav button { padding: 10px 12px; }
+
+  .dashboard-card { padding: 14px 12px; }
+}
+
+/* ------------------------------------------------------- learner shell */
+
+@media (max-width: 860px) {
+  #learner-main { padding: 64px 14px 40px; }
+
+  .ls-mobile-toggle {
+    top: max(12px, env(safe-area-inset-top));
+    left: max(12px, env(safe-area-inset-left));
+  }
+
+  .ls-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ls-created-grid,
+  .ls-store-grid,
+  .ls-badges { grid-template-columns: minmax(0, 1fr); }
+
+  .ls-ai-box { min-height: 280px; }
+  .ls-ai-composer { flex-wrap: wrap; }
+  .ls-ai-composer textarea { min-height: 48px; flex: 1 1 220px; }
+  .ls-ai-composer button { flex: 0 0 auto; }
+
+  .ls-session-tools { flex-direction: column; align-items: stretch; }
+  .ls-session-search { flex: 1 1 auto; }
+  .ls-session-top { flex-wrap: wrap; }
+  .ls-enrolled-list li { flex-wrap: wrap; }
+}
+
+@media (max-width: 560px) {
+  #learner-main { padding: 60px 10px 32px; }
+
+  .ls-pane { max-width: none; }
+
+  .ls-home-hero { margin: 24px 0 18px; gap: 10px; }
+  .ls-home-hero h2 { font-size: 1.45rem; }
+  .ls-home-hero img { width: 56px; height: 56px; }
+
+  .ls-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .ls-metric { padding: 12px; }
+  .ls-metric img { width: 36px; height: 36px; margin-bottom: 4px; }
+  .ls-metric .val { font-size: 1.15rem; }
+
+  .ls-ach-header { flex-direction: column; gap: 10px; }
+  .ls-ach-header h2 { font-size: 1.6rem; }
+  .ls-ach-header img { width: 84px; height: 84px; }
+
+  .ls-enrolled-list li { flex-direction: column; align-items: stretch; }
+  .ls-cert-row { flex-direction: column; align-items: stretch; }
+  .ls-cert-actions a { justify-content: center; }
+
+  .ls-section-title { font-size: 1.4rem; }
+
+  .ls-bubble-user,
+  .ls-bubble-coach { padding: 10px 12px !important; }
+
+  .ls-gem-toast { left: 10px; right: 10px; transform: none; justify-content: center; }
+
+  .ls-profile-name { max-width: 50vw; }
+}
+
+/* -------------------------------------------------------- outline creator */
+/* Scoped with .outline-page (the body class on outline.html): .wrap, .bar,
+   .panel and .skill exist on other pages too. */
+
+@media (max-width: 760px) {
+  .outline-page .bar {
+    position: static;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .outline-page .bar select { max-width: 100%; flex: 1 1 160px; }
+  .outline-page .bar .btn { font-size: 13px; padding: 7px 10px; }
+  .outline-page .bar .status { flex-basis: 100%; }
+
+  .outline-page .wrap { padding: 12px 12px 48px; gap: 12px; }
+
+  .outline-page .panel { padding: 12px; border-radius: 14px; }
+
+  .outline-page .map-head { flex-wrap: wrap; }
+  .outline-page .unit-title { font-size: 19px; }
+
+  .outline-page .circles {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    padding: 2px 2px 8px;
+    margin: 14px 0 6px;
+  }
+
+  .outline-page .skill { flex: none; }
+
+  .outline-page .q-card .q-head { flex-wrap: wrap; }
+
+  .outline-page .bank-item { grid-template-columns: minmax(0, 1fr) !important; }
+  .outline-page .bank-item .thumb { justify-content: flex-start; }
+
+  .outline-page .modal { padding: 8px; }
+  .outline-page .modal-card { padding: 14px; max-height: 92vh; }
+
+  .outline-page .opt-row { grid-template-columns: 24px minmax(0, 1fr) 30px; }
+}
+
+/* ---------------------------------------------------------------- touch */
+
+@media (pointer: coarse) {
+  .sx-ghost,
+  .sx-btn,
+  .btn,
+  .primary-btn,
+  .secondary-btn,
+  body > header nav a,
+  body > header nav button,
+  .ls-nav-btn {
+    min-height: 44px;
+  }
+
+  /* A hover lift on touch leaves the element stuck halfway through a tap. */
+  .sx-option:hover:not(:disabled),
+  .ls-session-card:hover { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vl-nav-toggle span { transition: none; }
+}
+
+/* Notched devices: keep edge content inside the safe area. */
+@supports (padding: env(safe-area-inset-left)) {
+  .sx-app,
+  #learner-main {
+    padding-left: max(10px, env(safe-area-inset-left));
+    padding-right: max(10px, env(safe-area-inset-right));
+  }
+}

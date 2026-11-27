@@ -1,0 +1,47 @@
+/**
+ * Veelearn mobile navigation + touch affordances
+ * ---------------------------------------------------------------------------
+ * Layout lives in responsive.css; this file only holds the collapsed menu and
+ * the small touch helpers. The old version sized every button to 44x44px and
+ * every input to 100% on phones, which broke toolbars, icon buttons and the
+ * session page's option rows.
+ */
+
+/* ------------------------------------------------------------- menu button */
+
+.hamburger-menu,
+.mobile-menu,
+.mobile-nav { display: none; }
+
+/* Replaced by .vl-nav-toggle in responsive.css. Kept so a stale cached page
+   never renders a bare button. */
+.hamburger-menu { display: none !important; }
+
+/* -------------------------------------------------------------- touch bits */
+
+.touch-target {
+    min-height: 44px;
+    min-width: 44px;
+}
+
+.touch-active {
+    transform: scale(0.97);
+    opacity: 0.85;
+}
+
+/* A tap highlight on every control looks like a stuck hover state. */
+@media (hover: none) {
+    a,
+    button,
+    .sx-option,
+    .ls-nav-btn {
+        -webkit-tap-highlight-color: rgba(234, 88, 12, 0.12);
+    }
+}
+
+/* Safe area support for notched devices */
+@supports (padding: max(0px)) {
+    .vl-nav-toggle {
+        margin-right: env(safe-area-inset-right);
+    }
+}

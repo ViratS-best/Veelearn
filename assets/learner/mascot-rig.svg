@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Veelearn study buddy">
+  <!--
+    Vee: a small round study buddy. Every moving part keeps its id so mascot.js can
+    drive pupils, brows, mouth, arms and pencil without swapping files.
+  -->
+  <defs>
+    <linearGradient id="rigGrad" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0%" stop-color="#FFD3A5"/>
+      <stop offset="45%" stop-color="#FFAE72"/>
+      <stop offset="100%" stop-color="#FB8C4B"/>
+    </linearGradient>
+    <linearGradient id="rigGradDark" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0%" stop-color="#FFB27A"/>
+      <stop offset="100%" stop-color="#F97316"/>
+    </linearGradient>
+    <radialGradient id="rigCheek" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#FB7185" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#FB7185" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="rigSoft" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#9A3412" flood-opacity="0.20"/>
+    </filter>
+  </defs>
+
+  <g id="m-root">
+    <ellipse id="m-shadow" cx="64" cy="119" rx="27" ry="4.4" fill="#1a1a1a" opacity="0.10"/>
+
+    <g id="m-body">
+      <!-- little arms, rounded stubs -->
+      <g id="m-arm-l"><path d="M31 88 q-11 3 -13 12" stroke="#FCA46B" stroke-width="8" stroke-linecap="round" fill="none"/></g>
+      <g id="m-arm-r"><path d="M97 88 q11 3 13 12" stroke="#FCA46B" stroke-width="8" stroke-linecap="round" fill="none"/></g>
+
+      <!-- pencil in the right hand -->
+      <g id="m-pencil">
+        <rect x="107" y="98" width="4.2" height="17" rx="1.8" fill="#FBBF24"/>
+        <path d="M107 115 h4.2 l-2.1 4.2z" fill="#334155"/>
+        <rect x="107" y="98" width="4.2" height="3" rx="1.4" fill="#F59E0B"/>
+      </g>
+
+      <!-- body: a soft bean, no legs or feet -->
+      <path id="m-torso" d="M64 62 c21 0 32 12 32 26 c0 14 -14 22 -32 22 c-18 0 -32 -8 -32 -22 c0 -14 11 -26 32 -26 z"
+            fill="url(#rigGradDark)" filter="url(#rigSoft)"/>
+
+      <!-- head: big and round, the cute part -->
+      <circle id="m-head" cx="64" cy="47" r="35" fill="url(#rigGrad)" filter="url(#rigSoft)"/>
+      <path d="M45 24 q6 5 0 10 M64 20 q7 6 0 11 M83 24 q6 5 0 10"
+            stroke="#ffffff" stroke-opacity="0.35" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+
+      <!-- a tiny tuft, so the head is not a plain circle -->
+      <path d="M64 12 q6 -7 11 -1 q-6 0 -8 4" fill="#FDBA74"/>
+
+      <!-- blush -->
+      <ellipse cx="38" cy="58" rx="7" ry="5" fill="url(#rigCheek)"/>
+      <ellipse cx="90" cy="58" rx="7" ry="5" fill="url(#rigCheek)"/>
+
+      <!-- eyes: big whites, smile arcs for happy -->
+      <ellipse id="m-eye-l" cx="50" cy="46" rx="10.5" ry="11.5" fill="#ffffff"/>
+      <ellipse id="m-eye-r" cx="78" cy="46" rx="10.5" ry="11.5" fill="#ffffff"/>
+      <path id="m-smile-l" class="rig-smile" d="M42 47 q8 -8 16 0" fill="none" stroke="#334155" stroke-width="3.2" stroke-linecap="round"/>
+      <path id="m-smile-r" class="rig-smile" d="M70 47 q8 -8 16 0" fill="none" stroke="#334155" stroke-width="3.2" stroke-linecap="round"/>
+
+      <!-- pupils: translated each frame by mascot.js; highlight rides along -->
+      <g id="m-pupil-l" class="rig-pupil">
+        <circle cx="50" cy="46" r="5.6" fill="#1F2937"/>
+        <circle cx="48" cy="43.4" r="1.9" fill="#ffffff" opacity="0.95"/>
+        <circle cx="52.4" cy="49" r="0.9" fill="#ffffff" opacity="0.6"/>
+      </g>
+      <g id="m-pupil-r" class="rig-pupil">
+        <circle cx="78" cy="46" r="5.6" fill="#1F2937"/>
+        <circle cx="76" cy="43.4" r="1.9" fill="#ffffff" opacity="0.95"/>
+        <circle cx="80.4" cy="49" r="0.9" fill="#ffffff" opacity="0.6"/>
+      </g>
+
+      <!-- brows -->
+      <path id="m-brow-l" d="M41 31 q9 -4.5 18 0" fill="none" stroke="#C2410C" stroke-width="2.8" stroke-linecap="round"/>
+      <path id="m-brow-r" d="M69 31 q9 -4.5 18 0" fill="none" stroke="#C2410C" stroke-width="2.8" stroke-linecap="round"/>
+
+      <!-- mouth: path swapped by mood -->
+      <path id="m-mouth" d="M56 62 Q64 70 72 62" fill="none" stroke="#334155" stroke-width="3.2" stroke-linecap="round"/>
+    </g>
+  </g>
+</svg>

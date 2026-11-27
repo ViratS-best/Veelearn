@@ -1,0 +1,358 @@
+/**
+ * Veelearn Theme Toggle CSS
+ * Dark/light mode toggle styles with transitions
+ * Overrides existing styles.css variables for light mode
+ */
+
+/* Theme toggle button */
+.theme-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 2px solid rgba(59, 130, 246, 0.3);
+    background: white;
+    font-size: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+}
+
+.theme-toggle:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+}
+
+.theme-toggle:active {
+    transform: scale(0.95);
+}
+
+.theme-toggle:focus {
+    outline: 3px solid rgba(59, 130, 246, 0.5);
+    outline-offset: 2px;
+}
+
+/* Light theme overrides - makes everything light */
+[data-theme="light"] {
+    --bg-dark: #ffffff !important;
+    --bg-card: #f8fafc !important;
+    --bg-input: #ffffff !important;
+    --text-light: #1e293b !important;
+    --text-muted: #64748b !important;
+    --border: #e2e8f0 !important;
+}
+
+/* Dark theme uses existing styles.css values */
+[data-theme="dark"] {
+    --bg-dark: #09090b !important;
+    --bg-card: #18181b !important;
+    --bg-input: #09090b !important;
+    --text-light: #fafafa !important;
+    --text-muted: #a1a1aa !important;
+    --border: #27272a !important;
+
+    /* K-12 STEM Theme Dark Overrides */
+    --k12-bg: #09090b !important;
+    --k12-bg-alt: #0a0e27 !important;
+    --k12-surface: #18181b !important;
+    --k12-ink: #fafafa !important;
+    --k12-ink-soft: #a1a1aa !important;
+    --k12-border: #27272a !important;
+    --k12-shadow: 0 10px 26px rgba(0, 0, 0, 0.5) !important;
+    --k12-header-gradient: linear-gradient(120deg, rgba(9, 9, 11, 0.96), rgba(24, 24, 27, 0.96)) !important;
+}
+
+/* Apply transitions to all elements */
+body,
+header,
+nav,
+main,
+section,
+div,
+span,
+p,
+h1, h2, h3, h4, h5, h6,
+a,
+button,
+input,
+textarea,
+select,
+ul, ol, li,
+table, th, td,
+.modal,
+.modal-content,
+.card,
+.course-card,
+.auth-form,
+.quiz-question,
+.quiz-option,
+.feature-card,
+.landing-buttons button {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, background 0.3s ease !important;
+}
+
+/* Specific element overrides for light mode */
+[data-theme="light"] body {
+    background-color: #ffffff !important;
+    color: #1e293b !important;
+}
+
+[data-theme="light"] header {
+    background-color: #ffffff !important;
+    border-bottom-color: #e2e8f0 !important;
+}
+
+[data-theme="light"] header h1,
+[data-theme="light"] header a,
+[data-theme="light"] header button {
+    color: #1e293b !important;
+}
+
+[data-theme="light"] section {
+    background-color: #f8fafc !important;
+    border-color: #e2e8f0 !important;
+}
+
+[data-theme="light"] section h2 {
+    color: #3b82f6 !important;
+    border-bottom-color: #3b82f6 !important;
+}
+
+[data-theme="light"] section h3,
+[data-theme="light"] section h4 {
+    color: #1e293b !important;
+}
+
+[data-theme="light"] section p {
+    color: #64748b !important;
+}
+
+[data-theme="light"] input,
+[data-theme="light"] textarea,
+[data-theme="light"] select {
+    background-color: #ffffff !important;
+    color: #1e293b !important;
+    border-color: #e2e8f0 !important;
+}
+
+[data-theme="light"] input::placeholder,
+[data-theme="light"] textarea::placeholder {
+    color: #94a3b8 !important;
+}
+
+[data-theme="light"] button,
+[data-theme="light"] .btn,
+[data-theme="light"] .secondary-btn,
+[data-theme="light"] .primary-btn,
+[data-theme="light"] .success-btn,
+[data-theme="light"] .create-course-btn,
+[data-theme="light"] .btn-save,
+[data-theme="light"] .btn-publish {
+    color: #1e293b !important;
+}
+
+[data-theme="light"] .auth-form {
+    background-color: #ffffff !important;
+    border-color: #e2e8f0 !important;
+}
+
+[data-theme="light"] li {
+    background-color: #ffffff !important;
+    border-color: #e2e8f0 !important;
+    color: #1e293b !important;
+}
+
+[data-theme="light"] li strong {
+    color: #3b82f6 !important;
+}
+
+[data-theme="light"] li p {
+    color: #64748b !important;
+}
+
+[data-theme="light"] .modal {
+    background-color: rgba(0, 0, 0, 0.5) !important;
+}
+
+[data-theme="light"] .modal-content {
+    background-color: #ffffff !important;
+    border-color: #e2e8f0 !important;
+    color: #1e293b !important;
+}
+
+[data-theme="light"] .close-modal {
+    color: #64748b !important;
+}
+
+[data-theme="light"] .close-modal:hover {
+    color: #1e293b !important;
+}
+
+[data-theme="light"] .feature-card {
+    background-color: #ffffff !important;
+    border-color: #e2e8f0 !important;
+}
+
+[data-theme="light"] .feature-card h3 {
+    color: #3b82f6 !important;
+}
+
+[data-theme="light"] .feature-card p {
+    color: #64748b !important;
+}
+
+[data-theme="light"] .landing-buttons .secondary-btn {
+    color: #1e293b !important;
+    border-color: #3b82f6 !important;
+}
+
+[data-theme="light"] .quiz-question {
+    background-color: #ffffff !important;
+    border-color: #e2e8f0 !important;
+}
+
+[data-theme="light"] .quiz-question-text {
+    color: #1e293b !important;
+}
+
+[data-theme="light"] .quiz-option {
+    background-color: #ffffff !important;
+    border-color: #e2e8f0 !important;
+}
+
+[data-theme="light"] .quiz-option label {
+    color: #1e293b !important;
+}
+
+[data-theme="light"] #course-content-editor {
+    background-color: #ffffff !important;
+    color: #1e293b !important;
+    border-color: #e2e8f0 !important;
+}
+
+[data-theme="light"] .editor-toolbar {
+    border-bottom-color: #e2e8f0 !important;
+}
+
+[data-theme="light"] .editor-toolbar button {
+    color: #1e293b !important;
+}
+
+[data-theme="light"] .pagination-controls button {
+    color: #1e293b !important;
+}
+
+[data-theme="light"] .pagination-controls span {
+    color: #1e293b !important;
+}
+
+[data-theme="light"] .viewer-footer button {
+    color: #1e293b !important;
+}
+
+[data-theme="light"] .viewer-footer span {
+    color: #1e293b !important;
+}
+
+/* Signup pages - ensure text visibility in light mode */
+[data-theme="light"] .signup-container {
+    background: white !important;
+    border: 1px solid #e5e7eb !important;
+}
+
+[data-theme="light"] .signup-container h1 {
+    color: #1e293b !important;
+}
+
+[data-theme="light"] .form-group label {
+    color: #374151 !important;
+}
+
+[data-theme="light"] .form-group input {
+    background: white !important;
+    border-color: #d1d5db !important;
+    color: #1e293b !important;
+}
+
+[data-theme="light"] .info-box {
+    background: #f9fafb !important;
+    border-color: #e5e7eb !important;
+}
+
+[data-theme="light"] .info-box p {
+    color: #4b5563 !important;
+}
+
+/* Scrollbar for light mode */
+[data-theme="light"] ::-webkit-scrollbar-track {
+    background: #f1f5f9 !important;
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+    background: #cbd5e1 !important;
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8 !important;
+}
+
+/* Hero section for light mode */
+[data-theme="light"] #landing-page {
+    background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%) !important;
+}
+
+[data-theme="light"] #landing-page h1 {
+    color: #1e293b !important;
+}
+
+[data-theme="light"] #landing-page p {
+    color: #64748b !important;
+}
+
+/* Aurora effects for light mode */
+[data-theme="light"] .aurora-light-1 {
+    background: linear-gradient(
+        to right,
+        transparent 0%,
+        rgba(59, 130, 246, 0.15) 40%,
+        rgba(6, 182, 212, 0.1) 60%,
+        transparent 100%
+    ) !important;
+}
+
+[data-theme="light"] .aurora-light-2 {
+    background: linear-gradient(
+        to right,
+        transparent 0%,
+        rgba(16, 185, 129, 0.1) 35%,
+        rgba(59, 130, 246, 0.08) 65%,
+        transparent 100%
+    ) !important;
+}
+
+[data-theme="light"] .aurora-light-3 {
+    background: linear-gradient(
+        to right,
+        transparent 0%,
+        rgba(245, 158, 11, 0.1) 50%,
+        rgba(6, 182, 212, 0.1) 50%,
+        transparent 100%
+    ) !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+    .theme-toggle {
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+        top: 16px;
+        right: 16px;
+    }
+}
